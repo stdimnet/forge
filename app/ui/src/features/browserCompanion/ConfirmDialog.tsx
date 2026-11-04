@@ -5,6 +5,7 @@
 import { createSignal, For, onMount, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { CircleHelp, TriangleAlert } from "lucide-solid";
+import { t } from "@/i18n";
 
 export interface ConfirmOptions {
   title: string;
@@ -76,7 +77,7 @@ function Dialog(props: { req: Request }) {
         </div>
         <footer class="bc-confirm-actions">
           <button type="button" class="btn-secondary" onClick={() => close(false)}>
-            {props.req.cancelLabel ?? "Cancel"}
+            {props.req.cancelLabel ?? t("common.cancel")}
           </button>
           <button type="submit" class="btn-primary" ref={ok}>
             {props.req.okLabel}

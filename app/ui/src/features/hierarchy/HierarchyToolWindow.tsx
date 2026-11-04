@@ -47,6 +47,7 @@ import {
   updateTab,
   type HierarchyTab,
 } from "./state";
+import { t as tr } from "@/i18n";
 
 const KIND_TITLES: Record<HierarchyTab["kind"], string> = {
   type: "Type Hierarchy",
@@ -70,7 +71,7 @@ export function HierarchyTabs() {
             <span class="run-tab-title">{t.title}</span>
             <button
               class="run-tab-close"
-              title="Close Tab"
+              title={tr("common.closeTab")}
               onClick={(e) => {
                 e.stopPropagation();
                 closeHierarchyTab(t.id);
@@ -165,13 +166,13 @@ function Toolbar(props: { tab: HierarchyTab }) {
           const view = () => (t() as { view: TypeView }).view;
           return (
             <>
-              <ToolButton title="Class Hierarchy" on={view() === "class"} onClick={() => setView("class")}>
+              <ToolButton title={tr("tools.hierarchy.classHierarchy")} on={view() === "class"} onClick={() => setView("class")}>
                 <Network size={15} />
               </ToolButton>
-              <ToolButton title="Supertypes Hierarchy" on={view() === "supertypes"} onClick={() => setView("supertypes")}>
+              <ToolButton title={tr("tools.hierarchy.supertypesHierarchy")} on={view() === "supertypes"} onClick={() => setView("supertypes")}>
                 <ArrowUpNarrowWide size={15} />
               </ToolButton>
-              <ToolButton title="Subtypes Hierarchy" on={view() === "subtypes"} onClick={() => setView("subtypes")}>
+              <ToolButton title={tr("tools.hierarchy.subtypesHierarchy")} on={view() === "subtypes"} onClick={() => setView("subtypes")}>
                 <ArrowDownNarrowWide size={15} />
               </ToolButton>
             </>
@@ -183,7 +184,7 @@ function Toolbar(props: { tab: HierarchyTab }) {
           const hide = () => (t() as { hideNotImplemented: boolean }).hideNotImplemented;
           return (
             <ToolButton
-              title={hide() ? "Show All Classes" : "Hide Classes Where Method Is Not Implemented"}
+              title={hide() ? tr("tools.hierarchy.showAllClasses") : tr("tools.hierarchy.hideClassesWhereMethodIs")}
               on={hide()}
               onClick={() =>
                 updateTab(id(), (x) => {
@@ -201,10 +202,10 @@ function Toolbar(props: { tab: HierarchyTab }) {
           const dir = () => (t() as { direction: string }).direction;
           return (
             <>
-              <ToolButton title="Caller Methods Hierarchy" on={dir() === "callers"} onClick={() => setCallDirection(id(), "callers")}>
+              <ToolButton title={tr("tools.hierarchy.callerMethodsHierarchy")} on={dir() === "callers"} onClick={() => setCallDirection(id(), "callers")}>
                 <PhoneIncoming size={15} />
               </ToolButton>
-              <ToolButton title="Callee Methods Hierarchy" on={dir() === "callees"} onClick={() => setCallDirection(id(), "callees")}>
+              <ToolButton title={tr("tools.hierarchy.calleeMethodsHierarchy")} on={dir() === "callees"} onClick={() => setCallDirection(id(), "callees")}>
                 <PhoneOutgoing size={15} />
               </ToolButton>
             </>
@@ -213,19 +214,19 @@ function Toolbar(props: { tab: HierarchyTab }) {
       </Show>
       <span class="hierarchy-sep" />
       <ToolButton
-        title="Sort Alphabetically"
+        title={tr("common.sortAlphabetically")}
         on={tab().sortAlphabetically}
         onClick={() => updateTab(id(), (t) => (t.sortAlphabetically = !t.sortAlphabetically))}
       >
         <ArrowDownAZ size={15} />
       </ToolButton>
-      <button class="hierarchy-scope" title="Scope" onClick={scopeMenu}>
-        Scope: <span class="hierarchy-scope-value">{SCOPES.find((s) => s.id === tab().scope)?.label}</span>
+      <button class="hierarchy-scope" title={tr("common.scope")} onClick={scopeMenu}>
+        {tr("common.scopeLabel")} <span class="hierarchy-scope-value">{SCOPES.find((s) => s.id === tab().scope)?.label}</span>
         <ChevronDown size={12} />
       </button>
       <span class="hierarchy-sep" />
       <ToolButton
-        title="Expand All"
+        title={tr("common.expandAll2")}
         onClick={() =>
           updateTab(id(), (t) => {
             if (t.kind === "call") {
@@ -238,7 +239,7 @@ function Toolbar(props: { tab: HierarchyTab }) {
         <ChevronsUpDown size={15} />
       </ToolButton>
       <ToolButton
-        title="Collapse All"
+        title={tr("common.collapseAll2")}
         onClick={() =>
           updateTab(id(), (t) => {
             if (t.kind === "call") t.expanded = [];
@@ -248,10 +249,10 @@ function Toolbar(props: { tab: HierarchyTab }) {
       >
         <ChevronsDownUp size={15} />
       </ToolButton>
-      <ToolButton title="Autoscroll to Source" on={autoscroll()} onClick={() => setAutoscroll(!autoscroll())}>
+      <ToolButton title={tr("tools.hierarchy.autoscrollToSource")} on={autoscroll()} onClick={() => setAutoscroll(!autoscroll())}>
         <Crosshair size={15} />
       </ToolButton>
-      <ToolButton title="Refresh" onClick={() => void refreshTab(id())}>
+      <ToolButton title={tr("common.refresh")} onClick={() => void refreshTab(id())}>
         <RotateCw size={15} />
       </ToolButton>
     </div>
@@ -297,10 +298,10 @@ function Row(props: { tab: HierarchyTab; row: HierarchyRow; onToggle: (row: Hier
           <span class="hierarchy-container">{r().item.container}</span>
         </Show>
         <Show when={r().calls && r().calls!.length > 1}>
-          <span class="hierarchy-count">({r().calls!.length} usages)</span>
+          <span class="hierarchy-count">{tr("tools.hierarchy.usages", { count: r().calls!.length })}</span>
         </Show>
         <Show when={r().recursive}>
-          <span class="hierarchy-count" title="Recursive call">
+          <span class="hierarchy-count" title={tr("tools.hierarchy.recursiveCall")}>
             <RotateCw size={11} />
           </span>
         </Show>
@@ -313,10 +314,10 @@ function Row(props: { tab: HierarchyTab; row: HierarchyRow; onToggle: (row: Hier
 function CallSites(props: { row: HierarchyRow | undefined }) {
   const calls = () => props.row?.calls ?? [];
   return (
-    <div class="hierarchy-usages" aria-label="Usages">
+    <div class="hierarchy-usages" aria-label={tr("tools.hierarchy.usages2")}>
       <Show
         when={calls().length}
-        fallback={<div class="hierarchy-usages-empty muted">Select a caller or callee to see where the calls are made</div>}
+        fallback={<div class="hierarchy-usages-empty muted">{tr("tools.hierarchy.selectACallerOrCallee")}</div>}
       >
         <For each={calls()}>
           {(c) => (
@@ -418,8 +419,7 @@ export function HierarchyToolWindow() {
         <div class="hierarchy-empty">
           <Network size={28} class="muted" />
           <div>
-            Type Hierarchy ({shortcutLabel("TypeHierarchy")}), Method Hierarchy ({shortcutLabel("MethodHierarchy")}) and Call Hierarchy (
-            {shortcutLabel("CallHierarchy")}) of the symbol at the caret are shown here.
+            {tr("tools.hierarchy.typeHierarchyMethodHierarchyAnd", { value: shortcutLabel("TypeHierarchy"), value2: shortcutLabel("MethodHierarchy"), value3: shortcutLabel("CallHierarchy") })}
           </div>
         </div>
       }

@@ -10,6 +10,7 @@ import { remoteApi, type SshConfiguration, type SshConfigView } from "@/ipc/remo
 import { AUTH_LABELS, SshForm } from "./SshForm";
 import { TestResultLine, useConnectionTest } from "./TestConnection";
 import { blankConfig } from "./store";
+import { t } from "@/i18n";
 
 const NEW = "__new__";
 
@@ -87,19 +88,19 @@ export function SshConfigurationsPage() {
   return (
     <div class="ssh-settings">
       <p class="ssh-settings-intro muted">
-        SSH connections for remote development. Passwords and key passphrases are stored in the system keychain;{" "}
-        <code>~/.ssh/config</code> hosts can be used by their alias.
+        {t("tools.remote.sshConnectionsForRemoteDevelopment")}
+        <code>~/.ssh/config</code> {t("tools.remote.hostsCanBeUsedBy")}
       </p>
       <div class="ssh-master-detail">
         <div class="ssh-list-pane">
           <div class="ssh-list-toolbar">
-            <button class="icon-btn" title="Add" onClick={() => select(null)} data-testid="ssh-config-add">
+            <button class="icon-btn" title={t("common.add")} onClick={() => select(null)} data-testid="ssh-config-add">
               <Plus size={16} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={!current()} onClick={() => void remove()}>
+            <button class="icon-btn" title={t("common.remove")} disabled={!current()} onClick={() => void remove()}>
               <Minus size={16} />
             </button>
-            <button class="icon-btn" title="Copy" disabled={!current()} onClick={duplicate}>
+            <button class="icon-btn" title={t("common.copy")} disabled={!current()} onClick={duplicate}>
               <Copy size={14} />
             </button>
           </div>
@@ -130,26 +131,26 @@ export function SshConfigurationsPage() {
               <div class="ssh-list-row selected">
                 <Server size={15} class="ssh-folder-icon" />
                 <span class="ssh-list-text">
-                  <span class="ssh-list-title">{draft.host ? `${draft.user || "?"}@${draft.host}` : "New configuration"}</span>
-                  <span class="ssh-list-sub muted">Not saved yet</span>
+                  <span class="ssh-list-title">{draft.host ? `${draft.user || "?"}@${draft.host}` : t("tools.remote.newConfiguration")}</span>
+                  <span class="ssh-list-sub muted">{t("common.notSavedYet")}</span>
                 </span>
               </div>
             </Show>
             <Show when={!list.loading && !list()?.length && selected() !== NEW}>
-              <div class="ssh-empty muted">No SSH configurations.</div>
+              <div class="ssh-empty muted">{t("tools.remote.noSshConfigurations")}</div>
             </Show>
           </div>
         </div>
         <div class="ssh-detail-pane">
-          <Show when={selected()} fallback={<div class="ssh-empty muted">Add an SSH configuration to connect to a remote host.</div>}>
+          <Show when={selected()} fallback={<div class="ssh-empty muted">{t("tools.remote.addAnSshConfigurationTo")}</div>}>
             <div class="ssh-name-row">
               <label class="ssh-label" for="ssh-config-name">
-                Name:
+                {t("common.nameLabel")}
               </label>
               <input
                 id="ssh-config-name"
                 class="ssh-input"
-                placeholder={draft.host ? `${draft.user || "user"}@${draft.host}` : "Optional"}
+                placeholder={draft.host ? `${draft.user || "user"}@${draft.host}` : t("tools.remote.optional")}
                 value={draft.name ?? ""}
                 onInput={(e) => update({ name: e.currentTarget.value || undefined })}
               />
@@ -172,7 +173,7 @@ export function SshConfigurationsPage() {
                 disabled={problems().length > 0 || test.state()?.running === true}
                 onClick={() => void test.run({ ...draft }, secret())}
               >
-                Test Connection
+                {t("common.testConnection")}
               </button>
               <TestResultLine state={test.state()} host={draft.host.trim()} />
             </div>
@@ -181,10 +182,10 @@ export function SshConfigurationsPage() {
                 <span class="ssh-error-text">{saveError()}</span>
               </Show>
               <button class="btn-secondary" disabled={!dirty()} onClick={() => select(current() ?? null)}>
-                Reset
+                {t("common.reset")}
               </button>
               <button class="btn-primary" disabled={!dirty() || problems().length > 0} onClick={() => void save()}>
-                Save
+                {t("common.save")}
               </button>
             </div>
           </Show>

@@ -223,11 +223,9 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
           </Show>
           <Show when={kind === "parameter"}>
             <div class="refactor-note">
-              Adds the parameter to <code>{info.functionName}</code>
+              {t("tools.codeintel.addsTheParameterTo")} <code>{info.functionName}</code>
               <Show when={!defaultValue() && info.callSites > 0}>
-                {" "}
-                and passes the expression in {info.callSites} call
-                {info.callSites === 1 ? "" : "s"}
+                {t("tools.codeintel.andPassesTheExpressionIn", { count: info.callSites })}
               </Show>
               .
             </div>
@@ -241,7 +239,7 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
                 disabled={!info.constantExpression}
                 onChange={(e) => setDefaultValue(e.currentTarget.checked)}
               />
-              Optional parameter (the expression is the default value)
+              {t("tools.codeintel.optionalParameterTheExpressionIs")}
             </label>
           </Show>
           <Show when={kind === "constant" && info.global}>
@@ -250,7 +248,7 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
           <Show when={info.occurrences > 1}>
             <label class="form-label check">
               <input type="checkbox" checked={replaceAll()} onChange={(e) => setReplaceAll(e.currentTarget.checked)} />
-              Replace all occurrences ({info.occurrences})
+              {t("tools.codeintel.replaceAllOccurrences", { occurrences: info.occurrences })}
             </label>
           </Show>
         </div>
@@ -381,12 +379,11 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
               </div>
             </Show>
           </fieldset>
-          <div class="refactor-note">Returns {returns()}</div>
+          <div class="refactor-note">{t("tools.codeintel.returns", { returns: returns() })}</div>
           <Show when={info.duplicates > 0}>
             <label class="form-label check">
               <input type="checkbox" checked={duplicates()} onChange={(e) => setDuplicates(e.currentTarget.checked)} />
-              Replace {info.duplicates} code fragment
-              {info.duplicates === 1 ? "" : "s"} found that can be replaced with a call
+              {t("tools.codeintel.replaceCodeFragmentsFoundThat", { count: info.duplicates })}
             </label>
           </Show>
           <div class="refactor-signature-label">{t("codeintel.extractDialogs.signaturePreview")}</div>

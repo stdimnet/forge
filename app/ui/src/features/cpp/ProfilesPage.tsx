@@ -12,6 +12,7 @@ import { cppApi, type Profile, type ProfileEntry } from "@/ipc/cpp";
 import type { SettingObject } from "@/ipc/settings";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { SchemaPage } from "@/features/settings/SchemaPage";
+import { t as tr } from "@/i18n";
 import "./cpp.css";
 
 const KEY = "cmake.profiles";
@@ -36,11 +37,11 @@ const entryOf = (p: Partial<Profile> & { name: string }): ProfileEntry => ({
 
 /** The sanitizers a profile can enable (`cforge_cmake::sanitizers::SANITIZERS`). */
 const SANITIZERS = [
-  { id: "address", label: "ASan", title: "AddressSanitizer: out-of-bounds accesses, use after free, double free" },
-  { id: "undefined", label: "UBSan", title: "UndefinedBehaviorSanitizer: overflows, invalid shifts, null dereferences" },
-  { id: "thread", label: "TSan", title: "ThreadSanitizer: data races (not with ASan, LSan or MSan)" },
-  { id: "memory", label: "MSan", title: "MemorySanitizer: reads of uninitialized memory (Clang only; not with ASan, LSan or TSan)" },
-  { id: "leak", label: "LSan", title: "LeakSanitizer: memory leaks (included in ASan on Linux)" },
+  { id: "address", label: tr("langs.cpp.asan"), title: tr("langs.cpp.addresssanitizerOutOfBoundsAccesses") },
+  { id: "undefined", label: tr("langs.cpp.ubsan"), title: tr("langs.cpp.undefinedbehaviorsanitizerOverflowsInval") },
+  { id: "thread", label: tr("langs.cpp.tsan"), title: tr("langs.cpp.threadsanitizerDataRacesNotWith") },
+  { id: "memory", label: tr("langs.cpp.msan"), title: tr("langs.cpp.memorysanitizerReadsOfUninitializedMemor") },
+  { id: "leak", label: tr("langs.cpp.lsan"), title: tr("langs.cpp.leaksanitizerMemoryLeaksIncludedIn") },
 ];
 
 function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void; toolchains: { id: string; name: string }[]; sanitizerError?: string }) {
@@ -62,34 +63,34 @@ function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void;
     <div class="tc-editor" data-testid="cmake-profile-form">
       <label class="tc-check">
         <input type="checkbox" checked={props.entry.enabled !== "false"} onChange={(e) => set("enabled", e.currentTarget.checked ? "true" : "false")} />
-        Enable profile
+        {tr("langs.cpp.enableProfile")}
       </label>
       {text("name", "Name")}
       <label class="tc-field">
-        <span>Build type:</span>
+        <span>{tr("langs.cpp.buildTypeLabel")}</span>
         <select value={props.entry.buildType || "Debug"} onChange={(e) => set("buildType", e.currentTarget.value)}>
           <For each={BUILD_TYPES}>{(b) => <option value={b}>{b}</option>}</For>
         </select>
       </label>
       <label class="tc-field">
-        <span>Toolchain:</span>
+        <span>{tr("langs.cpp.toolchainLabel")}</span>
         <select value={props.entry.toolchain} onChange={(e) => set("toolchain", e.currentTarget.value)}>
-          <option value="">Use Default ({props.toolchains[0]?.name ?? "none"})</option>
+          <option value="">{tr("langs.cpp.useDefault", { value: props.toolchains[0]?.name ?? "none" })}</option>
           <For each={props.toolchains}>{(t) => <option value={t.id}>{t.name}</option>}</For>
         </select>
       </label>
       <label class="tc-field">
-        <span>Generator:</span>
+        <span>{tr("langs.cpp.generatorLabel")}</span>
         <select value={props.entry.generator} onChange={(e) => set("generator", e.currentTarget.value)}>
-          <For each={GENERATORS}>{(g) => <option value={g}>{g || "Use default"}</option>}</For>
+          <For each={GENERATORS}>{(g) => <option value={g}>{g || tr("langs.cpp.useDefault2")}</option>}</For>
         </select>
       </label>
-      {text("cmakeOptions", "CMake options", "-DSHAPES_TESTS=ON")}
-      {text("buildDirectory", "Build directory", defaultBuildDir(props.entry.name))}
-      {text("buildOptions", "Build options", "-j 8")}
-      {text("environment", "Environment", "CCACHE_DISABLE=1;ASAN_OPTIONS=detect_leaks=0")}
+      {text("cmakeOptions", tr("langs.cpp.cmakeOptions"), "-DSHAPES_TESTS=ON")}
+      {text("buildDirectory", tr("langs.cpp.buildDirectory"), defaultBuildDir(props.entry.name))}
+      {text("buildOptions", tr("langs.cpp.buildOptions"), "-j 8")}
+      {text("environment", tr("langs.cpp.environment"), "CCACHE_DISABLE=1;ASAN_OPTIONS=detect_leaks=0")}
       <div class="tc-field" data-testid="cmake-profile-sanitizers">
-        <span>Sanitizers:</span>
+        <span>{tr("langs.cpp.sanitizersLabel")}</span>
         <div class="tc-sanitizers">
           <For each={SANITIZERS}>
             {(x) => (
@@ -146,12 +147,12 @@ export function ProfilesPage() {
       <div class="tc-page" data-testid="cmake-profiles-page">
         <div class="tc-list">
           <div class="tc-toolbar">
-            <button class="icon-btn" title="Add" onClick={() => add()}>
+            <button class="icon-btn" title={tr("common.add")} onClick={() => add()}>
               <Plus size={14} />
             </button>
             <button
               class="icon-btn"
-              title="Remove"
+              title={tr("common.remove")}
               disabled={current().kind !== "entry" || entries().length < 2}
               onClick={() => {
                 const c = current();
@@ -163,7 +164,7 @@ export function ProfilesPage() {
             </button>
             <button
               class="icon-btn"
-              title="Copy"
+              title={tr("common.copy")}
               onClick={() => {
                 const c = current();
                 add(c.kind === "entry" ? c.entry : entryOf({ ...c.profile, name: c.profile.name, preset: undefined }));
@@ -175,7 +176,7 @@ export function ProfilesPage() {
           <For each={entries()}>
             {(e, i) => (
               <div class="tree-row tc-item" classList={{ selected: selected() === `e:${i()}`, "tc-disabled": e.enabled === "false" }} data-testid="cmake-profile-row" onClick={() => setSelected(`e:${i()}`)}>
-                <span class="tree-label">{e.name || "Unnamed"}</span>
+                <span class="tree-label">{e.name || tr("langs.cpp.unnamed")}</span>
                 <span class="tree-hint">{e.buildType}</span>
               </div>
             )}
@@ -204,21 +205,21 @@ export function ProfilesPage() {
           <Show when={currentPreset()}>
             {(p) => (
               <div class="tc-details" data-testid="cmake-preset-details">
-                <div class="tc-note">Loaded from {info()?.presetFiles.join(", ")}. Edit the preset file to change it, or Copy it to a profile.</div>
+                <div class="tc-note">{tr("langs.cpp.loadedFromEditThePreset", { presetFiles: info()?.presetFiles.join(", ") })}</div>
                 <div class="tc-row">
-                  <span class="tc-label">Preset:</span>
+                  <span class="tc-label">{tr("langs.cpp.presetLabel")}</span>
                   <span class="tc-value">{p().preset}</span>
                 </div>
                 <div class="tc-row">
-                  <span class="tc-label">Build type:</span>
+                  <span class="tc-label">{tr("langs.cpp.buildTypeLabel")}</span>
                   <span class="tc-value">{p().buildType}</span>
                 </div>
                 <div class="tc-row">
-                  <span class="tc-label">Generator:</span>
-                  <span class="tc-value">{p().generator || "Default"}</span>
+                  <span class="tc-label">{tr("langs.cpp.generatorLabel")}</span>
+                  <span class="tc-value">{p().generator || tr("common.default")}</span>
                 </div>
                 <div class="tc-row">
-                  <span class="tc-label">Build directory:</span>
+                  <span class="tc-label">{tr("langs.cpp.buildDirectoryLabel")}</span>
                   <span class="tc-value">{p().buildDirectory}</span>
                 </div>
                 <For each={Object.entries(p().cacheVariables ?? {})}>

@@ -11,6 +11,7 @@ import { showBalloon } from "@/keymap";
 import { reloadFile } from "@/state/editor";
 import { isPluginActive } from "@/state/project";
 import { getSetting, saveSettings } from "@/state/settings";
+import { t as tr } from "@/i18n";
 
 export const pythonActive = () => isPluginActive("forge.python-env");
 
@@ -189,13 +190,13 @@ export async function packageAction(action: PackageAction, packages: string[]): 
     const cmd = await pythonApi.packagesCommand(action, packages);
     const code = await runCommandLine(commandName(cmd), cmd);
     if (code !== 0) {
-      if (code !== null) showBalloon(`Python Packages: ${action} failed`, `Exit code ${code}. See the Run tool window.`, 5000, undefined, { type: "error" });
+      if (code !== null) showBalloon(tr("langs.python.pythonPackagesFailed", { action }), tr("langs.python.exitCodeSeeTheRun", { code }), 5000, undefined, { type: "error" });
       return false;
     }
     await Promise.all(["pyproject.toml", "poetry.lock", "uv.lock", "Pipfile"].map((p) => reloadFile(p).catch(() => undefined)));
     return true;
   } catch (e) {
-    showBalloon("Python Packages", String(e), 5000, undefined, { type: "error" });
+    showBalloon(tr("langs.python.pythonPackages"), String(e), 5000, undefined, { type: "error" });
     return false;
   } finally {
     setRunning((n) => n - 1);

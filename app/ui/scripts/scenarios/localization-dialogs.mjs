@@ -1,8 +1,10 @@
 /**
  * The translated tool windows and dialogs in German: Git, Debugger, Database, refactorings,
- * Run/Debug Configurations with Run on, and the PHP settings pages. Each scenario switches the
- * IDE to German and then runs the steps of the English scenario of the feature, so the German
- * screenshots show the same state (and longer German text can be checked for overflow).
+ * Run/Debug Configurations with Run on, the PHP settings pages, and the tool windows of the
+ * language packs (.NET Build and NuGet, merge requests, CMake profiles, Python Packages). Each
+ * scenario switches the IDE to German and then runs the steps of the English scenario of the
+ * feature, so the German screenshots show the same state (and longer German text can be checked
+ * for overflow).
  */
 import vcs from "./vcs.mjs";
 import gitDialogs from "./git-dialogs.mjs";
@@ -12,6 +14,10 @@ import moveRefactorings from "./move-refactorings.mjs";
 import highlightUsages from "./highlight-usages.mjs";
 import settings from "./settings.mjs";
 import phpQualityTools from "./php-quality-tools.mjs";
+import dotnet from "./dotnetforge.mjs";
+import forges from "./forges.mjs";
+import cforge from "./cforge.mjs";
+import pyforge from "./pyforge.mjs";
 
 /**
  * Store `ide.language = de` in the browser-mode user settings and start again, like after the
@@ -37,10 +43,15 @@ async function addShop(page) {
 }
 
 /** @param {(page: import("playwright-core").Page) => Promise<void>} steps */
-const de = (steps) => async (page) => {
-  await german(page);
-  await steps(page);
-};
+const de = (steps) =>
+  Object.assign(
+    async (page) => {
+      await german(page);
+      await steps(page);
+    },
+    // Keep the start page of the English scenario (`?project=dotnet`, …).
+    { query: steps.query, waitFor: steps.waitFor },
+  );
 
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
@@ -77,6 +88,11 @@ export default {
   "i18n-find-usages-de": de(highlightUsages["find-usages-dialog"]),
   "i18n-settings-php-de": de(settings["settings-php"]),
   "i18n-php-quality-tools-de": de(phpQualityTools["php-quality-tools-settings"]),
+  "i18n-dotnet-build-de": de(dotnet["dotnet-build"]),
+  "i18n-dotnet-nuget-de": de(dotnet["dotnet-nuget"]),
+  "i18n-forges-mr-overview-de": de(forges["forges-mr-overview"]),
+  "i18n-cmake-profiles-de": de(cforge["cmake-profiles"]),
+  "i18n-python-packages-de": de(pyforge["python-packages"]),
   "i18n-run-on-de": de(async (page) => {
     await page.click(".run-config");
     await page.click(".run-dropdown .run-dd-item:has-text('Konfigurationen bearbeiten')");

@@ -7,6 +7,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import { chat, interrupt, newChat, sendMessage } from "./store";
 import { awaitingPermission } from "./model";
 import { findChatAgent } from "./agents";
+import { t as tr } from "@/i18n";
 
 const [draft, setDraft] = createSignal("");
 /** Prefill the composer (empty-state suggestions, commands). */
@@ -43,9 +44,9 @@ export function Composer() {
   const attachOptions = createMemo<AttachOption[]>(() => {
     const opts: AttachOption[] = [];
     const sel = menu() ? activeSelection() : undefined;
-    if (sel) opts.push({ key: "sel", label: "Selection", hint: `${sel.path.split("/").pop()}:${sel.startLine}-${sel.endLine}`, selection: sel });
+    if (sel) opts.push({ key: "sel", label: tr("tools.aiChat.selection"), hint: `${sel.path.split("/").pop()}:${sel.startLine}-${sel.endLine}`, selection: sel });
     const current = activeTab();
-    if (current) opts.push({ key: `f:${current.path}`, label: current.name, hint: "Current file", file: current.path });
+    if (current) opts.push({ key: `f:${current.path}`, label: current.name, hint: tr("tools.aiChat.currentFile"), file: current.path });
     for (const t of editor.tabs)
       if (t.path !== current?.path) opts.push({ key: `f:${t.path}`, label: t.name, hint: t.path.split("/").slice(0, -1).join("/"), file: t.path });
     return opts.filter((o) => !o.file || !files().includes(o.file));
@@ -54,7 +55,7 @@ export function Composer() {
   const slashHints = createMemo(() => {
     const d = draft();
     if (!d.startsWith("/") || d.includes(" ") || d.includes("\n")) return [];
-    const cmds = [{ name: "clear", description: "Start a new chat" }, ...(agent()?.slashCommands ?? [])];
+    const cmds = [{ name: "clear", description: tr("tools.aiChat.startANewChat") }, ...(agent()?.slashCommands ?? [])];
     return cmds.filter((c) => c.name.startsWith(d.slice(1)));
   });
 
@@ -143,8 +144,8 @@ export function Composer() {
       </Show>
       <Show when={menu()}>
         <div class="chat-popup chat-attach-menu">
-          <div class="chat-popup-title">Attach context</div>
-          <For each={attachOptions()} fallback={<div class="chat-popup-empty">Open a file to attach it</div>}>
+          <div class="chat-popup-title">{tr("tools.aiChat.attachContext")}</div>
+          <For each={attachOptions()} fallback={<div class="chat-popup-empty">{tr("tools.aiChat.openAFileToAttach")}</div>}>
             {(o, i) => (
               <button
                 class="chat-popup-item"
@@ -171,7 +172,7 @@ export function Composer() {
                 <span class="chat-context-chip" title={f}>
                   <FileIcon name={f.split("/").pop() ?? f} size={12} />
                   {f.split("/").pop()}
-                  <button title="Remove" onClick={() => setFiles((x) => x.filter((p) => p !== f))}>
+                  <button title={tr("common.remove")} onClick={() => setFiles((x) => x.filter((p) => p !== f))}>
                     <X size={11} />
                   </button>
                 </span>
@@ -182,7 +183,7 @@ export function Composer() {
                 <span class="chat-context-chip" title={s().text}>
                   <TextSelect size={12} />
                   {s().path.split("/").pop()}:{s().startLine}-{s().endLine}
-                  <button title="Remove" onClick={() => setSelection(undefined)}>
+                  <button title={tr("common.remove")} onClick={() => setSelection(undefined)}>
                     <X size={11} />
                   </button>
                 </span>
@@ -195,7 +196,7 @@ export function Composer() {
           class="chat-input"
           rows={1}
           value={draft()}
-          placeholder={chat.running ? (awaitingPermission(chat.conv) ? `${agent()?.name ?? "The agent"} is waiting for your answer…` : `${agent()?.name ?? "The agent"} is working…`) : `Ask ${agent()?.name ?? "the agent"}…  @ to add context, / for commands`}
+          placeholder={chat.running ? (awaitingPermission(chat.conv) ? tr("tools.aiChat.isWaitingForYourAnswerEllipsis", { value: agent()?.name ?? "The agent" }) : tr("tools.aiChat.isWorkingEllipsis", { value: agent()?.name ?? "The agent" })) : tr("tools.aiChat.askToAddContextFor", { value: agent()?.name ?? "the agent" })}
           onInput={onInput}
           onKeyDown={onKeyDown}
           onBlur={() => setTimeout(() => setMenu(null), 120)}
@@ -203,7 +204,7 @@ export function Composer() {
         <div class="chat-composer-bar">
           <button
             class="chat-mini-btn"
-            title="Attach current file or selection (@)"
+            title={tr("tools.aiChat.attachCurrentFileOrSelection")}
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => {
               e.stopPropagation();
@@ -213,19 +214,19 @@ export function Composer() {
             }}
           >
             <AtSign size={13} />
-            <span>Context</span>
+            <span>{tr("tools.aiChat.context")}</span>
           </button>
           <span class="chat-flex" />
-          <span class="chat-composer-hint">{chat.running ? "Esc to stop" : "⏎ send · ⇧⏎ newline"}</span>
+          <span class="chat-composer-hint">{chat.running ? tr("tools.aiChat.escToStop") : tr("tools.aiChat.sendNewline")}</span>
           <Show
             when={chat.running}
             fallback={
-              <button class="chat-send" title="Send (Enter)" disabled={!draft().trim()} onClick={(e) => (e.stopPropagation(), submit())}>
+              <button class="chat-send" title={tr("tools.aiChat.sendEnter")} disabled={!draft().trim()} onClick={(e) => (e.stopPropagation(), submit())}>
                 <ArrowUp size={15} stroke-width={2.5} />
               </button>
             }
           >
-            <button class="chat-send stop" title="Stop (Esc)" onClick={(e) => (e.stopPropagation(), void interrupt())}>
+            <button class="chat-send stop" title={tr("tools.aiChat.stopEsc")} onClick={(e) => (e.stopPropagation(), void interrupt())}>
               <Square size={11} fill="currentColor" />
             </button>
           </Show>

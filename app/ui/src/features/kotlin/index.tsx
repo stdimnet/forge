@@ -78,7 +78,7 @@ registerStatusItem({
       {(i) => (
         <span class="status-item ls-install-status" title={i().label}>
           <LoaderCircle size={13} class="lsp-spin" />
-          <span class="ls-install-status-name">{i().id === "kotlin-lsp" ? "Installing kotlin-lsp:" : `Downloading ${i().id}:`}</span>
+          <span class="ls-install-status-name">{i().id === "kotlin-lsp" ? t("langs.kotlin.installingKotlinLspLabel") : t("langs.kotlin.downloadingLabel", { id: i().id })}</span>
           <span class="ls-install-status-text">{i().total ? `${i().label} · ${Math.floor((i().done / i().total!) * 100)}%` : i().label}</span>
           <span class="ls-install-bar" classList={{ indeterminate: !i().total }}>
             <span style={{ width: `${Math.round((i().total ? i().done / i().total! : 0.35) * 100)}%` }} />
@@ -123,10 +123,10 @@ function runMenu(label: string, cfg: () => ReturnType<typeof useTemporary>, debu
       x: e.clientX,
       y: e.clientY + 6,
       items: [
-        { label: `Run '${label}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
-        ...(debuggable ? [{ label: `Debug '${label}'`, icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(cfg()) }] : []),
+        { label: t("common.run3", { label }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
+        ...(debuggable ? [{ label: t("langs.kotlin.debug", { label }), icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(cfg()) }] : []),
         { separator: true },
-        { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(cfg().name) },
+        { label: t("common.modifyRunConfigurationEllipsis"), icon: Settings2, run: () => openRunConfigurations(cfg().name) },
       ],
     });
 }
@@ -144,13 +144,13 @@ registerLineMarkerProvider({
       void ktlintFile(path, text);
     }
     if (isScript(path)) {
-      return [{ line: 0, icon: Play, title: `Run '${fileName(path)}'`, className: "marker-run", onClick: runMenu(fileName(path), () => scriptConfiguration(path), false) }];
+      return [{ line: 0, icon: Play, title: t("langs.kotlin.run", { value: fileName(path) }), className: "marker-run", onClick: runMenu(fileName(path), () => scriptConfiguration(path), false) }];
     }
     const mains = await kotlinApi.mainFunctions(path, text).catch(() => [] as MainFunction[]);
     return mains.map((m) => ({
       line: m.line,
       icon: Play,
-      title: `Run '${m.name}'`,
+      title: t("common.run", { name: m.name }),
       className: "marker-run",
       onClick: runMenu(m.name, () => mainConfiguration(path, m), true),
     }));

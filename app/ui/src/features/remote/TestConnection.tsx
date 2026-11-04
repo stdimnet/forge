@@ -3,6 +3,7 @@ import { createSignal, Match, Show, Switch } from "solid-js";
 import { CircleCheck, CircleX, LoaderCircle } from "lucide-solid";
 import { connectErrorText, remoteApi, type SshConfiguration, type TestOutcome } from "@/ipc/remote";
 import { confirmHostKey } from "./store";
+import { t } from "@/i18n";
 
 export type TestState = { running: true } | ({ running: false } & TestOutcome) | null;
 
@@ -42,16 +43,16 @@ export function TestResultLine(props: { state: TestState; host: string }) {
           <Switch>
             <Match when={s().running}>
               <LoaderCircle size={14} class="ssh-spin" />
-              <span class="muted">Connecting to {props.host}…</span>
+              <span class="muted">{t("tools.remote.connectingToEllipsis2", { host: props.host })}</span>
             </Match>
             <Match when={!s().running && (s() as TestOutcome).ok && (s() as TestOutcome)}>
               {(ok) => (
                 <>
                   <CircleCheck size={14} class="ssh-ok" />
                   <span>
-                    Successfully connected to {props.host}
+                    {t("tools.remote.successfullyConnectedTo", { host: props.host })}
                     <Show when={ok().system}> ({ok().system})</Show>
-                    <Show when={ok().latencyMs != null}> in {ok().latencyMs} ms</Show>
+                    <Show when={ok().latencyMs != null}> {t("tools.remote.inMs", { latencyMs: ok().latencyMs })}</Show>
                   </span>
                 </>
               )}

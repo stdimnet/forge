@@ -29,12 +29,12 @@ const showBalloon = balloonsFor("Composer");
 registerRunConfigurationType({
   id: "composer-command",
   name: "Composer",
-  description: "A Composer command.",
+  description: t("langs.composer.aComposerCommand"),
   icon: Package,
   color: "var(--syn-function)",
   pluginId: "forge.composer",
   argumentsLabel: "Arguments",
-  fields: [{ key: "command", label: "Command", required: true, placeholder: "install" }],
+  fields: [{ key: "command", label: t("langs.composer.command"), required: true, placeholder: "install" }],
   hidden: true,
 });
 
@@ -57,7 +57,7 @@ for (const a of ACTIONS) {
     category: "Composer",
     run: () => {
       if (!composerActive()) {
-        showBalloon("Composer is not used in this project", "Open a project with a composer.json, or enable the Composer plugin.");
+        showBalloon(t("langs.composer.composerIsNotUsedIn"), t("langs.composer.openAProjectWithA"));
         return;
       }
       void a.run();

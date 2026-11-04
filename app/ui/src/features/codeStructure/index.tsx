@@ -91,7 +91,7 @@ registerLineMarkerProvider({
     docCommentsOf(Text.of(text.split("\n")), languageIdFor(path)).map((c) => ({
       line: c.line,
       icon: BookOpen,
-      title: "Toggle Rendered View",
+      title: t("tools.codeStructure.toggleRenderedView"),
       className: "marker-doc",
       onClick: (view) => void toggleDocAtLine(view, c.line),
     })),

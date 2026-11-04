@@ -35,7 +35,7 @@ function TestConnection() {
   return (
     <div class="svc-test">
       <button class="btn-secondary" onClick={() => void test()} data-testid="docker-test-connection">
-        Test Connection
+        {t("common.testConnection")}
       </button>
       <Show when={state()}>
         {(s) => (
@@ -59,16 +59,16 @@ function DockerContexts() {
     <Show when={contexts()?.length}>
       <section class="set-section svc-contexts" data-testid="docker-contexts">
         <div class="set-section-title">
-          <span>Docker Contexts</span>
+          <span>{t("tools.services.dockerContexts")}</span>
         </div>
         <div class="set-section-body indented">
-          <p class="muted">Contexts of the Docker CLI (docker context ls). Use connects through one of them.</p>
+          <p class="muted">{t("tools.services.contextsOfTheDockerCli")}</p>
           <table class="svc-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Docker endpoint</th>
-                <th>Description</th>
+                <th>{t("common.name")}</th>
+                <th>{t("tools.services.dockerEndpoint")}</th>
+                <th>{t("common.description")}</th>
                 <th />
               </tr>
             </thead>
@@ -79,13 +79,13 @@ function DockerContexts() {
                     <td>
                       {c.name}
                       <Show when={c.current}>
-                        <span class="muted"> (current)</span>
+                        <span class="muted"> {t("tools.services.current")}</span>
                       </Show>
                     </td>
                     <td>{c.host}</td>
                     <td class="muted">{c.description ?? ""}</td>
                     <td class="svc-cell-actions">
-                      <Show when={!inUse(c.name)} fallback={<span class="svc-in-use">In use</span>}>
+                      <Show when={!inUse(c.name)} fallback={<span class="svc-in-use">{t("tools.services.inUse")}</span>}>
                         <button
                           class="btn-secondary svc-small-btn"
                           onClick={() => {
@@ -93,7 +93,7 @@ function DockerContexts() {
                             setDraft("docker.context", c.name);
                           }}
                         >
-                          Use
+                          {t("tools.services.use")}
                         </button>
                       </Show>
                     </td>
@@ -162,25 +162,25 @@ function RegistryPage() {
   };
   return (
     <div class="set-page svc-registries">
-      <p class="muted">Accounts used to pull images. Passwords and access tokens are stored in the OS keychain, never in settings files.</p>
+      <p class="muted">{t("tools.services.accountsUsedToPullImages")}</p>
       <table class="svc-table">
         <thead>
           <tr>
-            <th>Registry</th>
-            <th>User</th>
-            <th>Password</th>
+            <th>{t("tools.services.registry")}</th>
+            <th>{t("tools.services.user")}</th>
+            <th>{t("tools.services.password")}</th>
             <th />
           </tr>
         </thead>
         <tbody>
-          <For each={accounts()} fallback={<tr><td colSpan={4} class="muted">No registry accounts. Public images are pulled anonymously.</td></tr>}>
+          <For each={accounts()} fallback={<tr><td colSpan={4} class="muted">{t("tools.services.noRegistryAccountsPublicImages")}</td></tr>}>
             {(a, i) => (
               <tr>
                 <td>{a.server}</td>
                 <td>{a.user}</td>
-                <td>{stored()?.[i()] ? "Stored in keychain" : <span class="muted">Not set</span>}</td>
+                <td>{stored()?.[i()] ? "Stored in keychain" : <span class="muted">{t("tools.services.notSet")}</span>}</td>
                 <td>
-                  <button class="icon-btn" title="Remove" onClick={() => void remove(a.server)}>
+                  <button class="icon-btn" title={t("common.remove")} onClick={() => void remove(a.server)}>
                     <Trash2 size={13} />
                   </button>
                 </td>
@@ -190,11 +190,11 @@ function RegistryPage() {
         </tbody>
       </table>
       <div class="svc-registry-form">
-        <input placeholder="Registry (docker.io, ghcr.io, …)" value={server()} onInput={(e) => setServer(e.currentTarget.value)} spellcheck={false} />
-        <input placeholder="User name" value={user()} onInput={(e) => setUser(e.currentTarget.value)} spellcheck={false} />
-        <input placeholder="Password or access token" type="password" value={password()} onInput={(e) => setPassword(e.currentTarget.value)} />
+        <input placeholder={t("tools.services.registryDockerIoGhcrIo")} value={server()} onInput={(e) => setServer(e.currentTarget.value)} spellcheck={false} />
+        <input placeholder={t("tools.services.userName")} value={user()} onInput={(e) => setUser(e.currentTarget.value)} spellcheck={false} />
+        <input placeholder={t("tools.services.passwordOrAccessToken")} type="password" value={password()} onInput={(e) => setPassword(e.currentTarget.value)} />
         <button class="btn-secondary" onClick={() => void add()} disabled={!user().trim()}>
-          <Plus size={13} /> Add
+          <Plus size={13} /> {t("common.add")}
         </button>
       </div>
       <Show when={error()}>
@@ -228,17 +228,17 @@ function HostKubectl() {
   return (
     <section class="set-section svc-host-kubectl" data-testid="kubectl-hosts">
       <div class="set-section-title">
-        <span>kubectl from the Project Host</span>
+        <span>{t("tools.services.kubectlFromTheProjectHost")}</span>
       </div>
       <div class="svc-hosts-body">
         <p class="muted">
-          In remote projects kubectl runs on the project's host with the host's kubeconfig. Hosts without an entry use kubectl from their PATH.
+          {t("tools.services.inRemoteProjectsKubectlRuns")}
         </p>
         <table class="svc-table">
           <thead>
             <tr>
-              <th>Host</th>
-              <th>kubectl path on the host</th>
+              <th>{t("tools.services.host")}</th>
+              <th>{t("tools.services.kubectlPathOnTheHost")}</th>
               <th />
             </tr>
           </thead>
@@ -248,7 +248,7 @@ function HostKubectl() {
               fallback={
                 <tr>
                   <td colSpan={3} class="muted">
-                    No hosts. kubectl from the host's PATH is used.
+                    {t("tools.services.noHostsKubectlFromThe")}
                   </td>
                 </tr>
               }
@@ -258,12 +258,12 @@ function HostKubectl() {
                   <td>
                     {e.host}
                     <Show when={e.host === current()}>
-                      <span class="muted"> (this project)</span>
+                      <span class="muted"> {t("tools.services.thisProject")}</span>
                     </Show>
                   </td>
                   <td class="mono">{e.path}</td>
                   <td>
-                    <button class="icon-btn" title="Remove" onClick={() => save(entries().filter((x) => x.host !== e.host))}>
+                    <button class="icon-btn" title={t("common.remove")} onClick={() => save(entries().filter((x) => x.host !== e.host))}>
                       <Trash2 size={13} />
                     </button>
                   </td>
@@ -276,7 +276,7 @@ function HostKubectl() {
           <input placeholder="user@host" value={host()} onInput={(e) => setHost(e.currentTarget.value)} spellcheck={false} />
           <input placeholder="/usr/local/bin/kubectl" value={path()} onInput={(e) => setPath(e.currentTarget.value)} spellcheck={false} />
           <button class="btn-secondary" onClick={add} disabled={!host().trim() || !path().trim()}>
-            <Plus size={13} /> Add
+            <Plus size={13} /> {t("common.add")}
           </button>
         </div>
       </div>

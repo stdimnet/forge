@@ -19,6 +19,7 @@ import { showBalloon } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { editor, reloadFile, saveAll } from "@/state/editor";
 import { onProjectSwitch } from "@/state/workspace";
+import { t as tr } from "@/i18n";
 
 export const RESULTS_WINDOW = "inspectionResults";
 
@@ -63,7 +64,7 @@ function titleOf(request: Omit<InspectRequest, "runId">, report: Report): string
 
 async function withProgress<T>(title: string, start: (runId: number) => Promise<T>): Promise<T | null> {
   if (running()) {
-    showBalloon("Inspections are running", "Wait for the current run to finish or cancel it.");
+    showBalloon(tr("tools.inspections.inspectionsAreRunning"), tr("tools.inspections.waitForTheCurrentRun"));
     return null;
   }
   listenProgress();
@@ -86,8 +87,8 @@ export async function runInspections(request: Omit<InspectRequest, "runId">): Pr
   if (!report) return;
   if (!report.problems.length) {
     showBalloon(
-      report.cancelled ? "Inspection cancelled" : "No suspicious code found",
-      `${report.files} file${report.files === 1 ? "" : "s"} processed in ${request.scope.label}`,
+      report.cancelled ? tr("tools.inspections.inspectionCancelled") : tr("tools.inspections.noSuspiciousCodeFound"),
+      tr("tools.inspections.filesProcessedIn", { count: report.files, label: request.scope.label }),
     );
     if (report.cancelled || !report.errors.length) return;
   }
@@ -133,14 +134,14 @@ export async function applyFix(tab: ResultsTab, index: number, fix: Fix): Promis
   try {
     const done = await inspectionsApi.applyFix(p.path, p.stamp, fix);
     if (done.skipped.length) {
-      showBalloon("The file changed since it was inspected", `Rerun the inspection to fix ${done.skipped.join(", ")}.`, 5000, undefined, { type: "warning" });
+      showBalloon(tr("tools.inspections.theFileChangedSinceIt"), tr("tools.inspections.rerunTheInspectionToFix", { skipped: done.skipped.join(", ") }), 5000, undefined, { type: "warning" });
       return;
     }
     await reloadOpen(done.written);
     // Other problems of the file have stale offsets now: they need a rerun to be fixed.
     markResolved(tab.id, [index]);
   } catch (e) {
-    showBalloon("Could not apply the fix", e instanceof Error ? e.message : String(e), 5000, undefined, { type: "error" });
+    showBalloon(tr("tools.inspections.couldNotApplyTheFix"), e instanceof Error ? e.message : String(e), 5000, undefined, { type: "error" });
   }
 }
 
@@ -157,11 +158,11 @@ export async function applyCleanup(plan: CleanupPlan): Promise<void> {
     await reloadOpen(done.written);
     const fixes = plan.files.filter((f) => done.written.includes(f.path)).reduce((n, f) => n + f.fixes.length, 0);
     showBalloon(
-      `Code Cleanup: ${fixes} fix${fixes === 1 ? "" : "es"} applied in ${done.written.length} file${done.written.length === 1 ? "" : "s"}`,
-      done.skipped.length ? `Changed since the preview: ${done.skipped.join(", ")}` : undefined,
+      tr("tools.inspections.codeCleanupFixAppliedIn", { fixes, value: fixes, count: done.written.length, value2: done.written.length }),
+      done.skipped.length ? tr("tools.inspections.changedSinceThePreview", { skipped: done.skipped.join(", ") }) : undefined,
     );
   } catch (e) {
-    showBalloon("Code Cleanup failed", e instanceof Error ? e.message : String(e), 5000, undefined, { type: "error" });
+    showBalloon(tr("tools.inspections.codeCleanupFailed"), e instanceof Error ? e.message : String(e), 5000, undefined, { type: "error" });
   }
 }
 
@@ -175,7 +176,7 @@ export async function exportResults(tab: ResultsTab, format: "html" | "xml"): Pr
       const path = await save({ defaultPath: file, filters: [{ name: format.toUpperCase(), extensions: [format] }] });
       if (!path) return;
       await inspectionsApi.exportReport(tab.report, format, path);
-      showBalloon("Inspection results exported", path);
+      showBalloon(tr("tools.inspections.inspectionResultsExported"), path);
       return;
     }
     const text = await inspectionsApi.exportReport(tab.report, format);
@@ -185,9 +186,9 @@ export async function exportResults(tab: ResultsTab, format: "html" | "xml"): Pr
     a.download = file;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon("Inspection results exported", file);
+    showBalloon(tr("tools.inspections.inspectionResultsExported"), file);
   } catch (e) {
-    showBalloon("Export failed", e instanceof Error ? e.message : String(e));
+    showBalloon(tr("common.exportFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 

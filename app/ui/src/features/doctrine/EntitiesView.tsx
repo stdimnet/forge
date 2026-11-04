@@ -7,6 +7,7 @@ import { ArrowRight, ChevronDown, ChevronRight, Hash, KeyRound, Layers, Link2, R
 import type { DoctrineAssociation, DoctrineEntity, DoctrineField } from "@/ipc/doctrine";
 import { revealSymbol } from "@/features/php/editorViews";
 import { entities, loadEntities, loading } from "./store";
+import { t } from "@/i18n";
 
 const [expanded, setExpanded] = createSignal<Set<string>>(new Set(["App\\Entity\\Order"]));
 const [selected, setSelected] = createSignal<string | null>(null);
@@ -71,7 +72,7 @@ function AssociationRow(props: { entity: DoctrineEntity; assoc: DoctrineAssociat
       classList={{ selected: selected() === key() }}
       onClick={() => setSelected(key())}
       onDblClick={() => void revealSymbol(props.entity.path, { line: props.assoc.line, name: props.assoc.name })}
-      title={props.assoc.mappedBy ? `mapped by ${props.assoc.mappedBy}` : props.assoc.inversedBy ? `inversed by ${props.assoc.inversedBy}` : ""}
+      title={props.assoc.mappedBy ? t("langs.doctrine.mappedBy", { mappedBy: props.assoc.mappedBy }) : props.assoc.inversedBy ? t("langs.doctrine.inversedBy", { inversedBy: props.assoc.inversedBy }) : ""}
     >
       <span class="dc-icon dc-assoc">
         <Link2 size={13} />
@@ -135,11 +136,11 @@ export function EntitiesView() {
       <div class="dc-toolbar">
         <label class="sf-search dc-search">
           <Search size={13} />
-          <input type="text" placeholder="Filter entities and fields" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} spellcheck={false} />
+          <input type="text" placeholder={t("langs.doctrine.filterEntitiesAndFields")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} spellcheck={false} />
         </label>
       </div>
       <div class="dc-tree" role="tree">
-        <Show when={entities().length} fallback={<div class="placeholder-panel">{loading() ? "Reading mappings…" : "No Doctrine entities found."}</div>}>
+        <Show when={entities().length} fallback={<div class="placeholder-panel">{loading() ? t("langs.doctrine.readingMappingsEllipsis") : t("langs.doctrine.noDoctrineEntitiesFound")}</div>}>
           <For each={shown()}>{(e) => <EntityNode entity={e} />}</For>
         </Show>
       </div>
@@ -153,7 +154,7 @@ export function EntitiesView() {
 
 export function EntitiesActions() {
   return (
-    <button class="icon-btn" classList={{ spinning: loading() }} title="Refresh" onClick={() => void loadEntities(true)}>
+    <button class="icon-btn" classList={{ spinning: loading() }} title={t("common.refresh")} onClick={() => void loadEntities(true)}>
       <RefreshCw size={14} />
     </button>
   );

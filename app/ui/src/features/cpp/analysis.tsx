@@ -37,7 +37,7 @@ import { t } from "@/i18n";
 
 registerRunPanel({
   id: "sanitizers",
-  title: "Sanitizers",
+  title: t("langs.cpp.sanitizers"),
   icon: ShieldAlert,
   accepts: acceptSanitizer,
   count: (d) => (d as unknown[]).length,
@@ -47,7 +47,7 @@ registerRunPanel({
 
 registerRunPanel({
   id: "valgrind",
-  title: "Valgrind",
+  title: t("langs.cpp.valgrind"),
   icon: Bug,
   accepts: acceptValgrind,
   count: (d) => (d as { errors: unknown[] }).errors.length,
@@ -83,7 +83,7 @@ async function runWith(tool: NativeTool, cfg: RunConfiguration | undefined = sel
   }
   if (info && !(tool === "perf" ? info.perf : info.valgrind)) {
     showCppBalloon(`${tool === "perf" ? "perf" : "Valgrind"} is not installed`, `Install it with your package manager or choose it in Settings | Build, Execution, Deployment | Dynamic Analysis Tools.`, 8000, [
-      { label: "Open Settings", run: () => openSettings("build.analysis") },
+      { label: t("langs.cpp.openSettings"), run: () => openSettings("build.analysis") },
     ]);
     return;
   }

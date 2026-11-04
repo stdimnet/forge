@@ -8,6 +8,7 @@ import { openHttpRequest } from "@/features/scratches/store";
 import { editor } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
 import { balloonsFor } from "@/keymap";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("OpenAPI");
 
@@ -52,6 +53,6 @@ async function contentOf(path: string): Promise<string> {
 /** Generate HTTP Request: a new HTTP scratch with the operation's request. */
 export async function generateHttpRequest(path: string, method: string, opPath: string): Promise<void> {
   const text = await openApiApi.httpRequest(path, await contentOf(path), method, opPath).catch(() => null);
-  if (!text) return void showBalloon("Cannot generate a request", `${method} ${opPath} was not found in ${path}.`);
+  if (!text) return void showBalloon(tr("langs.webTooling.cannotGenerateARequest"), tr("langs.webTooling.wasNotFoundIn", { method, opPath, path }));
   await openHttpRequest(text);
 }

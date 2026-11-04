@@ -21,6 +21,7 @@ import {
   serverBase,
   sortedMethods,
 } from "./state";
+import { t } from "@/i18n";
 
 const [query, setQuery] = createSignal("");
 const [tab, setTab] = createSignal<"routes" | "models">("routes");
@@ -107,7 +108,7 @@ function RoutesTable() {
           <Search size={13} />
           <input
             class="routes-search-input"
-            placeholder="Search routes by path, method, helper or controller"
+            placeholder={t("langs.rails.searchRoutesByPathMethod")}
             value={query()}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
@@ -116,17 +117,17 @@ function RoutesTable() {
             spellcheck={false}
           />
           <Show when={query()}>
-            <button class="icon-btn routes-clear" title="Clear" onClick={() => setQuery("")}>
+            <button class="icon-btn routes-clear" title={t("common.clear")} onClick={() => setQuery("")}>
               <X size={12} />
             </button>
           </Show>
         </div>
         <span class="routes-summary muted">
           <Show when={railsLoading() && !routes().length} fallback={`${visible().length} of ${routes().length} routes`}>
-            Loading routes…
+            {t("langs.rails.loadingRoutesEllipsis")}
           </Show>
         </span>
-        <span class="routes-source muted" title="Where the routes come from (Settings | Languages & Frameworks | Rails)">
+        <span class="routes-source muted" title={t("langs.rails.whereTheRoutesComeFrom")}>
           {source()}
         </span>
       </div>
@@ -134,14 +135,14 @@ function RoutesTable() {
         <div class="routes-error">{railsProject()!.routesError}</div>
       </Show>
       <div class="routes-scroll" tabIndex={0} onKeyDown={onKeyDown}>
-        <Show when={visible().length} fallback={<div class="routes-empty">{routes().length ? "No routes match the search" : "No routes found in config/routes.rb"}</div>}>
+        <Show when={visible().length} fallback={<div class="routes-empty">{routes().length ? t("langs.rails.noRoutesMatchTheSearch") : t("langs.rails.noRoutesFoundInConfig")}</div>}>
           <table class="routes-table rails-table">
             <thead>
               <tr>
-                <th class="col-method">Verb</th>
-                <th class="col-uri">URI Pattern</th>
-                <th class="col-name">Prefix</th>
-                <th class="col-action">Controller#Action</th>
+                <th class="col-method">{t("langs.rails.verb")}</th>
+                <th class="col-uri">{t("langs.rails.uriPattern")}</th>
+                <th class="col-name">{t("langs.rails.prefix")}</th>
+                <th class="col-action">{t("langs.rails.controllerAction")}</th>
                 <th class="col-open" />
               </tr>
             </thead>
@@ -166,7 +167,7 @@ function RoutesTable() {
                     <td class="col-uri">
                       <PathText path={r.path} />
                     </td>
-                    <td class="col-name" title={r.name ? `${r.name}_path, ${r.name}_url` : undefined}>
+                    <td class="col-name" title={r.name ? t("langs.rails.pathUrl", { name: r.name }) : undefined}>
                       {r.name ?? ""}
                     </td>
                     <td class="col-action">
@@ -175,7 +176,7 @@ function RoutesTable() {
                     <td class="col-open">
                       <button
                         class="icon-btn routes-open"
-                        title="Generate HTTP Request"
+                        title={t("common.generateHttpRequest")}
                         onClick={(e) => {
                           e.stopPropagation();
                           void openInHttpClient(r);
@@ -203,19 +204,19 @@ function ModelsTable() {
       <div class="routes-toolbar">
         <div class="routes-search">
           <Search size={13} />
-          <input class="routes-search-input" placeholder="Search models, tables and columns" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
+          <input class="routes-search-input" placeholder={t("langs.rails.searchModelsTablesAndColumns")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
         </div>
-        <span class="routes-summary muted">{`${models().length} models · ${railsProject()?.tables.length ?? 0} tables`}</span>
+        <span class="routes-summary muted">{t("langs.rails.modelsTables", { count: models().length, value: railsProject()?.tables.length ?? 0 })}</span>
       </div>
       <div class="routes-scroll" tabIndex={0}>
-        <Show when={models().length} fallback={<div class="routes-empty">No ActiveRecord models found in app/models</div>}>
+        <Show when={models().length} fallback={<div class="routes-empty">{t("langs.rails.noActiverecordModelsFoundIn")}</div>}>
           <table class="routes-table rails-table">
             <thead>
               <tr>
-                <th class="rails-col-model">Model</th>
-                <th class="rails-col-table">Table</th>
-                <th>Columns</th>
-                <th class="rails-col-assoc">Associations</th>
+                <th class="rails-col-model">{t("common.model")}</th>
+                <th class="rails-col-table">{t("common.table")}</th>
+                <th>{t("langs.rails.columns")}</th>
+                <th class="rails-col-assoc">{t("langs.rails.associations")}</th>
               </tr>
             </thead>
             <tbody>
@@ -258,10 +259,10 @@ export function RailsEndpointsView() {
     <div class="routes-view rails-view">
       <div class="rails-tabs" role="tablist">
         <button classList={{ active: tab() === "routes" }} onClick={() => setTab("routes")} data-tab="rails-routes">
-          <Route size={12} /> Routes
+          <Route size={12} /> {t("langs.rails.routes")}
         </button>
         <button classList={{ active: tab() === "models" }} onClick={() => setTab("models")} data-tab="rails-models">
-          <Database size={12} /> Models
+          <Database size={12} /> {t("langs.rails.models")}
         </button>
       </div>
       <Show when={railsError()}>
@@ -276,7 +277,7 @@ export function RailsEndpointsView() {
 
 export function RailsEndpointsActions() {
   return (
-    <button class="icon-btn" title="Refresh" onClick={() => void loadRailsProject(true)}>
+    <button class="icon-btn" title={t("common.refresh")} onClick={() => void loadRailsProject(true)}>
       <RefreshCw size={14} classList={{ spin: railsLoading() }} />
     </button>
   );

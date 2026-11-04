@@ -88,7 +88,7 @@ registerCommand({
   title: "Run manage.py Task…",
   category: "Tools",
   run: () => {
-    if (!djangoActive()) return void showBalloon("Run manage.py Task", "The project has no manage.py, or the Django plugin is disabled.");
+    if (!djangoActive()) return void showBalloon(t("langs.pythonWeb.runManagePyTask"), t("langs.pythonWeb.theProjectHasNoManage"));
     openManageTask();
   },
 });

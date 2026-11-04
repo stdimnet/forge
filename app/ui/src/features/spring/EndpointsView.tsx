@@ -10,6 +10,7 @@ import { Copy, FileCode, Globe, RefreshCw, Search, Send, X } from "lucide-solid"
 import type { EndpointRow } from "@/ipc/spring";
 import { openMenu } from "@/features/run/PopupMenu";
 import { endpointUrl, loadSpring, loading, openInHttpClient, overview, reveal } from "./store";
+import { t } from "@/i18n";
 
 const [query, setQuery] = createSignal("");
 const [selected, setSelected] = createSignal(-1);
@@ -59,11 +60,11 @@ function rowMenu(e: EndpointRow, ev: MouseEvent) {
     x: ev.clientX,
     y: ev.clientY,
     items: [
-      { label: "Open in HTTP Client", icon: Send, iconColor: "var(--success)", run: () => void openInHttpClient(e) },
-      { label: "Go to Handler", icon: FileCode, disabled: !e.location, run: () => reveal(e.location) },
+      { label: t("langs.spring.openInHttpClient"), icon: Send, iconColor: "var(--success)", run: () => void openInHttpClient(e) },
+      { label: t("langs.spring.goToHandler"), icon: FileCode, disabled: !e.location, run: () => reveal(e.location) },
       { separator: true },
-      { label: "Copy URL", icon: Copy, run: () => void copyText(endpointUrl(e)) },
-      { label: "Copy Path", run: () => void copyText(e.path) },
+      { label: t("langs.spring.copyUrl"), icon: Copy, run: () => void copyText(endpointUrl(e)) },
+      { label: t("langs.spring.copyPath"), run: () => void copyText(e.path) },
     ],
   });
 }
@@ -94,7 +95,7 @@ export function EndpointsView() {
           <Search size={13} />
           <input
             class="sp-search-input"
-            placeholder="Search endpoints by method, path or handler"
+            placeholder={t("langs.spring.searchEndpointsByMethodPath")}
             value={query()}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
@@ -103,7 +104,7 @@ export function EndpointsView() {
             spellcheck={false}
           />
           <Show when={query()}>
-            <button class="icon-btn sp-clear" title="Clear" onClick={() => setQuery("")}>
+            <button class="icon-btn sp-clear" title={t("common.clear")} onClick={() => setQuery("")}>
               <X size={12} />
             </button>
           </Show>
@@ -113,7 +114,7 @@ export function EndpointsView() {
             {(f) => (
               <Show when={f === "all" || present().has(f)}>
                 <button class="sp-seg" classList={{ active: framework() === f }} onClick={() => setFramework(f)}>
-                  {f === "all" ? "All" : FRAMEWORKS[f]}
+                  {f === "all" ? t("common.all") : FRAMEWORKS[f]}
                 </button>
               </Show>
             )}
@@ -121,12 +122,12 @@ export function EndpointsView() {
         </div>
         <span class="sp-summary muted">
           <Show when={loading() && !rows().length} fallback={`${visible().length} of ${rows().length} endpoints`}>
-            Scanning sources…
+            {t("langs.spring.scanningSourcesEllipsis")}
           </Show>
         </span>
         <Show when={overview()?.runtime}>
           {(r) => (
-            <span class="sp-live" title={`Request mappings of the running application ${r().name} (actuator)`}>
+            <span class="sp-live" title={t("langs.spring.requestMappingsOfTheRunning", { name: r().name })}>
               <span class="sp-live-dot" /> {r().name} {r().url ? `· ${r().url}` : ""}
             </span>
           )}
@@ -136,11 +137,11 @@ export function EndpointsView() {
         <table class="sp-table sp-endpoints">
           <thead>
             <tr>
-              <th class="col-method">Method</th>
-              <th class="col-path">Path</th>
-              <th class="col-handler">Handler</th>
-              <th class="col-media">Produces</th>
-              <th class="col-fw">Framework</th>
+              <th class="col-method">{t("common.method")}</th>
+              <th class="col-path">{t("common.path")}</th>
+              <th class="col-handler">{t("langs.spring.handler")}</th>
+              <th class="col-media">{t("langs.spring.produces")}</th>
+              <th class="col-fw">{t("common.framework")}</th>
               <th class="col-actions" />
             </tr>
           </thead>
@@ -164,7 +165,7 @@ export function EndpointsView() {
                   </td>
                   <td class="col-path">
                     <Show when={e.live}>
-                      <span class="sp-live-dot" title="Served by the running application" />
+                      <span class="sp-live-dot" title={t("langs.spring.servedByTheRunningApplication")} />
                     </Show>
                     <Path path={e.path} />
                   </td>
@@ -178,7 +179,7 @@ export function EndpointsView() {
                   <td class="col-actions">
                     <button
                       class="icon-btn sp-row-btn"
-                      title="Open in HTTP Client"
+                      title={t("langs.spring.openInHttpClient")}
                       data-testid="open-in-http-client"
                       onClick={(ev) => {
                         ev.stopPropagation();
@@ -196,7 +197,7 @@ export function EndpointsView() {
         <Show when={!loading() && !visible().length}>
           <div class="sp-empty">
             <Globe size={22} />
-            <div>{rows().length ? "No endpoints match the search" : "No endpoints found: @RestController / @Controller request mappings and JAX-RS @Path resources appear here"}</div>
+            <div>{rows().length ? t("common.noEndpointsMatchTheSearch") : t("langs.spring.noEndpointsFoundRestcontrollerController")}</div>
           </div>
         </Show>
       </div>
@@ -212,10 +213,10 @@ export function EndpointsActions() {
   };
   return (
     <>
-      <button class="icon-btn" title="Open in HTTP Client" disabled={!current()} onClick={() => current() && void openInHttpClient(current()!)}>
+      <button class="icon-btn" title={t("langs.spring.openInHttpClient")} disabled={!current()} onClick={() => current() && void openInHttpClient(current()!)}>
         <Send size={14} />
       </button>
-      <button class="icon-btn" title="Refresh Endpoints" onClick={() => void loadSpring(true)} disabled={loading()}>
+      <button class="icon-btn" title={t("langs.spring.refreshEndpoints")} onClick={() => void loadSpring(true)} disabled={loading()}>
         <RefreshCw size={14} class={loading() ? "sp-spin" : undefined} />
       </button>
     </>

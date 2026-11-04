@@ -14,6 +14,7 @@ import { balloonsFor } from "@/keymap/dispatch";
 import { editor, onFileSaved, saveFile } from "@/state/editor";
 import { getSetting } from "@/state/settings";
 import { active } from "./store";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("Kotlin");
 const SOURCES = { ktlint: "kotlin-ktlint", detekt: "kotlin-detekt" } as const;
@@ -45,7 +46,7 @@ export async function ktlintFile(path: string, text: string): Promise<void> {
     ktlintError = false;
   } catch (e) {
     // One balloon per session for a broken setup, not one per file.
-    if (!ktlintError) showBalloon("ktlint failed", String(e).replace(/^Error: /, ""), 6000, undefined, { type: "warning" });
+    if (!ktlintError) showBalloon(tr("langs.kotlin.ktlintFailed"), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "warning" });
     ktlintError = true;
   }
 }
@@ -59,9 +60,9 @@ export async function detektFiles(paths?: string[], announce = false): Promise<v
     for (const p of paths ?? []) byFile.set(p, []);
     for (const p of found) byFile.set(p.file, [...(byFile.get(p.file) ?? []), p]);
     for (const [file, list] of byFile) publishLint(file, "detekt", list);
-    if (announce) showBalloon("detekt finished", found.length ? `${found.length} problems in ${new Set(found.map((p) => p.file)).size} files: see the Problems tool window.` : "No problems found.", 5000);
+    if (announce) showBalloon(tr("langs.kotlin.detektFinished"), found.length ? `${found.length} problems in ${new Set(found.map((p) => p.file)).size} files: see the Problems tool window.` : tr("langs.kotlin.noProblemsFound"), 5000);
   } catch (e) {
-    if (announce) showBalloon("detekt failed", String(e).replace(/^Error: /, ""), 8000, undefined, { type: "error" });
+    if (announce) showBalloon(tr("langs.kotlin.detektFailed"), String(e).replace(/^Error: /, ""), 8000, undefined, { type: "error" });
   }
 }
 
@@ -73,14 +74,14 @@ export async function ktlintFormatFile(path: string): Promise<boolean> {
   try {
     const formatted = await kotlinApi.format(path, text);
     if (formatted === null) {
-      showBalloon("ktlint is not installed", "Download ktlint in Settings | Languages & Frameworks | Kotlin, or put it on the PATH.", 6000);
+      showBalloon(tr("langs.kotlin.ktlintIsNotInstalled"), tr("langs.kotlin.downloadKtlintInSettingsLanguages"), 6000);
       return false;
     }
     if (formatted === text) return false;
     applyLineChanges(view, formatted);
     return true;
   } catch (e) {
-    showBalloon("ktlint format failed", String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
+    showBalloon(tr("langs.kotlin.ktlintFormatFailed"), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
     return false;
   }
 }
@@ -90,7 +91,7 @@ registerFormatProvider(async (path, text) => {
   try {
     return (await kotlinApi.format(path, text)) ?? null;
   } catch (e) {
-    showBalloon("ktlint format failed", String(e).replace(/^Error: /, ""), 5000, undefined, { type: "error" });
+    showBalloon(tr("langs.kotlin.ktlintFormatFailed"), String(e).replace(/^Error: /, ""), 5000, undefined, { type: "error" });
     return text;
   }
 });

@@ -19,6 +19,7 @@ import { setInjectionPlaces } from "@/features/injections/highlight";
 import { openSettings } from "@/features/settings/dialogState";
 import { showResolvedMenu } from "@/features/contextMenu/state";
 import { indexWorkspace, lastStats } from "./status";
+import { t } from "@/i18n";
 
 export const LIBRARIES_ID = "external-libraries://";
 const INCLUDE_KEY = "php.includePaths";
@@ -106,7 +107,7 @@ function Folder(props: { path: string; depth: number }) {
 }
 
 const includeMenu = (e: MouseEvent) =>
-  showResolvedMenu([{ kind: "action", label: "Configure PHP Include Paths…", run: () => openSettings("lang.php") }], e.clientX, e.clientY);
+  showResolvedMenu([{ kind: "action", label: t("langs.php.configurePhpIncludePathsEllipsis"), run: () => openSettings("lang.php") }], e.clientX, e.clientY);
 
 /** The "External Libraries" node below the project. */
 export function ExternalLibrariesNode() {
@@ -129,7 +130,7 @@ export function ExternalLibrariesNode() {
                   depth={1}
                   dir={r.exists}
                   name={r.name}
-                  hint={r.exists ? r.path : `${r.path} (not found)`}
+                  hint={r.exists ? r.path : t("langs.php.notFound", { path: r.path })}
                   dimmed={!r.exists}
                   onContextMenu={includeMenu}
                 />

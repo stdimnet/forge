@@ -14,6 +14,7 @@ import type { CoverageNode } from "@/ipc/testing";
 import { activeSuite, closeSuite, setCoverageVisible, view, visible } from "./store";
 import { generateReport, importReport } from "./actions";
 import { showSuitesDialog, when } from "./SuitesDialog";
+import { t } from "@/i18n";
 
 function Percent(props: { text: string; covered: number; total: number }) {
   const pct = () => (props.total ? (100 * props.covered) / props.total : 0);
@@ -57,7 +58,7 @@ export function CoverageToolWindow() {
   return (
     <div class="coverage-window">
       <div class="coverage-toolbar" role="toolbar">
-        <Show when={activeSuite()} fallback={<span class="muted coverage-title">No coverage data</span>}>
+        <Show when={activeSuite()} fallback={<span class="muted coverage-title">{t("tools.coverage.noCoverageData")}</span>}>
           {(s) => (
             <span class="coverage-title" title={`${s().format} report`}>
               <b>{s().name}</b>
@@ -71,7 +72,7 @@ export function CoverageToolWindow() {
         <span class="coverage-spacer" />
         <button
           class="icon-btn coverage-toggle"
-          title={visible() ? "Hide Coverage" : "Show Coverage"}
+          title={visible() ? t("tools.coverage.hideCoverage") : t("tools.coverage.showCoverage")}
           disabled={!activeSuite()}
           onClick={() => setCoverageVisible(!visible())}
         >
@@ -79,18 +80,18 @@ export function CoverageToolWindow() {
         </button>
         <button
           class="icon-btn"
-          title={`Show Coverage Data…${shortcutLabel("SwitchCoverage") ? ` (${shortcutLabel("SwitchCoverage")})` : ""}`}
+          title={t("tools.coverage.showCoverageData", { value: shortcutLabel("SwitchCoverage") ? ` (${shortcutLabel("SwitchCoverage")})` : "" })}
           onClick={() => showSuitesDialog()}
         >
           <History size={15} />
         </button>
-        <button class="icon-btn" title="Import External Coverage Report…" onClick={() => void importReport()}>
+        <button class="icon-btn" title={t("tools.coverage.importExternalCoverageReportEllipsis")} onClick={() => void importReport()}>
           <FileInput size={15} />
         </button>
-        <button class="icon-btn" title="Generate Coverage Report…" disabled={!activeSuite()} onClick={() => void generateReport()}>
+        <button class="icon-btn" title={t("tools.coverage.generateCoverageReportEllipsis")} disabled={!activeSuite()} onClick={() => void generateReport()}>
           <FileCode2 size={15} />
         </button>
-        <button class="icon-btn" title="Close Coverage Suite" disabled={!activeSuite()} onClick={() => activeSuite() && void closeSuite(activeSuite()!.id)}>
+        <button class="icon-btn" title={t("tools.coverage.closeCoverageSuite")} disabled={!activeSuite()} onClick={() => activeSuite() && void closeSuite(activeSuite()!.id)}>
           <X size={15} />
         </button>
       </div>
@@ -98,19 +99,19 @@ export function CoverageToolWindow() {
         when={view()}
         fallback={
           <div class="coverage-empty muted">
-            <p>No coverage data.</p>
-            <p>Run tests with coverage from the gutter or with Run | Run with Coverage, or import a coverage report.</p>
+            <p>{t("tools.coverage.noCoverageData2")}</p>
+            <p>{t("tools.coverage.runTestsWithCoverageFrom")}</p>
           </div>
         }
       >
         <div class="coverage-table" classList={{ "with-methods": methods() }} role="treegrid">
           <div class="coverage-head">
-            <span>Element</span>
+            <span>{t("tools.coverage.element")}</span>
             <Show when={methods()}>
-              <span>Method, %</span>
+              <span>{t("tools.coverage.method")}</span>
             </Show>
-            <span>Line, %</span>
-            <span>Branch, %</span>
+            <span>{t("tools.coverage.line")}</span>
+            <span>{t("tools.coverage.branch")}</span>
           </div>
           <div class="coverage-body">
             <For each={rows()}>
@@ -128,7 +129,7 @@ export function CoverageToolWindow() {
                       <Show when={n.kind !== "file"}>{collapsed().has(n.path) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</Show>
                     </span>
                     {n.kind === "file" ? <File size={14} class="coverage-icon" /> : <Folder size={14} class="coverage-icon folder" />}
-                    <span>{n.kind === "project" ? n.name || "All files" : n.name}</span>
+                    <span>{n.kind === "project" ? n.name || t("tools.coverage.allFiles") : n.name}</span>
                   </span>
                   <Show when={methods()}>
                     <Percent text={n.methodText} covered={n.methods.covered} total={n.methods.total} />

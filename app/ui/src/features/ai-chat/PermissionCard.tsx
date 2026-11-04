@@ -9,6 +9,7 @@ import { findChatAgent } from "./agents";
 import { DiffView } from "./DiffView";
 import type { PermissionBlock } from "./model";
 import { answerPermission, chat } from "./store";
+import { t } from "@/i18n";
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
@@ -51,16 +52,16 @@ export function PermissionCard(props: { block: PermissionBlock }) {
         <div class="chat-permission-done" data-status={b().status}>
           <Switch>
             <Match when={b().status === "allowed"}>
-              <Check size={13} /> Allowed once
+              <Check size={13} /> {t("tools.aiChat.allowedOnce")}
             </Match>
             <Match when={b().status === "allowedForSession"}>
-              <CheckCheck size={13} /> Allowed for this session
+              <CheckCheck size={13} /> {t("tools.aiChat.allowedForThisSession")}
             </Match>
             <Match when={b().status === "denied"}>
-              <Ban size={13} /> Denied
+              <Ban size={13} /> {t("tools.aiChat.denied")}
             </Match>
             <Match when={b().status === "expired"}>
-              <Clock size={13} /> Not answered
+              <Clock size={13} /> {t("tools.aiChat.notAnswered")}
             </Match>
           </Switch>
           <span class="chat-ellipsis muted">
@@ -69,24 +70,24 @@ export function PermissionCard(props: { block: PermissionBlock }) {
         </div>
       }
     >
-      <div class="chat-permission-card" role="alertdialog" aria-label={`${agent()} wants to ${summary().action}`}>
+      <div class="chat-permission-card" role="alertdialog" aria-label={t("tools.aiChat.wantsTo", { agent: agent(), action: summary().action })}>
         <div class="chat-permission-head">
           <ShieldAlert size={15} />
           <span>
-            Allow {agent()} to <strong>{summary().action}</strong>?
+            {t("tools.aiChat.allowTo", { agent: agent() })} <strong>{summary().action}</strong>?
           </span>
         </div>
         <Preview block={b()} />
         <div class="chat-permission-actions">
           <button class="btn-primary" onClick={() => void answerPermission(b().requestId, "once")}>
-            Allow once
+            {t("tools.aiChat.allowOnce")}
           </button>
           <button class="btn-secondary" title={sessionHint(b())} onClick={() => void answerPermission(b().requestId, "session")}>
-            Allow for this session
+            {t("tools.aiChat.allowForThisSession")}
           </button>
           <span class="chat-permission-spacer" />
           <button class="btn-secondary" onClick={() => void answerPermission(b().requestId, "deny")}>
-            Deny
+            {t("tools.aiChat.deny")}
           </button>
         </div>
       </div>

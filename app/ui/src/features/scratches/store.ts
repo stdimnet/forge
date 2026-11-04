@@ -13,6 +13,7 @@ import { activeView } from "@/editor/views";
 import { debugConfiguration, launch } from "@/features/run/runStore";
 import { openFileConsole } from "@/features/database/store";
 import { confirmDialog } from "@/features/browserCompanion/ConfirmDialog";
+import { t as tr } from "@/i18n";
 
 export const SCRATCH_PREFIX = "scratch://";
 export const scratchPath = (name: string) => `${SCRATCH_PREFIX}${name}`;
@@ -31,7 +32,7 @@ export async function setHttpEnvironment(name: string): Promise<void> {
   try {
     await settingsApi.set(HTTP_ENV_SETTING, name || null, scopeFor(HTTP_ENV_SETTING));
   } catch (err) {
-    showBalloon("Cannot select the environment", String(err));
+    showBalloon(tr("tools.scratches.cannotSelectTheEnvironment"), String(err));
   }
 }
 
@@ -70,7 +71,7 @@ export async function createScratch(language: string): Promise<void> {
     await refreshScratches();
     await openScratch(file);
   } catch (err) {
-    showBalloon("Cannot create scratch file", String(err));
+    showBalloon(tr("tools.scratches.cannotCreateScratchFile"), String(err));
   }
 }
 
@@ -81,7 +82,7 @@ export async function openHttpRequest(content: string): Promise<void> {
     await refreshScratches();
     await openScratch(file);
   } catch (err) {
-    showBalloon("Cannot open the HTTP Client", String(err));
+    showBalloon(tr("tools.scratches.cannotOpenTheHttpClient"), String(err));
   }
 }
 
@@ -91,7 +92,7 @@ export async function createBuffer(): Promise<void> {
     await refreshScratches();
     await openScratch(file);
   } catch (err) {
-    showBalloon("Cannot create scratch buffer", String(err));
+    showBalloon(tr("tools.scratches.cannotCreateScratchBuffer"), String(err));
   }
 }
 
@@ -114,7 +115,7 @@ async function runHttp(path: string, content: string, line: number | undefined, 
   const markers = (await scratchesApi.markers(name, content)).filter((m) => m.kind === "http");
   let marker = markers[0];
   for (const m of markers) if (m.line <= at) marker = m;
-  if (!marker) return void showBalloon(`No request in '${name}'`, "Add a request such as GET https://example.com");
+  if (!marker) return void showBalloon(tr("tools.scratches.noRequestIn", { name }), tr("tools.scratches.addARequestSuchAs"));
   const cfg = { name: marker.runName, type: "http-request", options: { ...options, line: String(marker.line) } };
   // Debug goes through the debug launcher: it starts listening and adds the Xdebug cookie.
   await (debug ? debugConfiguration(cfg) : launch(cfg));
@@ -129,7 +130,7 @@ export async function runHttpFile(path: string, line?: number, debug = false): P
 export async function runScratch(name: string, line?: number, debug = false): Promise<void> {
   const file = scratchByName(name) ?? (await scratchesApi.list().then((l) => l.find((s) => s.name === name)));
   const runner = file?.runner;
-  if (!runner) return void showBalloon(`'${name}' cannot be run`, "Scratches of this language have no runner.");
+  if (!runner) return void showBalloon(tr("tools.scratches.cannotBeRun", { name }), tr("tools.scratches.scratchesOfThisLanguageHave"));
   if (runner === "sql") return attachOrOpenConsole(name);
   if (runner === "http") return runHttp(scratchPath(name), await scratchContent(name), line, { scratch: name }, debug);
   await launch({ name, type: "scratch", options: { scratch: name } });
@@ -172,7 +173,7 @@ export async function renameScratch(name: string, newName: string): Promise<bool
     }
     return true;
   } catch (err) {
-    showBalloon("Cannot rename scratch", String(err));
+    showBalloon(tr("tools.scratches.cannotRenameScratch"), String(err));
     return false;
   }
 }
@@ -190,7 +191,7 @@ export async function deleteScratch(name: string): Promise<void> {
     closeTab(scratchPath(name));
     await refreshScratches();
   } catch (err) {
-    showBalloon("Cannot delete scratch", String(err));
+    showBalloon(tr("tools.scratches.cannotDeleteScratch"), String(err));
   }
 }
 
@@ -199,6 +200,6 @@ export async function setScratchDataSource(name: string, dataSourceId: string | 
     await scratchesApi.setDataSource(name, dataSourceId);
     await refreshScratches();
   } catch (err) {
-    showBalloon("Cannot attach data source", String(err));
+    showBalloon(tr("tools.scratches.cannotAttachDataSource"), String(err));
   }
 }

@@ -27,15 +27,16 @@ import {
   startLogcat,
   togglePause,
 } from "./store";
+import { t } from "@/i18n";
 import "./android.css";
 
 const LEVELS: { level: LogLevel; label: string }[] = [
-  { level: "V", label: "Verbose" },
-  { level: "D", label: "Debug" },
-  { level: "I", label: "Info" },
-  { level: "W", label: "Warn" },
-  { level: "E", label: "Error" },
-  { level: "A", label: "Assert" },
+  { level: "V", label: t("langs.android.verbose") },
+  { level: "D", label: t("common.debug2") },
+  { level: "I", label: t("langs.android.info") },
+  { level: "W", label: t("langs.android.warn") },
+  { level: "E", label: t("langs.android.error") },
+  { level: "A", label: t("langs.android.assert") },
 ];
 
 /** Character index of a UTF-8 byte offset of `s`. */
@@ -54,7 +55,7 @@ function charIndex(s: string, byte: number): number {
 async function openFrame(e: LogEntry) {
   if (!e.link) return;
   const ok = await revealLocation(e.link.path, { line: Math.max(0, e.link.line - 1), character: 0 });
-  if (!ok) showBalloon(`Cannot open ${e.link.path}`);
+  if (!ok) showBalloon(t("langs.android.cannotOpen", { path: e.link.path }));
 }
 
 function Message(props: { entry: LogEntry }) {
@@ -115,13 +116,13 @@ export function LogcatView() {
       <div class="logcat-toolbar">
         <select
           class="logcat-device"
-          title="Device"
+          title={t("langs.android.device")}
           value={logcatSerial() ?? ""}
           onChange={(e) => e.currentTarget.value && void startLogcat(e.currentTarget.value)}
           data-testid="logcat-device"
         >
           <Show when={!onlineDevices().length}>
-            <option value="">No connected devices</option>
+            <option value="">{t("langs.android.noConnectedDevices")}</option>
           </Show>
           <For each={onlineDevices()}>{(d) => <option value={d.serial}>{`${deviceLabel(d.serial)} (${d.serial})`}</option>}</For>
         </select>
@@ -130,32 +131,32 @@ export function LogcatView() {
           <input
             type="text"
             spellcheck={false}
-            placeholder="package:mine level:warn tag:… text"
+            placeholder={t("langs.android.packageMineLevelWarnTag")}
             value={logcatQuery()}
             onInput={(e) => setQuery(e.currentTarget.value)}
             data-testid="logcat-query"
           />
         </div>
-        <select class="logcat-level" title="Minimum level" value={level()} onChange={(e) => setLevel(e.currentTarget.value as LogLevel | "")} data-testid="logcat-level">
-          <option value="">All levels</option>
+        <select class="logcat-level" title={t("langs.android.minimumLevel")} value={level()} onChange={(e) => setLevel(e.currentTarget.value as LogLevel | "")} data-testid="logcat-level">
+          <option value="">{t("langs.android.allLevels")}</option>
           <For each={LEVELS}>{(l) => <option value={l.level}>{l.label}</option>}</For>
         </select>
         <span class="java-toolbar-sep" />
-        <button class="icon-btn" title="Clear Logcat" onClick={() => void clearLogcat()}>
+        <button class="icon-btn" title={t("langs.android.clearLogcat")} onClick={() => void clearLogcat()}>
           <Trash2 size={14} />
         </button>
-        <button class="icon-btn" classList={{ active: logcatPaused() }} title={logcatPaused() ? "Resume Logcat" : "Pause Logcat"} onClick={togglePause}>
+        <button class="icon-btn" classList={{ active: logcatPaused() }} title={logcatPaused() ? t("langs.android.resumeLogcat") : t("langs.android.pauseLogcat")} onClick={togglePause}>
           {logcatPaused() ? <Play size={14} /> : <Pause size={14} />}
         </button>
-        <button class="icon-btn" classList={{ active: follow() }} title="Scroll to the End" onClick={() => setFollow(!follow())}>
+        <button class="icon-btn" classList={{ active: follow() }} title={t("common.scrollToTheEnd")} onClick={() => setFollow(!follow())}>
           <ArrowDownToLine size={14} />
         </button>
-        <button class="icon-btn" title="Restart Logcat" disabled={!logcatSerial()} onClick={() => logcatSerial() && void startLogcat(logcatSerial()!)}>
+        <button class="icon-btn" title={t("langs.android.restartLogcat")} disabled={!logcatSerial()} onClick={() => logcatSerial() && void startLogcat(logcatSerial()!)}>
           <RotateCcw size={14} />
         </button>
         <span class="muted logcat-counts">
           {logcatCounts().matched} of {logcatCounts().total}
-          {logcatStreaming() ? "" : " · stopped"}
+          {logcatStreaming() ? "" : t("langs.android.stopped")}
         </span>
       </div>
       <Show when={logcatError()}>
@@ -173,7 +174,7 @@ export function LogcatView() {
           if (atEnd !== follow()) setFollow(atEnd);
         }}
       >
-        <For each={logcatEntries()} fallback={<div class="muted android-empty">{logcatSerial() ? "No entries match the filter." : "Select a running device."}</div>}>
+        <For each={logcatEntries()} fallback={<div class="muted android-empty">{logcatSerial() ? t("langs.android.noEntriesMatchTheFilter") : t("langs.android.selectARunningDevice")}</div>}>
           {(e) => (
             <div class={`logcat-row level-${e.level}`} classList={{ stack: e.stack }} data-level={e.level}>
               <span class="logcat-time">{`${e.date} ${e.time}`}</span>

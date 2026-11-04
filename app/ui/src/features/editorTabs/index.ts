@@ -91,7 +91,7 @@ action("MoveTabDown", withCurrent((g, id) => splitAndMove("horizontal", g, id)))
 action(
   "MoveEditorToOppositeTabGroup",
   withCurrent((g, id) => {
-    if (!isSplit()) return void showBalloon("There is no opposite group", "Split the editor first (Window | Editor Tabs | Split Right).");
+    if (!isSplit()) return void showBalloon(t("tools.editorTabs.thereIsNoOppositeGroup"), t("tools.editorTabs.splitTheEditorFirstWindow"));
     moveTabToOppositeGroup(g, id);
     focusGroupEditor(activeGroupId());
   }),

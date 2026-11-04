@@ -21,6 +21,7 @@ import { context, contextError, contextLoaded, me, ref, refreshAll, requestName,
 import { Avatar, BranchPill, CiIcon, ciLabels, IssueStateIcon, MrStateIcon, ago, displayName } from "./ui";
 import { Menu, type MenuItem } from "./Menu";
 import { openCreateDialog, openIssue, openMergeRequest, settingsPageFor } from "./actions";
+import { t as tr } from "@/i18n";
 
 type Tab = "requests" | "issues" | "pipelines";
 
@@ -57,7 +58,7 @@ function Chip(props: { label: string; value?: string | null; onClick: (e: MouseE
       <Show when={props.value && props.onClear} fallback={<ChevronDown size={12} />}>
         <span
           class="fg-chip-clear"
-          title="Clear"
+          title={tr("common.clear")}
           onClick={(e) => {
             e.stopPropagation();
             props.onClear?.();
@@ -95,25 +96,25 @@ function NotConnected() {
     <div class="fg-empty">
       <Switch>
         <Match when={!contextLoaded()}>
-          <span class="muted">Loading…</span>
+          <span class="muted">{tr("common.loadingEllipsis")}</span>
         </Match>
         <Match when={!context()}>
           <CloudOff size={28} class="muted" />
-          <div>No GitLab, Forgejo or GitHub remote found in this project.</div>
+          <div>{tr("tools.forges.noGitlabForgejoOrGithub")}</div>
           <Show when={contextError()}>
             <div class="muted fg-small">{contextError()}</div>
           </Show>
           <button class="btn-secondary" onClick={() => openSettings("vcs.gitlab")}>
-            Configure Accounts…
+            {tr("tools.forges.configureAccountsEllipsis")}
           </button>
         </Match>
         <Match when={!account()}>
           <KeyRound size={28} class="muted" />
           <div>
-            Log in to {context()!.repo.server.replace(/^https?:\/\//, "")} to review {requestName().toLowerCase()}s.
+            {tr("tools.forges.logInToToReview", { server: context()!.repo.server.replace(/^https?:\/\//, ""), requestName: requestName().toLowerCase() })}
           </div>
           <button class="btn-primary" onClick={() => openSettings(settingsPageFor(context()!.repo.kind))}>
-            Log In with Token…
+            {tr("tools.forges.logInWithTokenEllipsis")}
           </button>
         </Match>
       </Switch>
@@ -191,10 +192,10 @@ function RequestsTab() {
   const userItems = (key: "author" | "reviewer" | "assignee"): MenuItem[] => {
     const current = filter[key];
     const list: MenuItem[] = [];
-    if (me()) list.push({ label: "Me", hint: me()!, checked: current === me(), run: () => setFilter(key, me()) });
+    if (me()) list.push({ label: tr("tools.forges.me"), hint: me()!, checked: current === me(), run: () => setFilter(key, me()) });
     for (const u of members() ?? [])
       if (u.username !== me()) list.push({ label: displayName(u), hint: u.username, checked: current === u.username, run: () => setFilter(key, u.username) });
-    list.push({ separator: true, label: "" }, { label: "Any", checked: !current, run: () => setFilter(key, null) });
+    list.push({ separator: true, label: "" }, { label: tr("tools.forges.any"), checked: !current, run: () => setFilter(key, null) });
     return list;
   };
   const labelItems = (): MenuItem[] => {
@@ -202,18 +203,18 @@ function RequestsTab() {
     return [
       ...names.map((n) => ({ label: n, checked: filter.label === n, run: () => setFilter("label", n) })),
       { separator: true, label: "" },
-      { label: "Any", checked: !filter.label, run: () => setFilter("label", null) },
+      { label: tr("tools.forges.any"), checked: !filter.label, run: () => setFilter("label", null) },
     ];
   };
   const quick = (): MenuItem[] => [
-    { label: `Open`, checked: filter.state === "open" && !filter.author && !filter.reviewer && !filter.assignee, run: () => applyQuick({ state: "open" }) },
-    { label: `Your ${requestName().toLowerCase()}s`, run: () => applyQuick({ state: "open", author: me() }) },
-    { label: "Assigned to you", run: () => applyQuick({ state: "open", assignee: me() }) },
-    { label: "Review requests", run: () => applyQuick({ state: "open", reviewer: me() }) },
+    { label: tr("common.open"), checked: filter.state === "open" && !filter.author && !filter.reviewer && !filter.assignee, run: () => applyQuick({ state: "open" }) },
+    { label: tr("tools.forges.yourS", { requestName: requestName().toLowerCase() }), run: () => applyQuick({ state: "open", author: me() }) },
+    { label: tr("tools.forges.assignedToYou"), run: () => applyQuick({ state: "open", assignee: me() }) },
+    { label: tr("tools.forges.reviewRequests"), run: () => applyQuick({ state: "open", reviewer: me() }) },
     { separator: true, label: "" },
-    { label: "Merged", checked: filter.state === "merged", run: () => applyQuick({ state: "merged" }) },
-    { label: "Closed", checked: filter.state === "closed", run: () => applyQuick({ state: "closed" }) },
-    { label: "All", checked: filter.state === "all", run: () => applyQuick({ state: "all" }) },
+    { label: tr("tools.forges.merged"), checked: filter.state === "merged", run: () => applyQuick({ state: "merged" }) },
+    { label: tr("tools.forges.closed"), checked: filter.state === "closed", run: () => applyQuick({ state: "closed" }) },
+    { label: tr("common.all"), checked: filter.state === "all", run: () => applyQuick({ state: "all" }) },
   ];
   const applyQuick = (f: MrFilter) => setFilter({ state: "open", author: null, reviewer: null, assignee: null, label: null, ...f });
   const userName = (u: string | null | undefined) => (u && u === me() ? "me" : u);
@@ -222,14 +223,14 @@ function RequestsTab() {
     <>
       <div class="fg-filters">
         <div class="fg-search-row">
-          <SearchBox value={filter.search ?? ""} placeholder="Search" onChange={(v) => setFilter("search", v || null)} />
-          <button class="icon-btn" title="Quick Filters" onClick={(e) => menus.open(e, quick())}>
+          <SearchBox value={filter.search ?? ""} placeholder={tr("tools.forges.search")} onChange={(v) => setFilter("search", v || null)} />
+          <button class="icon-btn" title={tr("tools.forges.quickFilters")} onClick={(e) => menus.open(e, quick())}>
             <Filter size={14} />
           </button>
         </div>
         <div class="fg-chips">
           <Chip
-            label="State"
+            label={tr("tools.forges.state")}
             value={stateNames[filter.state ?? "open"]}
             onClick={(e) =>
               menus.open(
@@ -242,10 +243,10 @@ function RequestsTab() {
               )
             }
           />
-          <Chip label="Author" value={userName(filter.author)} onClick={(e) => menus.open(e, userItems("author"))} onClear={() => setFilter("author", null)} />
-          <Chip label="Label" value={filter.label} onClick={(e) => menus.open(e, labelItems())} onClear={() => setFilter("label", null)} />
-          <Chip label="Assignee" value={userName(filter.assignee)} onClick={(e) => menus.open(e, userItems("assignee"))} onClear={() => setFilter("assignee", null)} />
-          <Chip label="Reviewer" value={userName(filter.reviewer)} onClick={(e) => menus.open(e, userItems("reviewer"))} onClear={() => setFilter("reviewer", null)} />
+          <Chip label={tr("tools.forges.author")} value={userName(filter.author)} onClick={(e) => menus.open(e, userItems("author"))} onClear={() => setFilter("author", null)} />
+          <Chip label={tr("tools.forges.label")} value={filter.label} onClick={(e) => menus.open(e, labelItems())} onClear={() => setFilter("label", null)} />
+          <Chip label={tr("tools.forges.assignee")} value={userName(filter.assignee)} onClick={(e) => menus.open(e, userItems("assignee"))} onClear={() => setFilter("assignee", null)} />
+          <Chip label={tr("tools.forges.reviewer")} value={userName(filter.reviewer)} onClick={(e) => menus.open(e, userItems("reviewer"))} onClear={() => setFilter("reviewer", null)} />
         </div>
       </div>
       <div class="fg-list" role="list">
@@ -254,18 +255,18 @@ function RequestsTab() {
             <div class="fg-empty">
               <div class="fg-error-text">{errorText(page.error)}</div>
               <button class="btn-secondary" onClick={() => void refetch()}>
-                Retry
+                {tr("common.retry")}
               </button>
             </div>
           </Match>
           <Match when={page.loading && !page()}>
-            <div class="fg-empty muted">Loading {requestName().toLowerCase()}s…</div>
+            <div class="fg-empty muted">{tr("tools.forges.loadingSEllipsis", { requestName: requestName().toLowerCase() })}</div>
           </Match>
           <Match when={!items().length}>
             <div class="fg-empty muted">
-              No {requestName().toLowerCase()}s
+              {tr("tools.forges.noS", { requestName: requestName().toLowerCase() })}
               <button class="fg-link" onClick={openCreateDialog}>
-                Create {requestName()}…
+                {tr("tools.forges.createEllipsis", { requestName: requestName() })}
               </button>
             </div>
           </Match>
@@ -273,7 +274,7 @@ function RequestsTab() {
             <For each={items()}>{(mr) => <RequestRow mr={mr} />}</For>
             <Show when={nextPage()}>
               <button class="fg-load-more" onClick={() => void loadMore()}>
-                Load more…
+                {tr("tools.forges.loadMoreEllipsis")}
               </button>
             </Show>
           </Match>
@@ -292,7 +293,7 @@ function IssuesTab() {
   );
   const stateItems = (): MenuItem[] =>
     (["open", "closed", "all"] as const).map((s) => ({
-      label: s === "all" ? "All" : s === "open" ? "Open" : "Closed",
+      label: s === "all" ? tr("common.all") : s === "open" ? tr("common.open") : tr("tools.forges.closed"),
       checked: (issueFilter.state ?? "open") === s,
       run: () => setIssueFilter("state", s),
     }));
@@ -300,20 +301,20 @@ function IssuesTab() {
     <>
       <div class="fg-filters">
         <div class="fg-search-row">
-          <SearchBox value={issueFilter.search ?? ""} placeholder="Search issues" onChange={(v) => setIssueFilter("search", v || null)} />
+          <SearchBox value={issueFilter.search ?? ""} placeholder={tr("tools.forges.searchIssues")} onChange={(v) => setIssueFilter("search", v || null)} />
         </div>
         <div class="fg-chips">
-          <Chip label="State" value={issueFilter.state === "all" ? "All" : issueFilter.state === "closed" ? "Closed" : "Open"} onClick={(e) => menus.open(e, stateItems())} />
+          <Chip label={tr("tools.forges.state")} value={issueFilter.state === "all" ? "All" : issueFilter.state === "closed" ? "Closed" : "Open"} onClick={(e) => menus.open(e, stateItems())} />
           <Chip
-            label="Author"
+            label={tr("tools.forges.author")}
             value={issueFilter.author === me() && me() ? "me" : issueFilter.author}
-            onClick={(e) => menus.open(e, [{ label: "Me", checked: issueFilter.author === me(), run: () => setIssueFilter("author", me()) }, { label: "Any", checked: !issueFilter.author, run: () => setIssueFilter("author", null) }])}
+            onClick={(e) => menus.open(e, [{ label: tr("tools.forges.me"), checked: issueFilter.author === me(), run: () => setIssueFilter("author", me()) }, { label: tr("tools.forges.any"), checked: !issueFilter.author, run: () => setIssueFilter("author", null) }])}
             onClear={() => setIssueFilter("author", null)}
           />
           <Chip
-            label="Assignee"
+            label={tr("tools.forges.assignee")}
             value={issueFilter.assignee === me() && me() ? "me" : issueFilter.assignee}
-            onClick={(e) => menus.open(e, [{ label: "Me", checked: issueFilter.assignee === me(), run: () => setIssueFilter("assignee", me()) }, { label: "Any", checked: !issueFilter.assignee, run: () => setIssueFilter("assignee", null) }])}
+            onClick={(e) => menus.open(e, [{ label: tr("tools.forges.me"), checked: issueFilter.assignee === me(), run: () => setIssueFilter("assignee", me()) }, { label: tr("tools.forges.any"), checked: !issueFilter.assignee, run: () => setIssueFilter("assignee", null) }])}
             onClear={() => setIssueFilter("assignee", null)}
           />
         </div>
@@ -324,15 +325,15 @@ function IssuesTab() {
             <div class="fg-empty">
               <div class="fg-error-text">{errorText(page.error)}</div>
               <button class="btn-secondary" onClick={() => void refetch()}>
-                Retry
+                {tr("common.retry")}
               </button>
             </div>
           </Match>
           <Match when={page.loading && !page()}>
-            <div class="fg-empty muted">Loading issues…</div>
+            <div class="fg-empty muted">{tr("tools.forges.loadingIssuesEllipsis")}</div>
           </Match>
           <Match when={!page()?.items.length}>
-            <div class="fg-empty muted">No issues</div>
+            <div class="fg-empty muted">{tr("tools.forges.noIssues")}</div>
           </Match>
           <Match when={true}>
             <For each={page()!.items}>{(issue) => <IssueRow issue={issue} />}</For>
@@ -360,7 +361,7 @@ function IssueRow(props: { issue: Issue }) {
         </div>
         <div class="fg-row-sub muted">
           <span class="fg-row-sub-text">
-            #{i().number} opened by {displayName(i().author)} · updated {ago(i().updatedAt)}
+            {tr("tools.forges.openedByUpdated", { number: i().number, value: displayName(i().author), value2: ago(i().updatedAt) })}
           </span>
         </div>
       </div>
@@ -386,15 +387,15 @@ function PipelinesTab() {
           <div class="fg-empty">
             <div class="fg-error-text">{errorText(list.error)}</div>
             <button class="btn-secondary" onClick={() => void refetch()}>
-              Retry
+              {tr("common.retry")}
             </button>
           </div>
         </Match>
         <Match when={list.loading && !list()}>
-          <div class="fg-empty muted">Loading pipelines…</div>
+          <div class="fg-empty muted">{tr("tools.forges.loadingPipelinesEllipsis")}</div>
         </Match>
         <Match when={!list()?.length}>
-          <div class="fg-empty muted">No pipelines</div>
+          <div class="fg-empty muted">{tr("tools.forges.noPipelines")}</div>
         </Match>
         <Match when={true}>
           <For each={list()}>{(p) => <PipelineRow pipeline={p} />}</For>
@@ -430,10 +431,10 @@ function PipelineRow(props: { pipeline: Pipeline }) {
 export function PanelActions() {
   return (
     <>
-      <button class="icon-btn" title="Refresh" onClick={() => void refreshAll()}>
+      <button class="icon-btn" title={tr("common.refresh")} onClick={() => void refreshAll()}>
         <RefreshCw size={14} />
       </button>
-      <button class="icon-btn" title={`Create ${requestName()}…`} disabled={!context()?.account} onClick={openCreateDialog}>
+      <button class="icon-btn" title={tr("tools.forges.createEllipsis", { requestName: requestName() })} disabled={!context()?.account} onClick={openCreateDialog}>
         <Plus size={15} />
       </button>
     </>
@@ -448,10 +449,10 @@ export function MergeRequestsPanel() {
           {requestName()}s
         </button>
         <button class="git-tab" classList={{ active: tab() === "issues" }} onClick={() => setTab("issues")}>
-          Issues
+          {tr("tools.forges.issues")}
         </button>
         <button class="git-tab" classList={{ active: tab() === "pipelines" }} onClick={() => setTab("pipelines")}>
-          Pipelines
+          {tr("tools.forges.pipelines")}
         </button>
       </div>
       <Show when={context()?.account} fallback={<NotConnected />}>

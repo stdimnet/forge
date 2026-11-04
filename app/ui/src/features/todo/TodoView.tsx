@@ -11,6 +11,7 @@ import { activeTab } from "@/state/editor";
 import type { TodoFile, TodoItem } from "@/ipc/workbench";
 import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
 import { filterTodos, hiddenPatterns, patternLabel, patterns, scanProject, setHiddenPatterns, todoResult, todoScanning } from "./store";
+import { t as tr } from "@/i18n";
 
 export type TodoScope = "project" | "file";
 
@@ -75,7 +76,7 @@ function showFilterMenu(e: MouseEvent): void {
   const list = patterns();
   const hidden = hiddenPatterns();
   const entries: ResolvedEntry[] = [
-    { kind: "action", label: "Show All", checkable: true, checked: hidden.size === 0, run: () => setHiddenPatterns(new Set<number>()) },
+    { kind: "action", label: tr("tools.todo.showAll"), checkable: true, checked: hidden.size === 0, run: () => setHiddenPatterns(new Set<number>()) },
     "separator",
     ...list.map(
       (p, i): ResolvedEntry => ({
@@ -180,25 +181,25 @@ export function TodoView() {
   return (
     <div class="find-window todo-window">
       <div class="find-toolbar" role="toolbar">
-        <button class="find-tool" title="Refresh" disabled={todoScanning()} onClick={() => void scanProject()}>
+        <button class="find-tool" title={tr("common.refresh")} disabled={todoScanning()} onClick={() => void scanProject()}>
           <RotateCw size={15} />
         </button>
-        <button class="find-tool" classList={{ on: hiddenPatterns().size > 0 }} title="Filter TODO Items" onClick={showFilterMenu}>
+        <button class="find-tool" classList={{ on: hiddenPatterns().size > 0 }} title={tr("tools.todo.filterTodoItems")} onClick={showFilterMenu}>
           <Filter size={15} />
         </button>
         <button
           class="find-tool"
           classList={{ on: byDirectory() }}
-          title="Group by Directory"
+          title={tr("tools.todo.groupByDirectory")}
           aria-pressed={byDirectory()}
           onClick={() => setByDirectory(!byDirectory())}
         >
           <FolderTree size={15} />
         </button>
-        <button class="find-tool" title="Expand All" onClick={expandAll}>
+        <button class="find-tool" title={tr("common.expandAll2")} onClick={expandAll}>
           <ChevronsUpDown size={15} />
         </button>
-        <button class="find-tool" title="Collapse All" onClick={collapseAll}>
+        <button class="find-tool" title={tr("common.collapseAll2")} onClick={collapseAll}>
           <ChevronsDownUp size={15} />
         </button>
       </div>
@@ -207,22 +208,22 @@ export function TodoView() {
         fallback={
           <div class="find-empty">
             <ListChecks size={28} class="muted" />
-            <div>{todoScanning() ? "Searching for TODO items…" : "TODO items are shown here."}</div>
+            <div>{todoScanning() ? tr("tools.todo.searchingForTodoItemsEllipsis") : tr("tools.todo.todoItemsAreShownHere")}</div>
           </div>
         }
       >
         {(r) => (
-          <div class="find-tree" role="tree" aria-label="TODO items">
+          <div class="find-tree" role="tree" aria-label={tr("tools.todo.todoItems")}>
             <Show when={r().error}>
               <div class="find-node todo-error">{r().error}</div>
             </Show>
             <div class="find-node find-root">
               <span>{rootLabel()}</span>
               <Show when={r().truncated}>
-                <span class="find-count">(only the first results are shown)</span>
+                <span class="find-count">{tr("tools.todo.onlyTheFirstResultsAre")}</span>
               </Show>
               <Show when={todoScanning()}>
-                <span class="find-count">Updating…</span>
+                <span class="find-count">{tr("tools.todo.updatingEllipsis")}</span>
               </Show>
             </div>
             <Show when={byDirectory()} fallback={<For each={r().files}>{(f) => <FileNode file={f} nested={false} />}</For>}>
@@ -236,7 +237,7 @@ export function TodoView() {
                           <ChevronDown size={13} class="muted" />
                         </Show>
                         <Folder size={14} class="muted" />
-                        <span class="find-group-label">{d.dir || "Project root"}</span>
+                        <span class="find-group-label">{d.dir || tr("tools.todo.projectRoot")}</span>
                         <span class="find-count">{plural(d.count, "item")}</span>
                       </div>
                       <Show when={!collapsed().has(key)}>

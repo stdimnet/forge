@@ -52,6 +52,7 @@ import type { ShortcutCheck } from "@/ipc/keymap";
 import { showContextMenu, item, separator, type MenuEntry } from "@/features/contextMenu/state";
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
 import { ShortcutField } from "./ShortcutField";
+import { t as tr } from "@/i18n";
 
 const MAIN_MENU_ORDER = ["File", "Edit", "View", "Navigate", "Code", "Refactor", "Build", "Run", "Git", "Window", "Help"];
 
@@ -133,11 +134,11 @@ function ShortcutDialogFrame(props: {
               when={parsed()}
               fallback={
                 <span class="muted" classList={{ "shortcut-invalid": !!props.text && check()?.valid === false }}>
-                  {props.text && check()?.valid === false ? "This shortcut cannot be used." : props.hint}
+                  {props.text && check()?.valid === false ? tr("tools.keymapSettings.thisShortcutCannotBeUsed") : props.hint}
                 </span>
               }
             >
-              <Show when={conflicts().length} fallback={<span class="muted">No conflicts</span>}>
+              <Show when={conflicts().length} fallback={<span class="muted">{tr("tools.keymapSettings.noConflicts")}</span>}>
                 <div class="conflict-title">
                   {conflicts().some((c) => c.kind === "same")
                     ? "The shortcut is already assigned to other actions:"
@@ -158,7 +159,7 @@ function ShortcutDialogFrame(props: {
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={props.onClose}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <Show
             when={conflicts().some((c) => c.kind === "same")}
@@ -169,10 +170,10 @@ function ShortcutDialogFrame(props: {
             }
           >
             <button class="btn-secondary" onClick={() => apply(false)}>
-              Leave
+              {tr("tools.keymapSettings.leave")}
             </button>
             <button class="btn-primary" onClick={() => apply(true)}>
-              Remove Others
+              {tr("tools.keymapSettings.removeOthers")}
             </button>
           </Show>
         </div>
@@ -188,15 +189,15 @@ function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
   const [second, setSecond] = createSignal("");
   const text = () => (first() ? (useSecond() && second() ? `${first()} ${second()}` : first()) : "");
   return (
-    <ShortcutDialogFrame title="Keyboard Shortcut" action={props.action} text={text()} hint="Press the keys to use as the shortcut." onClose={props.onClose}>
+    <ShortcutDialogFrame title={tr("tools.keymapSettings.keyboardShortcut")} action={props.action} text={text()} hint={tr("tools.keymapSettings.pressTheKeysToUse")} onClose={props.onClose}>
       <div class="form-row">
-        <span class="form-label">First stroke:</span>
+        <span class="form-label">{tr("tools.keymapSettings.firstStrokeLabel")}</span>
         <ShortcutField value={first()} onChange={setFirst} autofocus />
       </div>
       <div class="form-row">
         <label class="form-label check">
           <input type="checkbox" checked={useSecond()} onChange={(e) => setUseSecond(e.currentTarget.checked)} />
-          Second stroke:
+          {tr("tools.keymapSettings.secondStrokeLabel")}
         </label>
         <ShortcutField value={second()} onChange={setSecond} disabled={!useSecond()} />
       </div>
@@ -222,20 +223,20 @@ function MouseShortcutDialog(props: { action: ActionDef; onClose: () => void }) 
   };
   return (
     <ShortcutDialogFrame
-      title="Mouse Shortcut"
+      title={tr("tools.keymapSettings.mouseShortcut")}
       action={props.action}
       text={stroke()}
-      hint="Click or turn the wheel in the pad, holding the modifier keys."
+      hint={tr("tools.keymapSettings.clickOrTurnTheWheel")}
       onClose={props.onClose}
     >
       <div class="form-row mouse-kind">
         <label class="check">
           <input type="radio" name="mouse-kind" checked={!double()} onChange={() => setDouble(false)} />
-          Single click
+          {tr("tools.keymapSettings.singleClick")}
         </label>
         <label class="check">
           <input type="radio" name="mouse-kind" checked={double()} onChange={() => setDouble(true)} />
-          Double click
+          {tr("tools.keymapSettings.doubleClick")}
         </label>
       </div>
       <div
@@ -249,7 +250,7 @@ function MouseShortcutDialog(props: { action: ActionDef; onClose: () => void }) 
         onWheel={(e) => record(e, true)}
       >
         <Mouse size={18} class="muted" />
-        <span>{stroke() ? formatForKeymap(stroke()) : "Click pad"}</span>
+        <span>{stroke() ? formatForKeymap(stroke()) : tr("tools.keymapSettings.clickPad")}</span>
       </div>
     </ShortcutDialogFrame>
   );
@@ -261,10 +262,10 @@ function KeymapSelect() {
   const user = () => keymaps().filter((k) => k.user);
   return (
     <div class="select-wrap">
-      <select aria-label="Keymap" value={keymapId()} onChange={(e) => setKeymapId(e.currentTarget.value)}>
+      <select aria-label={tr("tools.keymapSettings.keymap")} value={keymapId()} onChange={(e) => setKeymapId(e.currentTarget.value)}>
         <For each={bundled()}>{(k) => <option value={k.id}>{k.title}</option>}</For>
         <Show when={user().length}>
-          <optgroup label="Custom">
+          <optgroup label={tr("tools.keymapSettings.custom")}>
             <For each={user()}>{(k) => <option value={k.id}>{k.title}</option>}</For>
           </optgroup>
         </Show>
@@ -275,7 +276,7 @@ function KeymapSelect() {
 }
 
 const askKeymapName = (title: string, initial: string, confirm: string, except?: string) =>
-  askName({ title, label: "Name:", initial, confirm, validate: (n) => keymapNameProblem(n, except) });
+  askName({ title, label: tr("common.nameLabel"), initial, confirm, validate: (n) => keymapNameProblem(n, except) });
 
 /** A name like Rust's `free_name`, so the dialog suggests one that is free. */
 function freeKeymapName(base: string): string {
@@ -301,7 +302,7 @@ function keymapMenu(): MenuEntry[] {
     entries.push(
       item("Rename…", () => withName("Rename Keymap", km.id, "Rename", (n) => renameKeymap(km.id, n), km.id)),
       item("Delete", () => {
-        void askConfirm({ title: "Delete Keymap", message: `Delete the keymap "${km.title}"?`, confirm: "Delete" }).then((ok) => {
+        void askConfirm({ title: tr("tools.keymapSettings.deleteKeymap"), message: tr("tools.keymapSettings.deleteTheKeymap", { title: km.title }), confirm: tr("common.delete") }).then((ok) => {
           if (ok) void deleteKeymap(km.id);
         });
       }),
@@ -440,11 +441,11 @@ export function KeymapSettingsPage() {
   return (
     <div class="keymap-page">
       <div class="km-top">
-        <span class="form-label">Keymap:</span>
+        <span class="form-label">{tr("tools.keymapSettings.keymapLabel")}</span>
         <KeymapSelect />
         <button
           class="icon-btn"
-          title="Show Keymap Actions"
+          title={tr("tools.keymapSettings.showKeymapActions")}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             showContextMenu(keymapMenu(), r.left, r.bottom + 2);
@@ -453,26 +454,26 @@ export function KeymapSettingsPage() {
           <Settings size={15} />
         </button>
         <Show when={parentTitle()}>
-          <span class="muted km-parent">Based on {parentTitle()}</span>
+          <span class="muted km-parent">{tr("tools.keymapSettings.basedOn", { parentTitle: parentTitle() })}</span>
         </Show>
         <Show when={modifiedCount()}>
           <span class="muted km-modified">{modifiedCount()} modified</span>
           <button class="link-btn" onClick={() => void resetKeymap()}>
-            <RotateCcw size={12} /> Reset
+            <RotateCcw size={12} /> {tr("common.reset")}
           </button>
         </Show>
       </div>
 
       <div class="km-toolbar">
-        <button class="icon-btn" title="Expand All" onClick={() => setExpanded(allGroups())}>
+        <button class="icon-btn" title={tr("common.expandAll2")} onClick={() => setExpanded(allGroups())}>
           <ChevronsUpDown size={15} />
         </button>
-        <button class="icon-btn" title="Collapse All" onClick={() => setExpanded(new Set<string>())}>
+        <button class="icon-btn" title={tr("common.collapseAll2")} onClick={() => setExpanded(new Set<string>())}>
           <ChevronsDownUp size={15} />
         </button>
         <button
           class="icon-btn"
-          title="Edit Shortcuts"
+          title={tr("tools.keymapSettings.editShortcuts")}
           disabled={!selected() || selected()!.startsWith("g:")}
           onClick={() => {
             const a = actionById(selected() ?? "");
@@ -485,9 +486,9 @@ export function KeymapSettingsPage() {
         <div class="km-spacer" />
         <div class="search-field km-search">
           <Search size={14} class="muted" />
-          <input placeholder="Search actions" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
+          <input placeholder={tr("tools.keymapSettings.searchActions")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
           <Show when={filter()}>
-            <button class="icon-btn" title="Clear" onClick={() => setFilter("")}>
+            <button class="icon-btn" title={tr("common.clear")} onClick={() => setFilter("")}>
               <X size={12} />
             </button>
           </Show>
@@ -496,21 +497,21 @@ export function KeymapSettingsPage() {
           <button
             class="icon-btn"
             classList={{ active: findOpen() || !!shortcutFilter() }}
-            title="Find Actions by Shortcut"
+            title={tr("tools.keymapSettings.findActionsByShortcut")}
             onClick={() => setFindOpen((v) => !v)}
           >
             <Keyboard size={16} />
           </button>
           <Show when={findOpen()}>
             <div class="popup km-find-popup">
-              <div class="km-find-title">Find Actions by Shortcut</div>
+              <div class="km-find-title">{tr("tools.keymapSettings.findActionsByShortcut")}</div>
               <ShortcutField
                 value={shortcutFilter()}
                 onChange={(s) => setShortcutFilter(s)}
-                placeholder="Press a shortcut…"
+                placeholder={tr("tools.keymapSettings.pressAShortcutEllipsis")}
                 autofocus
               />
-              <div class="km-find-hint muted">The list shows actions bound to the pressed keys.</div>
+              <div class="km-find-hint muted">{tr("tools.keymapSettings.theListShowsActionsBound")}</div>
             </div>
           </Show>
         </div>
@@ -518,16 +519,16 @@ export function KeymapSettingsPage() {
 
       <Show when={shortcutFilter()}>
         <div class="km-filter-chip">
-          <span class="muted">Shortcut:</span>
+          <span class="muted">{tr("tools.keymapSettings.shortcutLabel")}</span>
           <span class="kbd">{formatForKeymap(shortcutFilter())}</span>
-          <button class="icon-btn" title="Clear shortcut filter" onClick={() => setShortcutFilter("")}>
+          <button class="icon-btn" title={tr("tools.keymapSettings.clearShortcutFilter")} onClick={() => setShortcutFilter("")}>
             <X size={12} />
           </button>
         </div>
       </Show>
 
       <div class="km-tree" tabIndex={0} ref={treeEl} onKeyDown={onTreeKey}>
-        <Show when={rows().length} fallback={<div class="se-empty">Nothing to show</div>}>
+        <Show when={rows().length} fallback={<div class="se-empty">{tr("common.nothingToShow")}</div>}>
           <For each={rows()}>
             {(row) => {
               if (row.type === "group") {
@@ -578,8 +579,7 @@ export function KeymapSettingsPage() {
       </div>
 
       <div class="km-note muted">
-        Shortcuts are saved as you change them. Double-click an action or press Enter to edit it; right-click it to add a
-        mouse shortcut.
+        {tr("tools.keymapSettings.shortcutsAreSavedAsYou")}
       </div>
 
       <Show when={menu()}>

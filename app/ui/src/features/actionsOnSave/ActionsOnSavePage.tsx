@@ -12,6 +12,7 @@ import { shortcutLabel } from "@/keymap";
 import { draft, draftValue, openSettings, setDraft } from "@/features/settings/dialogState";
 import { Hl, settingMatches } from "@/features/settings/dialogSearch";
 import { TOOL_PAGES } from "./run";
+import { t as tr } from "@/i18n";
 
 const K = {
   reformat: "actionsOnSave.reformat.enabled",
@@ -47,7 +48,7 @@ function ToolStatus(props: { info: SaveActionsInfo | undefined; tool: SaveTool }
     <Show when={props.info}>
       <Show
         when={location()?.path}
-        fallback={<span class="aos-missing">Not installed in the project</span>}
+        fallback={<span class="aos-missing">{tr("common.notInstalledInTheProject")}</span>}
       >
         {(path) => <span class="aos-muted" title={path()}>{path()}</span>}
       </Show>
@@ -77,7 +78,7 @@ function FileTypePicker(props: { info: SaveActionsInfo | undefined; disabled: bo
         <div class="aos-popup" onMouseLeave={() => setOpen(false)}>
           <label class="set-check aos-popup-item">
             <input type="checkbox" checked={!selected().length} onChange={() => setDraft(K.fileTypes, [])} />
-            <span>All file types</span>
+            <span>{tr("tools.actionsOnSave.allFileTypes")}</span>
           </label>
           <div class="aos-popup-sep" />
           <For each={props.info?.fileTypes ?? []}>
@@ -104,7 +105,7 @@ export function ActionsOnSavePage() {
   const rows: Row[] = [
     {
       key: K.reformat,
-      title: "Reformat code",
+      title: tr("tools.actionsOnSave.reformatCode"),
       extra: (enabled) => (
         <>
           <FileTypePicker info={info()} disabled={!enabled()} />
@@ -114,87 +115,87 @@ export function ActionsOnSavePage() {
             value={draftValue<string>(K.scope)}
             onChange={(e) => setDraft(K.scope, e.currentTarget.value)}
           >
-            <option value="whole">Whole file</option>
-            <option value="changed">Changed lines</option>
+            <option value="whole">{tr("tools.actionsOnSave.wholeFile")}</option>
+            <option value="changed">{tr("tools.actionsOnSave.changedLines")}</option>
           </select>
         </>
       ),
-      configure: { page: "editor.code-style", title: "Code Style" },
+      configure: { page: "editor.code-style", title: tr("tools.actionsOnSave.codeStyle") },
     },
     {
       key: K.optimizeImports,
-      title: "Optimize imports",
-      extra: () => <span class="aos-muted">PHP: remove unused, sort</span>,
+      title: tr("tools.actionsOnSave.optimizeImports"),
+      extra: () => <span class="aos-muted">{tr("tools.actionsOnSave.phpRemoveUnusedSort")}</span>,
     },
     {
       key: K.rearrange,
-      title: "Rearrange code",
-      extra: () => <span class="aos-muted">PHP: constants, properties, constructor, methods</span>,
+      title: tr("tools.actionsOnSave.rearrangeCode"),
+      extra: () => <span class="aos-muted">{tr("tools.actionsOnSave.phpConstantsPropertiesConstructorMethods")}</span>,
     },
     {
       key: K.cleanup,
-      title: "Run code cleanup",
-      extra: () => <span class="aos-muted">PHP: unused imports, unnecessary semicolons, closing tag</span>,
+      title: tr("tools.actionsOnSave.runCodeCleanup"),
+      extra: () => <span class="aos-muted">{tr("tools.actionsOnSave.phpUnusedImportsUnnecessarySemicolons")}</span>,
     },
     {
       key: K.biome,
-      title: "Run biome check --write",
+      title: tr("tools.actionsOnSave.runBiomeCheckWrite"),
       extra: () => <ToolStatus info={info()} tool="biome" />,
-      configure: { page: TOOL_PAGES.biome, title: "Code Quality Tools" },
+      configure: { page: TOOL_PAGES.biome, title: tr("tools.actionsOnSave.codeQualityTools") },
     },
     {
       key: K.eslint,
-      title: "Run eslint --fix",
+      title: tr("tools.actionsOnSave.runEslintFix"),
       extra: () => <ToolStatus info={info()} tool="eslint" />,
-      configure: { page: TOOL_PAGES.eslint, title: "Code Quality Tools" },
+      configure: { page: TOOL_PAGES.eslint, title: tr("tools.actionsOnSave.codeQualityTools") },
     },
     {
       key: K.stylelint,
-      title: "Run stylelint --fix",
+      title: tr("tools.actionsOnSave.runStylelintFix"),
       extra: () => <ToolStatus info={info()} tool="stylelint" />,
-      configure: { page: TOOL_PAGES.stylelint, title: "Code Quality Tools" },
+      configure: { page: TOOL_PAGES.stylelint, title: tr("tools.actionsOnSave.codeQualityTools") },
     },
     {
       key: K.prettier,
-      title: "Run Prettier",
+      title: tr("tools.actionsOnSave.runPrettier"),
       extra: (enabled) => (
         <>
           <input
             class="set-input aos-files"
             spellcheck={false}
             disabled={!enabled()}
-            title="Run for files"
+            title={tr("tools.actionsOnSave.runForFiles")}
             value={draftValue<string>(K.prettierFiles)}
             onInput={(e) => setDraft(K.prettierFiles, e.currentTarget.value)}
           />
           <ToolStatus info={info()} tool="prettier" />
         </>
       ),
-      configure: { page: TOOL_PAGES.prettier, title: "Code Quality Tools" },
+      configure: { page: TOOL_PAGES.prettier, title: tr("tools.actionsOnSave.codeQualityTools") },
     },
     {
       key: K.rector,
-      title: "Run Rector",
+      title: tr("tools.actionsOnSave.runRector"),
       extra: () => <ToolStatus info={info()} tool="rector" />,
-      configure: { page: TOOL_PAGES.rector, title: "Quality Tools" },
+      configure: { page: TOOL_PAGES.rector, title: tr("tools.actionsOnSave.qualityTools") },
     },
     {
       key: K.phpCsFixer,
-      title: "Run PHP CS Fixer",
+      title: tr("tools.actionsOnSave.runPhpCsFixer"),
       extra: () => <ToolStatus info={info()} tool="phpCsFixer" />,
-      configure: { page: TOOL_PAGES.phpCsFixer, title: "Quality Tools" },
+      configure: { page: TOOL_PAGES.phpCsFixer, title: tr("tools.actionsOnSave.qualityTools") },
     },
     {
       key: K.phpcbf,
-      title: "Run phpcbf",
+      title: tr("tools.actionsOnSave.runPhpcbf"),
       extra: () => <ToolStatus info={info()} tool="phpcbf" />,
-      configure: { page: TOOL_PAGES.phpcbf, title: "Quality Tools" },
+      configure: { page: TOOL_PAGES.phpcbf, title: tr("tools.actionsOnSave.qualityTools") },
     },
     {
       key: K.pint,
-      title: "Run Laravel Pint",
+      title: tr("tools.actionsOnSave.runLaravelPint"),
       extra: () => <ToolStatus info={info()} tool="pint" />,
-      configure: { page: TOOL_PAGES.pint, title: "Quality Tools" },
+      configure: { page: TOOL_PAGES.pint, title: tr("tools.actionsOnSave.qualityTools") },
     },
   ];
   const visible = () => rows.filter((r) => findSpec(r.key));
@@ -210,8 +211,7 @@ export function ActionsOnSavePage() {
   return (
     <div class="set-page aos-page">
       <div class="set-desc aos-intro">
-        Actions run when files are saved explicitly ({saveKey()}). External tools come from the project
-        (vendor/bin, node_modules/.bin) and run where the project lives.
+        {tr("tools.actionsOnSave.actionsRunWhenFilesAre", { saveKey: saveKey() })}
       </div>
       <div class="aos-list">
         <For each={visible()}>
@@ -231,7 +231,7 @@ export function ActionsOnSavePage() {
                 <Show when={row.configure}>
                   {(c) => (
                     <button class="set-link aos-configure" title={`Open ${c().title}`} onClick={() => openSettings(c().page)}>
-                      Configure…
+                      {tr("common.configureEllipsis")}
                     </button>
                   )}
                 </Show>
@@ -253,8 +253,7 @@ export function ActionsOnSavePage() {
             </span>
           </label>
           <div class="set-indent set-desc">
-            Reformat code, Optimize imports, Rearrange code and Run code cleanup also run when files are saved
-            automatically (Settings | Appearance & Behavior | System Settings). External tools only run on explicit save.
+            {tr("tools.actionsOnSave.reformatCodeOptimizeImportsRearrange")}
           </div>
         </div>
       </Show>

@@ -88,7 +88,7 @@ export function GitOverlays() {
             <div class="blame-card-head">
               <span class="log-sha">{c.commit.sha.slice(0, 8)}</span>
               <span class="strong">{c.commit.author}</span>
-              <span class="muted">&lt;{c.commit.email}&gt;</span>
+              <span class="muted">{t("tools.git.ltGt", { email: c.commit.email })}</span>
             </div>
             <div class="muted">
               {fullDate(c.commit.time)} · {timeAgo(c.commit.time)}

@@ -15,6 +15,7 @@ import { FindInFilesPopup } from "./FindInFiles";
 import { IndexStatus } from "./IndexStatus";
 import { findOpen, openFindInFiles } from "./state";
 import { openFindWindow } from "./window";
+import { t } from "@/i18n";
 import "./find.css";
 import "./findWindow.css";
 
@@ -45,7 +46,7 @@ registerStatusItem({ id: "search.index", align: "right", order: -20, component: 
 registerSearchProvider({
   id: "find.text",
   tab: "text",
-  title: "Text",
+  title: t("tools.find.text"),
   async search(query, { limit }) {
     if (query.trim().length < 2) return [];
     const result = await findApi.search({ query, limit }).catch(() => null);

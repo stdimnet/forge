@@ -25,6 +25,7 @@ import {
   stopRun,
   toolsLoaded,
 } from "./store";
+import { t as tr } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 const [initial, setInitial] = createSignal("");
@@ -58,10 +59,10 @@ export function RunCommandPopup() {
   return (
     <Show when={open()}>
       <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeRunCommand()}>
-        <div class="popup cli-popup" classList={{ "with-output": !!run() }} role="dialog" aria-label="Run Command">
+        <div class="popup cli-popup" classList={{ "with-output": !!run() }} role="dialog" aria-label={tr("tools.cliTools.runCommand")}>
           <div class="cli-popup-header">
             <SquareTerminal size={15} class="cli-popup-icon" />
-            <span class="cli-popup-title">Run Command</span>
+            <span class="cli-popup-title">{tr("tools.cliTools.runCommand")}</span>
             <span class="cli-popup-aliases">
               <For each={enabledTools()}>
                 {(t) => (
@@ -72,12 +73,12 @@ export function RunCommandPopup() {
               </For>
             </span>
             <span class="kbd cli-popup-shortcut">{shortcutLabel("CommandLineToolsAction")}</span>
-            <button class="icon-btn" title="Reload Command Lists" onClick={() => void reloadAll()}>
+            <button class="icon-btn" title={tr("tools.cliTools.reloadCommandLists")} onClick={() => void reloadAll()}>
               <RefreshCw size={13} />
             </button>
             <button
               class="icon-btn"
-              title="Command Line Tool Support Settings"
+              title={tr("tools.cliTools.commandLineToolSupportSettings")}
               onClick={() => {
                 closeRunCommand();
                 openSettings(SETTINGS_PAGE);
@@ -85,13 +86,13 @@ export function RunCommandPopup() {
             >
               <Settings size={13} />
             </button>
-            <button class="icon-btn" title="Close (Esc)" onClick={closeRunCommand}>
+            <button class="icon-btn" title={tr("common.closeEsc")} onClick={closeRunCommand}>
               <X size={14} />
             </button>
           </div>
           <Show when={toolsLoaded() && !enabledTools().length}>
             <div class="cli-popup-notice">
-              No command line tools are configured.{" "}
+              {tr("tools.cliTools.noCommandLineToolsAre")}
               <button
                 class="link-btn"
                 onClick={() => {
@@ -99,7 +100,7 @@ export function RunCommandPopup() {
                   openSettings(SETTINGS_PAGE);
                 }}
               >
-                Add a tool…
+                {tr("tools.cliTools.addAToolEllipsis")}
               </button>
             </div>
           </Show>
@@ -128,12 +129,12 @@ export function RunCommandPopup() {
                   <Show
                     when={isLive(r())}
                     fallback={
-                      <button class="icon-btn" title="Rerun" onClick={() => void rerun(r().id)}>
+                      <button class="icon-btn" title={tr("tools.cliTools.rerun")} onClick={() => void rerun(r().id)}>
                         <RotateCcw size={14} />
                       </button>
                     }
                   >
-                    <button class="icon-btn" title="Stop (Ctrl+C)" onClick={() => void stopRun(r().id)}>
+                    <button class="icon-btn" title={tr("tools.cliTools.stopCtrlC")} onClick={() => void stopRun(r().id)}>
                       <Square size={12} fill="currentColor" />
                     </button>
                   </Show>
@@ -149,7 +150,7 @@ export function RunCommandPopup() {
             )}
           </Show>
           <div class="cli-popup-footer muted">
-            <span>Tab to complete · ↑↓ history · Enter to run · Ctrl+C to stop · Esc to close</span>
+            <span>{tr("tools.cliTools.tabToCompleteHistoryEnter")}</span>
           </div>
         </div>
       </div>

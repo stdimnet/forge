@@ -20,6 +20,7 @@ import {
 } from "@/ipc/webTooling";
 import type { SettingValue } from "@/ipc/settings";
 import { WATCHERS_KEY } from "./run";
+import { t as tr } from "@/i18n";
 
 const decode = (v: SettingValue | undefined): FileWatcher[] =>
   Array.isArray(v) ? (v as unknown as Record<string, unknown>[]).filter((o) => o && typeof o === "object").map(watcherFromObject) : [];
@@ -85,22 +86,22 @@ export function FileWatchersPage() {
     <div class="fw-page">
       <div class="set-list fw-list">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" aria-label="Add" data-testid="fw-add" onClick={add}>
+          <button class="icon-btn" title={tr("common.add")} aria-label={tr("common.add")} data-testid="fw-add" onClick={add}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" aria-label="Remove" disabled={!current()} onClick={remove}>
+          <button class="icon-btn" title={tr("common.remove")} aria-label={tr("common.remove")} disabled={!current()} onClick={remove}>
             <Minus size={14} />
           </button>
           <button
             class="icon-btn"
-            title="Edit"
-            aria-label="Edit"
+            title={tr("common.edit")}
+            aria-label={tr("common.edit")}
             disabled={!current()}
             onClick={() => current() && setEditing({ index: selected()!, watcher: current()! })}
           >
             <Pencil size={14} />
           </button>
-          <button class="icon-btn" title="Copy" aria-label="Copy" disabled={!current()} onClick={copy}>
+          <button class="icon-btn" title={tr("common.copy")} aria-label={tr("common.copy")} disabled={!current()} onClick={copy}>
             <Copy size={14} />
           </button>
         </div>
@@ -108,10 +109,10 @@ export function FileWatchersPage() {
           <thead>
             <tr>
               <th class="fw-check" />
-              <th>Name</th>
-              <th>File Type</th>
-              <th>Scope</th>
-              <th>Program</th>
+              <th>{tr("common.name")}</th>
+              <th>{tr("langs.webTooling.fileType")}</th>
+              <th>{tr("common.scope")}</th>
+              <th>{tr("langs.webTooling.program")}</th>
             </tr>
           </thead>
           <tbody>
@@ -120,7 +121,7 @@ export function FileWatchersPage() {
               fallback={
                 <tr>
                   <td colSpan={5} class="set-list-empty">
-                    No file watchers. Click + to add one from a template.
+                    {tr("langs.webTooling.noFileWatchersClickTo")}
                   </td>
                 </tr>
               }
@@ -144,7 +145,7 @@ export function FileWatchersPage() {
                     <Eye size={13} class="muted" /> {w.name}
                   </td>
                   <td>{typeLabel(w.fileType)}</td>
-                  <td>{w.scope || "Project Files"}</td>
+                  <td>{w.scope || tr("langs.webTooling.projectFiles")}</td>
                   <td class="fw-mono">{w.program}</td>
                 </tr>
               )}
@@ -153,8 +154,7 @@ export function FileWatchersPage() {
         </table>
       </div>
       <div class="set-desc fw-hint">
-        Watchers run when a file of their type is saved (or changes on disk, if enabled) and show their output in the Run tool window.
-        Problems found by their output filters appear in the Problems tool window. They do not run in Safe Mode.
+        {tr("langs.webTooling.watchersRunWhenAFile")}
       </div>
       <Show when={editing()}>
         {(e) => (
@@ -230,8 +230,8 @@ export function EditWatcherDialog(props: { watcher: FileWatcher; creating: boole
         onInput={(e) => set({ [p.field]: e.currentTarget.value } as Partial<FileWatcher>)}
       />
       <Show when={p.macros !== false}>
-        <button class="btn-secondary et-macro-btn" title="Insert Macro" onClick={(e) => insertMacro(p.field, e)}>
-          <Plus size={13} /> Macro
+        <button class="btn-secondary et-macro-btn" title={tr("langs.webTooling.insertMacro")} onClick={(e) => insertMacro(p.field, e)}>
+          <Plus size={13} /> {tr("langs.webTooling.macro")}
         </button>
       </Show>
     </div>
@@ -249,7 +249,7 @@ export function EditWatcherDialog(props: { watcher: FileWatcher; creating: boole
       <div
         class="popup et-dialog fw-dialog"
         role="dialog"
-        aria-label={props.creating ? "New Watcher" : "Edit Watcher"}
+        aria-label={props.creating ? tr("langs.webTooling.newWatcher") : tr("langs.webTooling.editWatcher")}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.preventDefault();
@@ -262,76 +262,76 @@ export function EditWatcherDialog(props: { watcher: FileWatcher; creating: boole
           }
         }}
       >
-        <div class="et-title">{props.creating ? "New Watcher" : "Edit Watcher"}</div>
+        <div class="et-title">{props.creating ? tr("langs.webTooling.newWatcher") : tr("langs.webTooling.editWatcher")}</div>
         <div class="et-form">
           <div class="et-row">
             <label class="et-label" for="fw-name">
-              Name:
+              {tr("common.nameLabel")}
             </label>
             <input id="fw-name" class="set-input et-grow" value={w().name} onInput={(e) => set({ name: e.currentTarget.value })} />
           </div>
-          <div class="et-section">Files to Watch</div>
+          <div class="et-section">{tr("langs.webTooling.filesToWatch")}</div>
           <div class="et-row">
             <label class="et-label" for="fw-type">
-              File type:
+              {tr("langs.webTooling.fileTypeLabel")}
             </label>
             <select id="fw-type" class="set-input" value={w().fileType} onChange={(e) => set({ fileType: e.currentTarget.value })}>
               <For each={WATCHER_FILE_TYPES}>{(t) => <option value={t.id}>{t.label}</option>}</For>
             </select>
             <label class="et-label et-group-label" for="fw-scope">
-              Scope:
+              {tr("common.scopeLabel")}
             </label>
             <select id="fw-scope" class="set-input et-grow" value={w().scope || "Project Files"} onChange={(e) => set({ scope: e.currentTarget.value })}>
               <For each={scopes().length ? scopes() : ["Project Files"]}>{(s) => <option value={s}>{s}</option>}</For>
             </select>
           </div>
-          <div class="et-section">Tool to Run on Changes</div>
-          <Text field="program" label="Program:" placeholder="sass" />
-          <Text field="arguments" label="Arguments:" placeholder="$FileName$:$FileNameWithoutExtension$.css" />
-          <Text field="outputPaths" label="Output paths to refresh:" placeholder="$FileNameWithoutExtension$.css" />
-          <Text field="workingDirectory" label="Working directory:" placeholder="$FileDir$" />
+          <div class="et-section">{tr("langs.webTooling.toolToRunOnChanges")}</div>
+          <Text field="program" label={tr("langs.webTooling.programLabel")} placeholder="sass" />
+          <Text field="arguments" label={tr("common.argumentsLabel")} placeholder={tr("langs.webTooling.filenameFilenamewithoutextensionCss")} />
+          <Text field="outputPaths" label={tr("langs.webTooling.outputPathsToRefreshLabel")} placeholder={tr("langs.webTooling.filenamewithoutextensionCss")} />
+          <Text field="workingDirectory" label={tr("langs.webTooling.workingDirectoryLabel")} placeholder={tr("langs.webTooling.filedir")} />
           <div class="et-row">
             <label class="et-label" for="fw-env">
-              Environment variables:
+              {tr("langs.webTooling.environmentVariablesLabel")}
             </label>
             <input
               id="fw-env"
               class="set-input et-grow et-mono"
               value={w().environment.split("\n").filter(Boolean).join(";")}
-              placeholder="NODE_ENV=production;…"
+              placeholder={tr("langs.webTooling.nodeEnvProductionEllipsis")}
               onInput={(e) => set({ environment: e.currentTarget.value.split(";").map((s) => s.trim()).filter(Boolean).join("\n") })}
             />
           </div>
-          <div class="et-section">Advanced Options</div>
+          <div class="et-section">{tr("langs.webTooling.advancedOptions")}</div>
           <div class="fw-options">
-            <Check key="autoSave" label="Auto-save edited files to trigger the watcher" />
-            <Check key="onExternal" label="Trigger the watcher on external changes" />
-            <Check key="trackOnlyRoot" label="Track only root files" />
+            <Check key="autoSave" label={tr("langs.webTooling.autoSaveEditedFilesTo")} />
+            <Check key="onExternal" label={tr("langs.webTooling.triggerTheWatcherOnExternal")} />
+            <Check key="trackOnlyRoot" label={tr("langs.webTooling.trackOnlyRootFiles")} />
             <div class="et-row">
               <label class="et-label" for="fw-console">
-                Show console:
+                {tr("langs.webTooling.showConsoleLabel")}
               </label>
               <select id="fw-console" class="set-input" value={w().showConsole} onChange={(e) => set({ showConsole: e.currentTarget.value as ShowConsole })}>
-                <option value="always">Always</option>
-                <option value="error">On error</option>
-                <option value="never">Never</option>
+                <option value="always">{tr("langs.webTooling.always")}</option>
+                <option value="error">{tr("langs.webTooling.onError")}</option>
+                <option value="never">{tr("langs.webTooling.never")}</option>
               </select>
             </div>
           </div>
           <div class="et-row et-filters-row">
             <label class="et-label" for="fw-filters">
-              Output filters:
+              {tr("langs.webTooling.outputFiltersLabel")}
             </label>
             <textarea
               id="fw-filters"
               class="set-input et-grow et-mono fw-filters"
               rows={3}
               value={w().outputFilters.join("\n")}
-              placeholder="$FILE_PATH$:$LINE$:$COLUMN$"
+              placeholder={tr("langs.webTooling.filePathLineColumn")}
               onInput={(e) => set({ outputFilters: e.currentTarget.value.split("\n") })}
             />
           </div>
-          <div class="set-desc fw-filter-hint">One regular expression per line with $FILE_PATH$, $LINE$ and $COLUMN$; matches become Problems.</div>
+          <div class="set-desc fw-filter-hint">{tr("langs.webTooling.oneRegularExpressionPerLine")}</div>
         </div>
         <Show when={problems().length}>
           <div class="et-problems" role="alert">
@@ -344,7 +344,7 @@ export function EditWatcherDialog(props: { watcher: FileWatcher; creating: boole
             OK
           </button>
           <button class="btn-secondary" onClick={() => props.onDone(null)}>
-            Cancel
+            {tr("common.cancel")}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { balloonsFor } from "@/keymap/dispatch";
 import { onProjectDetected } from "@/state/project";
 import { failureDetail, managedOption, updateSummary } from "./autoInstall";
 import { applyServers } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Language Servers");
 
@@ -63,17 +64,17 @@ export async function installManaged(row: ServerRow): Promise<InstallOutcome | n
   try {
     outcome = await langserversApi.install(row.id, option.index);
   } catch (e) {
-    showBalloon(`${row.name} could not be installed`, errorText(e), 0, [{ label: "Retry", run: () => void installManaged(row) }]);
+    showBalloon(t("tools.langservers.couldNotBeInstalled", { name: row.name }), errorText(e), 0, [{ label: "Retry", run: () => void installManaged(row) }]);
   } finally {
     setActive((list) => list.filter((a) => a.id !== row.id));
   }
   if (outcome === "succeeded") {
     await applyServers();
-    showBalloon(`${row.name} installed`, "It starts with the next matching file.", 6000);
+    showBalloon(`${row.name} installed`, t("tools.langservers.itStartsWithTheNext"), 6000);
   } else if (outcome && outcome !== "cancelled") {
     // Stays until dismissed: an install takes a while and the user may have looked away.
     const detail = failureDetail(outcome.failed.code, stderrOf.get(row.id) ?? []);
-    showBalloon(`${row.name} could not be installed`, detail, 0, [{ label: "Retry", run: () => void installManaged(row) }]);
+    showBalloon(t("tools.langservers.couldNotBeInstalled", { name: row.name }), detail, 0, [{ label: "Retry", run: () => void installManaged(row) }]);
   }
   return outcome;
 }
@@ -88,10 +89,10 @@ let updatesChecked = false;
 export async function checkUpdates(force = false): Promise<void> {
   const updates = await langserversApi.checkUpdates(force).catch(() => null);
   if (!updates?.length) {
-    if (force) showBalloon("Language servers are up to date", undefined, 4000);
+    if (force) showBalloon(t("tools.langservers.languageServersAreUpTo"), undefined, 4000);
     return;
   }
-  showBalloon(updates.length === 1 ? "Language server update available" : "Language server updates available", updateSummary(updates), 0, [
+  showBalloon(updates.length === 1 ? t("tools.langservers.languageServerUpdateAvailable") : t("tools.langservers.languageServerUpdatesAvailable"), updateSummary(updates), 0, [
     {
       label: "Update",
       run: () => {
@@ -109,10 +110,10 @@ async function updatePackage(name: string): Promise<void> {
     const outcome = await langserversApi.update(name);
     if (outcome === "succeeded") {
       await applyServers();
-      showBalloon(`${name} updated`, "Its language server restarts with the new version.", 5000);
+      showBalloon(`${name} updated`, t("tools.langservers.itsLanguageServerRestartsWith"), 5000);
     }
   } catch (e) {
-    showBalloon(`${name} could not be updated`, errorText(e), 10000);
+    showBalloon(t("tools.langservers.couldNotBeUpdated", { name }), errorText(e), 10000);
   } finally {
     setActive((list) => list.filter((a) => a.id !== name));
   }

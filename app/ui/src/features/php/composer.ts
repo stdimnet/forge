@@ -11,6 +11,7 @@ import { getSetting, settingsState } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { isDialogWindow } from "@/shell/window/mode";
 import { phpApi, type LanguageLevel, type OutdatedPackage } from "./api";
+import { t } from "@/i18n";
 
 const [languageLevel, setLanguageLevel] = createSignal<LanguageLevel | null>(null);
 
@@ -35,7 +36,7 @@ async function checkUpdates(): Promise<void> {
   const outdated = await phpApi.composerOutdated().catch(() => [] as OutdatedPackage[]);
   if (!outdated.length) return;
   const n = outdated.length;
-  showBalloon(`${n} Composer package${n === 1 ? " has" : "s have"} updates`, outdatedSummary(outdated), 12000);
+  showBalloon(t("langs.php.composerPackageUpdates", { n, value: n === 1 ? " has" : "s have" }), outdatedSummary(outdated), 12000);
 }
 
 createRoot(() => {

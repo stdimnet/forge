@@ -8,6 +8,7 @@ import { pythonToolsApi, type ProfileInfo, type ProfileSnapshot } from "@/ipc/py
 import { onProfileSnapshot } from "@/features/run";
 import { showToolWindow } from "@/state/layout";
 import { showBalloon } from "@/keymap";
+import { t } from "@/i18n";
 
 const [snapshots, setSnapshots] = createSignal<ProfileInfo[]>([]);
 const [current, setCurrent] = createSignal<ProfileSnapshot | null>(null);
@@ -23,7 +24,7 @@ export async function showSnapshot(id: string): Promise<void> {
   try {
     setCurrent(await pythonToolsApi.profileView(id));
   } catch (e) {
-    showBalloon("Cannot open the profile", String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
+    showBalloon(t("langs.python.cannotOpenTheProfile"), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
   } finally {
     setLoading(false);
   }
@@ -49,7 +50,7 @@ export async function openSnapshotFile(path: string): Promise<void> {
     await showSnapshot(info.id);
     showToolWindow("profiler");
   } catch (e) {
-    showBalloon("Cannot open the profile", String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
+    showBalloon(t("langs.python.cannotOpenTheProfile"), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
   }
 }
 

@@ -19,6 +19,7 @@ import type { FileEntry } from "@/ipc/workspace";
 import { compareFiles, compareHandlerForFocus, registerCompareHandler, selectPathRequest, setSelectPathRequest } from "./state";
 import { compareFocusedDirDiffRow, DirDiffView } from "./DirDiffView";
 import { SelectPathDialog } from "./SelectPathDialog";
+import { t } from "@/i18n";
 import "./compare.css";
 
 const nameOf = (path: string) => path.split("/").pop() || path || "/";
@@ -53,14 +54,14 @@ function projectSelection(): Picked[] {
 export function compareSelection(selection: Picked[]): void {
   if (selection.length === 2) {
     const [a, b] = selection;
-    if (a.dir !== b.dir) return void showBalloon("Cannot compare a file with a folder", "Select two files or two folders.");
+    if (a.dir !== b.dir) return void showBalloon(t("tools.compare.cannotCompareAFileWith"), t("tools.compare.selectTwoFilesOrTwo"));
     return a.dir ? openDirDiff(a.path, b.path) : void compareFiles(a.path, b.path);
   }
   if (selection.length !== 1) return;
   const [a] = selection;
   setSelectPathRequest({
-    title: a.dir ? "Select Directory to Compare With" : "Select File to Compare With",
-    description: `Compare ${a.path || "the project root"} with:`,
+    title: a.dir ? t("tools.compare.selectDirectoryToCompareWith") : t("tools.compare.selectFileToCompareWith"),
+    description: t("tools.compare.compareWithLabel", { value: a.path || "the project root" }),
     dirs: a.dir,
     initial: a.path,
     onOk: (path) => (a.dir ? openDirDiff(a.path, path) : compareFiles(a.path, path)),
@@ -85,16 +86,16 @@ export async function compareWithClipboard(): Promise<void> {
   const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
   const system = navigator.clipboard?.readText().catch(() => null) ?? Promise.resolve(null);
   const clip = (await Promise.race([system, timeout])) ?? lastCopy()?.text ?? null;
-  if (clip === null) return void showBalloon("Clipboard is not available", "Copy some text first.");
+  if (clip === null) return void showBalloon(t("tools.compare.clipboardIsNotAvailable"), t("tools.compare.copySomeTextFirst"));
   const sel = view.state.selection.main;
   const name = nameOf(tab.path);
   const whole = sel.empty;
   setDiffRequest({
     path: tab.path,
-    left: { title: "Clipboard", content: clip },
+    left: { title: t("tools.compare.clipboard"), content: clip },
     right: whole
       ? { title: name, content: view.state.doc.toString() }
-      : { title: `Selection from ${name}`, content: view.state.sliceDoc(sel.from, sel.to) },
+      : { title: t("tools.compare.selectionFrom", { name }), content: view.state.sliceDoc(sel.from, sel.to) },
     // Only a whole project file is written back after editing in the viewer.
     editable: whole && !tab.view && !tab.path.includes("://"),
   });

@@ -12,6 +12,7 @@ import { FRAMEWORKS, frameworkLabel, testFrameworksApi, type FrameworkConfig, ty
 import type { SettingObject, SettingSpec } from "@/ipc/settings";
 import { decodeInterpreters, GLOBAL_KEY, PROJECT_KEY } from "@/features/php/interpreters";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
+import { t } from "@/i18n";
 
 /** A row: a configured entry (by index) or a detected framework. */
 interface Row {
@@ -85,10 +86,10 @@ export function TestFrameworksEditor(props: { spec: SettingSpec }) {
     <div class="tf-editor">
       <div class="set-list tf-list">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" data-testid="tf-add" onClick={() => setAdding((v) => !v)}>
+          <button class="icon-btn" title={t("common.add")} data-testid="tf-add" onClick={() => setAdding((v) => !v)}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={!selected() || selected()!.index === null} onClick={remove}>
+          <button class="icon-btn" title={t("common.remove")} disabled={!selected() || selected()!.index === null} onClick={remove}>
             <Minus size={14} />
           </button>
         </div>
@@ -98,12 +99,12 @@ export function TestFrameworksEditor(props: { spec: SettingSpec }) {
               {(f) => (
                 <>
                   <div class="tf-add-item" role="menuitem" data-framework={f.id} onClick={() => add(f.id, "")}>
-                    {f.label} Local
+                    {t("langs.testFrameworks.local", { label: f.label })}
                   </div>
                   <For each={interpreters()}>
                     {(name) => (
                       <div class="tf-add-item tf-add-remote" role="menuitem" onClick={() => add(f.id, name)}>
-                        {f.label} by Remote Interpreter: {name}
+                        {t("langs.testFrameworks.byRemoteInterpreter", { label: f.label, name })}
                       </div>
                     )}
                   </For>
@@ -124,7 +125,7 @@ export function TestFrameworksEditor(props: { spec: SettingSpec }) {
             )}
           </For>
           <Show when={!rows().length}>
-            <div class="set-list-empty">No test frameworks. Click + to add one.</div>
+            <div class="set-list-empty">{t("langs.testFrameworks.noTestFrameworksClickTo")}</div>
           </Show>
         </div>
       </div>
@@ -132,14 +133,13 @@ export function TestFrameworksEditor(props: { spec: SettingSpec }) {
         <div class="tf-form" data-testid="tf-form">
           <div class="tf-section">{frameworkLabel(fw())} library</div>
           <label class="tf-radio">
-            <input type="radio" name="tf-mode" checked={composer()} onChange={() => set("mode", "composer")} /> Use Composer autoloader
+            <input type="radio" name="tf-mode" checked={composer()} onChange={() => set("mode", "composer")} /> {t("langs.testFrameworks.useComposerAutoloader")}
           </label>
           <label class="tf-radio">
-            <input type="radio" name="tf-mode" checked={!composer()} onChange={() => set("mode", "path")} /> Path to {binOf(fw())}
-            {fw() === "phpunit" ? ".phar" : " executable"}
+            <input type="radio" name="tf-mode" checked={!composer()} onChange={() => set("mode", "path")} /> {t("langs.testFrameworks.pathTo", { value: binOf(fw()), value2: fw() === "phpunit" ? ".phar" : " executable" })}
           </label>
           <div class="set-delims-grid tf-grid">
-            <label class="set-label">{composer() ? "Path to script:" : `Path to ${binOf(fw())}:`}</label>
+            <label class="set-label">{composer() ? t("langs.testFrameworks.pathToScriptLabel") : t("langs.testFrameworks.pathToLabel", { value: binOf(fw()) })}</label>
             <input
               class="set-input set-table-mono"
               spellcheck={false}
@@ -148,9 +148,9 @@ export function TestFrameworksEditor(props: { spec: SettingSpec }) {
               onChange={(e) => set("path", e.currentTarget.value.trim())}
             />
           </div>
-          <div class="tf-section">Test Runner</div>
+          <div class="tf-section">{t("langs.testFrameworks.testRunner")}</div>
           <div class="set-delims-grid tf-grid">
-            <label class="set-label">Default configuration file:</label>
+            <label class="set-label">{t("langs.testFrameworks.defaultConfigurationFileLabel")}</label>
             <input
               class="set-input set-table-mono"
               spellcheck={false}
@@ -159,7 +159,7 @@ export function TestFrameworksEditor(props: { spec: SettingSpec }) {
               onChange={(e) => set("configFile", e.currentTarget.value.trim())}
             />
             <Show when={fw() === "phpunit" || fw() === "phpspec"}>
-              <label class="set-label">Default bootstrap file:</label>
+              <label class="set-label">{t("langs.testFrameworks.defaultBootstrapFileLabel")}</label>
               <input
                 class="set-input set-table-mono"
                 spellcheck={false}

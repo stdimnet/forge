@@ -266,7 +266,7 @@ export async function moveEntries(paths: string[], targetDir?: string): Promise<
   if (!moves.length) return;
   for (const m of moves) {
     if (await entryOf(m.to)) {
-      showBalloon(tr("codeintel.moveRefactorings.moveFailed"), `${m.to} already exists`, 6000);
+      showBalloon(tr("codeintel.moveRefactorings.moveFailed"), tr("tools.codeintel.alreadyExists", { to: m.to }), 6000);
       return;
     }
   }
@@ -338,7 +338,7 @@ export async function copyEntries(paths: string[], targetDir?: string): Promise<
   if (!choice) return;
   const to = join(choice.directory.replace(/^\/+|\/+$/g, ""), choice.name.trim());
   if (await entryOf(to)) {
-    showBalloon(tr("codeintel.moveRefactorings.copyFailed"), `${to} already exists`, 6000);
+    showBalloon(tr("codeintel.moveRefactorings.copyFailed"), tr("tools.codeintel.alreadyExists", { to }), 6000);
     return;
   }
   const empty: RefactorAnswer = { edit: { changes: [] }, preview: [], conflicts: [], nameRanges: [], skipped: 0 };

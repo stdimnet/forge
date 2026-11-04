@@ -240,7 +240,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
                 </Show>
               }
             >
-              <LoaderCircle size={12} class="db-spin" /> {progress() ? `${progress()!.done} / ${progress()!.total} · ${progress()!.current}` : "Preparing…"}
+              <LoaderCircle size={12} class="db-spin" /> {progress() ? `${progress()!.done} / ${progress()!.total} · ${progress()!.current}` : tr("tools.database.preparingEllipsis")}
             </Show>
           </span>
         </div>
@@ -320,7 +320,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
           )}
         </For>
         <Show when={summary() && !matched().length && !failed().length}>
-          <div class="muted fts-none">No rows contain “{text()}”.</div>
+          <div class="muted fts-none">{tr("tools.database.noRowsContain", { text: text() })}</div>
         </Show>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { openFileAt } from "@/editor/views";
 import { askName } from "@/features/contextMenu/dialogs";
 import type { CallNode, HotSpot } from "@/ipc/pythonTools";
 import { currentSnapshot, deleteSnapshot, openSnapshotFile, profileLoading, showSnapshot, snapshots } from "./store";
+import { t } from "@/i18n";
 
 const when = (at: number) => new Date(at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v.toFixed(v < 10 ? 2 : 1)} ms`);
@@ -27,12 +28,12 @@ export function showSnapshotsMenu(x: number, y: number): void {
     y,
     items: list.length
       ? list.map((s) => ({ label: s.name, shortcut: when(s.at), run: () => void showSnapshot(s.id) }))
-      : [{ label: "No snapshots yet", disabled: true }],
+      : [{ label: t("langs.python.noSnapshotsYet"), disabled: true }],
   });
 }
 
 async function openFile(): Promise<void> {
-  const path = await askName({ title: "Open Profiler Snapshot", label: "Project-relative path of a .pstats file:", initial: "", confirm: "Open" });
+  const path = await askName({ title: t("langs.python.openProfilerSnapshot"), label: t("langs.python.projectRelativePathOfALabel"), initial: "", confirm: t("common.open") });
   if (path?.trim()) await openSnapshotFile(path.trim());
 }
 
@@ -41,7 +42,7 @@ export function ProfilerActions() {
     <>
       <button
         class="icon-btn"
-        title="Snapshots…"
+        title={t("langs.python.snapshotsEllipsis")}
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           showSnapshotsMenu(r.left, r.bottom + 2);
@@ -49,10 +50,10 @@ export function ProfilerActions() {
       >
         <History size={14} />
       </button>
-      <button class="icon-btn" title="Open Snapshot…" onClick={() => void openFile()}>
+      <button class="icon-btn" title={t("langs.python.openSnapshotEllipsis")} onClick={() => void openFile()}>
         <FileInput size={14} />
       </button>
-      <button class="icon-btn" title="Delete Snapshot" disabled={!currentSnapshot()} onClick={() => currentSnapshot() && void deleteSnapshot(currentSnapshot()!.info.id)}>
+      <button class="icon-btn" title={t("langs.python.deleteSnapshot")} disabled={!currentSnapshot()} onClick={() => currentSnapshot() && void deleteSnapshot(currentSnapshot()!.info.id)}>
         <Trash2 size={14} />
       </button>
     </>
@@ -107,11 +108,11 @@ function CallTree() {
   return (
     <div class="prof-table" role="treegrid" data-testid="profiler-call-tree">
       <div class="prof-head prof-tree-cols">
-        <span>Name</span>
-        <span>Calls</span>
-        <span>Total Time</span>
-        <span>Own Time</span>
-        <span>Time, %</span>
+        <span>{t("common.name")}</span>
+        <span>{t("langs.python.calls")}</span>
+        <span>{t("langs.python.totalTime")}</span>
+        <span>{t("langs.python.ownTime")}</span>
+        <span>{t("langs.python.time")}</span>
       </div>
       <div class="prof-body">
         <For each={rows()}>
@@ -171,7 +172,7 @@ function HotSpots() {
         {head("name", "Name")}
         {head("calls", "Calls")}
         {head("ownMs", "Own Time")}
-        <span>Own, %</span>
+        <span>{t("langs.python.own")}</span>
         {head("totalMs", "Total Time")}
       </div>
       <div class="prof-body">
@@ -214,9 +215,9 @@ export function ProfilerView() {
         when={currentSnapshot()}
         fallback={
           <div class="prof-empty muted">
-            <Show when={!profileLoading()} fallback={<p>Reading the snapshot…</p>}>
-              <p>No profiler snapshot.</p>
-              <p>Run a Python configuration with Run | Profile to record one with cProfile.</p>
+            <Show when={!profileLoading()} fallback={<p>{t("langs.python.readingTheSnapshotEllipsis")}</p>}>
+              <p>{t("langs.python.noProfilerSnapshot")}</p>
+              <p>{t("langs.python.runAPythonConfigurationWith")}</p>
             </Show>
           </div>
         }
@@ -226,14 +227,14 @@ export function ProfilerView() {
             <div class="prof-toolbar">
               <div class="prof-tabs" role="tablist">
                 <button role="tab" classList={{ "prof-tab": true, active: tab() === "tree" }} onClick={() => setTab("tree")}>
-                  Call Tree
+                  {t("common.callTree")}
                 </button>
                 <button role="tab" classList={{ "prof-tab": true, active: tab() === "list" }} onClick={() => setTab("list")}>
-                  Method List
+                  {t("langs.python.methodList")}
                 </button>
               </div>
               <span class="prof-summary muted">
-                <b>{s().info.name}</b> · {when(s().info.at)} · {ms(s().view.totalMs)} · {s().view.calls.toLocaleString()} calls · {s().view.functions} functions
+                <b>{s().info.name}</b> {t("langs.python.callsFunctions", { value: when(s().info.at), value2: ms(s().view.totalMs), calls: s().view.calls.toLocaleString(), functions: s().view.functions })}
               </span>
             </div>
             <Show when={tab() === "tree"} fallback={<HotSpots />}>

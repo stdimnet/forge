@@ -6,6 +6,7 @@ import { run } from "./actions";
 import { errorText, revision } from "./store";
 import { CommentEditor, Markdown, NoteView } from "./Thread";
 import { Avatar, IssueStateIcon, LabelPill, ago, displayName } from "./ui";
+import { t } from "@/i18n";
 
 export function IssueTab(props: { number: number }) {
   const [issue, { refetch }] = createResource(() => props.number, forgesApi.issue);
@@ -17,7 +18,7 @@ export function IssueTab(props: { number: number }) {
           <div class="fg-empty fg-error-text">{errorText(issue.error)}</div>
         </Match>
         <Match when={!issue()}>
-          <div class="fg-empty muted">Loading issue #{props.number}…</div>
+          <div class="fg-empty muted">{t("tools.forges.loadingIssueEllipsis", { number: props.number })}</div>
         </Match>
         <Match when={issue()}>
           {(i) => (
@@ -28,18 +29,18 @@ export function IssueTab(props: { number: number }) {
                   <h1 class="fg-mr-title">
                     {i().title} <span class="muted">#{i().number}</span>
                   </h1>
-                  <span class={`fg-badge fg-badge-${i().state === "open" ? "open" : "closed"}`}>{i().state === "open" ? "Open" : "Closed"}</span>
+                  <span class={`fg-badge fg-badge-${i().state === "open" ? "open" : "closed"}`}>{i().state === "open" ? t("common.open") : t("tools.forges.closed")}</span>
                 </div>
                 <div class="fg-mr-sub">
                   <Avatar user={i().author} size={18} />
                   <span class="fg-note-author">{displayName(i().author)}</span>
-                  <span class="muted">opened this issue {ago(i().createdAt)}</span>
+                  <span class="muted">{t("tools.forges.openedThisIssue", { value: ago(i().createdAt) })}</span>
                   <For each={i().labels}>{(l) => <LabelPill label={l} />}</For>
                   <span class="spacer" />
-                  <button class="icon-btn" title="Open in Browser" onClick={() => window.open(i().webUrl, "_blank")}>
+                  <button class="icon-btn" title={t("tools.forges.openInBrowser")} onClick={() => window.open(i().webUrl, "_blank")}>
                     <ExternalLink size={15} />
                   </button>
-                  <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+                  <button class="icon-btn" title={t("common.refresh")} onClick={() => void refetch()}>
                     <RefreshCw size={14} />
                   </button>
                 </div>
@@ -59,11 +60,11 @@ export function IssueTab(props: { number: number }) {
                     </For>
                   </div>
                   <Show when={i().assignees.length}>
-                    <div class="muted fg-small">Assigned to {i().assignees.map(displayName).join(", ")}</div>
+                    <div class="muted fg-small">{t("tools.forges.assignedTo", { value: i().assignees.map(displayName).join(", ") })}</div>
                   </Show>
                   <div class="fg-card fg-new-comment">
                     <CommentEditor
-                      placeholder="Leave a comment…"
+                      placeholder={t("tools.forges.leaveACommentEllipsis")}
                       submitLabel="Comment"
                       onSubmit={async (body) => {
                         const ok = await run("Comment failed", () => forgesApi.commentIssue(props.number, body));

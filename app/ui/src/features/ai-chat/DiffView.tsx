@@ -6,6 +6,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import type { DiffLine, EditDiff } from "@/ipc/agent";
 import { highlight, langOfPath } from "./highlight";
 import { HighlightedCode } from "./Markdown";
+import { t } from "@/i18n";
 
 /** Lines within `context` of a change (computed by the backend); skipped runs become gaps. */
 function visibleLines(lines: DiffLine[], context: number): (DiffLine | null)[] {
@@ -47,7 +48,7 @@ export function DiffView(props: { diff: EditDiff; path: string; maxLines?: numbe
         }
       </For>
       <Show when={hidden() > 0}>
-        <div class="chat-diff-more">{hidden()} more lines</div>
+        <div class="chat-diff-more">{t("tools.aiChat.moreLines", { hidden: hidden() })}</div>
       </Show>
     </div>
   );
@@ -62,7 +63,7 @@ export function DiffDialog(props: { path: string; diff: EditDiff; onClose: () =>
   return (
     <Portal>
       <div class="chat-dialog-backdrop" onClick={props.onClose}>
-        <div class="chat-dialog" role="dialog" aria-label={`Diff of ${props.path}`} onClick={(e) => e.stopPropagation()}>
+        <div class="chat-dialog" role="dialog" aria-label={t("tools.aiChat.diffOf", { path: props.path })} onClick={(e) => e.stopPropagation()}>
           <header class="chat-dialog-header">
             <FileIcon name={name()} size={15} />
             <span class="chat-dialog-title">{name()}</span>
@@ -75,9 +76,9 @@ export function DiffDialog(props: { path: string; diff: EditDiff; onClose: () =>
                 props.onClose();
               }}
             >
-              <ExternalLink size={13} /> Open file
+              <ExternalLink size={13} /> {t("tools.aiChat.openFile")}
             </button>
-            <button class="icon-btn" title="Close (Esc)" onClick={props.onClose}>
+            <button class="icon-btn" title={t("common.closeEsc")} onClick={props.onClose}>
               <X size={15} />
             </button>
           </header>

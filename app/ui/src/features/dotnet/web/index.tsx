@@ -29,7 +29,7 @@ import { manageUserSecretsAction } from "./secrets";
 import "./razor";
 import { t } from "@/i18n";
 
-registerEndpointsView({ id: "aspnet", title: "ASP.NET Core", order: 22, when: aspnetActive, component: AspNetEndpointsView, actions: AspNetEndpointsActions });
+registerEndpointsView({ id: "aspnet", title: t("langs.dotnet.aspNetCore"), order: 22, when: aspnetActive, component: AspNetEndpointsView, actions: AspNetEndpointsActions });
 
 registerToolWindow({
   id: "efcore",

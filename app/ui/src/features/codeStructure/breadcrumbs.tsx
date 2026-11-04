@@ -14,6 +14,7 @@ import type { SymbolKind } from "@/features/php/api";
 import { openMenu } from "@/features/run/PopupMenu";
 import type { IconComponent } from "@/features/run/types";
 import { breadcrumbsOn, breadcrumbsOnTop, scopesAt, structureOf, structureReady, type Scope, type ScopeKind } from "./model";
+import { t } from "@/i18n";
 
 /** The Structure view's badge for a scope kind. */
 export function symbolKindOf(kind: ScopeKind): SymbolKind {
@@ -72,7 +73,7 @@ function CrumbBar(props: { view: EditorView; language: string; crumbs: () => Cru
     });
   };
   return (
-    <div class="cm-structure-crumbs" role="navigation" aria-label="Breadcrumbs">
+    <div class="cm-structure-crumbs" role="navigation" aria-label={t("tools.codeStructure.breadcrumbs")}>
       <For each={props.crumbs()}>
         {(crumb, i) => (
           <>
@@ -90,7 +91,7 @@ function CrumbBar(props: { view: EditorView; language: string; crumbs: () => Cru
               <span class="cm-crumb-name">{crumb.scope.name}</span>
               <button
                 class="cm-crumb-more"
-                title="Show siblings"
+                title={t("tools.codeStructure.showSiblings")}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => siblings(crumb, e)}
               >

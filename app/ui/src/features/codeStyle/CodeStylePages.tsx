@@ -36,12 +36,13 @@ import {
   setValue,
   valueOf,
 } from "./store";
+import { t as tr } from "@/i18n";
 
 // ---- Scheme box and ⚙ menu -------------------------------------------------------------
 
 const FORMATS: { format: CodeStyleExportFormat; label: string }[] = [
-  { format: "xml", label: "IntelliJ IDEA code style XML" },
-  { format: "json", label: "Forge code style JSON" },
+  { format: "xml", label: tr("tools.codeStyle.intellijIdeaCodeStyleXml") },
+  { format: "json", label: tr("tools.codeStyle.forgeCodeStyleJson") },
 ];
 
 async function exportScheme(format: CodeStyleExportFormat): Promise<void> {
@@ -55,7 +56,7 @@ async function exportScheme(format: CodeStyleExportFormat): Promise<void> {
       const path = await save({ defaultPath: file, filters: [{ name: label, extensions: [format] }] });
       if (!path) return;
       await codeStyleApi.export(scheme.name, scheme.values, format, path);
-      showBalloon(`Scheme "${scheme.name}" exported`, path);
+      showBalloon(tr("tools.codeStyle.schemeExported", { name: scheme.name }), path);
       return;
     }
     const text = await codeStyleApi.export(scheme.name, scheme.values, format);
@@ -65,9 +66,9 @@ async function exportScheme(format: CodeStyleExportFormat): Promise<void> {
     a.download = file;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon(`Scheme "${scheme.name}" exported`, file);
+    showBalloon(tr("tools.codeStyle.schemeExported", { name: scheme.name }), file);
   } catch (e) {
-    showBalloon("Export failed", e instanceof Error ? e.message : String(e));
+    showBalloon(tr("common.exportFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -103,23 +104,23 @@ async function importFrom(format: CodeStyleExportFormat): Promise<void> {
     const imported = await codeStyleApi.import(source);
     const target = current();
     const choice = await askChoice({
-      title: "Import Scheme",
+      title: tr("tools.codeStyle.importScheme"),
       message: `"${imported.name}" sets ${imported.applied} options. Import them into:`,
       choices: [
-        { id: "current", label: `Current Scheme (${target?.name ?? ""})` },
-        { id: "new", label: "New Scheme" },
+        { id: "current", label: tr("tools.codeStyle.currentScheme", { value: target?.name ?? "" }) },
+        { id: "new", label: tr("tools.codeStyle.newScheme") },
       ],
     });
     if (!choice) return;
     importScheme(imported, choice === "current");
-    showBalloon(`Scheme "${imported.name}" imported`, "Apply the settings to keep it.");
+    showBalloon(tr("tools.codeStyle.schemeImported", { name: imported.name }), tr("tools.codeStyle.applyTheSettingsToKeep"));
   } catch (e) {
-    showBalloon("Import failed", e instanceof Error ? e.message : String(e));
+    showBalloon(tr("common.importFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
 async function ask(title: string, initial: string, confirm: string, except?: string): Promise<string | null> {
-  return askName({ title, label: "Name:", initial, confirm, validate: (n) => nameProblem(n, except) });
+  return askName({ title, label: tr("common.nameLabel"), initial, confirm, validate: (n) => nameProblem(n, except) });
 }
 
 function schemeMenu(): MenuEntry[] {
@@ -171,7 +172,7 @@ function SchemeBar(props: { lang?: CodeStyleLanguage }) {
   return (
     <div class="cs-scheme-bar">
       <label class="cs-scheme-label" for="cs-scheme">
-        Scheme:
+        {tr("tools.codeStyle.schemeLabel")}
       </label>
       <select
         id="cs-scheme"
@@ -179,21 +180,21 @@ function SchemeBar(props: { lang?: CodeStyleLanguage }) {
         value={codeStyle.draft?.selected ?? ""}
         onChange={(e) => selectScheme(e.currentTarget.value)}
       >
-        <optgroup label="Stored in IDE">
+        <optgroup label={tr("tools.codeStyle.storedInIde")}>
           <For each={ide()}>{(s) => <option value={s.id}>{s.name}</option>}</For>
         </optgroup>
         <Show when={project().length}>
-          <optgroup label="Stored in Project">
+          <optgroup label={tr("tools.codeStyle.storedInProject")}>
             <For each={project()}>{(s) => <option value={s.id}>{s.name}</option>}</For>
           </optgroup>
         </Show>
       </select>
-      <button class="icon-btn cs-gear" title="Show Scheme Actions" onClick={(e) => openMenu(e, schemeMenu())}>
+      <button class="icon-btn cs-gear" title={tr("tools.codeStyle.showSchemeActions")} onClick={(e) => openMenu(e, schemeMenu())}>
         <Settings size={15} />
       </button>
       <Show when={props.lang?.presets.length}>
         <button class="set-link cs-set-from" onClick={(e) => openMenu(e, presetMenu(props.lang!))}>
-          Set from…
+          {tr("tools.codeStyle.setFromEllipsis")}
         </button>
       </Show>
     </div>
@@ -402,7 +403,7 @@ export function GeneralPage() {
   const tab = () => tabs().general ?? "general";
   return (
     <div class="set-page cs-page cs-general" data-code-style="general">
-      <Show when={codeStyle.draft && lang()} fallback={<div class="set-empty">Loading…</div>}>
+      <Show when={codeStyle.draft && lang()} fallback={<div class="set-empty">{tr("common.loadingEllipsis")}</div>}>
         {(l) => (
           <>
             <SchemeBar />
@@ -413,7 +414,7 @@ export function GeneralPage() {
                 <Show when={tab() === "general"}>
                   <section class="set-section">
                     <div class="set-section-title">
-                      <span>Indents and EditorConfig</span>
+                      <span>{tr("tools.codeStyle.indentsAndEditorconfig")}</span>
                     </div>
                     <div class="set-section-body indented">
                       <For each={SETTING_KEYS.map(findSpec).filter((s) => !!s)}>{(spec) => <SettingRow spec={spec!} />}</For>
@@ -439,7 +440,7 @@ export function LanguagePage(props: { language: string }) {
   const tab = () => tabs()[props.language] ?? lang()?.tabs[0]?.id ?? "";
   return (
     <div class="set-page cs-page" data-code-style={props.language}>
-      <Show when={codeStyle.draft && lang()} fallback={<div class="set-empty">Loading…</div>}>
+      <Show when={codeStyle.draft && lang()} fallback={<div class="set-empty">{tr("common.loadingEllipsis")}</div>}>
         {(l) => (
           <>
             <SchemeBar lang={l()} />

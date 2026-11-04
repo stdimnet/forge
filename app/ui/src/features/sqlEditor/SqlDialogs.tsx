@@ -12,6 +12,7 @@ import { getSetting, saveSetting } from "@/state/settings";
 import { DRIVER_LABELS } from "@/ipc/db";
 import { sqlApi, type HistoryEntry, type RunFileEvent, type RunFileSummary } from "@/ipc/sql";
 import { sources } from "@/features/database/store";
+import { t } from "@/i18n";
 
 const message = (e: unknown) => String(e instanceof Error ? e.message : e);
 
@@ -97,7 +98,7 @@ function ParamsDialog(props: Extract<Dialog, { kind: "params" }>) {
   const ok = () => finish(values());
   return (
     <Modal
-      title="Parameters"
+      title={t("tools.sqlEditor.parameters")}
       testId="sql-params-dialog"
       onClose={() => finish(null)}
       onEnter={ok}
@@ -105,20 +106,20 @@ function ParamsDialog(props: Extract<Dialog, { kind: "params" }>) {
         <>
           <span class="db-doc-spacer" />
           <button class="btn-secondary" onClick={() => finish(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={ok}>
-            Execute
+            {t("tools.sqlEditor.execute")}
           </button>
         </>
       }
     >
-      <div class="sql-params-hint">Values are inserted as written: quote strings ('text').</div>
+      <div class="sql-params-hint">{t("tools.sqlEditor.valuesAreInsertedAsWritten")}</div>
       <table class="set-table sql-params-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Value</th>
+            <th>{t("common.name")}</th>
+            <th>{t("common.value")}</th>
           </tr>
         </thead>
         <tbody>
@@ -174,15 +175,15 @@ function HistoryDialog(props: Extract<Dialog, { kind: "history" }>) {
     else props.onInsert(e.sql);
   };
   const clear = async () => {
-    const ok = await askConfirm({ title: "Clear Query History", message: `Forget every statement run on ${sources().find((s) => s.id === props.dataSourceId)?.name ?? props.dataSourceId}?`, confirm: "Clear" });
+    const ok = await askConfirm({ title: t("tools.sqlEditor.clearQueryHistory"), message: `Forget every statement run on ${sources().find((s) => s.id === props.dataSourceId)?.name ?? props.dataSourceId}?`, confirm: t("common.clear") });
     if (!ok) return;
-    await sqlApi.clearHistory(props.dataSourceId).catch((e) => showBalloon("Cannot clear the history", message(e)));
+    await sqlApi.clearHistory(props.dataSourceId).catch((e) => showBalloon(t("tools.sqlEditor.cannotClearTheHistory"), message(e)));
     setVersion((v) => v + 1);
   };
   const name = () => sources().find((s) => s.id === props.dataSourceId)?.name ?? props.dataSourceId;
   return (
     <Modal
-      title={`Query History: ${name()}`}
+      title={t("tools.sqlEditor.queryHistory", { name: name() })}
       testId="sql-history-dialog"
       class="sql-history"
       onClose={close}
@@ -190,14 +191,14 @@ function HistoryDialog(props: Extract<Dialog, { kind: "history" }>) {
       footer={
         <>
           <button class="btn-secondary" onClick={() => void clear()}>
-            Clear History
+            {t("tools.sqlEditor.clearHistory")}
           </button>
           <span class="db-doc-spacer" />
           <button class="btn-secondary" disabled={!current()} onClick={() => pick(true)}>
-            Run
+            {t("common.run2")}
           </button>
           <button class="btn-primary" disabled={!current()} onClick={() => pick(false)}>
-            Insert
+            {t("common.insert")}
           </button>
         </>
       }
@@ -207,7 +208,7 @@ function HistoryDialog(props: Extract<Dialog, { kind: "history" }>) {
           <Search size={13} class="muted" />
           <input
             value={text()}
-            placeholder="Search statements"
+            placeholder={t("tools.sqlEditor.searchStatements")}
             spellcheck={false}
             onInput={(e) => {
               setText(e.currentTarget.value);
@@ -225,18 +226,18 @@ function HistoryDialog(props: Extract<Dialog, { kind: "history" }>) {
         <Show when={props.console}>
           <label class="set-check">
             <input type="checkbox" checked={onlyConsole()} onChange={(e) => setOnlyConsole(e.currentTarget.checked)} />
-            <span>This console only</span>
+            <span>{t("tools.sqlEditor.thisConsoleOnly")}</span>
           </label>
         </Show>
       </div>
       <div class="sql-history-list" tabIndex={0}>
-        <For each={entries() ?? []} fallback={<div class="set-list-empty">{text() ? "No statements match" : "No statements ran on this data source yet"}</div>}>
+        <For each={entries() ?? []} fallback={<div class="set-list-empty">{text() ? t("tools.sqlEditor.noStatementsMatch") : t("tools.sqlEditor.noStatementsRanOnThis")}</div>}>
           {(e, i) => (
             <div class="sql-history-row" classList={{ selected: sel() === i(), failed: !!e.error }} onClick={() => setSel(i())} onDblClick={() => pick(false)}>
               <span class="sql-history-time">{timeText(e.time)}</span>
               <span class="sql-history-sql">{e.sql.replace(/\s+/g, " ")}</span>
               <span class="sql-history-meta">
-                {e.error ? "failed" : e.rows != null ? `${e.rows} row${e.rows === 1 ? "" : "s"}` : ""} · {e.durationMs} ms
+                {t("tools.sqlEditor.ms", { value: e.error ? "failed" : e.rows != null ? t("tools.sqlEditor.rows", { count: e.rows }) : "", durationMs: e.durationMs })}
               </span>
             </div>
           )}
@@ -246,7 +247,7 @@ function HistoryDialog(props: Extract<Dialog, { kind: "history" }>) {
         {(e) => (
           <div class="sql-history-preview">
             <div class="sql-history-preview-head muted">
-              {e().console || "console"} · {timeText(e().time)} · {e().durationMs} ms
+              {t("tools.sqlEditor.ms2", { value: e().console || "console", value2: timeText(e().time), durationMs: e().durationMs })}
               <Show when={e().error}>{(err) => <span class="sql-error"> · {err()}</span>}</Show>
             </div>
             <pre>{e().sql}</pre>
@@ -286,7 +287,7 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
     try {
       const res = await sqlApi.runFile({ runId, path: props.path, dataSourceId: ds(), stopOnError: stopOnError(), confirmed });
       if (res.needsConfirmation) {
-        const ok = await askConfirm({ title: "Production Data Source", message: res.needsConfirmation, confirm: "Execute" });
+        const ok = await askConfirm({ title: t("tools.sqlEditor.productionDataSource"), message: res.needsConfirmation, confirm: t("tools.sqlEditor.execute") });
         if (ok) return run(true);
         setPhase("setup");
         return;
@@ -294,8 +295,8 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
       setSummary(res);
       setPhase("done");
       showBalloon(
-        `${fileName}: ${res.executed} of ${res.total} statements executed`,
-        res.failed ? `${res.failed} failed` : res.cancelled ? "Stopped" : `Finished in ${res.elapsedMs} ms`,
+        t("tools.sqlEditor.ofStatementsExecuted", { fileName, executed: res.executed, total: res.total }),
+        res.failed ? `${res.failed} failed` : res.cancelled ? t("tools.sqlEditor.stopped") : t("tools.sqlEditor.finishedInMs", { elapsedMs: res.elapsedMs }),
       );
     } catch (e) {
       setError(message(e));
@@ -307,7 +308,7 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
   const percent = () => (total() ? Math.round((done() / total()) * 100) : 0);
   return (
     <Modal
-      title={`Run SQL Script: ${fileName}`}
+      title={t("tools.sqlEditor.runSqlScript", { fileName })}
       testId="sql-run-file-dialog"
       class="sql-run-file"
       onClose={() => phase() !== "running" && close()}
@@ -317,20 +318,20 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
           <span class="db-doc-spacer" />
           <Show when={phase() === "setup"}>
             <button class="btn-secondary" onClick={close}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button class="btn-primary" disabled={!ds()} onClick={() => void run()}>
-              Run
+              {t("common.run2")}
             </button>
           </Show>
           <Show when={phase() === "running"}>
             <button class="btn-secondary" onClick={stop}>
-              Stop
+              {t("common.stop")}
             </button>
           </Show>
           <Show when={phase() === "done"}>
             <button class="btn-primary" onClick={close}>
-              Close
+              {t("common.close")}
             </button>
           </Show>
         </>
@@ -342,9 +343,9 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
           <div class="set-section-body">
             <div class="set-row">
               <div class="set-line">
-                <span class="set-label">Data source:</span>
+                <span class="set-label">{t("tools.sqlEditor.dataSourceLabel")}</span>
                 <select class="set-input set-select" value={ds()} onChange={(e) => setDs(e.currentTarget.value)} data-testid="sql-run-ds">
-                  <For each={candidates()} fallback={<option value="">No data sources</option>}>
+                  <For each={candidates()} fallback={<option value="">{t("tools.sqlEditor.noDataSources")}</option>}>
                     {(s) => (
                       <option value={s.id}>
                         {s.name} ({DRIVER_LABELS[s.driver]})
@@ -357,11 +358,11 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
             <div class="set-row">
               <label class="set-check">
                 <input type="checkbox" checked={stopOnError()} onChange={(e) => setStopOnError(e.currentTarget.checked)} />
-                <span>Stop at the first error</span>
+                <span>{t("tools.sqlEditor.stopAtTheFirstError")}</span>
               </label>
             </div>
             <div class="set-row">
-              <div class="set-desc">Statements run in order on a new session of the data source; read-only and production data sources are guarded like consoles.</div>
+              <div class="set-desc">{t("tools.sqlEditor.statementsRunInOrderOn")}</div>
             </div>
           </div>
         }
@@ -376,10 +377,10 @@ function RunFileDialog(props: Extract<Dialog, { kind: "runFile" }>) {
             </Show>
             <span>
               {phase() === "running"
-                ? `Executing ${Math.min(done() + 1, Math.max(total(), 1))} of ${total() || "…"}`
+                ? t("tools.sqlEditor.executingOf", { value: Math.min(done() + 1, Math.max(total(), 1)), value2: total() || "…" })
                 : error()
                   ? error()
-                  : `${summary()?.executed ?? 0} of ${summary()?.total ?? 0} statements executed${summary()?.failed ? `, ${summary()!.failed} failed` : ""}${summary()?.cancelled ? ", stopped" : ""} in ${summary()?.elapsedMs ?? 0} ms`}
+                  : t("tools.sqlEditor.ofStatementsExecutedInMs", { value: summary()?.executed ?? 0, value2: summary()?.total ?? 0, value3: summary()?.failed ? `, ${summary()!.failed} failed` : "", value4: summary()?.cancelled ? ", stopped" : "", value5: summary()?.elapsedMs ?? 0 })}
             </span>
           </div>
         </div>

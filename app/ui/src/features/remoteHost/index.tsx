@@ -46,7 +46,7 @@ registerCommand({
   title: "Browse Remote Host",
   category: "Deployment",
   run: async () => {
-    if (!active()) return void showBalloon("Deployment is disabled", "Enable the Deployment plugin in Settings | Plugins.");
+    if (!active()) return void showBalloon(t("tools.remoteHost.deploymentIsDisabled"), t("tools.remoteHost.enableTheDeploymentPluginIn"));
     const s = defaultServer() ?? (await chooseServer("Browse Remote Host"));
     if (!s) return;
     selectServer(s.id);

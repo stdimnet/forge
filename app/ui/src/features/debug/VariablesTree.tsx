@@ -283,7 +283,7 @@ export function VariableNode(props: NodeProps) {
             style={{ "padding-left": `${8 + (props.depth + 1) * 16 + 18}px` }}
             onClick={() => void fetchPage(nextPage(), true)}
           >
-            {more()} more…
+            {t("tools.debug.moreEllipsis", { more: more() })}
           </div>
         </Show>
       </Show>

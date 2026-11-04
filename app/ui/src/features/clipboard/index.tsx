@@ -12,6 +12,7 @@ import { actionById, showBalloon } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { copiedFrom, needsCaretPaste, pasteInto, recordCopy, setLastCopy } from "./clipboard";
 import { PasteFromHistoryHost, choosePasteContent } from "./PasteFromHistory";
+import { t as tr } from "@/i18n";
 import "./clipboard.css";
 
 registerEditorExtension(() => [
@@ -103,7 +104,7 @@ export async function pasteClipboard(): Promise<void> {
   try {
     text = await navigator.clipboard.readText();
   } catch {
-    showBalloon("Clipboard is not available", "Use the keyboard shortcut instead.");
+    showBalloon(tr("tools.clipboard.clipboardIsNotAvailable"), tr("tools.clipboard.useTheKeyboardShortcutInstead"));
     return;
   }
   pasteInto(view, text);

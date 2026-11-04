@@ -210,7 +210,7 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
           </Show>
           <span class="spacer" />
           <Show when={!special()}>
-            <span class="diff-count">{count() === 0 ? t("git.diffViewer.noDifferences") : `${count()} difference${count() === 1 ? "" : "s"}`}</span>
+            <span class="diff-count">{count() === 0 ? t("git.diffViewer.noDifferences") : t("tools.git.differences", { count: count() })}</span>
           </Show>
         </div>
         <div class="diff-headers">

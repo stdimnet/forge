@@ -6,6 +6,7 @@ import { createSignal, For, onMount, Show } from "solid-js";
 import { Database, Plus } from "lucide-solid";
 import { openDataSources, sources } from "@/features/database/store";
 import { runScratch, setScratchDataSource } from "./store";
+import { t } from "@/i18n";
 
 const [pending, setPending] = createSignal<string | null>(null);
 
@@ -43,8 +44,8 @@ function AttachPopup(props: { name: string }) {
   };
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div ref={el} class="popup scratch-popup" tabIndex={-1} role="listbox" aria-label="Attach Data Source" onKeyDown={onKeyDown}>
-        <div class="scratch-popup-title">Attach Data Source to {props.name}</div>
+      <div ref={el} class="popup scratch-popup" tabIndex={-1} role="listbox" aria-label={t("tools.scratches.attachDataSource")} onKeyDown={onKeyDown}>
+        <div class="scratch-popup-title">{t("tools.scratches.attachDataSourceTo", { name: props.name })}</div>
         <div class="scratch-popup-list">
           <For each={sources()}>
             {(ds, i) => (
@@ -67,7 +68,7 @@ function AttachPopup(props: { name: string }) {
             onClick={() => void choose(undefined)}
           >
             <Plus size={14} class="muted" />
-            <span class="scratch-popup-name">New Data Source…</span>
+            <span class="scratch-popup-name">{t("tools.scratches.newDataSourceEllipsis")}</span>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { applyWorkspaceEdit } from "@/features/codeintel/refactoring";
 import { editor } from "@/state/editor";
 import { lspChanges, optimizesImports } from "./model";
 import { askOptimizeImports, type OptimizeTarget } from "./OptimizeImportsDialog";
+import { t as tr } from "@/i18n";
 
 const errorText = (e: unknown) => String(e instanceof Error ? e.message : e);
 
@@ -58,6 +59,6 @@ export async function optimizePaths(targets: OptimizeTarget[]): Promise<void> {
     if (answer.changed) await applyWorkspaceEdit(answer.edit, { label: "Optimize Imports" });
     showBalloon(answer.message);
   } catch (e) {
-    showBalloon("Optimize Imports failed", errorText(e), 6000);
+    showBalloon(tr("tools.imports.optimizeImportsFailed"), errorText(e), 6000);
   }
 }

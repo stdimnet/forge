@@ -7,6 +7,7 @@ import { Info, TriangleAlert } from "lucide-solid";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { updatesApi } from "@/ipc/updates";
 import { openCheckForUpdates } from "./UpdateDialog";
+import { t } from "@/i18n";
 
 function lastChecked(secs?: number | null): string {
   if (!secs) return "Never";
@@ -28,8 +29,8 @@ function UpdateStatus() {
               <div class="upd-note warning">
                 <TriangleAlert size={14} />
                 <span>
-                  Updates are not configured in this build. It was built without an updater public key (
-                  <code>FORGE_UPDATER_PUBKEY</code>), so it cannot verify updates and does not check for them.
+                  {t("tools.updates.updatesAreNotConfiguredIn")}
+                  <code>FORGE_UPDATER_PUBKEY</code>{t("tools.updates.soItCannotVerifyUpdates")}
                 </span>
               </div>
             </Match>
@@ -37,46 +38,46 @@ function UpdateStatus() {
               <div class="upd-note">
                 <Info size={14} />
                 <span>
-                  Development builds do not check for updates. To try the update flow, start Forge with{" "}
-                  <code>FORGE_SIMULATE_UPDATE=0.2.0</code>, or add <code>?simulateUpdate=0.2.0</code> in browser mode.
+                  {t("tools.updates.developmentBuildsDoNotCheck")}
+                  <code>FORGE_SIMULATE_UPDATE=0.2.0</code>{t("tools.updates.orAdd")} <code>?simulateUpdate=0.2.0</code> {t("tools.updates.inBrowserMode")}
                 </span>
               </div>
             </Match>
             <Match when={s().mode === "simulated"}>
               <div class="upd-note">
                 <Info size={14} />
-                <span>Updates are simulated: the offered update is fake and nothing is downloaded or installed.</span>
+                <span>{t("tools.updates.updatesAreSimulatedTheOffered")}</span>
               </div>
             </Match>
           </Switch>
           <div class="upd-status-row">
-            <span class="label">Current version</span>
+            <span class="label">{t("tools.updates.currentVersion")}</span>
             <span class="mono">{s().currentVersion}</span>
           </div>
           <Show when={s().mode === "enabled"}>
             <div class="upd-status-row">
-              <span class="label">Last checked</span>
+              <span class="label">{t("tools.updates.lastChecked")}</span>
               <span>{lastChecked(s().lastCheck)}</span>
             </div>
           </Show>
           <Show when={s().skippedVersion}>
             {(v) => (
               <div class="upd-status-row">
-                <span class="label">Skipped version</span>
+                <span class="label">{t("tools.updates.skippedVersion")}</span>
                 <span class="mono">{v()}</span>
                 <button
                   class="btn-secondary"
                   onClick={() => void updatesApi.clearSkipped().then(() => refetch())}
                   data-testid="updates-unskip"
                 >
-                  Offer Again
+                  {t("tools.updates.offerAgain")}
                 </button>
               </div>
             )}
           </Show>
           <div class="upd-status-row">
             <button class="btn-secondary" onClick={() => void checkNow()} data-testid="updates-check-now">
-              Check Now
+              {t("tools.updates.checkNow")}
             </button>
           </div>
         </div>

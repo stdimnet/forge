@@ -80,7 +80,7 @@ export function confirmRollback(paths: string[]): void {
     onOk: async () => {
       await runGit("Rollback failed", () => withLocalHistory("vcs", "Rollback", () => gitApi.rollback(paths), paths));
       await reloadOpenFiles(paths);
-      notify("success", tr("git.actions.rollback"), `${paths.length} file${paths.length > 1 ? "s" : ""} rolled back`);
+      notify("success", tr("git.actions.rollback"), tr("tools.git.fileRolledBack", { count: paths.length, value: paths.length > 1 ? "s" : "" }));
     },
   });
 }
@@ -96,7 +96,7 @@ export async function updateProject(): Promise<void> {
   const res = await runMerging("Update failed", () => withLocalHistory("vcs", "Update from VCS", () => gitApi.pull()));
   if (res) {
     await reloadOpenFiles();
-    notify("success", tr("git.actions.projectUpdated"), res.output.split("\n")[0] || "All files are up to date");
+    notify("success", tr("git.actions.projectUpdated"), res.output.split("\n")[0] || tr("tools.git.allFilesAreUpTo"));
   }
 }
 
@@ -112,7 +112,7 @@ export async function checkout(name: string, remote = false): Promise<void> {
   );
   if (ok) {
     await reloadOpenFiles();
-    notify("info", `Checked out ${remote ? name.split("/").slice(1).join("/") : name}`);
+    notify("info", tr("tools.git.checkedOut", { value: remote ? name.split("/").slice(1).join("/") : name }));
   }
 }
 
@@ -149,7 +149,7 @@ export async function mergeIntoCurrent(name: string): Promise<void> {
   const out = await runMerging(tr("git.actions.mergeOfNameFailed", { name }), () => withLocalHistory("vcs", tr("git.actions.mergeName", { name }), () => gitApi.merge(name)));
   if (out !== undefined) {
     await reloadOpenFiles();
-    notify("success", `Merged ${name} into ${status()?.branch ?? "HEAD"}`, out.split("\n")[0]);
+    notify("success", tr("tools.git.mergedInto", { name, value: status()?.branch ?? "HEAD" }), out.split("\n")[0]);
   }
 }
 
@@ -158,7 +158,7 @@ export async function rebaseOnto(name: string): Promise<void> {
   const out = await runMerging(tr("git.actions.rebaseOntoNameFailed", { name }), () => withLocalHistory("vcs", tr("git.actions.rebaseOntoName", { name }), () => gitApi.rebase(name)));
   if (out !== undefined) {
     await reloadOpenFiles();
-    notify("success", `Rebased ${status()?.branch ?? "HEAD"} onto ${name}`);
+    notify("success", tr("tools.git.rebasedOnto", { value: status()?.branch ?? "HEAD", name }));
   }
 }
 

@@ -8,6 +8,7 @@ import { suspendKeymap } from "@/keymap";
 import { updatesApi, type CheckResult, type DownloadProgress, type UpdateAction, type UpdateOffer } from "@/ipc/updates";
 import { isFinished } from "./format";
 import { UpdatePanel } from "./UpdatePanel";
+import { t } from "@/i18n";
 
 type DialogState = { kind: "checking" } | { kind: "result"; result: CheckResult };
 
@@ -78,7 +79,7 @@ function UpdateDialog(props: { state: DialogState }) {
           <Match when={!result()}>
             <div class="upd-message">
               <LoaderCircle size={16} class="upd-spin" />
-              <span>Checking for updates…</span>
+              <span>{t("tools.updates.checkingForUpdatesEllipsis")}</span>
             </div>
           </Match>
           <Match when={result()?.status === "available" && result()}>
@@ -97,7 +98,7 @@ function UpdateDialog(props: { state: DialogState }) {
               <div class="upd-message ok">
                 <CircleCheck size={16} />
                 <span>
-                  <b>Forge {(r() as { version: string }).version}</b> is up to date.
+                  <b>Forge {(r() as { version: string }).version}</b> {t("tools.updates.isUpToDate")}
                 </span>
               </div>
             )}
@@ -123,11 +124,11 @@ function UpdateDialog(props: { state: DialogState }) {
           <div class="dialog-buttons">
             <Show when={result()?.status === "error"}>
               <button class="btn-secondary" onClick={() => void openCheckForUpdates()}>
-                Retry
+                {t("common.retry")}
               </button>
             </Show>
             <button class="btn-primary" onClick={close}>
-              Close
+              {t("common.close")}
             </button>
           </div>
         </Show>

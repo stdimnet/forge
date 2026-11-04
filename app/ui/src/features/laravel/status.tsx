@@ -5,6 +5,7 @@ import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { frameworkLabel, projectInfo } from "@/state/project";
 import { laravelActive, laravelInfo } from "./state";
+import { t } from "@/i18n";
 
 const framework = () => projectInfo()?.frameworks.find((f) => f.id === "laravel");
 
@@ -33,7 +34,7 @@ export function LaravelStatus() {
     <button
       class="status-item status-project-type"
       data-status="laravel"
-      title={`Laravel ${laravelInfo()?.version ?? framework()?.version ?? ""}${summary() ? `\n${summary()}` : ""}\nClick to configure Laravel support`}
+      title={t("langs.laravel.laravelClickToConfigureLaravel", { value: laravelInfo()?.version ?? framework()?.version ?? "", value2: summary() ? `\n${summary()}` : "" })}
       onClick={() => openSettings("lang.php.laravel")}
     >
       <ProjectTypeIcon type="laravel" size={14} />
@@ -49,7 +50,7 @@ export function LaravelSettingsPage() {
     <div class="laravel-settings">
       <Show
         when={laravelActive()}
-        fallback={<p class="laravel-settings-info muted">The open project does not use Laravel. These settings apply to Laravel projects.</p>}
+        fallback={<p class="laravel-settings-info muted">{t("langs.laravel.theOpenProjectDoesNot")}</p>}
       >
         <p class="laravel-settings-info">
           <ProjectTypeIcon type="laravel" size={16} />

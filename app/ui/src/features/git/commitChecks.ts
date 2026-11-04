@@ -164,7 +164,7 @@ export async function runCommitChecks(paths: string[], onProgress: (text: string
   if (on("vcs.commit.reformat") || on("vcs.commit.optimizeImports") || on("vcs.commit.rearrange") || on("vcs.commit.cleanup")) {
     onProgress("Running code modifications…");
     const n = await modifyCode(files);
-    if (n) notify("info", tr("git.commitChecks.commitChecks"), `${plural(n, "file")} changed by the code modifications`);
+    if (n) notify("info", tr("git.commitChecks.commitChecks"), tr("tools.git.changedByTheCodeModifications", { value: plural(n, "file") }));
   }
   if (on("vcs.commit.analyze")) {
     onProgress("Analyzing code…");

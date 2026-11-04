@@ -17,6 +17,7 @@ import { openFileAt } from "@/editor/views";
 import { refreshDirs, revealPath } from "@/features/project/ProjectView";
 import { validateClassName, validateNamespace } from "@/features/fileTemplates/model";
 import { createTestPlan, dialogTitle, hookNames, isPhpFramework, memberStub, setCreateTestPlan } from "./model";
+import { t } from "@/i18n";
 import "./goToTest.css";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -122,22 +123,22 @@ export function CreateTestDialog(props: { plan: NewTestPlan }) {
         <div class="dialog-title">{title}</div>
         <div class="dialog-body ft-form">
           <label class="form-label" for="ct-framework">
-            Test framework:
+            {t("tools.goToTest.testFrameworkLabel")}
           </label>
           <select id="ct-framework" value={framework()} onChange={(e) => setFramework(e.currentTarget.value as TestFramework)}>
             <For each={plan.frameworks}>{(f) => <option value={f}>{f}</option>}</For>
           </select>
-          <label class="form-label">{php ? "Class to test:" : "Module to test:"}</label>
+          <label class="form-label">{php ? t("tools.goToTest.classToTestLabel") : t("tools.goToTest.moduleToTestLabel")}</label>
           <div class="ct-subject ft-mono" title={plan.subjectPath}>
             {php ? plan.subjectFqn || plan.subject : plan.subjectPath}
           </div>
           <Show when={isPhpUnit()}>
             <label class="form-label" for="ct-class">
-              Test class name:
+              {t("tools.goToTest.testClassNameLabel")}
             </label>
             <input id="ct-class" ref={focusFirst} value={className()} spellcheck={false} onInput={(e) => setClassName(e.currentTarget.value)} />
             <label class="form-label" for="ct-namespace">
-              Namespace:
+              {t("tools.goToTest.namespaceLabel")}
             </label>
             <input
               id="ct-namespace"
@@ -147,7 +148,7 @@ export function CreateTestDialog(props: { plan: NewTestPlan }) {
               onInput={(e) => void onNamespace(e.currentTarget.value)}
             />
             <label class="form-label" for="ct-superclass">
-              Superclass:
+              {t("tools.goToTest.superclassLabel")}
             </label>
             <input
               id="ct-superclass"
@@ -162,7 +163,7 @@ export function CreateTestDialog(props: { plan: NewTestPlan }) {
             </datalist>
           </Show>
           <label class="form-label" for="ct-file">
-            File name:
+            {t("tools.goToTest.fileNameLabel")}
           </label>
           <input
             id="ct-file"
@@ -172,17 +173,17 @@ export function CreateTestDialog(props: { plan: NewTestPlan }) {
             onInput={(e) => setFileName(e.currentTarget.value)}
           />
           <label class="form-label" for="ct-dir">
-            Directory:
+            {t("tools.goToTest.directoryLabel")}
           </label>
           <input
             id="ct-dir"
             class="ft-mono"
             value={directory()}
-            placeholder="(project root)"
+            placeholder={t("common.projectRoot")}
             spellcheck={false}
             onInput={(e) => setDirectory(e.currentTarget.value)}
           />
-          <label class="form-label">Generate:</label>
+          <label class="form-label">{t("tools.goToTest.generateLabel")}</label>
           <div class="ct-hooks">
             <label class="ct-check">
               <input type="checkbox" checked={setUp()} onChange={(e) => setSetUp(e.currentTarget.checked)} />
@@ -193,23 +194,23 @@ export function CreateTestDialog(props: { plan: NewTestPlan }) {
               {hooks()[1]}
             </label>
           </div>
-          <div class="ct-members-label">{php ? "Generate test methods for:" : "Generate tests for:"}</div>
-          <div class="ct-members" role="table" aria-label="Members">
+          <div class="ct-members-label">{php ? t("tools.goToTest.generateTestMethodsForLabel") : t("tools.goToTest.generateTestsForLabel")}</div>
+          <div class="ct-members" role="table" aria-label={t("tools.goToTest.members")}>
             <div class="ct-members-head" role="row">
               <label class="ct-member">
                 <input
                   type="checkbox"
-                  aria-label="Select all"
+                  aria-label={t("tools.goToTest.selectAll")}
                   disabled={!plan.members.length}
                   checked={allSelected()}
                   onChange={(e) => setSelected(new Set(e.currentTarget.checked ? plan.members.map((m) => m.name) : []))}
                 />
-                <span>Member</span>
+                <span>{t("tools.goToTest.member")}</span>
               </label>
-              <span>Test</span>
+              <span>{t("common.test")}</span>
             </div>
             <div class="ct-members-body">
-              <For each={plan.members} fallback={<div class="ct-members-empty">{php ? "No public methods" : "No exports"}</div>}>
+              <For each={plan.members} fallback={<div class="ct-members-empty">{php ? t("tools.goToTest.noPublicMethods") : t("tools.goToTest.noExports")}</div>}>
                 {(m) => (
                   <div class="ct-members-row" role="row" classList={{ selected: selected().has(m.name) }}>
                     <label class="ct-member">
@@ -231,7 +232,7 @@ export function CreateTestDialog(props: { plan: NewTestPlan }) {
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!valid()} onClick={() => void submit()}>
             OK
