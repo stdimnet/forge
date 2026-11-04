@@ -7,6 +7,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { ChevronDown, ChevronRight, Flame, ListTree } from "lucide-solid";
 import type { ExplainResult, Plan, PlanNode } from "@/ipc/dbSchema";
+import { t } from "@/i18n";
 
 const fmt = (n: number | undefined) =>
   n === undefined ? "" : Math.abs(n) >= 1000 ? Math.round(n).toLocaleString("en-US") : String(Math.round(n * 100) / 100);
@@ -39,12 +40,12 @@ function PlanTree(props: { plan: Plan; selected: number | null; onSelect: (id: n
       <table>
         <thead>
           <tr>
-            <th class="plan-op-col">Operation</th>
-            <th>Object</th>
-            <th class="num">Cost</th>
-            <th class="num">Self</th>
-            <th class="num">Rows</th>
-            <th>Details</th>
+            <th class="plan-op-col">{t("database.schema.planView.operation")}</th>
+            <th>{t("database.schema.planView.object")}</th>
+            <th class="num">{t("database.schema.planView.cost")}</th>
+            <th class="num">{t("database.schema.planView.self")}</th>
+            <th class="num">{t("database.schema.planView.rows")}</th>
+            <th>{t("database.schema.planView.details")}</th>
           </tr>
         </thead>
         <tbody>
@@ -113,10 +114,10 @@ export function PlanView(props: { result: ExplainResult }) {
     <div class="db-result plan-view" data-testid="plan-view">
       <div class="db-toolbar small">
         <button class="db-chip-btn" classList={{ open: mode() === "tree" }} onClick={() => setMode("tree")}>
-          <ListTree size={12} /> Tree
+          <ListTree size={12} /> {t("database.schema.planView.tree")}
         </button>
         <button class="db-chip-btn" classList={{ open: mode() === "flame" }} data-testid="plan-flame-toggle" onClick={() => setMode("flame")}>
-          <Flame size={12} /> Flame Graph
+          <Flame size={12} /> {t("database.schema.planView.flameGraph")}
         </button>
         <span class="db-spacer" />
         <span class="db-status muted" title={props.result.sql}>

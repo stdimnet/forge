@@ -23,6 +23,7 @@ import {
 } from "@/ipc/db";
 import { openViewTab } from "@/state/editor";
 import { balloonsFor } from "@/keymap";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("Database");
 
@@ -111,7 +112,7 @@ export async function introspect(id: string, schema: string): Promise<void> {
     const info = await dbApi.introspect(id, schema);
     setStates(id, "introspected", schema, info);
   } catch (e) {
-    showBalloon(`Cannot load schema ${schema}`, errorText(e));
+    showBalloon(tr("database.store.cannotLoadSchemaSchema", { schema }), errorText(e));
   } finally {
     setStates(id, "loading", schema, false);
   }
@@ -138,7 +139,7 @@ export async function refreshTable(id: string, schema: string, table: string): P
       }),
     );
   } catch (e) {
-    showBalloon(`Cannot refresh ${table}`, errorText(e));
+    showBalloon(tr("database.store.cannotRefreshTable", { table }), errorText(e));
   }
 }
 
@@ -209,7 +210,7 @@ async function editVirtuals(id: string, fn: (v: VirtualObjects) => void, done: s
     showBalloon(done, ".forge/database/virtual.toml");
     return true;
   } catch (e) {
-    showBalloon("Cannot save virtual objects", errorText(e));
+    showBalloon(tr("database.store.cannotSaveVirtualObjects"), errorText(e));
     return false;
   }
 }
@@ -225,14 +226,14 @@ export const removeVirtualForeignKey = (id: string, schema: string, table: strin
       (v.foreignKey = (v.foreignKey ?? []).filter(
         (f) => !(f.schema === schema && f.table === table && (f.name || `vfk_${f.table}_${f.columns.join("_")}_${f.refTable}`) === name),
       )),
-    `Virtual foreign key ${name} removed`,
+    tr("database.store.virtualForeignKeyNameRemoved", { name }),
   );
 
 export const addVirtualColumn = (id: string, c: VirtualColumn) =>
-  editVirtuals(id, (v) => (v.column = [...(v.column ?? []), c]), `Virtual column ${c.table}.${c.name} added`);
+  editVirtuals(id, (v) => (v.column = [...(v.column ?? []), c]), tr("database.store.virtualColumnTableNameAdded", { table: c.table, name: c.name }));
 
 export const removeVirtualColumn = (id: string, schema: string, table: string, name: string) =>
-  editVirtuals(id, (v) => (v.column = (v.column ?? []).filter((c) => !(c.schema === schema && c.table === table && c.name === name))), `Virtual column ${name} removed`);
+  editVirtuals(id, (v) => (v.column = (v.column ?? []).filter((c) => !(c.schema === schema && c.table === table && c.name === name))), tr("database.store.virtualColumnNameRemoved", { name }));
 
 export async function disconnect(id: string): Promise<void> {
   await dbApi.disconnect(id).catch(() => undefined);

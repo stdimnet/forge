@@ -5,6 +5,7 @@ import { dbApi, type Cell, type Dialect, type ExportFormat } from "@/ipc/db";
 import { dbObjectsApi } from "@/ipc/dbObjects";
 import { showBalloon } from "@/keymap";
 import type { MenuItem } from "./ContextMenu";
+import { t } from "@/i18n";
 
 const LABELS: Record<ExportFormat, string> = { csv: "CSV", json: "JSON", sql: "SQL Inserts", markdown: "Markdown" };
 const EXTENSIONS: Record<ExportFormat, string> = { csv: "csv", json: "json", sql: "sql", markdown: "md" };
@@ -16,7 +17,6 @@ export interface ExportSource {
   rows: Cell[][];
 }
 
-const plural = (n: number) => `${n} row${n === 1 ? "" : "s"}`;
 
 export async function exportToFile(format: ExportFormat, src: ExportSource): Promise<void> {
   const ext = EXTENSIONS[format];
@@ -27,7 +27,7 @@ export async function exportToFile(format: ExportFormat, src: ExportSource): Pro
       const path = await save({ defaultPath: name, filters: [{ name: LABELS[format], extensions: [ext] }] });
       if (!path) return;
       await dbApi.export({ format, ...src, path });
-      showBalloon(`Exported ${plural(src.rows.length)}`, path);
+      showBalloon(t("database.exporting.exportedPlural", { count: src.rows.length }), path);
       return;
     }
     const text = await dbApi.export({ format, ...src });
@@ -37,9 +37,9 @@ export async function exportToFile(format: ExportFormat, src: ExportSource): Pro
     a.download = name;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon(`Exported ${plural(src.rows.length)}`, name);
+    showBalloon(t("database.exporting.exportedPlural", { count: src.rows.length }), name);
   } catch (e) {
-    showBalloon("Export failed", e instanceof Error ? e.message : String(e));
+    showBalloon(t("database.exporting.exportFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -47,9 +47,9 @@ export async function copyAs(format: ExportFormat, src: ExportSource): Promise<v
   try {
     const text = await dbApi.export({ format, ...src });
     await navigator.clipboard?.writeText(text);
-    showBalloon(`Copied ${plural(src.rows.length)} as ${LABELS[format]}`);
+    showBalloon(t("database.exporting.copiedPluralAsLabels", { count: src.rows.length, format: LABELS[format] }));
   } catch (e) {
-    showBalloon("Copy failed", e instanceof Error ? e.message : String(e));
+    showBalloon(t("database.exporting.copyFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -63,7 +63,7 @@ export async function exportToExcel(src: ExportSource): Promise<void> {
       const path = await save({ defaultPath: name, filters: [{ name: "Excel", extensions: ["xlsx"] }] });
       if (!path) return;
       await dbObjectsApi.exportXlsx(sheet, src.columns, src.rows, path);
-      showBalloon(`Exported ${plural(src.rows.length)}`, path);
+      showBalloon(t("database.exporting.exportedPlural", { count: src.rows.length }), path);
       return;
     }
     const b64 = (await dbObjectsApi.exportXlsx(sheet, src.columns, src.rows)) ?? "";
@@ -74,9 +74,9 @@ export async function exportToExcel(src: ExportSource): Promise<void> {
     a.download = name;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon(`Exported ${plural(src.rows.length)}`, name);
+    showBalloon(t("database.exporting.exportedPlural", { count: src.rows.length }), name);
   } catch (e) {
-    showBalloon("Export failed", e instanceof Error ? e.message : String(e));
+    showBalloon(t("database.exporting.exportFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -84,9 +84,9 @@ export async function exportToExcel(src: ExportSource): Promise<void> {
 export function exportMenu(src: () => ExportSource): MenuItem[] {
   const formats: ExportFormat[] = ["csv", "json", "sql", "markdown"];
   return [
-    ...formats.map((f) => ({ label: `Export to ${LABELS[f]} File…`, run: () => void exportToFile(f, src()) })),
-    { label: "Export to Excel File…", run: () => void exportToExcel(src()) },
+    ...formats.map((f) => ({ label: t("database.exporting.exportToLabelsFile", { format: LABELS[f] }), run: () => void exportToFile(f, src()) })),
+    { label: t("database.exporting.exportToExcelFile"), run: () => void exportToExcel(src()) },
     { separator: true, label: "" },
-    ...formats.map((f) => ({ label: `Copy as ${LABELS[f]}`, run: () => void copyAs(f, src()) })),
+    ...formats.map((f) => ({ label: t("database.exporting.copyAsLabels", { format: LABELS[f] }), run: () => void copyAs(f, src()) })),
   ];
 }

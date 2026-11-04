@@ -111,6 +111,7 @@ import { openVirtualDialog, VirtualDialogs } from "./VirtualDialogs";
 import { openFullTextSearch } from "./FullTextSearch";
 import { openCompare, openDiagram } from "./schema/model";
 import { multi, objectMenu, ObjectDialogs, setMulti } from "./objects";
+import { t as tr } from "@/i18n";
 
 type Kind =
   | "ds"
@@ -204,7 +205,7 @@ function redisRows(id: string, schema: string, depth: number, out: Row[], tint?:
   const st = redisKeys[`${id}/${schema}`];
   out.push({ key: `filter:${id}/${schema}`, depth, kind: "filter", label: st?.pattern ?? "*", expandable: false, icon: () => <Search size={13} class="muted" />, ds: id, schema, tint });
   if (!st || st.loading) {
-    out.push({ key: `status:redis:${id}/${schema}`, depth, kind: "status", label: "Loading keys…", expandable: false, icon: () => <LoaderCircle size={13} class="db-spin" />, ds: id, cls: "muted", tint });
+    out.push({ key: `status:redis:${id}/${schema}`, depth, kind: "status", label: tr("database.databaseView.loadingKeys"), expandable: false, icon: () => <LoaderCircle size={13} class="db-spin" />, ds: id, cls: "muted", tint });
     return;
   }
   if (st.error) {
@@ -228,8 +229,8 @@ function redisRows(id: string, schema: string, depth: number, out: Row[], tint?:
       tint,
     });
   }
-  if (st.truncated) out.push({ key: `status:more:${id}/${schema}`, depth, kind: "status", label: "More keys match; narrow the pattern", expandable: false, icon: () => <KeySquare size={13} class="muted" />, ds: id, cls: "muted", tint });
-  else if (!st.keys?.length) out.push({ key: `status:none:${id}/${schema}`, depth, kind: "status", label: "No keys match", expandable: false, icon: () => <KeySquare size={13} class="muted" />, ds: id, cls: "muted", tint });
+  if (st.truncated) out.push({ key: `status:more:${id}/${schema}`, depth, kind: "status", label: tr("database.databaseView.moreKeysMatchNarrowThe"), expandable: false, icon: () => <KeySquare size={13} class="muted" />, ds: id, cls: "muted", tint });
+  else if (!st.keys?.length) out.push({ key: `status:none:${id}/${schema}`, depth, kind: "status", label: tr("database.databaseView.noKeysMatch"), expandable: false, icon: () => <KeySquare size={13} class="muted" />, ds: id, cls: "muted", tint });
 }
 
 /** Folder rows (`columns`, `keys`, …) and their children under a table. */
@@ -504,7 +505,7 @@ function buildRows(): Row[] {
     });
     if (!expanded().has(dsKey)) continue;
     if (!st || st.status === "connecting") {
-      out.push({ key: `status:${id}`, depth: 1, kind: "status", label: "Connecting…", expandable: false, icon: () => <LoaderCircle size={13} class="db-spin" />, ds: id, cls: "muted", tint });
+      out.push({ key: `status:${id}`, depth: 1, kind: "status", label: tr("database.databaseView.connecting"), expandable: false, icon: () => <LoaderCircle size={13} class="db-spin" />, ds: id, cls: "muted", tint });
       continue;
     }
     if (st.status === "error") {
@@ -554,7 +555,7 @@ function buildRows(): Row[] {
           continue;
         }
         if (!info) {
-          out.push({ key: `status:${sKey}`, depth: depth + 1, kind: "status", label: "Loading…", expandable: false, icon: () => <LoaderCircle size={13} class="db-spin" />, ds: id, cls: "muted", tint });
+          out.push({ key: `status:${sKey}`, depth: depth + 1, kind: "status", label: tr("database.databaseView.loading"), expandable: false, icon: () => <LoaderCircle size={13} class="db-spin" />, ds: id, cls: "muted", tint });
           continue;
         }
         schemaRows(id, s, info, depth + 1, out, tint);
@@ -712,7 +713,7 @@ export function newDataSourceMenu(): MenuItem[] {
     run: () => openDataSources({ newDriver: d }),
   }));
   if (detected().length) {
-    items.push({ separator: true, label: "" }, { label: "Data Source from .env", icon: <Plus size={13} />, run: () => void addFromEnv() });
+    items.push({ separator: true, label: "" }, { label: tr("database.databaseView.dataSourceFromEnv"), icon: <Plus size={13} />, run: () => void addFromEnv() });
   }
   return items;
 }
@@ -729,7 +730,7 @@ export function DatabaseActions() {
       <button class="icon-btn" title={`New (${shortcutLabel("Console.TableResult.AddRow")})`} onClick={(e) => open(e, newDataSourceMenu())}>
         <Plus size={16} />
       </button>
-      <button class="icon-btn" title="Refresh" disabled={!current()} onClick={() => current() && void refresh(current()!.id)}>
+      <button class="icon-btn" title={tr("database.databaseView.refresh")} disabled={!current()} onClick={() => current() && void refresh(current()!.id)}>
         <RefreshCw size={14} />
       </button>
       <button class="icon-btn" title={`Data Source Properties (${shortcutLabel("Database.Properties")})`} onClick={() => openDataSources({ select: current()?.id })}>
@@ -738,13 +739,13 @@ export function DatabaseActions() {
       <button class="icon-btn" title={`Jump to Query Console (${shortcutLabel("Database.OpenConsole")})`} disabled={!current()} onClick={() => current() && openConsole(current()!.id)}>
         <SquareTerminal size={15} />
       </button>
-      <button class="icon-btn" title="Collapse All" onClick={() => [...expanded()].forEach((k) => setNodeOpen(k, false))}>
+      <button class="icon-btn" title={tr("database.databaseView.collapseAll")} onClick={() => [...expanded()].forEach((k) => setNodeOpen(k, false))}>
         <FoldVertical size={14} />
       </button>
       <button
         class="icon-btn"
         classList={{ active: dbPanel() === "sessions" }}
-        title="Sessions"
+        title={tr("database.databaseView.sessions")}
         data-testid="db-sessions-toggle"
         onClick={() => setDbPanel(dbPanel() === "sessions" ? "tree" : "sessions")}
       >
@@ -763,67 +764,67 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   const live = !!ds && ds.driver !== "ddl";
   if (row.kind === "rkey") {
     items.push(
-      { label: "Open Value", hint: "Enter", icon: <KeySquare size={13} />, run: () => openRedisKey(row.ds, row.schema!, row.table!) },
-      { label: "Copy Key", icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
+      { label: tr("database.databaseView.openValue"), hint: "Enter", icon: <KeySquare size={13} />, run: () => openRedisKey(row.ds, row.schema!, row.table!) },
+      { label: tr("database.databaseView.copyKey"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
       { separator: true, label: "" },
     );
   }
   if (row.kind === "schema" && ds && modelOf(ds.driver) === "keyValue") {
-    items.push({ label: "Refresh Keys", icon: <RefreshCw size={13} />, run: () => void loadRedisKeys(row.ds, row.schema!) }, { separator: true, label: "" });
+    items.push({ label: tr("database.databaseView.refreshKeys"), icon: <RefreshCw size={13} />, run: () => void loadRedisKeys(row.ds, row.schema!) }, { separator: true, label: "" });
   }
   if (row.kind === "collection" || (ds && modelOf(ds.driver) === "document" && row.kind === "view")) {
     items.push(
-      { label: "Open Documents", hint: "Enter", icon: <FileJson size={13} />, run: () => openCollection(row.ds, row.schema!, row.table!) },
-      { label: "Copy Name", icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
+      { label: tr("database.databaseView.openDocuments"), hint: "Enter", icon: <FileJson size={13} />, run: () => openCollection(row.ds, row.schema!, row.table!) },
+      { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
       { separator: true, label: "" },
     );
   } else if (row.kind === "table" || row.kind === "view" || row.kind === "matview") {
-    if (live) items.push({ label: "Edit Data", hint: "Enter", icon: <Table2 size={13} />, run: () => openTable(row.ds, row.schema!, row.table!) });
+    if (live) items.push({ label: tr("database.databaseView.editData"), hint: "Enter", icon: <Table2 size={13} />, run: () => openTable(row.ds, row.schema!, row.table!) });
     items.push(
       {
-        label: "Go to DDL",
+        label: tr("database.databaseView.goToDdl"),
         icon: <FileCode size={13} />,
         run: () =>
           void dbApi
             .tableDdl(row.ds, row.schema!, row.table!)
             .then((ddl) => openConsole(row.ds, ddl))
-            .catch((e) => showBalloon("No DDL", String(e))),
+            .catch((e) => showBalloon(tr("database.databaseView.noDdl"), String(e))),
       },
-      { label: "Copy Name", icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
+      { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
     );
-    if (row.kind === "table" && relational) items.push({ label: "Add Virtual Column…", icon: <Sigma size={13} />, run: () => openVirtualDialog({ kind: "column", ds: row.ds, schema: row.schema!, table: row.table! }) });
+    if (row.kind === "table" && relational) items.push({ label: tr("database.databaseView.addVirtualColumn"), icon: <Sigma size={13} />, run: () => openVirtualDialog({ kind: "column", ds: row.ds, schema: row.schema!, table: row.table! }) });
     items.push({ separator: true, label: "" });
   }
   items.push(...objects);
   if (row.kind === "column" && relational) {
-    if (row.isVirtual) items.push({ label: "Remove Virtual Column", icon: <Trash2 size={13} />, run: () => void removeVirtualColumn(row.ds, row.schema!, row.table!, row.name!) });
-    else items.push({ label: "Add Virtual Foreign Key…", icon: <Link2 size={13} />, run: () => openVirtualDialog({ kind: "fk", ds: row.ds, schema: row.schema!, table: row.table!, column: row.name! }) });
+    if (row.isVirtual) items.push({ label: tr("database.databaseView.removeVirtualColumn"), icon: <Trash2 size={13} />, run: () => void removeVirtualColumn(row.ds, row.schema!, row.table!, row.name!) });
+    else items.push({ label: tr("database.databaseView.addVirtualForeignKey"), icon: <Link2 size={13} />, run: () => openVirtualDialog({ kind: "fk", ds: row.ds, schema: row.schema!, table: row.table!, column: row.name! }) });
     items.push({ separator: true, label: "" });
   }
   if (row.kind === "fk" && row.isVirtual) {
-    items.push({ label: "Remove Virtual Foreign Key", icon: <Trash2 size={13} />, run: () => void removeVirtualForeignKey(row.ds, row.schema!, row.table!, row.name!) }, { separator: true, label: "" });
+    items.push({ label: tr("database.databaseView.removeVirtualForeignKey"), icon: <Trash2 size={13} />, run: () => void removeVirtualForeignKey(row.ds, row.schema!, row.table!, row.name!) }, { separator: true, label: "" });
   }
   if (relational && (row.kind === "ds" || row.kind === "schema" || row.kind === "table" || row.kind === "view" || row.kind === "matview"))
     items.push(
-      { label: "Diagrams: Show Diagram", hint: shortcutLabel("ShowUmlDiagram"), icon: <Network size={13} />, run: () => void showDiagram(row) },
-      { label: "Compare Structure…", hint: shortcutLabel("Database.CompareStructure"), icon: <GitCompareArrows size={13} />, run: () => openCompare({ source: { id: row.ds, schema: row.schema ?? "" } }) },
+      { label: tr("database.databaseView.diagramsShowDiagram"), hint: shortcutLabel("ShowUmlDiagram"), icon: <Network size={13} />, run: () => void showDiagram(row) },
+      { label: tr("database.databaseView.compareStructure"), hint: shortcutLabel("Database.CompareStructure"), icon: <GitCompareArrows size={13} />, run: () => openCompare({ source: { id: row.ds, schema: row.schema ?? "" } }) },
       { separator: true, label: "" },
     );
-  if (row.object) items.push({ label: "Quick Documentation", hint: shortcutLabel("QuickJavaDoc"), icon: <BookOpen size={13} />, run: () => void showDoc(row) });
-  if (relational && live) items.push({ label: "Full-Text Search…", hint: shortcutLabel("DatabaseView.FullTextSearch"), icon: <TextSearch size={13} />, run: () => openFullTextSearch({ ds: row.ds, schema: row.schema, table: row.kind === "table" || row.kind === "view" ? row.table : undefined }) });
-  if (live) items.push({ label: "New Query Console", hint: shortcutLabel("Database.OpenConsole"), icon: <SquareTerminal size={13} />, run: () => openConsole(row.ds) });
+  if (row.object) items.push({ label: tr("database.databaseView.quickDocumentation"), hint: shortcutLabel("QuickJavaDoc"), icon: <BookOpen size={13} />, run: () => void showDoc(row) });
+  if (relational && live) items.push({ label: tr("database.databaseView.fullTextSearch"), hint: shortcutLabel("DatabaseView.FullTextSearch"), icon: <TextSearch size={13} />, run: () => openFullTextSearch({ ds: row.ds, schema: row.schema, table: row.kind === "table" || row.kind === "view" ? row.table : undefined }) });
+  if (live) items.push({ label: tr("database.databaseView.newQueryConsole"), hint: shortcutLabel("Database.OpenConsole"), icon: <SquareTerminal size={13} />, run: () => openConsole(row.ds) });
   // Refresh is per node: a table or schema alone, the data source as a whole.
-  if (row.table && (row.kind === "table" || row.kind === "view" || row.kind === "matview")) items.push({ label: "Refresh", icon: <RefreshCw size={13} />, run: () => void refreshTable(row.ds, row.schema!, row.table!) });
-  else if (row.kind === "schema" && ds && modelOf(ds.driver) !== "keyValue") items.push({ label: "Refresh", icon: <RefreshCw size={13} />, run: () => void introspect(row.ds, row.schema!) });
-  else items.push({ label: "Refresh", icon: <RefreshCw size={13} />, run: () => void refresh(row.ds) });
+  if (row.table && (row.kind === "table" || row.kind === "view" || row.kind === "matview")) items.push({ label: tr("database.databaseView.refresh"), icon: <RefreshCw size={13} />, run: () => void refreshTable(row.ds, row.schema!, row.table!) });
+  else if (row.kind === "schema" && ds && modelOf(ds.driver) !== "keyValue") items.push({ label: tr("database.databaseView.refresh"), icon: <RefreshCw size={13} />, run: () => void introspect(row.ds, row.schema!) });
+  else items.push({ label: tr("database.databaseView.refresh"), icon: <RefreshCw size={13} />, run: () => void refresh(row.ds) });
   if (row.kind === "ds") {
-    if (isConnected(row.ds)) items.push({ label: "Disconnect", icon: <Unplug size={13} />, run: () => void disconnect(row.ds) });
+    if (isConnected(row.ds)) items.push({ label: tr("database.databaseView.disconnect"), icon: <Unplug size={13} />, run: () => void disconnect(row.ds) });
     items.push(
-      { label: "Properties", hint: shortcutLabel("Database.Properties"), icon: <Settings2 size={13} />, run: () => openDataSources({ select: row.ds }) },
-      { label: ds && modelOf(ds.driver) !== "relational" ? "Databases…" : "Schemas…", icon: <Filter size={13} />, run: () => openDataSources({ select: row.ds, tab: "schemas" }) },
+      { label: tr("database.databaseView.properties"), hint: shortcutLabel("Database.Properties"), icon: <Settings2 size={13} />, run: () => openDataSources({ select: row.ds }) },
+      { label: ds && modelOf(ds.driver) !== "relational" ? tr("database.databaseView.databases") : tr("database.databaseView.schemas"), icon: <Filter size={13} />, run: () => openDataSources({ select: row.ds, tab: "schemas" }) },
       { separator: true, label: "" },
       {
-        label: "Delete",
+        label: tr("database.databaseView.delete"),
         danger: true,
         icon: <Trash2 size={13} />,
         run: () => {
@@ -839,15 +840,15 @@ function EmptyState() {
   return (
     <div class="db-empty">
       <Database size={30} class="db-empty-icon" />
-      <div>No data sources yet</div>
-      <div class="muted">Create one to browse schemas, run queries and edit tables.</div>
+      <div>{tr("database.databaseView.noDataSourcesYet")}</div>
+      <div class="muted">{tr("database.databaseView.createOneToBrowseSchemas")}</div>
       <div class="db-empty-actions">
         <button class="btn-primary" onClick={() => openDataSources({ newDriver: "mysql" })}>
-          <Plus size={14} /> New Data Source
+          <Plus size={14} /> {tr("database.databaseView.newDataSource")}
         </button>
         <Show when={detected().length}>
           <button class="btn-secondary" onClick={() => void addFromEnv()}>
-            Add from .env
+            {tr("database.databaseView.addFromEnv")}
           </button>
         </Show>
       </div>
@@ -914,7 +915,7 @@ export function DatabaseView() {
                   <input
                     class="db-filter-input"
                     value={row.label}
-                    placeholder="Key pattern, e.g. user:*"
+                    placeholder={tr("database.databaseView.keyPatternEGUser")}
                     spellcheck={false}
                     data-testid="db-key-pattern"
                     onKeyDown={(e) => {

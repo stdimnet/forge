@@ -15,6 +15,7 @@ import { sourceById, states, visibleSchemas } from "../store";
 import { ObjectModal } from "./Modal";
 import { closeObjectDialog } from "./state";
 import { startDump } from "./dumpRun";
+import { t as tr } from "@/i18n";
 
 const PROGRAM: Record<DumpTool, string> = {
   mysqldump: "mysqldump",
@@ -87,19 +88,19 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
   const run = async () => {
     if (restore()) {
       const ok = await askConfirm({
-        title: `Restore with '${program()}'`,
+        title: tr("database.objects.dumpDialog.restoreWithProgram", { program: program() }),
         message: `Restore ${req.file} into ${ds?.name ?? "the data source"}? Existing objects and data may be overwritten.`,
-        confirm: "Restore",
+        confirm: tr("database.objects.dumpDialog.restore"),
       });
       if (!ok) return;
     }
-    const started = await startDump(p.ds, { ...req, schemas: [...req.schemas], tables: [...req.tables] }, `${restore() ? "Restore" : "Dump"} ${ds?.name ?? ""} (${program()})`);
+    const started = await startDump(p.ds, { ...req, schemas: [...req.schemas], tables: [...req.tables] }, `${restore() ? tr("database.objects.dumpDialog.restore") : tr("database.objects.dumpDialog.dump")} ${ds?.name ?? ""} (${program()})`);
     if (started) closeObjectDialog();
   };
 
   return (
     <ObjectModal
-      title={`${restore() ? "Restore with" : "Export with"} '${program()}'`}
+      title={`${restore() ? tr("database.objects.dumpDialog.restoreWith") : tr("database.objects.dumpDialog.exportWith")} '${program()}'`}
       testId="dbo-dump-dialog"
       width={760}
       onClose={closeObjectDialog}
@@ -115,7 +116,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
       }
     >
       <div class="db-form dbo-pad">
-        <span class="db-form-label">Tool:</span>
+        <span class="db-form-label">{tr("database.objects.dumpDialog.tool")}</span>
         <select
           class="dsd-input"
           value={`${req.tool}:${req.action}`}
@@ -128,10 +129,10 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
         </select>
         <span class="db-form-label">Path to {program()}:</span>
         <input class="dsd-input mono" value={req.program} placeholder={`${program()} (from PATH)`} spellcheck={false} onInput={(e) => setReq("program", e.currentTarget.value)} data-autofocus />
-        <span class="db-form-label">{restore() ? "Input file:" : "Output file:"}</span>
+        <span class="db-form-label">{restore() ? tr("database.objects.dumpDialog.inputFile") : tr("database.objects.dumpDialog.outputFile")}</span>
         <div class="dbo-row">
           <input class="dsd-input mono" value={req.file} placeholder={restore() ? "dump to restore" : "where to write the dump"} spellcheck={false} onInput={(e) => setReq("file", e.currentTarget.value)} data-testid="dbo-dump-file" />
-          <button class="btn-secondary" onClick={() => void browse()} title="Browse">
+          <button class="btn-secondary" onClick={() => void browse()} title={tr("database.objects.dumpDialog.browse")}>
             <FolderOpen size={14} />
           </button>
         </div>
@@ -149,7 +150,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
           </div>
         </Show>
         <Show when={!restore() && req.tool !== "sqlcmd"}>
-          <span class="db-form-label">Tables:</span>
+          <span class="db-form-label">{tr("database.objects.dumpDialog.tables")}</span>
           <div class="dbo-picker dbo-picker-tall">
             <For each={tables()} fallback={<span class="muted">All tables (expand a schema to choose)</span>}>
               {(t) => (
@@ -162,19 +163,19 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
           </div>
         </Show>
         <Show when={req.tool === "pgDump"}>
-          <span class="db-form-label">Format:</span>
+          <span class="db-form-label">{tr("database.objects.dumpDialog.format")}</span>
           <select class="dsd-input" value={req.format} onChange={(e) => setReq("format", e.currentTarget.value)}>
-            <option value="plain">Plain SQL</option>
+            <option value="plain">{tr("database.objects.dumpDialog.plainSql")}</option>
             <option value="custom">Custom (pg_restore)</option>
-            <option value="directory">Directory</option>
-            <option value="tar">Tar</option>
+            <option value="directory">{tr("database.objects.dumpDialog.directory")}</option>
+            <option value="tar">{tr("database.objects.dumpDialog.tar")}</option>
           </select>
         </Show>
         <Show when={pg() && (req.format === "directory" || req.tool === "pgRestore")}>
-          <span class="db-form-label">Jobs:</span>
+          <span class="db-form-label">{tr("database.objects.dumpDialog.jobs")}</span>
           <input class="dsd-input dbo-num" type="number" min="0" value={req.jobs} onInput={(e) => setReq("jobs", Math.max(0, Number(e.currentTarget.value) || 0))} />
         </Show>
-        <span class="db-form-label">Options:</span>
+        <span class="db-form-label">{tr("database.objects.dumpDialog.options")}</span>
         <div class="dbo-checks">
           <Show when={req.tool !== "mysql" && req.tool !== "sqlcmd" && req.tool !== "psql"}>
             <label class="dbo-check">
@@ -189,32 +190,32 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
           <Show when={req.tool !== "sqlite3" && req.tool !== "psql" && req.tool !== "mysql"}>
             <label class="dbo-check">
               <input type="checkbox" checked={req.dropObjects} onChange={(e) => setReq("dropObjects", e.currentTarget.checked)} />
-              {req.tool === "sqlcmd" ? (restore() ? "Replace the database" : "Overwrite the backup") : "Drop objects first"}
+              {req.tool === "sqlcmd" ? (restore() ? tr("database.objects.dumpDialog.replaceTheDatabase") : tr("database.objects.dumpDialog.overwriteTheBackup")) : tr("database.objects.dumpDialog.dropObjectsFirst")}
             </label>
           </Show>
           <Show when={req.tool === "mysqldump" || pg()}>
             <label class="dbo-check">
               <input type="checkbox" checked={req.createDatabase} onChange={(e) => setReq("createDatabase", e.currentTarget.checked)} />
-              Create database
+              {tr("database.objects.dumpDialog.createDatabase")}
             </label>
           </Show>
           <Show when={req.tool === "mysqldump" || req.tool === "psql"}>
             <label class="dbo-check">
               <input type="checkbox" checked={req.singleTransaction} onChange={(e) => setReq("singleTransaction", e.currentTarget.checked)} />
-              Single transaction
+              {tr("database.objects.dumpDialog.singleTransaction")}
             </label>
           </Show>
           <Show when={pg()}>
             <label class="dbo-check">
               <input type="checkbox" checked={req.noOwner} onChange={(e) => setReq("noOwner", e.currentTarget.checked)} />
-              No owner
+              {tr("database.objects.dumpDialog.noOwner")}
             </label>
           </Show>
         </div>
-        <span class="db-form-label">More arguments:</span>
+        <span class="db-form-label">{tr("database.objects.dumpDialog.moreArguments")}</span>
         <input class="dsd-input mono" value={req.extra} placeholder="--verbose" spellcheck={false} onInput={(e) => setReq("extra", e.currentTarget.value)} />
       </div>
-      <div class="dbo-preview-label">Command line</div>
+      <div class="dbo-preview-label">{tr("database.objects.dumpDialog.commandLine")}</div>
       <pre class="dbo-sql dbo-command" data-testid="dbo-dump-command">
         {command() || problem()}
       </pre>
@@ -223,7 +224,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
         {ds?.options.ssh?.enabled ? " The tool connects through the data source's SSH tunnel." : ""}
         <Show when={restore() && ds?.options.readOnly}>
           {" "}
-          <span class="dbo-danger-text">The data source is read-only: restoring is not allowed.</span>
+          <span class="dbo-danger-text">{tr("database.objects.dumpDialog.theDataSourceIsRead")}</span>
         </Show>
       </div>
     </ObjectModal>

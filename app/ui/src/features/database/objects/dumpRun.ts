@@ -9,13 +9,14 @@ import { registerRunConfigurationType } from "@/features/run/types";
 import { launch } from "@/features/run/runStore";
 import { dbObjectsApi, type DumpRequest } from "@/ipc/dbObjects";
 import { showBalloon } from "@/keymap";
+import { t } from "@/i18n";
 
 export const DUMP_RUN_TYPE = "db-dump";
 
 registerRunConfigurationType({
   id: DUMP_RUN_TYPE,
   name: "Database Dump",
-  description: "A dump or restore with mysqldump, pg_dump, pg_restore, psql, sqlite3 or sqlcmd.",
+  description: t("database.objects.dumpRun.aDumpOrRestoreWith"),
   icon: DatabaseBackup,
   color: "var(--info)",
   fields: [],
@@ -35,11 +36,11 @@ export async function startDump(ds: string, request: DumpRequest, name: string):
     try {
       warning = await dbObjectsApi.restoreGuard(ds);
     } catch (e) {
-      showBalloon("Restore not allowed", e instanceof Error ? e.message : String(e));
+      showBalloon(t("database.objects.dumpRun.restoreNotAllowed"), e instanceof Error ? e.message : String(e));
       return false;
     }
     if (warning) {
-      if (!(await askConfirm({ title: "Production Data Source", message: warning, confirm: "Restore" }))) return false;
+      if (!(await askConfirm({ title: t("database.objects.dumpRun.productionDataSource"), message: warning, confirm: t("database.objects.dumpRun.restore") }))) return false;
       confirmed = true;
     }
   }

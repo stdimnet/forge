@@ -19,6 +19,7 @@ import { DropDialog, GenerateDdlDialog, RenameDialog, generateDdlTo } from "./Sc
 import { TableDialog } from "./TableDialog";
 import { dialog, openObjectDialog } from "./state";
 import "./objects.css";
+import { t as tr } from "@/i18n";
 
 export { multi, setMulti } from "./state";
 
@@ -79,24 +80,24 @@ const dumpTools = (ds: DataSourceInfo): { tool: DumpTool; action: DumpAction; la
     case "mysql":
     case "mariadb":
       return [
-        { tool: "mysqldump", action: "dump", label: "Export with 'mysqldump'…" },
-        { tool: "mysql", action: "restore", label: "Restore with 'mysql'…" },
+        { tool: "mysqldump", action: "dump", label: tr("database.objects.main.exportWithMysqldump") },
+        { tool: "mysql", action: "restore", label: tr("database.objects.main.restoreWithMysql") },
       ];
     case "postgres":
       return [
-        { tool: "pgDump", action: "dump", label: "Export with 'pg_dump'…" },
-        { tool: "pgRestore", action: "restore", label: "Restore with 'pg_restore'…" },
-        { tool: "psql", action: "restore", label: "Restore with 'psql'…" },
+        { tool: "pgDump", action: "dump", label: tr("database.objects.main.exportWithPgDump") },
+        { tool: "pgRestore", action: "restore", label: tr("database.objects.main.restoreWithPgRestore") },
+        { tool: "psql", action: "restore", label: tr("database.objects.main.restoreWithPsql") },
       ];
     case "sqlite":
       return [
-        { tool: "sqlite3", action: "dump", label: "Export with 'sqlite3'…" },
-        { tool: "sqlite3", action: "restore", label: "Restore with 'sqlite3'…" },
+        { tool: "sqlite3", action: "dump", label: tr("database.objects.main.exportWithSqlite3") },
+        { tool: "sqlite3", action: "restore", label: tr("database.objects.main.restoreWithSqlite3") },
       ];
     case "sqlserver":
       return [
-        { tool: "sqlcmd", action: "dump", label: "Back up with 'sqlcmd'…" },
-        { tool: "sqlcmd", action: "restore", label: "Restore with 'sqlcmd'…" },
+        { tool: "sqlcmd", action: "dump", label: tr("database.objects.main.backUpWithSqlcmd") },
+        { tool: "sqlcmd", action: "restore", label: tr("database.objects.main.restoreWithSqlcmd") },
       ];
     default:
       return [];
@@ -115,21 +116,21 @@ export function objectMenu(row: ObjectRow, selection: ObjectRow[]): MenuItem[] {
   const items: MenuItem[] = [];
   const rows = selection.length > 1 && selection.some((r) => r.key === row.key) ? selection : [row];
   if (live && ["ds", "schema", "folder", "table"].includes(row.kind) && schema) {
-    items.push({ label: "New", icon: <Plus size={13} />, items: [{ label: "Table…", icon: <TableProperties size={13} />, run: () => openObjectDialog({ kind: "table", ds: row.ds, schema }) }] });
+    items.push({ label: tr("database.objects.main.new"), icon: <Plus size={13} />, items: [{ label: tr("database.objects.main.table"), icon: <TableProperties size={13} />, run: () => openObjectDialog({ kind: "table", ds: row.ds, schema }) }] });
   }
   if (live && row.kind === "table" && row.table) {
-    items.push({ label: "Modify Table…", hint: shortcutLabel("Database.ModifyTable"), icon: <TableProperties size={13} />, run: () => openObjectDialog({ kind: "table", ds: row.ds, schema, table: row.table }) });
+    items.push({ label: tr("database.objects.main.modifyTable"), hint: shortcutLabel("Database.ModifyTable"), icon: <TableProperties size={13} />, run: () => openObjectDialog({ kind: "table", ds: row.ds, schema, table: row.table }) });
   }
   if (live && (row.kind === "table" || row.kind === "view") && row.table) {
-    items.push({ label: "Rename…", icon: <PencilLine size={13} />, run: () => openObjectDialog({ kind: "rename", ds: row.ds, schema, table: row.table! }) });
+    items.push({ label: tr("database.objects.main.rename"), icon: <PencilLine size={13} />, run: () => openObjectDialog({ kind: "rename", ds: row.ds, schema, table: row.table! }) });
   }
   if (live && row.kind === "column" && !row.isVirtual && row.table && row.name) {
-    items.push({ label: "Rename Column…", icon: <PencilLine size={13} />, run: () => openObjectDialog({ kind: "rename", ds: row.ds, schema, table: row.table!, column: row.name }) });
+    items.push({ label: tr("database.objects.main.renameColumn"), icon: <PencilLine size={13} />, run: () => openObjectDialog({ kind: "rename", ds: row.ds, schema, table: row.table!, column: row.name }) });
   }
   const droppable = rows.filter((r) => [...TABLE_KINDS, "routine", "sequence", "type", "index", "trigger"].includes(r.kind) && r.schema === schema);
   if (live && droppable.length && droppable.length === rows.length) {
     items.push({
-      label: droppable.length > 1 ? `Drop ${droppable.length} Objects…` : "Drop…",
+      label: droppable.length > 1 ? tr("database.objects.main.dropCountObjects", { count: droppable.length }) : "Drop…",
       danger: true,
       icon: <Trash2 size={13} />,
       run: () =>
@@ -144,14 +145,14 @@ export function objectMenu(row: ObjectRow, selection: ObjectRow[]): MenuItem[] {
   const objects = rows.map(ddlObject).filter((o): o is DdlObject => !!o);
   if (objects.length) {
     items.push({
-      label: "SQL Scripts",
+      label: tr("database.objects.main.sqlScripts"),
       icon: <ScrollText size={13} />,
       items: [
-        { label: "Generate DDL to Clipboard", icon: <Copy size={13} />, run: () => void generateDdlTo("clipboard", row.ds, objects) },
-        { label: "Generate DDL to Query Console", icon: <SquareTerminal size={13} />, run: () => void generateDdlTo("console", row.ds, objects) },
-        { label: "Generate DDL to File…", icon: <FileDown size={13} />, run: () => void generateDdlTo("file", row.ds, objects) },
+        { label: tr("database.objects.main.generateDdlToClipboard"), icon: <Copy size={13} />, run: () => void generateDdlTo("clipboard", row.ds, objects) },
+        { label: tr("database.objects.main.generateDdlToQueryConsole"), icon: <SquareTerminal size={13} />, run: () => void generateDdlTo("console", row.ds, objects) },
+        { label: tr("database.objects.main.generateDdlToFile"), icon: <FileDown size={13} />, run: () => void generateDdlTo("file", row.ds, objects) },
         { separator: true, label: "" },
-        { label: "SQL Generator…", hint: shortcutLabel("Database.GenerateDdl"), icon: <FileCode size={13} />, run: () => openObjectDialog({ kind: "ddl", ds: row.ds, objects }) },
+        { label: tr("database.objects.main.sqlGenerator"), hint: shortcutLabel("Database.GenerateDdl"), icon: <FileCode size={13} />, run: () => openObjectDialog({ kind: "ddl", ds: row.ds, objects }) },
       ],
     });
   }
@@ -159,10 +160,10 @@ export function objectMenu(row: ObjectRow, selection: ObjectRow[]): MenuItem[] {
     const tools = dumpTools(ds);
     const tables = rows.filter((r) => r.kind === "table" && r.table).map((r) => (ds.driver === "postgres" ? `${schema}.${r.table}` : r.table!));
     items.push({
-      label: "Import/Export",
+      label: tr("database.objects.main.importExport"),
       icon: <DatabaseBackup size={13} />,
       items: [
-        { label: "Import Data from File…", icon: <FileUp size={13} />, run: () => openObjectDialog({ kind: "import", ds: row.ds, schema, table: row.kind === "table" ? row.table : undefined }) },
+        { label: tr("database.objects.main.importDataFromFile"), icon: <FileUp size={13} />, run: () => openObjectDialog({ kind: "import", ds: row.ds, schema, table: row.kind === "table" ? row.table : undefined }) },
         ...(tools.length ? [{ separator: true, label: "" }] : []),
         ...tools.map((t) => ({
           label: t.label,

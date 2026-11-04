@@ -14,6 +14,7 @@ import { ContextMenu, type MenuItem } from "../ContextMenu";
 import { defaultSchema, introspect, openTable, sourceById, sourceColor, states } from "../store";
 import { exportDiagram } from "./exportImage";
 import { loadSchema, parseDiagramPath } from "./model";
+import { t } from "@/i18n";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const MIN_ZOOM = 0.2;
@@ -123,8 +124,8 @@ export function DiagramView(props: { tab: EditorTab }) {
       x: r.left,
       y: r.bottom + 2,
       items: [
-        { label: "Export to SVG…", run: () => void exportDiagram(svg, d, base, "svg") },
-        { label: "Export to PNG…", run: () => void exportDiagram(svg, d, base, "png") },
+        { label: t("database.schema.diagramView.exportToSvg"), run: () => void exportDiagram(svg, d, base, "svg") },
+        { label: t("database.schema.diagramView.exportToPng"), run: () => void exportDiagram(svg, d, base, "png") },
       ],
     });
   };
@@ -135,20 +136,20 @@ export function DiagramView(props: { tab: EditorTab }) {
   return (
     <div class="erd" data-testid="db-diagram">
       <div class="db-toolbar">
-        <button class="icon-btn db-tool" title="Zoom In" onClick={() => zoomTo(zoom() * 1.2)}>
+        <button class="icon-btn db-tool" title={t("database.schema.diagramView.zoomIn")} onClick={() => zoomTo(zoom() * 1.2)}>
           <ZoomIn size={15} />
         </button>
-        <button class="icon-btn db-tool" title="Zoom Out" onClick={() => zoomTo(zoom() / 1.2)}>
+        <button class="icon-btn db-tool" title={t("database.schema.diagramView.zoomOut")} onClick={() => zoomTo(zoom() / 1.2)}>
           <ZoomOut size={15} />
         </button>
-        <button class="icon-btn db-tool" title="Actual Size" onClick={() => zoomTo(1)}>
+        <button class="icon-btn db-tool" title={t("database.schema.diagramView.actualSize")} onClick={() => zoomTo(1)}>
           <Scan size={14} />
         </button>
-        <button class="icon-btn db-tool" title="Fit Content" onClick={fit}>
+        <button class="icon-btn db-tool" title={t("database.schema.diagramView.fitContent")} onClick={fit}>
           <Fullscreen size={14} />
         </button>
         <span class="db-sep" />
-        <div class="erd-segmented" role="group" aria-label="Columns">
+        <div class="erd-segmented" role="group" aria-label={t("database.schema.diagramView.columns")}>
           <For each={[["all", "All Columns"], ["keys", "Keys"], ["none", "No Columns"]] as [ColumnsMode, string][]}>
             {([mode, label]) => (
               <button classList={{ active: columns() === mode }} onClick={() => setColumns(mode)}>
@@ -157,14 +158,14 @@ export function DiagramView(props: { tab: EditorTab }) {
             )}
           </For>
         </div>
-        <button class="db-chip-btn" classList={{ open: !hideViews() }} title="Show views" onClick={() => setHideViews(!hideViews())}>
-          <Eye size={12} /> Views
+        <button class="db-chip-btn" classList={{ open: !hideViews() }} title={t("database.schema.diagramView.showViews")} onClick={() => setHideViews(!hideViews())}>
+          <Eye size={12} /> {t("database.schema.diagramView.views")}
         </button>
         <span class="db-sep" />
-        <button class="icon-btn db-tool" title="Export Diagram" data-testid="erd-export" disabled={!diagram()} onClick={exportMenu}>
+        <button class="icon-btn db-tool" title={t("database.schema.diagramView.exportDiagram")} data-testid="erd-export" disabled={!diagram()} onClick={exportMenu}>
           <Download size={14} />
         </button>
-        <button class="icon-btn db-tool" title="Refresh" onClick={() => void introspect(loc.id, schemaName())}>
+        <button class="icon-btn db-tool" title={t("database.schema.diagramView.refresh")} onClick={() => void introspect(loc.id, schemaName())}>
           <RefreshCw size={14} />
         </button>
         <span class="db-spacer" />

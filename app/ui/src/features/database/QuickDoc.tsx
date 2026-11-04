@@ -6,6 +6,7 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { BookOpen, X } from "lucide-solid";
 import { dbApi, type ObjectDoc, type ObjectRef } from "@/ipc/db";
 import { showBalloon } from "@/keymap";
+import { t } from "@/i18n";
 
 interface Shown {
   x: number;
@@ -22,7 +23,7 @@ export async function showQuickDoc(dataSource: string, schema: string, object: O
     const r = anchor?.getBoundingClientRect();
     setShown({ x: r ? r.left + 24 : 80, y: r ? r.bottom + 4 : 80, doc });
   } catch (e) {
-    showBalloon("No documentation", e instanceof Error ? e.message : String(e));
+    showBalloon(t("database.quickDoc.noDocumentation"), e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -60,7 +61,7 @@ function Popup(p: Shown) {
     window.removeEventListener("keydown", esc, true);
   });
   return (
-    <div ref={el} class="db-doc" style={{ left: `${p.x}px`, top: `${p.y}px` }} data-testid="db-quick-doc" role="dialog" aria-label="Quick Documentation">
+    <div ref={el} class="db-doc" style={{ left: `${p.x}px`, top: `${p.y}px` }} data-testid="db-quick-doc" role="dialog" aria-label={t("database.quickDoc.quickDocumentation")}>
       <div class="db-doc-head">
         <BookOpen size={14} class="muted" />
         <span class="db-doc-kind">{p.doc.kind}</span>
@@ -69,7 +70,7 @@ function Popup(p: Shown) {
           <span class="muted">in {p.doc.location}</span>
         </Show>
         <span class="db-doc-spacer" />
-        <button class="icon-btn" title="Close (Escape)" onClick={closeQuickDoc}>
+        <button class="icon-btn" title={t("database.quickDoc.close", { shortcut: "Escape" })} onClick={closeQuickDoc}>
           <X size={13} />
         </button>
       </div>

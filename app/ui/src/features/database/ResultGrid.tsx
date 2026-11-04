@@ -17,6 +17,7 @@ import { ValueEditor } from "./ValueEditor";
 import { ChartView } from "./ChartView";
 import { CompareDialog, registerCompareSource, type CompareSource } from "./CompareView";
 import { gridControllers, newGridId } from "./controllers";
+import { t as tr } from "@/i18n";
 
 /** Toolbar buttons of a result grid (rendered by the result view's toolbar). */
 export interface ResultGridTools {
@@ -33,19 +34,19 @@ export function ResultTools(props: { tools: ResultGridTools }) {
   const t = props.tools;
   return (
     <>
-      <button class="icon-btn db-tool" classList={{ active: t.transposed() }} title="Transpose" onClick={t.toggleTransposed}>
+      <button class="icon-btn db-tool" classList={{ active: t.transposed() }} title={tr("database.resultGrid.transpose")} onClick={t.toggleTransposed}>
         <ArrowRightLeft size={14} />
       </button>
       <button class="icon-btn db-tool" classList={{ active: t.side() === "value" }} title={`Value Viewer (${shortcutLabel("Database.Properties")})`} onClick={() => t.toggleSide("value")}>
         <PanelRight size={14} />
       </button>
-      <button class="icon-btn db-tool" classList={{ active: t.side() === "aggregate" }} title="Aggregate View" onClick={() => t.toggleSide("aggregate")}>
+      <button class="icon-btn db-tool" classList={{ active: t.side() === "aggregate" }} title={tr("database.resultGrid.aggregateView")} onClick={() => t.toggleSide("aggregate")}>
         <Sigma size={14} />
       </button>
-      <button class="icon-btn db-tool" classList={{ active: t.chart() }} title="Show Chart" onClick={t.toggleChart}>
+      <button class="icon-btn db-tool" classList={{ active: t.chart() }} title={tr("database.resultGrid.showChart")} onClick={t.toggleChart}>
         <ChartColumn size={14} />
       </button>
-      <button class="icon-btn db-tool" title="Compare With…" onClick={t.compare}>
+      <button class="icon-btn db-tool" title={tr("database.resultGrid.compareWith")} onClick={t.compare}>
         <GitCompare size={14} />
       </button>
     </>
@@ -125,10 +126,10 @@ export function ResultGrid(props: {
     const c = cursor();
     const col = c ? props.columns[c.col] : undefined;
     return [
-      { label: "Value Viewer", hint: shortcutLabel("Database.Properties"), run: () => setSide("value") },
+      { label: tr("database.resultGrid.valueViewer"), hint: shortcutLabel("Database.Properties"), run: () => setSide("value") },
       ...(col && c ? [{ separator: true, label: "" }, ...filterByValueItems(col.name, valueAt(c.row, c.col), addFilter)] : []),
       { separator: true, label: "" },
-      { label: "Compare With…", run: () => setComparing(true) },
+      { label: tr("database.resultGrid.compareWith"), run: () => setComparing(true) },
     ];
   };
 
@@ -166,7 +167,7 @@ export function ResultGrid(props: {
               sort={sort()}
               onSort={(column, additive) => setSort((s) => nextSort(s, column, additive))}
               nullText={props.nullText}
-              emptyText={filters().length ? "No rows match the filter" : "The query returned no rows"}
+              emptyText={filters().length ? tr("database.resultGrid.noRowsMatchTheFilter") : tr("database.resultGrid.theQueryReturnedNoRows")}
               ref={(api) => (grid = api)}
               onSelect={() => {
                 const s = grid?.selection();

@@ -23,6 +23,7 @@ import { dbApi, DRIVER_LABELS, modelOf, sourceDialect } from "@/ipc/db";
 import { dbSchemaApi, type CompareResult, type CompareSide, type FrameworkKind, type ItemDiff, type TableDiff } from "@/ipc/dbSchema";
 import { connect, defaultSchema, introspect, openConsole, sourceById, sources, visibleSchemas } from "../store";
 import { loadSchema, nowSeconds, takeCompareStart } from "./model";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("Database");
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -66,7 +67,7 @@ function SidePicker(props: { label: string; side: Side; onChange: (s: Side) => v
       <span class="cmp-side-label">{props.label}</span>
       <select class="cmp-select" value={props.side.id} onChange={(e) => void pick(e.currentTarget.value)}>
         <option value="" disabled>
-          Data source…
+          {tr("database.schema.compareView.dataSource")}
         </option>
         <For each={relational()}>{(s) => <option value={s.id}>{s.name}</option>}</For>
         <option value={DDL}>DDL snapshot (paste SQL)</option>
@@ -177,7 +178,7 @@ export function CompareView(props: { tab: EditorTab }) {
     const sql = r.migration.sql;
     const g = await dbApi.guard(t.id, sql).catch(() => ({}) as { blocked?: string; confirm?: string });
     if (g.blocked) {
-      showBalloon("Read-only data source", g.blocked);
+      showBalloon(tr("database.schema.compareView.readOnlyDataSource"), g.blocked);
       return;
     }
     const drops = r.migration.statements.filter((s) => s.destructive).length;
@@ -185,7 +186,7 @@ export function CompareView(props: { tab: EditorTab }) {
     if (drops) parts.push(`${drops} of them drop${drops === 1 ? "s" : ""} tables, columns or data.`);
     if (t.production) parts.push(`${t.name} is a production data source.`);
     if (g.confirm) parts.push(g.confirm);
-    const ok = await askConfirm({ title: "Run Migration", message: parts.join(" "), confirm: "Run Migration" });
+    const ok = await askConfirm({ title: tr("database.schema.compareView.runMigration"), message: parts.join(" "), confirm: tr("database.schema.compareView.runMigration") });
     if (!ok) return;
     setBusy(true);
     let sessionId: string | null = null;
@@ -194,11 +195,11 @@ export function CompareView(props: { tab: EditorTab }) {
       sessionId = s.id;
       const res = await dbApi.execute(s.id, sql, 100, true);
       const failed = res.find((x) => x.error);
-      if (failed) showBalloon("Migration failed", `${failed.sql}\n${failed.error}`, 10000);
-      else showBalloon("Migration complete", `${res.length} statements on ${t.name}`);
+      if (failed) showBalloon(tr("database.schema.compareView.migrationFailed"), `${failed.sql}\n${failed.error}`, 10000);
+      else showBalloon(tr("database.schema.compareView.migrationComplete"), `${res.length} statements on ${t.name}`);
       await introspect(t.id, target().schema);
     } catch (e) {
-      showBalloon("Migration failed", errorText(e), 10000);
+      showBalloon(tr("database.schema.compareView.migrationFailed"), errorText(e), 10000);
     } finally {
       if (sessionId) await dbApi.closeSession(sessionId).catch(() => undefined);
       setBusy(false);
@@ -217,14 +218,14 @@ export function CompareView(props: { tab: EditorTab }) {
       await openFile(path);
       showBalloon(`${kind === "laravel" ? "Laravel" : "Doctrine"} migration created`, r.file.path);
     } catch (e) {
-      showBalloon("Cannot write the migration", errorText(e));
+      showBalloon(tr("database.schema.compareView.cannotWriteTheMigration"), errorText(e));
     }
   }
 
   const frameworks = createMemo(() => {
     const out: { kind: FrameworkKind; label: string }[] = [];
-    if (isPluginActive("forge.laravel")) out.push({ kind: "laravel", label: "Laravel Migration" });
-    if (isPluginActive("forge.doctrine")) out.push({ kind: "doctrine", label: "Doctrine Migration" });
+    if (isPluginActive("forge.laravel")) out.push({ kind: "laravel", label: tr("database.schema.compareView.laravelMigration") });
+    if (isPluginActive("forge.doctrine")) out.push({ kind: "doctrine", label: tr("database.schema.compareView.doctrineMigration") });
     return out;
   });
 
@@ -233,40 +234,40 @@ export function CompareView(props: { tab: EditorTab }) {
   return (
     <div class="cmp" data-testid="db-structure-compare">
       <div class="db-toolbar cmp-bar">
-        <SidePicker label="Source" side={source()} onChange={setSource} testid="cmp-source" />
-        <button class="icon-btn db-tool" title="Swap Source and Target" onClick={swap}>
+        <SidePicker label={tr("database.schema.compareView.source")} side={source()} onChange={setSource} testid="cmp-source" />
+        <button class="icon-btn db-tool" title={tr("database.schema.compareView.swapSourceAndTarget")} onClick={swap}>
           <ArrowLeftRight size={14} />
         </button>
-        <SidePicker label="Target" side={target()} onChange={setTarget} testid="cmp-target" />
+        <SidePicker label={tr("database.schema.compareView.target")} side={target()} onChange={setTarget} testid="cmp-target" />
         <span class="db-sep" />
-        <label class="cmp-check" title="Drop tables, views and columns that exist only in the target">
-          <input type="checkbox" checked={drops()} onChange={(e) => setDrops(e.currentTarget.checked)} /> Drop missing objects
+        <label class="cmp-check" title={tr("database.schema.compareView.dropTablesViewsAndColumns")}>
+          <input type="checkbox" checked={drops()} onChange={(e) => setDrops(e.currentTarget.checked)} /> {tr("database.schema.compareView.dropMissingObjects")}
         </label>
         <label class="cmp-check">
-          <input type="checkbox" checked={ignoreComments()} onChange={(e) => setIgnoreComments(e.currentTarget.checked)} /> Ignore comments
+          <input type="checkbox" checked={ignoreComments()} onChange={(e) => setIgnoreComments(e.currentTarget.checked)} /> {tr("database.schema.compareView.ignoreComments")}
         </label>
         <label class="cmp-check">
-          <input type="checkbox" checked={ignoreDefaults()} onChange={(e) => setIgnoreDefaults(e.currentTarget.checked)} /> Ignore defaults
+          <input type="checkbox" checked={ignoreDefaults()} onChange={(e) => setIgnoreDefaults(e.currentTarget.checked)} /> {tr("database.schema.compareView.ignoreDefaults")}
         </label>
         <span class="db-spacer" />
         <button class="btn-primary cmp-btn" data-testid="cmp-run-compare" disabled={!ready() || busy()} onClick={() => void compare()}>
-          <GitCompareArrows size={13} /> Compare
+          <GitCompareArrows size={13} /> {tr("database.schema.compareView.compare")}
         </button>
       </div>
       <Show when={source().id === DDL || target().id === DDL}>
         <div class="cmp-ddl">
           <Show when={source().id === DDL}>
-            <textarea class="cmp-ddl-text" placeholder="Source DDL: CREATE TABLE …" value={source().ddl} onInput={(e) => setSource({ ...source(), ddl: e.currentTarget.value })} />
+            <textarea class="cmp-ddl-text" placeholder={tr("database.schema.compareView.sourceDdlCreateTable")} value={source().ddl} onInput={(e) => setSource({ ...source(), ddl: e.currentTarget.value })} />
           </Show>
           <Show when={target().id === DDL}>
-            <textarea class="cmp-ddl-text" placeholder="Target DDL: CREATE TABLE …" value={target().ddl} onInput={(e) => setTarget({ ...target(), ddl: e.currentTarget.value })} />
+            <textarea class="cmp-ddl-text" placeholder={tr("database.schema.compareView.targetDdlCreateTable")} value={target().ddl} onInput={(e) => setTarget({ ...target(), ddl: e.currentTarget.value })} />
           </Show>
         </div>
       </Show>
       <div class="cmp-body">
         <div class="cmp-tree" data-testid="cmp-tree">
           <div class="cmp-pane-head">
-            <span>Differences</span>
+            <span>{tr("database.schema.compareView.differences")}</span>
             <Show when={result()}>
               {(r) => (
                 <span class="cmp-counts">
@@ -279,10 +280,10 @@ export function CompareView(props: { tab: EditorTab }) {
           </div>
           <Show when={error()}>{(e) => <div class="cmp-empty error">{e()}</div>}</Show>
           <Show when={!result() && !error()}>
-            <div class="cmp-empty">{busy() ? "Comparing…" : "Choose a source and a target, then Compare."}</div>
+            <div class="cmp-empty">{busy() ? tr("database.schema.compareView.comparing") : tr("database.schema.compareView.chooseASourceAndA")}</div>
           </Show>
           <Show when={result()?.diff.tables.length === 0}>
-            <div class="cmp-empty">The structures are identical.</div>
+            <div class="cmp-empty">{tr("database.schema.compareView.theStructuresAreIdentical")}</div>
           </Show>
           <For each={result()?.diff.tables ?? []}>
             {(t) => (
@@ -344,27 +345,27 @@ export function CompareView(props: { tab: EditorTab }) {
           </Show>
           <pre class="cmp-sql" data-testid="cmp-sql">{result()?.migration.sql ?? ""}</pre>
           <div class="cmp-actions">
-            <button class="btn-secondary cmp-btn" disabled={!result() || !targetDs()} onClick={openInConsole} title="Open the script in a new console of the target (it does not run)">
-              <SquareTerminal size={13} /> Open in Console
+            <button class="btn-secondary cmp-btn" disabled={!result() || !targetDs()} onClick={openInConsole} title={tr("database.schema.compareView.openTheScriptInA")}>
+              <SquareTerminal size={13} /> {tr("database.schema.compareView.openInConsole")}
             </button>
-            <button class="btn-secondary cmp-btn" disabled={!result()} onClick={() => void navigator.clipboard?.writeText(result()?.migration.sql ?? "").then(() => showBalloon("Migration script copied"))}>
-              <Copy size={13} /> Copy
+            <button class="btn-secondary cmp-btn" disabled={!result()} onClick={() => void navigator.clipboard?.writeText(result()?.migration.sql ?? "").then(() => showBalloon(tr("database.schema.compareView.migrationScriptCopied")))}>
+              <Copy size={13} /> {tr("database.schema.compareView.copy")}
             </button>
             <For each={frameworks()}>
               {(f) => (
-                <button class="btn-secondary cmp-btn" disabled={!result() || busy()} onClick={() => void writeFramework(f.kind)} title={`Write the migration as a ${f.label.toLowerCase()} file`}>
+                <button class="btn-secondary cmp-btn" disabled={!result() || busy()} onClick={() => void writeFramework(f.kind)} title={tr("database.schema.compareView.writeTheMigrationAsA", { label: f.label.toLowerCase() })}>
                   <FileCode size={13} /> {f.label}
                 </button>
               )}
             </For>
             <span class="db-spacer" />
             <Show when={readOnly()}>
-              <span class="db-badge" title="The target is read-only: the migration can only be previewed">
+              <span class="db-badge" title={tr("database.schema.compareView.theTargetIsReadOnly")}>
                 <Lock size={11} /> read-only
               </span>
             </Show>
-            <button class="btn-secondary cmp-btn cmp-danger" data-testid="cmp-run" disabled={!canRun()} onClick={() => void runMigration()} title="Run the script on the target (asks first)">
-              <Play size={13} /> Run Migration…
+            <button class="btn-secondary cmp-btn cmp-danger" data-testid="cmp-run" disabled={!canRun()} onClick={() => void runMigration()} title={tr("database.schema.compareView.runTheScriptOnThe")}>
+              <Play size={13} /> {tr("database.schema.compareView.runMigration2")}
             </button>
           </div>
         </div>

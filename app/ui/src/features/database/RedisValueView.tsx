@@ -12,6 +12,7 @@ import { DataGrid } from "./DataGrid";
 import { gridColumns } from "./grid";
 import { connect, openConsole, parseRedisPath, sourceColor } from "./store";
 import { ttlText } from "./DatabaseView";
+import { t as tr } from "@/i18n";
 
 const cell = (v: unknown): Cell =>
   v === null || v === undefined ? null : typeof v === "object" ? JSON.stringify(v) : (v as Cell);
@@ -60,13 +61,13 @@ export function RedisValueView(props: { tab: EditorTab }) {
   return (
     <div class="db-redis" classList={{ colored: !!color() }} style={{ "--db-tint": color()?.tint, "--db-accent": color()?.accent }} data-testid="db-redis-value">
       <div class="db-toolbar">
-        <button class="icon-btn db-tool" title="Reload" onClick={() => void refetch()}>
+        <button class="icon-btn db-tool" title={tr("database.redisValueView.reload")} onClick={() => void refetch()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn db-tool" title="Copy Value" disabled={!value()} onClick={() => void navigator.clipboard?.writeText(valueText(value()!))}>
+        <button class="icon-btn db-tool" title={tr("database.redisValueView.copyValue")} disabled={!value()} onClick={() => void navigator.clipboard?.writeText(valueText(value()!))}>
           <Copy size={14} />
         </button>
-        <button class="icon-btn db-tool" title="Open in Console" onClick={() => openConsole(loc.id, `TYPE ${loc.key}\nTTL ${loc.key}\n`)}>
+        <button class="icon-btn db-tool" title={tr("database.redisValueView.openInConsole")} onClick={() => openConsole(loc.id, `TYPE ${loc.key}\nTTL ${loc.key}\n`)}>
           <SquareTerminal size={14} />
         </button>
         <span class="db-sep" />
@@ -97,7 +98,7 @@ export function RedisValueView(props: { tab: EditorTab }) {
               columns={gridColumns(t().columns.map((name) => ({ name, typeName: name === "#" || name === "score" ? "INT" : "TEXT" })))}
               rows={t().rows}
               nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
-              emptyText="The key is empty"
+              emptyText={tr("database.redisValueView.theKeyIsEmpty")}
             />
           )}
         </Match>
