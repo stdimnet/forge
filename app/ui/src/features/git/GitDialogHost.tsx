@@ -35,6 +35,7 @@ import { InteractiveRebaseDialog, RewordDialog, SquashCommitsDialog } from "./Lo
 import { ApplyPatchDialog, ChangelistDialog, CreatePatchDialog, MoveChangelistDialog } from "./ChangesDialogViews";
 import { CloneDialog, NewWorktreeDialog } from "./ExtrasDialogs";
 import "./dialogs.css";
+import { t } from "@/i18n";
 
 const currentBranch = () => status()?.branch ?? "HEAD";
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
@@ -43,12 +44,12 @@ const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) :
 function RootRows() {
   return (
     <>
-      <Row label="Git root:">
+      <Row label={t("git.gitDialogHost.gitRoot")}>
         <span class="gd-static" title={gitRoot()}>
           {gitRoot() || "…"}
         </span>
       </Row>
-      <Row label="Current branch:">
+      <Row label={t("git.gitDialogHost.currentBranch")}>
         <span class="gd-static">{currentBranch()}</span>
       </Row>
     </>
@@ -84,7 +85,7 @@ function OptionsBar(props: { options: OptionDef[]; selected: Set<string>; onChan
           {(o) => (
             <span class="gd-chip" classList={{ plain: o.plain }}>
               {o.flag}
-              <button class="gd-chip-x" title={`Remove ${o.flag}`} onClick={() => toggle(o.key)}>
+              <button class="gd-chip-x" title={t("git.gitDialogHost.removeFlag", { flag: o.flag })} onClick={() => toggle(o.key)}>
                 <X size={11} />
               </button>
             </span>
@@ -143,8 +144,8 @@ function StashDialog() {
   const [keepIndex, setKeepIndex] = createSignal(false);
   return (
     <Frame
-      title="Stash"
-      okLabel="Create Stash"
+      title={t("git.gitDialogHost.stash")}
+      okLabel={t("git.gitDialogHost.createStash")}
       onOk={async () => {
         closeGitDialog();
         await createStash(message(), keepIndex());
@@ -152,11 +153,11 @@ function StashDialog() {
     >
       <div class="gd-grid">
         <RootRows />
-        <Row label="Message:">
+        <Row label={t("git.gitDialogHost.message")}>
           <input class="gd-input" value={message()} onInput={(e) => setMessage(e.currentTarget.value)} spellcheck={false} />
         </Row>
       </div>
-      <Check label="Keep index" checked={keepIndex()} onChange={setKeepIndex} hint="Keep the staged changes in the index and the working tree (--keep-index)" />
+      <Check label={t("git.gitDialogHost.keepIndex")} checked={keepIndex()} onChange={setKeepIndex} hint={t("git.gitDialogHost.keepTheStagedChangesIn")} />
     </Frame>
   );
 }
@@ -183,10 +184,10 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
     const files = await runGit("Could not read the stash", () => opsApi.stashFiles(entry.index));
     if (files) setViewing({ entry, files });
   };
-  const okLabel = () => (branch().trim() ? "Branch" : pop() ? "Pop Stash" : "Apply Stash");
+  const okLabel = () => (branch().trim() ? t("git.gitDialogHost.branch") : pop() ? t("git.gitDialogHost.popStash") : t("git.gitDialogHost.applyStash"));
   return (
     <Frame
-      title="Unstash Changes"
+      title={t("git.gitDialogHost.unstashChanges")}
       class="gd-wide"
       okLabel={okLabel()}
       okDisabled={!current()}
@@ -201,8 +202,8 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
         <RootRows />
       </div>
       <div class="gd-split">
-        <div class="git-chooser-list gd-list" role="listbox" aria-label="Stashes">
-          <For each={stashes()} fallback={<div class="git-chooser-empty">No stashes</div>}>
+        <div class="git-chooser-list gd-list" role="listbox" aria-label={t("git.gitDialogHost.stashes")}>
+          <For each={stashes()} fallback={<div class="git-chooser-empty">{t("git.gitDialogHost.noStashes")}</div>}>
             {(s) => (
               <div
                 class="git-chooser-row"
@@ -215,7 +216,7 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
               >
                 <span class="gd-stash-ref">stash@{`{${s.index}}`}</span>
                 <span class="git-chooser-label">
-                  {s.branch ? `On ${s.branch}: ` : ""}
+                  {s.branch ? t("git.gitDialogHost.onBranch", { branch: s.branch }) : ""}
                   {s.message}
                 </span>
                 <span class="git-chooser-detail">{timeAgo(s.time)}</span>
@@ -250,17 +251,17 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
       </div>
       <Show when={viewing()} keyed>
         {(v) => (
-          <div class="gd-files" aria-label="Paths affected in stash">
+          <div class="gd-files" aria-label={t("git.gitDialogHost.pathsAffectedInStash")}>
             <div class="gd-files-title">
               Paths affected in stash@{`{${v.entry.index}}`}: {v.entry.message}
             </div>
-            <For each={v.files} fallback={<div class="git-chooser-empty">No files</div>}>
+            <For each={v.files} fallback={<div class="git-chooser-empty">{t("git.gitDialogHost.noFiles")}</div>}>
               {(f) => (
-                <div class="gd-file" title="Double-click to show the diff" onDblClick={() => void showStashDiff(v.entry, f.path)}>
+                <div class="gd-file" title={t("git.gitDialogHost.doubleClickToShowThe")} onDblClick={() => void showStashDiff(v.entry, f.path)}>
                   <FileIcon name={nameOf(f.path)} />
                   <span class={`vcs-${f.status === "A" ? "added" : f.status === "D" ? "deleted" : "modified"}`}>{nameOf(f.path)}</span>
                   <span class="tree-hint">{dirOf(f.path)}</span>
-                  <button class="icon-btn gd-file-diff" title="Show Diff" onClick={() => void showStashDiff(v.entry, f.path)}>
+                  <button class="icon-btn gd-file-diff" title={t("git.gitDialogHost.showDiff")} onClick={() => void showStashDiff(v.entry, f.path)}>
                     <FileDiff size={13} />
                   </button>
                 </div>
@@ -270,12 +271,12 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
         )}
       </Show>
       <div class="gd-checks">
-        <Check label="Pop stash" checked={pop()} onChange={setPop} disabled={!!branch().trim()} hint="Remove the stash after applying it" />
-        <Check label="Reinstate index" checked={reinstate()} onChange={setReinstate} disabled={!!branch().trim()} hint="Restore the staged changes too (--index)" />
+        <Check label={t("git.gitDialogHost.popStash2")} checked={pop()} onChange={setPop} disabled={!!branch().trim()} hint={t("git.gitDialogHost.removeTheStashAfterApplying")} />
+        <Check label={t("git.gitDialogHost.reinstateIndex")} checked={reinstate()} onChange={setReinstate} disabled={!!branch().trim()} hint={t("git.gitDialogHost.restoreTheStagedChangesToo")} />
       </div>
       <div class="gd-grid">
-        <Row label="As new branch:">
-          <input class="gd-input" value={branch()} onInput={(e) => setBranch(e.currentTarget.value)} spellcheck={false} placeholder="Branch name (optional)" />
+        <Row label={t("git.gitDialogHost.asNewBranch")}>
+          <input class="gd-input" value={branch()} onInput={(e) => setBranch(e.currentTarget.value)} spellcheck={false} placeholder={t("git.gitDialogHost.branchNameOptional")} />
         </Row>
       </div>
     </Frame>
@@ -285,12 +286,12 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
 // ---- Pull ----------------------------------------------------------------------------------
 
 const PULL_OPTIONS: OptionDef[] = [
-  { key: "rebase", flag: "--rebase", description: "Incorporate changes by rebasing rather than merging", conflicts: ["ffOnly", "noFf", "squash", "noCommit"] },
-  { key: "ffOnly", flag: "--ff-only", description: "Fast-forward only", conflicts: ["noFf", "squash"] },
-  { key: "noFf", flag: "--no-ff", description: "Create a merge commit even when the merge resolves as a fast-forward", conflicts: ["squash"] },
-  { key: "squash", flag: "--squash", description: "Create a single commit instead of doing a merge" },
-  { key: "noCommit", flag: "--no-commit", description: "Perform the merge but do not commit the result" },
-  { key: "noVerify", flag: "--no-verify", description: "Bypass the pre-merge and commit-msg hooks" },
+  { key: "rebase", flag: "--rebase", description: t("git.gitDialogHost.incorporateChangesByRebasingRather"), conflicts: ["ffOnly", "noFf", "squash", "noCommit"] },
+  { key: "ffOnly", flag: "--ff-only", description: t("git.gitDialogHost.fastForwardOnly"), conflicts: ["noFf", "squash"] },
+  { key: "noFf", flag: "--no-ff", description: t("git.gitDialogHost.createAMergeCommitEven"), conflicts: ["squash"] },
+  { key: "squash", flag: "--squash", description: t("git.gitDialogHost.createASingleCommitInstead") },
+  { key: "noCommit", flag: "--no-commit", description: t("git.gitDialogHost.performTheMergeButDo") },
+  { key: "noVerify", flag: "--no-verify", description: t("git.gitDialogHost.bypassThePreMergeAnd") },
 ];
 
 function PullDialog() {
@@ -310,9 +311,9 @@ function PullDialog() {
   const [opts, setOpts] = createSignal(new Set<string>());
   return (
     <Frame
-      title={`Pull to ${currentBranch()}`}
+      title={t("git.gitDialogHost.pullToCurrentbranch", { currentBranch: currentBranch() })}
       class="gd-wide"
-      okLabel="Pull"
+      okLabel={t("git.gitDialogHost.pull")}
       okDisabled={!remoteName()}
       onOk={async () => {
         const o = opts();
@@ -330,12 +331,12 @@ function PullDialog() {
       }}
     >
       <div class="gd-line">
-        <select class="gd-select" value={remoteName()} onChange={(e) => setRemote(e.currentTarget.value)} aria-label="Remote">
+        <select class="gd-select" value={remoteName()} onChange={(e) => setRemote(e.currentTarget.value)} aria-label={t("git.gitDialogHost.remote")}>
           <For each={remotes()?.length ? remotes() : [{ name: remoteName(), fetchUrl: "", pushUrl: null }]}>
             {(r) => <option value={r.name}>{r.name}</option>}
           </For>
         </select>
-        <BranchInput id="gd-pull-branches" value={branchValue()} onInput={setBranch} names={remoteBranches()} placeholder="Branch to pull" autofocus />
+        <BranchInput id="gd-pull-branches" value={branchValue()} onInput={setBranch} names={remoteBranches()} placeholder={t("git.gitDialogHost.branchToPull")} autofocus />
       </div>
       <OptionsBar options={PULL_OPTIONS} selected={opts()} onChange={setOpts} />
     </Frame>
@@ -345,13 +346,13 @@ function PullDialog() {
 // ---- Merge ---------------------------------------------------------------------------------
 
 const MERGE_OPTIONS: OptionDef[] = [
-  { key: "noFf", flag: "--no-ff", description: "Create a merge commit even when the merge resolves as a fast-forward", conflicts: ["ffOnly", "squash"] },
-  { key: "ffOnly", flag: "--ff-only", description: "Fast-forward only", conflicts: ["squash", "message"] },
-  { key: "squash", flag: "--squash", description: "Create a single commit instead of doing a merge", conflicts: ["message"] },
-  { key: "message", flag: "-m", description: "Specify the merge commit message" },
-  { key: "noCommit", flag: "--no-commit", description: "Perform the merge but do not commit the result" },
-  { key: "noVerify", flag: "--no-verify", description: "Bypass the pre-merge and commit-msg hooks" },
-  { key: "allowUnrelated", flag: "--allow-unrelated-histories", description: "Allow merging histories that do not share a common ancestor" },
+  { key: "noFf", flag: "--no-ff", description: t("git.gitDialogHost.createAMergeCommitEven"), conflicts: ["ffOnly", "squash"] },
+  { key: "ffOnly", flag: "--ff-only", description: t("git.gitDialogHost.fastForwardOnly"), conflicts: ["squash", "message"] },
+  { key: "squash", flag: "--squash", description: t("git.gitDialogHost.createASingleCommitInstead"), conflicts: ["message"] },
+  { key: "message", flag: "-m", description: t("git.gitDialogHost.specifyTheMergeCommitMessage") },
+  { key: "noCommit", flag: "--no-commit", description: t("git.gitDialogHost.performTheMergeButDo") },
+  { key: "noVerify", flag: "--no-verify", description: t("git.gitDialogHost.bypassThePreMergeAnd") },
+  { key: "allowUnrelated", flag: "--allow-unrelated-histories", description: t("git.gitDialogHost.allowMergingHistoriesThatDo") },
 ];
 
 function MergeDialog() {
@@ -366,9 +367,9 @@ function MergeDialog() {
   const list = () => branch().split(/[\s,]+/).filter(Boolean);
   return (
     <Frame
-      title={`Merge into ${currentBranch()}`}
+      title={t("git.gitDialogHost.mergeIntoCurrentbranch", { currentBranch: currentBranch() })}
       class="gd-wide"
-      okLabel="Merge"
+      okLabel={t("git.gitDialogHost.merge")}
       okDisabled={!list().length}
       onOk={async () => {
         const o = opts();
@@ -387,10 +388,10 @@ function MergeDialog() {
     >
       <div class="gd-line">
         <span class="gd-cmd">merge</span>
-        <BranchInput id="gd-merge-branches" value={branch()} onInput={setBranch} names={names()} placeholder="Select branch" autofocus />
+        <BranchInput id="gd-merge-branches" value={branch()} onInput={setBranch} names={names()} placeholder={t("git.gitDialogHost.selectBranch")} autofocus />
       </div>
       <Show when={opts().has("message")}>
-        <textarea class="gd-textarea" placeholder="Commit message" value={message()} onInput={(e) => setMessage(e.currentTarget.value)} spellcheck={false} />
+        <textarea class="gd-textarea" placeholder={t("git.gitDialogHost.commitMessage")} value={message()} onInput={(e) => setMessage(e.currentTarget.value)} spellcheck={false} />
       </Show>
       <OptionsBar options={MERGE_OPTIONS} selected={opts()} onChange={setOpts} />
     </Frame>
@@ -400,12 +401,12 @@ function MergeDialog() {
 // ---- Rebase --------------------------------------------------------------------------------
 
 const REBASE_OPTIONS: OptionDef[] = [
-  { key: "onto", flag: "--onto", description: "Rebase the commits after a base revision onto a new base", conflicts: ["root"] },
-  { key: "branch", flag: "Select another branch to rebase", description: "Rebase a branch other than the current one", plain: true },
-  { key: "rebaseMerges", flag: "--rebase-merges", description: "Recreate the merge commits instead of flattening the history" },
-  { key: "keepEmpty", flag: "--keep-empty", description: "Keep the commits that do not change anything" },
-  { key: "root", flag: "--root", description: "Rebase all reachable commits up to the root" },
-  { key: "updateRefs", flag: "--update-refs", description: "Update branches that point to the rebased commits" },
+  { key: "onto", flag: "--onto", description: t("git.gitDialogHost.rebaseTheCommitsAfterA"), conflicts: ["root"] },
+  { key: "branch", flag: "Select another branch to rebase", description: t("git.gitDialogHost.rebaseABranchOtherThan"), plain: true },
+  { key: "rebaseMerges", flag: "--rebase-merges", description: t("git.gitDialogHost.recreateTheMergeCommitsInstead") },
+  { key: "keepEmpty", flag: "--keep-empty", description: t("git.gitDialogHost.keepTheCommitsThatDo") },
+  { key: "root", flag: "--root", description: t("git.gitDialogHost.rebaseAllReachableCommitsUp") },
+  { key: "updateRefs", flag: "--update-refs", description: t("git.gitDialogHost.updateBranchesThatPointTo") },
 ];
 
 function RebaseDialog() {
@@ -425,7 +426,7 @@ function RebaseDialog() {
     <Frame
       title={`Rebase ${opts().has("branch") && branch().trim() ? branch().trim() : currentBranch()}`}
       class="gd-wide"
-      okLabel="Rebase"
+      okLabel={t("git.gitDialogHost.rebase")}
       okDisabled={!valid()}
       onOk={async () => {
         const o = opts();
@@ -451,11 +452,11 @@ function RebaseDialog() {
           value={onto()}
           onInput={setOnto}
           names={names()}
-          placeholder={opts().has("root") ? "New base (optional)" : opts().has("onto") ? "New base" : "Select upstream"}
+          placeholder={opts().has("root") ? t("git.gitDialogHost.newBaseOptional") : opts().has("onto") ? t("git.gitDialogHost.newBase") : t("git.gitDialogHost.selectUpstream")}
           autofocus
         />
         <Show when={opts().has("onto")}>
-          <BranchInput id="gd-rebase-from" value={from()} onInput={setFrom} names={names()} placeholder="From (old base)" />
+          <BranchInput id="gd-rebase-from" value={from()} onInput={setFrom} names={names()} placeholder={t("git.gitDialogHost.fromOldBase")} />
         </Show>
         <Show when={opts().has("branch")}>
           <BranchInput id="gd-rebase-branch" value={branch()} onInput={setBranch} names={local()} placeholder={currentBranch()} />
@@ -470,10 +471,10 @@ function RebaseDialog() {
 // ---- Reset ---------------------------------------------------------------------------------
 
 const RESET_MODES: { mode: ResetMode; label: string; text: string }[] = [
-  { mode: "soft", label: "Soft", text: "Files won't change, differences will be staged for commit." },
-  { mode: "mixed", label: "Mixed", text: "Files won't change, differences won't be staged." },
-  { mode: "hard", label: "Hard", text: "Files will be reverted to the state of the selected commit. Warning: any local changes will be lost." },
-  { mode: "keep", label: "Keep", text: "Files will be reverted to the state of the selected commit, but local changes will be kept intact." },
+  { mode: "soft", label: t("git.gitDialogHost.soft"), text: t("git.reset.softText") },
+  { mode: "mixed", label: t("git.gitDialogHost.mixed"), text: t("git.reset.mixedText") },
+  { mode: "hard", label: t("git.gitDialogHost.hard"), text: t("git.reset.hardText") },
+  { mode: "keep", label: t("git.gitDialogHost.keep"), text: t("git.reset.keepText") },
 ];
 
 /** A commit field with PHPStorm's "Validate" button showing the resolved hash. */
@@ -496,7 +497,7 @@ function CommitField(props: { value: string; onInput: (v: string) => void; place
         Validate
       </button>
       <Show when={resolved() !== undefined}>
-        <span class={resolved() ? "gd-valid" : "gd-invalid"}>{resolved() ? resolved()!.slice(0, 8) : "Not a commit"}</span>
+        <span class={resolved() ? "gd-valid" : "gd-invalid"}>{resolved() ? resolved()!.slice(0, 8) : t("git.gitDialogHost.notACommit")}</span>
       </Show>
     </div>
   );
@@ -507,9 +508,9 @@ function ResetDialog(props: { rev: string }) {
   const [mode, setMode] = createSignal<ResetMode>("mixed");
   return (
     <Frame
-      title="Git Reset"
+      title={t("git.gitDialogHost.gitReset")}
       class="gd-wide"
-      okLabel="Reset"
+      okLabel={t("git.gitDialogHost.reset")}
       onOk={async () => {
         closeGitDialog();
         await resetHead(rev().trim() || "HEAD", mode());
@@ -517,12 +518,12 @@ function ResetDialog(props: { rev: string }) {
     >
       <div class="gd-grid">
         <RootRows />
-        <Row label="To commit:">
-          <CommitField value={rev()} onInput={setRev} placeholder="HEAD" />
+        <Row label={t("git.gitDialogHost.toCommit")}>
+          <CommitField value={rev()} onInput={setRev} placeholder={t("git.gitDialogHost.head")} />
         </Row>
       </div>
-      <div class="gd-group-title">Reset type</div>
-      <div class="gd-radios" role="radiogroup" aria-label="Reset type">
+      <div class="gd-group-title">{t("git.gitDialogHost.resetType")}</div>
+      <div class="gd-radios" role="radiogroup" aria-label={t("git.gitDialogHost.resetType")}>
         <For each={RESET_MODES}>
           {(m) => (
             <label class="gd-radio">
@@ -548,9 +549,9 @@ function TagDialog(props: { commit: string }) {
   const [message, setMessage] = createSignal("");
   return (
     <Frame
-      title="Tag"
+      title={t("git.gitDialogHost.tag")}
       class="gd-wide"
-      okLabel="Create Tag"
+      okLabel={t("git.gitDialogHost.createTag")}
       okDisabled={!name().trim()}
       onOk={async () => {
         closeGitDialog();
@@ -559,17 +560,17 @@ function TagDialog(props: { commit: string }) {
     >
       <div class="gd-grid">
         <RootRows />
-        <Row label="Tag name:">
+        <Row label={t("git.gitDialogHost.tagName")}>
           <div class="gd-inline">
             <input class="gd-input" data-autofocus value={name()} onInput={(e) => setName(e.currentTarget.value)} spellcheck={false} />
-            <Check label="Force" checked={force()} onChange={setForce} hint="Replace an existing tag of the same name (-f)" />
+            <Check label={t("git.gitDialogHost.force")} checked={force()} onChange={setForce} hint={t("git.gitDialogHost.replaceAnExistingTagOf")} />
           </div>
         </Row>
-        <Row label="Commit:">
-          <CommitField value={commit()} onInput={setCommit} placeholder="HEAD" />
+        <Row label={t("git.gitDialogHost.commit")}>
+          <CommitField value={commit()} onInput={setCommit} placeholder={t("git.gitDialogHost.head")} />
         </Row>
-        <Row label="Message:">
-          <textarea class="gd-textarea" value={message()} onInput={(e) => setMessage(e.currentTarget.value)} spellcheck={false} placeholder="Optional: creates an annotated tag" />
+        <Row label={t("git.gitDialogHost.message")}>
+          <textarea class="gd-textarea" value={message()} onInput={(e) => setMessage(e.currentTarget.value)} spellcheck={false} placeholder={t("git.gitDialogHost.optionalCreatesAnAnnotatedTag")} />
         </Row>
       </div>
     </Frame>
@@ -587,7 +588,7 @@ function RemotesDialog() {
   const save = async () => {
     const f = form();
     if (!f || !f.name.trim() || !f.url.trim()) return;
-    const ok = await runGit(f.old ? "Could not change the remote" : "Could not add the remote", () =>
+    const ok = await runGit(f.old ? t("git.gitDialogHost.couldNotChangeTheRemote") : t("git.gitDialogHost.couldNotAddTheRemote"), () =>
       (f.old ? opsApi.editRemote(f.old, f.name.trim(), f.url.trim()) : gitApi.addRemote(f.name.trim(), f.url.trim())).then(() => true),
     );
     if (!ok) return;
@@ -604,32 +605,32 @@ function RemotesDialog() {
     <Show
       when={form()}
       fallback={
-        <Frame title="Git Remotes" class="gd-wide" okLabel="OK" onOk={() => void closeGitDialog()}>
+        <Frame title={t("git.gitDialogHost.gitRemotes")} class="gd-wide" okLabel="OK" onOk={() => void closeGitDialog()}>
           <div class="gd-table-box">
             <div class="gd-table-toolbar">
               <button
                 class="icon-btn"
-                title="Add"
+                title={t("common.add")}
                 onClick={() => setForm({ old: null, name: remotes()?.some((r) => r.name === "origin") ? "" : "origin", url: "" })}
               >
                 <Plus size={15} />
               </button>
-              <button class="icon-btn" title="Remove" disabled={!current()} onClick={() => current() && void remove(current()!.name)}>
+              <button class="icon-btn" title={t("common.remove")} disabled={!current()} onClick={() => current() && void remove(current()!.name)}>
                 <Trash2 size={14} />
               </button>
-              <button class="icon-btn" title="Edit" disabled={!current()} onClick={() => current() && setForm({ old: current()!.name, name: current()!.name, url: current()!.fetchUrl })}>
+              <button class="icon-btn" title={t("git.gitDialogHost.edit")} disabled={!current()} onClick={() => current() && setForm({ old: current()!.name, name: current()!.name, url: current()!.fetchUrl })}>
                 <Pencil size={14} />
               </button>
             </div>
             <table class="gd-table">
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th>{t("git.gitDialogHost.name")}</th>
                   <th>URL</th>
                 </tr>
               </thead>
               <tbody>
-                <For each={remotes() ?? []} fallback={<tr><td colSpan={2} class="git-chooser-empty">No remotes defined</td></tr>}>
+                <For each={remotes() ?? []} fallback={<tr><td colSpan={2} class="git-chooser-empty">{t("git.gitDialogHost.noRemotesDefined")}</td></tr>}>
                   {(r) => (
                     <tr
                       classList={{ selected: r.name === selected() }}
@@ -653,7 +654,7 @@ function RemotesDialog() {
       }
     >
       {(f) => (
-        <Frame title={f().old ? "Edit Remote" : "Define Remote"} okLabel="OK" okDisabled={!f().name.trim() || !f().url.trim()} onOk={save}
+        <Frame title={f().old ? t("git.gitDialogHost.editRemote") : t("git.gitDialogHost.defineRemote")} okLabel="OK" okDisabled={!f().name.trim() || !f().url.trim()} onOk={save}
           extra={
             <button class="btn-secondary" onClick={() => setForm(null)}>
               Back
@@ -661,10 +662,10 @@ function RemotesDialog() {
           }
         >
           <div class="gd-grid">
-            <Row label="Name:">
+            <Row label={t("git.gitDialogHost.name2")}>
               <input class="gd-input" value={f().name} onInput={(e) => setForm({ ...f(), name: e.currentTarget.value })} spellcheck={false} />
             </Row>
-            <Row label="URL:">
+            <Row label={t("git.gitDialogHost.url")}>
               <input class="gd-input" data-autofocus value={f().url} onInput={(e) => setForm({ ...f(), url: e.currentTarget.value })} spellcheck={false} />
             </Row>
           </div>
@@ -683,7 +684,7 @@ function FileChecks(props: { files: { path: string; status: string }[]; checked:
     <div class="git-chooser-list gd-list gd-file-checks">
       <label class="gd-file gd-file-all">
         <input type="checkbox" checked={all()} onChange={(e) => props.onChange(e.currentTarget.checked ? new Set(props.files.map((f) => f.path)) : new Set())} />
-        <span class="strong">Changes</span>
+        <span class="strong">{t("git.gitDialogHost.changes")}</span>
         <span class="tree-hint">
           {props.checked.size} of {props.files.length} files
         </span>
@@ -727,12 +728,12 @@ function ShelveDialog(props: { paths: string[] }) {
       .sort((a, b) => a.path.localeCompare(b.path)),
   );
   const [checked, setChecked] = createSignal(new Set(props.paths));
-  const [comment, setComment] = createSignal(status()?.branch ? `Changes on ${status()!.branch}` : "Changes");
+  const [comment, setComment] = createSignal(status()?.branch ? t("git.gitDialogHost.changesOnBranch", { branch: status()!.branch }) : "Changes");
   return (
     <Frame
-      title="Shelve Changes"
+      title={t("git.gitDialogHost.shelveChanges")}
       class="gd-wide"
-      okLabel="Shelve Changes"
+      okLabel={t("git.gitDialogHost.shelveChanges")}
       okDisabled={!checked().size || !comment().trim()}
       onOk={async () => {
         const paths = files().map((f) => f.path).filter((p) => checked().has(p));
@@ -741,7 +742,7 @@ function ShelveDialog(props: { paths: string[] }) {
       }}
     >
       <FileChecks files={files()} checked={checked()} onChange={setChecked} />
-      <label class="git-dialog-label">Comment:</label>
+      <label class="git-dialog-label">{t("git.gitDialogHost.comment")}</label>
       <textarea class="gd-textarea" data-autofocus value={comment()} onInput={(e) => setComment(e.currentTarget.value)} spellcheck={false} />
     </Frame>
   );
@@ -753,9 +754,9 @@ function UnshelveDialog(props: { changelist: import("./opsApi").ShelvedChangelis
   const [remove, setRemove] = createSignal(true);
   return (
     <Frame
-      title={`Unshelve Changes: ${props.changelist.name}`}
+      title={t("git.gitDialogHost.unshelveChangesName", { name: props.changelist.name })}
       class="gd-wide"
-      okLabel="Unshelve"
+      okLabel={t("git.gitDialogHost.unshelve")}
       okDisabled={!checked().size}
       onOk={async () => {
         const all = checked().size === props.changelist.files.length;
@@ -765,7 +766,7 @@ function UnshelveDialog(props: { changelist: import("./opsApi").ShelvedChangelis
       }}
     >
       <FileChecks files={files()} checked={checked()} onChange={setChecked} />
-      <Check label="Remove successfully applied files from the shelf" checked={remove()} onChange={setRemove} />
+      <Check label={t("git.gitDialogHost.removeSuccessfullyAppliedFilesFrom")} checked={remove()} onChange={setRemove} />
     </Frame>
   );
 }

@@ -7,6 +7,7 @@ import { item, separator, submenu, type MenuEntry } from "@/features/contextMenu
 import { runAction } from "@/keymap";
 import type { StatusEntry } from "./api";
 import { targetState, withVcsTargets, type VcsTarget } from "./context";
+import { t } from "@/i18n";
 
 export function gitSubmenu(target: VcsTarget, entries: StatusEntry[]): MenuEntry {
   const s = targetState([target], entries);
@@ -14,7 +15,7 @@ export function gitSubmenu(target: VcsTarget, entries: StatusEntry[]): MenuEntry
   const entry = (label: string, action: string, enabled: boolean, shortcutAction?: string): MenuEntry =>
     item(label, () => void withVcsTargets([target], () => runAction(action)), action, { disabled: !enabled, shortcutAction });
   return submenu("Git", [
-    entry(target.dir ? "Commit Directory…" : "Commit File…", "CheckinFiles", s.changed.length + s.unversioned.length > 0, "CheckinProject"),
+    entry(target.dir ? t("git.fileMenu.commitDirectory") : t("git.fileMenu.commitFile"), "CheckinFiles", s.changed.length + s.unversioned.length > 0, "CheckinProject"),
     entry("Add", "Git.Add", s.unversioned.length > 0),
     entry("Add to .gitignore", "Git.Ignore.File", s.allUnversioned),
     separator,

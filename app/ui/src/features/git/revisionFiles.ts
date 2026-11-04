@@ -9,6 +9,7 @@ import { registerEditorExtension } from "@/editor/extensions";
 import { registerFileSystem } from "@/state/editor";
 import { h, iconNode } from "@/features/lsp/util";
 import { gitApi } from "./api";
+import { t } from "@/i18n";
 
 export const REVISION_PREFIX = "gitrev://";
 
@@ -37,7 +38,7 @@ registerFileSystem({
   },
   breadcrumbs: (path) => {
     const rev = parseRevisionPath(path);
-    return rev ? [`Revision ${rev.sha.slice(0, 8)}`, ...rev.path.split("/")] : [path];
+    return rev ? [t("git.revisionFiles.revisionSha", { sha: rev.sha.slice(0, 8) }), ...rev.path.split("/")] : [path];
   },
 });
 
@@ -47,7 +48,7 @@ function revisionEditor(sha: string, path: string): Extension {
       "div",
       "library-banner",
       iconNode(History, 13, "library-banner-icon"),
-      h("strong", undefined, `Revision ${sha.slice(0, 8)}`),
+      h("strong", undefined, t("git.revisionFiles.revisionSha", { sha: sha.slice(0, 8) })),
       h("span", "library-banner-text", `${path} · read-only`),
     );
     return { dom, top: true };

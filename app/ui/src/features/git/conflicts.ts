@@ -9,6 +9,7 @@ import { dismissBalloon, showBalloon } from "@/keymap";
 import { askChoice } from "@/features/contextMenu/dialogs";
 import { gitApi, type ConflictSide, type MergeFile, type MergeOperation } from "./api";
 import { notify, reloadOpenFiles, repositoryChanged, status, VCS_GROUP } from "./store";
+import { t } from "@/i18n";
 
 const [conflictsOpen, setConflictsOpen] = createSignal(false);
 const [mergeFile, setMergeFile] = createSignal<MergeFile | null>(null);
@@ -33,7 +34,7 @@ const errorText = (err: unknown) => String(err instanceof Error ? err.message : 
 /** Git ▸ Resolve Conflicts… (Git.ResolveConflicts): the Conflicts dialog. */
 export function resolveConflicts(): void {
   if (!conflictedPaths().length) {
-    notify("info", "No conflicts to resolve");
+    notify("info", t("git.conflicts.noConflictsToResolve"));
     return;
   }
   hideBalloon();
@@ -68,7 +69,7 @@ async function afterResolve(paths: string[], op?: MergeOperation): Promise<void>
   if (!conflictedPaths().length) {
     setConflictsOpen(false);
     hideBalloon();
-    notify("success", "All conflicts resolved", op ? finishHint(op) : undefined);
+    notify("success", t("git.conflicts.allConflictsResolved"), op ? finishHint(op) : undefined);
   }
 }
 
@@ -78,7 +79,7 @@ export async function acceptSide(paths: string[], side: ConflictSide, op?: Merge
   try {
     await gitApi.acceptConflictSide(paths, side);
   } catch (err) {
-    notify("error", "Could not resolve the conflict", errorText(err), 10000);
+    notify("error", t("git.conflicts.couldNotResolveTheConflict"), errorText(err), 10000);
     await repositoryChanged();
     return false;
   }
@@ -91,7 +92,7 @@ export async function applyMergeResult(file: MergeFile, text: string): Promise<b
   try {
     await gitApi.resolveMerge(file.path, text, file.crlf);
   } catch (err) {
-    notify("error", "Could not save the merge result", errorText(err), 10000);
+    notify("error", t("git.conflicts.couldNotSaveTheMerge"), errorText(err), 10000);
     return false;
   }
   await afterResolve([file.path], (await gitApi.conflicts().catch(() => null))?.operation);
@@ -109,7 +110,7 @@ export async function openMerge(path: string): Promise<void> {
   try {
     file = await gitApi.mergeFile(path);
   } catch (err) {
-    notify("error", `Cannot merge ${nameOf(path)}`, errorText(err), 10000);
+    notify("error", t("git.conflicts.cannotMergeName", { name: nameOf(path) }), errorText(err), 10000);
     return;
   }
   const set = await gitApi.conflicts().catch(() => null);
@@ -119,9 +120,9 @@ export async function openMerge(path: string): Promise<void> {
   if (file.yours === null || file.theirs === null) {
     if (file.yours === null && file.theirs === null) {
       const choice = await askChoice({
-        title: "Merge Revisions",
+        title: t("git.conflicts.mergeRevisions"),
         message: `${path} was deleted in both ${yours} and ${theirs}.`,
-        choices: [{ id: "delete", label: "Accept Deletion" }],
+        choices: [{ id: "delete", label: t("git.conflicts.acceptDeletion") }],
       });
       if (choice) await acceptSide([path], "yours", op);
       return;
@@ -132,11 +133,11 @@ export async function openMerge(path: string): Promise<void> {
         ? `${path} was deleted in ${yours}, but modified in ${theirs}.`
         : `${path} was modified in ${yours}, but deleted in ${theirs}.`;
     const choice = await askChoice({
-      title: "Merge Revisions",
+      title: t("git.conflicts.mergeRevisions"),
       message,
       choices: [
-        { id: "delete", label: "Accept Deletion" },
-        { id: "keep", label: "Keep File" },
+        { id: "delete", label: t("git.conflicts.acceptDeletion") },
+        { id: "keep", label: t("git.conflicts.keepFile") },
       ],
     });
     if (choice === "delete") await acceptSide([path], deletedIn, op);
@@ -145,11 +146,11 @@ export async function openMerge(path: string): Promise<void> {
   }
   if (file.binary || !file.model) {
     const choice = await askChoice({
-      title: "Merge Revisions",
+      title: t("git.conflicts.mergeRevisions"),
       message: `${path} is a binary file and cannot be merged. Choose the version to keep.`,
       choices: [
-        { id: "yours", label: "Accept Yours" },
-        { id: "theirs", label: "Accept Theirs" },
+        { id: "yours", label: t("git.conflicts.acceptYours") },
+        { id: "theirs", label: t("git.conflicts.acceptTheirs") },
       ],
     });
     if (choice === "yours" || choice === "theirs") await acceptSide([path], choice, op);
@@ -198,7 +199,7 @@ function showConflictsBalloon(): void {
     "Merge conflicts",
     `${n} file${n === 1 ? " has" : "s have"} unresolved conflicts`,
     0,
-    [{ label: "Resolve…", run: resolveConflicts }],
+    [{ label: t("git.conflicts.resolve"), run: resolveConflicts }],
     { group: VCS_GROUP, type: "warning" },
   );
 }

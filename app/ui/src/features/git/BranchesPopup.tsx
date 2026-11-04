@@ -31,6 +31,7 @@ import {
   rebaseOnto,
   updateProject,
 } from "./actions";
+import { t as tr } from "@/i18n";
 
 interface Row {
   key: string;
@@ -39,7 +40,7 @@ interface Row {
 }
 
 function anchorRect(): { left: number; top: number } {
-  const btn = document.querySelector<HTMLElement>('.main-toolbar [title="Git Branches"]');
+  const btn = document.querySelector<HTMLElement>(`.main-toolbar [title="${tr("toolbar.gitBranches")}"]`);
   const r = btn?.getBoundingClientRect();
   return { left: Math.max(8, r?.left ?? 120), top: (r?.bottom ?? 40) + 4 };
 }
@@ -63,11 +64,11 @@ export function BranchesPopup() {
   );
 
   const actions: { label: string; hint?: string; icon: () => JSX.Element; run: () => void }[] = [
-    { label: "Update Project…", hint: "Ctrl+T", icon: () => <ArrowDownToLine size={15} />, run: () => (setBranchesOpen(false), void updateProject()) },
-    { label: "Commit…", hint: "Ctrl+K", icon: () => <GitCommitHorizontal size={15} />, run: () => (setBranchesOpen(false), openCommitWindow()) },
-    { label: "Push…", hint: "Ctrl+Shift+K", icon: () => <ArrowUpFromLine size={15} />, run: () => (setBranchesOpen(false), void push()) },
-    { label: "New Branch…", hint: "Ctrl+Alt+N", icon: () => <GitBranchPlus size={15} />, run: () => newBranchDialog(null) },
-    { label: "Checkout Tag or Revision…", icon: () => <Tag size={15} />, run: () => checkoutRevisionDialog() },
+    { label: tr("git.branchesPopup.updateProject"), hint: "Ctrl+T", icon: () => <ArrowDownToLine size={15} />, run: () => (setBranchesOpen(false), void updateProject()) },
+    { label: tr("git.branchesPopup.commit"), hint: "Ctrl+K", icon: () => <GitCommitHorizontal size={15} />, run: () => (setBranchesOpen(false), openCommitWindow()) },
+    { label: tr("git.branchesPopup.push"), hint: "Ctrl+Shift+K", icon: () => <ArrowUpFromLine size={15} />, run: () => (setBranchesOpen(false), void push()) },
+    { label: tr("git.branchesPopup.newBranch"), hint: "Ctrl+Alt+N", icon: () => <GitBranchPlus size={15} />, run: () => newBranchDialog(null) },
+    { label: tr("git.branchesPopup.checkoutTagOrRevision"), icon: () => <Tag size={15} />, run: () => checkoutRevisionDialog() },
   ];
   const visibleActions = () => actions.filter((a) => match(a.label));
 
@@ -79,7 +80,7 @@ export function BranchesPopup() {
   };
   const onDown = (e: MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (!root.contains(t) && !t.closest('[title="Git Branches"]') && !t.closest(".branch-submenu")) setBranchesOpen(false);
+    if (!root.contains(t) && !t.closest(`[title="${tr("toolbar.gitBranches")}"]`) && !t.closest(".branch-submenu")) setBranchesOpen(false);
   };
   onMount(() => {
     input.focus();
@@ -118,7 +119,7 @@ export function BranchesPopup() {
           </span>
         </Show>
         <Show when={p.b.worktree}>
-          <span class="branch-worktree" title={`Checked out in the worktree ${p.b.worktree}`} data-testid="branch-worktree">
+          <span class="branch-worktree" title={tr("git.branchesPopup.checkedOutInTheWorktree", { worktree: p.b.worktree })} data-testid="branch-worktree">
             <FolderTree size={12} /> worktree
           </span>
         </Show>
@@ -136,22 +137,22 @@ export function BranchesPopup() {
     const cur = current() ?? "HEAD";
     const items: ({ label: string; run: () => void; danger?: boolean } | null)[] = b.current
       ? [
-          { label: `New Branch from '${b.name}'…`, run: () => newBranchDialog(b.name) },
-          { label: "Push…", run: () => (setBranchesOpen(false), void push()) },
-          { label: "Update", run: () => (setBranchesOpen(false), void updateProject()) },
+          { label: tr("git.branchesPopup.newBranchFromName", { name: b.name }), run: () => newBranchDialog(b.name) },
+          { label: tr("git.branchesPopup.push"), run: () => (setBranchesOpen(false), void push()) },
+          { label: tr("git.branchesPopup.update"), run: () => (setBranchesOpen(false), void updateProject()) },
         ]
       : [
           b.worktree
-            ? { label: "Open Worktree", run: () => (setBranchesOpen(false), void openWorktree(b.worktree!)) }
-            : { label: "Checkout", run: () => void checkout(b.name, h.row.remote) },
-          { label: `New Branch from '${b.name}'…`, run: () => newBranchDialog(b.name) },
-          ...(h.row.remote || b.worktree ? [] : [{ label: "New Worktree…", run: () => (setBranchesOpen(false), void newWorktreeDialog(b.name)) }]),
+            ? { label: tr("git.branchesPopup.openWorktree"), run: () => (setBranchesOpen(false), void openWorktree(b.worktree!)) }
+            : { label: tr("git.branchesPopup.checkout"), run: () => void checkout(b.name, h.row.remote) },
+          { label: tr("git.branchesPopup.newBranchFromName", { name: b.name }), run: () => newBranchDialog(b.name) },
+          ...(h.row.remote || b.worktree ? [] : [{ label: tr("git.branchesPopup.newWorktree"), run: () => (setBranchesOpen(false), void newWorktreeDialog(b.name)) }]),
           null,
-          { label: `Compare with '${cur}'`, run: () => (setBranchesOpen(false), showLogFor(`${cur}..${b.name}`)) },
+          { label: tr("git.branchesPopup.compareWithCur", { cur }), run: () => (setBranchesOpen(false), showLogFor(`${cur}..${b.name}`)) },
           null,
-          { label: `Rebase '${cur}' onto '${b.name}'`, run: () => void rebaseOnto(b.name) },
-          { label: `Merge '${b.name}' into '${cur}'`, run: () => void mergeIntoCurrent(b.name) },
-          ...(h.row.remote || b.worktree ? [] : [null, { label: "Delete", run: () => deleteBranch(b.name), danger: true }]),
+          { label: tr("git.branchesPopup.rebaseCurOntoName", { cur, name: b.name }), run: () => void rebaseOnto(b.name) },
+          { label: tr("git.branchesPopup.mergeNameIntoCur", { name: b.name, cur }), run: () => void mergeIntoCurrent(b.name) },
+          ...(h.row.remote || b.worktree ? [] : [null, { label: tr("git.branchesPopup.delete"), run: () => deleteBranch(b.name), danger: true }]),
         ];
     const rect = root.getBoundingClientRect();
     return (
@@ -176,7 +177,7 @@ export function BranchesPopup() {
       <div class="popup branches-popup" ref={root} style={{ left: `${pos.left}px`, top: `${pos.top}px` }}>
         <label class="popup-search">
           <Search size={14} class="muted" />
-          <input ref={input} placeholder="Search for branches and actions" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
+          <input ref={input} placeholder={tr("git.branchesPopup.searchForBranchesAndActions")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
         </label>
         <div class="popup-scroll">
           <For each={visibleActions()}>
@@ -197,21 +198,21 @@ export function BranchesPopup() {
           </For>
           <Show when={recent().length}>
             <div class="popup-section">
-              <Clock size={12} /> Recent
+              <Clock size={12} /> {tr("git.branchesPopup.recent")}
             </div>
             <For each={recent()}>{(b) => <BranchRow b={b} section="recent" />}</For>
           </Show>
           <Show when={local().length}>
-            <div class="popup-section">Local</div>
+            <div class="popup-section">{tr("git.branchesPopup.local")}</div>
             <For each={local()}>{(b) => <BranchRow b={b} section="local" />}</For>
           </Show>
           <Show when={remote().length}>
-            <div class="popup-section">Remote</div>
+            <div class="popup-section">{tr("git.branchesPopup.remote")}</div>
             <For each={remote()}>{(b) => <BranchRow b={b} remote section="remote" />}</For>
           </Show>
           <Show when={branches.loading}>
             <div class="popup-section">
-              <RefreshCw size={12} class="spin" /> Loading…
+              <RefreshCw size={12} class="spin" /> {tr("git.branchesPopup.loading")}
             </div>
           </Show>
         </div>

@@ -8,6 +8,7 @@ import { setBranchOperation } from "@/state/vcs";
 import { opsApi, type OngoingOperation, type OperationAction, type OperationState } from "./opsApi";
 import { notify, reloadOpenFiles, repoAvailable, revision } from "./store";
 import { runMerging } from "./conflicts";
+import { t } from "@/i18n";
 
 const [operation, setOperation] = createSignal<OperationState>({ operation: null, branch: null, onto: null });
 export { operation };
@@ -48,7 +49,7 @@ const DONE: Record<OperationAction, string> = { continue: "continued", abort: "a
 /** Continue / Abort / Skip the operation in progress. */
 export async function operationAction(action: OperationAction): Promise<void> {
   const op = operation().operation;
-  if (!op) return notify("info", "No operation is in progress");
+  if (!op) return notify("info", t("git.operation.noOperationIsInProgress"));
   const out = await runMerging(`${NOUN[op]} ${action} failed`, () => opsApi.operationAction(action));
   await refreshOperation();
   if (out === undefined) return;

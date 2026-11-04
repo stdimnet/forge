@@ -33,6 +33,7 @@ import {
   type HistoryTab,
   type RevisionFile,
 } from "./history";
+import { t as tr } from "@/i18n";
 
 const PAGE = 200;
 
@@ -64,7 +65,7 @@ export function GitTabs() {
             {historyTabTitle(tab, workspace()?.name)}
             <button
               class="git-tab-close"
-              title="Close Tab"
+              title={tr("git.fileHistoryPanel.closeTab")}
               onClick={(e) => {
                 e.stopPropagation();
                 closeHistoryTab(tab.id);
@@ -75,7 +76,7 @@ export function GitTabs() {
           </span>
         )}
       </For>
-      <span class="git-tab">Console</span>
+      <span class="git-tab">{tr("git.fileHistoryPanel.console")}</span>
     </div>
   );
 }
@@ -137,7 +138,7 @@ function RevisionRow(props: {
       <div class="history-subject">
         <span class="log-subject-text">{props.rev.subject}</span>
         <Show when={props.renamed}>
-          <span class="history-renamed" title={`Path in this revision: ${props.renamed}`}>
+          <span class="history-renamed" title={tr("git.fileHistoryPanel.pathInThisRevisionRenamed", { renamed: props.renamed })}>
             {props.renamed}
           </span>
         </Show>
@@ -155,7 +156,7 @@ function CommitMessage(props: { sha: string | null }) {
     (sha) => gitApi.commitDetails(sha),
   );
   return (
-    <Show when={details()} keyed fallback={<div class="commit-empty">{props.sha ? "Loading…" : "Select a revision"}</div>}>
+    <Show when={details()} keyed fallback={<div class="commit-empty">{props.sha ? tr("git.fileHistoryPanel.loading") : tr("git.fileHistoryPanel.selectARevision")}</div>}>
       {(detail) => {
         const d = () => detail;
         const [subject, ...body] = detail.message.split("\n");
@@ -241,14 +242,14 @@ function FileHistoryView(props: { tab: HistoryTab }) {
     if (!r) return;
     showContextMenu(
       [
-        item("Show Diff", showDiff, "Compare.SameVersion", { shortcutAction: "CompareTwoFiles", disabled: !revFile() }),
-        item("Compare with Local", withLocal, undefined, { disabled: !revFile() }),
+        item(tr("git.fileHistoryPanel.showDiff"), showDiff, "Compare.SameVersion", { shortcutAction: "CompareTwoFiles", disabled: !revFile() }),
+        item(tr("git.fileHistoryPanel.compareWithLocal"), withLocal, undefined, { disabled: !revFile() }),
         separator,
-        item("Get", get, undefined, { disabled: !revFile() || file()?.status === "D" }),
-        item("Annotate Revision", annotate, undefined, { disabled: !revFile() }),
-        item("Checkout Revision", () => void checkoutRevision(r.sha)),
+        item(tr("git.fileHistoryPanel.get"), get, undefined, { disabled: !revFile() || file()?.status === "D" }),
+        item(tr("git.fileHistoryPanel.annotateRevision"), annotate, undefined, { disabled: !revFile() }),
+        item(tr("git.fileHistoryPanel.checkoutRevision"), () => void checkoutRevision(r.sha)),
         separator,
-        item("Copy Revision Number", () => void copyRevisionNumber(r.sha), "Vcs.CopyRevisionNumberAction"),
+        item(tr("git.fileHistoryPanel.copyRevisionNumber"), () => void copyRevisionNumber(r.sha), "Vcs.CopyRevisionNumberAction"),
       ],
       e.clientX,
       e.clientY,
@@ -267,22 +268,22 @@ function FileHistoryView(props: { tab: HistoryTab }) {
     <div class="file-history" onFocusIn={() => (focusedShowDiff = showDiff)}>
       <div class="file-history-main">
         <div class="panel-toolbar history-toolbar">
-          <button class="icon-btn" title="Refresh" onClick={() => void load(true)}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.refresh")} onClick={() => void load(true)}>
             <RefreshCw size={15} />
           </button>
-          <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!revFile()} onClick={showDiff}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.showDiff2", { shortcut: "Ctrl+D" })} disabled={!revFile()} onClick={showDiff}>
             <Columns2 size={15} />
           </button>
-          <button class="icon-btn" title="Compare with Local" disabled={!revFile()} onClick={withLocal}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.compareWithLocal")} disabled={!revFile()} onClick={withLocal}>
             <FileDiff size={15} />
           </button>
-          <button class="icon-btn" title="Get" disabled={!revFile() || file()?.status === "D"} onClick={get}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.get")} disabled={!revFile() || file()?.status === "D"} onClick={get}>
             <Download size={15} />
           </button>
-          <button class="icon-btn" title="Annotate Revision" disabled={!revFile()} onClick={annotate}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.annotateRevision")} disabled={!revFile()} onClick={annotate}>
             <MessageSquareQuote size={15} />
           </button>
-          <button class="icon-btn" title="Copy Revision Number" disabled={!current()} onClick={() => current() && void copyRevisionNumber(current()!.sha)}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.copyRevisionNumber")} disabled={!current()} onClick={() => current() && void copyRevisionNumber(current()!.sha)}>
             <Copy size={15} />
           </button>
           <span class="spacer" />
@@ -291,10 +292,10 @@ function FileHistoryView(props: { tab: HistoryTab }) {
           </span>
         </div>
         <div class="history-columns">
-          <div>Commit</div>
-          <div>Author</div>
-          <div>Date</div>
-          <div>Hash</div>
+          <div>{tr("git.fileHistoryPanel.commit")}</div>
+          <div>{tr("git.fileHistoryPanel.author")}</div>
+          <div>{tr("git.fileHistoryPanel.date")}</div>
+          <div>{tr("git.fileHistoryPanel.hash")}</div>
         </div>
         <div
           class="log-list history-list"
@@ -365,7 +366,7 @@ function FileHistoryView(props: { tab: HistoryTab }) {
         when={revFile()}
         fallback={
           <div class="inline-diff">
-            <div class="commit-empty">Select a revision to view the changes</div>
+            <div class="commit-empty">{tr("git.fileHistoryPanel.selectARevisionToView")}</div>
           </div>
         }
       >
@@ -408,13 +409,13 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
     if (!r) return;
     showContextMenu(
       [
-        item("Show Diff", showDiff, "Compare.SameVersion", { shortcutAction: "CompareTwoFiles" }),
-        item("Compare with Local", () => void compareRevisionWithLocal(revFile(r), props.tab.path)),
+        item(tr("git.fileHistoryPanel.showDiff"), showDiff, "Compare.SameVersion", { shortcutAction: "CompareTwoFiles" }),
+        item(tr("git.fileHistoryPanel.compareWithLocal"), () => void compareRevisionWithLocal(revFile(r), props.tab.path)),
         separator,
-        item("Annotate Revision", () => void annotateRevision(revFile(r))),
-        item("Checkout Revision", () => void checkoutRevision(r.sha)),
+        item(tr("git.fileHistoryPanel.annotateRevision"), () => void annotateRevision(revFile(r))),
+        item(tr("git.fileHistoryPanel.checkoutRevision"), () => void checkoutRevision(r.sha)),
         separator,
-        item("Copy Revision Number", () => void copyRevisionNumber(r.sha), "Vcs.CopyRevisionNumberAction"),
+        item(tr("git.fileHistoryPanel.copyRevisionNumber"), () => void copyRevisionNumber(r.sha), "Vcs.CopyRevisionNumberAction"),
       ],
       e.clientX,
       e.clientY,
@@ -426,13 +427,13 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
     <div class="file-history" onFocusIn={() => (focusedShowDiff = showDiff)}>
       <div class="file-history-main">
         <div class="panel-toolbar history-toolbar">
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={15} />
           </button>
-          <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!current()} onClick={showDiff}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.showDiff2", { shortcut: "Ctrl+D" })} disabled={!current()} onClick={showDiff}>
             <Columns2 size={15} />
           </button>
-          <button class="icon-btn" title="Copy Revision Number" disabled={!current()} onClick={() => current() && void copyRevisionNumber(current()!.sha)}>
+          <button class="icon-btn" title={tr("git.fileHistoryPanel.copyRevisionNumber")} disabled={!current()} onClick={() => current() && void copyRevisionNumber(current()!.sha)}>
             <Copy size={15} />
           </button>
           <span class="spacer" />
@@ -441,10 +442,10 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
           </span>
         </div>
         <div class="history-columns">
-          <div>Commit</div>
-          <div>Author</div>
-          <div>Date</div>
-          <div>Hash</div>
+          <div>{tr("git.fileHistoryPanel.commit")}</div>
+          <div>{tr("git.fileHistoryPanel.author")}</div>
+          <div>{tr("git.fileHistoryPanel.date")}</div>
+          <div>{tr("git.fileHistoryPanel.hash")}</div>
         </div>
         <div
           class="log-list history-list"
@@ -468,7 +469,7 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
             <div class="commit-empty">{String(revs.error instanceof Error ? revs.error.message : revs.error)}</div>
           </Show>
           <Show when={revs() && !revs()!.length}>
-            <div class="commit-empty">No history for the selected lines</div>
+            <div class="commit-empty">{tr("git.fileHistoryPanel.noHistoryForTheSelected")}</div>
           </Show>
         </div>
         <div class="history-details">
@@ -479,7 +480,7 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
         when={current()}
         fallback={
           <div class="inline-diff">
-            <div class="commit-empty">Select a revision to view how the lines changed</div>
+            <div class="commit-empty">{tr("git.fileHistoryPanel.selectARevisionToView2")}</div>
           </div>
         }
       >
@@ -487,7 +488,7 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
           <InlineDiff
             path={r().path}
             left={{
-              title: r().before === null ? "Empty (lines added)" : r().parents[0] ? shortSha(r().parents[0]) : "Empty",
+              title: r().before === null ? tr("git.fileHistoryPanel.emptyLinesAdded") : r().parents[0] ? shortSha(r().parents[0]) : tr("git.fileHistoryPanel.empty"),
               content: r().before ?? "",
             }}
             right={{ title: `${shortSha(r().sha)} · ${r().path}, from line ${r().startLine}`, content: r().after }}

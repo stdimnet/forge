@@ -18,6 +18,7 @@ import { setDiffRequest } from "./overlays";
 import { refreshOperation } from "./operation";
 import type { CloneRequest } from "./extras";
 import { withLocalHistory } from "@/ipc/localHistory";
+import { t } from "@/i18n";
 
 export type GitDialog =
   | { kind: "stash" }
@@ -71,7 +72,7 @@ async function done(title: string, body?: string): Promise<void> {
 
 /** Stash Changes… (Git.Stash). */
 export function stashDialog(): void {
-  if (!(status()?.entries ?? []).some((e) => e.worktree !== "untracked")) return notify("info", "No local changes to stash");
+  if (!(status()?.entries ?? []).some((e) => e.worktree !== "untracked")) return notify("info", t("git.gitDialogs.noLocalChangesToStash"));
   open({ kind: "stash" });
 }
 
@@ -99,18 +100,18 @@ export async function applyStash(entry: StashEntry, opts: { pop: boolean; reinst
         withLocalHistory("vcs", "Unstash changes", () => gitApi.unstash(entry.index, opts.pop, opts.reinstateIndex)),
       );
   if (out === undefined) return false;
-  await done(branch ? `Unstashed to branch ${branch}` : opts.pop ? "Stash popped" : "Stash applied", entry.message);
+  await done(branch ? t("git.gitDialogs.unstashedToBranchBranch", { branch }) : opts.pop ? t("git.gitDialogs.stashPopped") : t("git.gitDialogs.stashApplied"), entry.message);
   return true;
 }
 
 export async function dropStash(entry: StashEntry): Promise<boolean> {
-  const ok = await askConfirm({ title: "Drop Stash", message: `Do you want to remove stash@{${entry.index}}: ${entry.message}?`, confirm: "Drop" });
+  const ok = await askConfirm({ title: t("git.gitDialogs.dropStash"), message: `Do you want to remove stash@{${entry.index}}: ${entry.message}?`, confirm: t("git.gitDialogs.drop") });
   if (!ok) return false;
   return (await runGit("Could not drop the stash", () => gitApi.dropStash(entry.index).then(() => true))) ?? false;
 }
 
 export async function clearStashes(): Promise<boolean> {
-  const ok = await askConfirm({ title: "Clear Stashes", message: "Do you want to remove all stashes? This cannot be undone.", confirm: "Clear" });
+  const ok = await askConfirm({ title: t("git.gitDialogs.clearStashes"), message: t("git.gitDialogs.doYouWantToRemove"), confirm: t("common.clear") });
   if (!ok) return false;
   return (await runGit("Could not clear the stashes", () => opsApi.stashClear().then(() => true))) ?? false;
 }
@@ -119,12 +120,12 @@ const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 
 /** Diff of one file of a stash: its base commit vs the stashed version. */
 export async function showStashDiff(entry: StashEntry, path: string): Promise<void> {
-  const c = await runGit(`Cannot show ${nameOf(path)}`, () => opsApi.stashFile(entry.index, path));
+  const c = await runGit(t("git.gitDialogs.cannotShowName", { name: nameOf(path) }), () => opsApi.stashFile(entry.index, path));
   if (!c) return;
   setDiffRequest({
     path,
-    left: { title: c.before === null ? "Empty (new file)" : "Base version (Read-only)", content: c.before ?? "" },
-    right: { title: c.after === null ? "Deleted" : `stash@{${entry.index}} (Read-only)`, content: c.after ?? "" },
+    left: { title: c.before === null ? t("git.gitDialogs.emptyNewFile") : t("git.gitDialogs.baseVersionReadOnly"), content: c.before ?? "" },
+    right: { title: c.after === null ? t("git.gitDialogs.deleted") : `stash@{${entry.index}} (Read-only)`, content: c.after ?? "" },
     editable: false,
   });
 }
@@ -160,7 +161,7 @@ export function rebaseDialog(): void {
 
 export async function rebase(options: RebaseOptions): Promise<void> {
   const branch = options.branch || currentBranch();
-  const out = await runMerging(`Rebase of ${branch} failed`, () => withLocalHistory("vcs", `Rebase ${branch}`, () => opsApi.rebase(options)));
+  const out = await runMerging(t("git.gitDialogs.rebaseOfBranchFailed", { branch }), () => withLocalHistory("vcs", t("git.gitDialogs.rebaseBranch", { branch }), () => opsApi.rebase(options)));
   await refreshOperation();
   if (out !== undefined) await done(`Rebased ${branch} onto ${options.onto || "root"}`);
 }
@@ -184,7 +185,7 @@ export function newTagDialog(commit = ""): void {
 
 export async function createTag(options: TagOptions): Promise<boolean> {
   const ok = await runGit("Tag creation failed", () => opsApi.tag(options).then(() => true));
-  if (ok) notify("info", `Created tag ${options.name.trim()}`);
+  if (ok) notify("info", t("git.gitDialogs.createdTagName", { name: options.name.trim() }));
   return !!ok;
 }
 
@@ -200,7 +201,7 @@ export function manageRemotes(): void {
 /** Shelve Changes… (ChangesView.Shelve): every change, or the given files preselected. */
 export function shelveDialog(paths?: string[]): void {
   const changed = (status()?.entries ?? []).filter((e) => !e.conflict && e.worktree !== "ignored").map((e) => e.path);
-  if (!changed.length) return notify("info", "No changes to shelve");
+  if (!changed.length) return notify("info", t("git.gitDialogs.noChangesToShelve"));
   const selected = paths?.filter((p) => changed.includes(p)) ?? [];
   open({ kind: "shelve", paths: selected.length ? selected : changed });
 }
@@ -209,7 +210,7 @@ export async function shelve(paths: string[], name: string): Promise<boolean> {
   const cl = await runGit("Shelve failed", () => withLocalHistory("vcs", "Shelve changes", () => opsApi.shelve(paths, name), paths));
   if (!cl) return false;
   await reloadOpenFiles();
-  notify("success", "Changes shelved", `${plural(cl.files.length, "file")} in "${cl.name}"`);
+  notify("success", t("git.gitDialogs.changesShelved"), `${plural(cl.files.length, "file")} in "${cl.name}"`);
   return true;
 }
 
@@ -220,7 +221,7 @@ export function unshelveDialog(changelist: ShelvedChangelist, paths?: string[]):
 
 export async function unshelve(cl: ShelvedChangelist, paths: string[] | null, remove: boolean): Promise<boolean> {
   const touched = paths ?? cl.files.map((f) => f.path);
-  const out = await runMerging("Unshelve failed", () => withLocalHistory("vcs", `Unshelve ${cl.name}`, () => opsApi.unshelve(cl.id, paths, remove), touched));
+  const out = await runMerging("Unshelve failed", () => withLocalHistory("vcs", t("git.gitDialogs.unshelveName", { name: cl.name }), () => opsApi.unshelve(cl.id, paths, remove), touched));
   if (out === undefined) return false;
   await done("Changes unshelved", `${out} from "${cl.name}"`);
   // "Create changelists automatically": the changes come back in a list named after the shelf.
@@ -230,13 +231,13 @@ export async function unshelve(cl: ShelvedChangelist, paths: string[] | null, re
 
 /** Show Diff of a shelved file: the base version vs the shelved one. */
 export async function showShelfDiff(cl: ShelvedChangelist, path: string): Promise<void> {
-  const c = await runGit(`Cannot show ${nameOf(path)}`, () => opsApi.shelfFile(cl.id, path));
+  const c = await runGit(t("git.gitDialogs.cannotShowName", { name: nameOf(path) }), () => opsApi.shelfFile(cl.id, path));
   if (!c) return;
   if (c.binary) return notify("info", `${nameOf(path)} is a binary file`);
   setDiffRequest({
     path,
-    left: { title: c.before === null ? "Empty (new file)" : "Base version (Read-only)", content: c.before ?? "" },
-    right: { title: c.after === null ? "Deleted" : `Shelved: ${cl.name} (Read-only)`, content: c.after ?? "" },
+    left: { title: c.before === null ? t("git.gitDialogs.emptyNewFile") : t("git.gitDialogs.baseVersionReadOnly"), content: c.before ?? "" },
+    right: { title: c.after === null ? t("git.gitDialogs.deleted") : t("git.gitDialogs.shelvedNameReadOnly", { name: cl.name }), content: c.after ?? "" },
     editable: false,
   });
 }

@@ -16,6 +16,7 @@ import { reword, squashCommits, startRebase } from "./logActions";
 import { logDate } from "./format";
 import { shortSha } from "./history";
 import { changed, groupHead, initialRows, messageRow, moveRows, moveTo, problem, setAction, setMessage, toEntries, unite, type RebaseRow } from "./rebaseModel";
+import { t as tr } from "@/i18n";
 
 // ---- Edit Commit Message / Squash Commits ------------------------------------------------------
 
@@ -39,22 +40,22 @@ export function CommitMessageDialog(props: { title: string; okLabel: string; mes
 }
 
 export const RewordDialog = (props: { sha: string; message: string }) => (
-  <CommitMessageDialog title={`Edit Commit Message for ${shortSha(props.sha)}`} okLabel="OK" message={props.message} onOk={(m) => reword(props.sha, m)} />
+  <CommitMessageDialog title={tr("git.logDialogs.editCommitMessageForSha", { sha: shortSha(props.sha) })} okLabel="OK" message={props.message} onOk={(m) => reword(props.sha, m)} />
 );
 
 export const SquashCommitsDialog = (props: { shas: string[]; message: string }) => (
-  <CommitMessageDialog title={`Squash ${props.shas.length} Commits`} okLabel="OK" message={props.message} onOk={(m) => squashCommits(props.shas, m)} />
+  <CommitMessageDialog title={tr("git.logDialogs.squashCountCommits", { count: props.shas.length })} okLabel="OK" message={props.message} onOk={(m) => squashCommits(props.shas, m)} />
 );
 
 // ---- Rebasing Commits ----------------------------------------------------------------------------
 
 const ACTIONS: { action: RebaseAction; label: string; icon: typeof Check; hint: string }[] = [
-  { action: "pick", label: "Pick", icon: Check, hint: "Use the commit as is" },
-  { action: "edit", label: "Edit", icon: Pencil, hint: "Stop after the commit to amend it" },
-  { action: "reword", label: "Reword", icon: SquarePen, hint: "Change the commit message" },
-  { action: "squash", label: "Squash", icon: Combine, hint: "Meld into the previous commit and combine the messages; with several commits selected: Unite" },
-  { action: "fixup", label: "Fixup", icon: Wrench, hint: "Meld into the previous commit and keep its message" },
-  { action: "drop", label: "Drop", icon: Trash2, hint: "Remove the commit" },
+  { action: "pick", label: tr("git.logDialogs.pick"), icon: Check, hint: tr("git.logDialogs.useTheCommitAsIs") },
+  { action: "edit", label: tr("git.logDialogs.edit"), icon: Pencil, hint: tr("git.logDialogs.stopAfterTheCommitTo") },
+  { action: "reword", label: tr("git.logDialogs.reword"), icon: SquarePen, hint: tr("git.logDialogs.changeTheCommitMessage") },
+  { action: "squash", label: tr("git.logDialogs.squash"), icon: Combine, hint: tr("git.logDialogs.meldIntoThePreviousCommit") },
+  { action: "fixup", label: tr("git.logDialogs.fixup"), icon: Wrench, hint: tr("git.logDialogs.meldIntoThePreviousCommit2") },
+  { action: "drop", label: tr("git.logDialogs.drop"), icon: Trash2, hint: tr("git.logDialogs.removeTheCommit") },
 ];
 
 /** What the open rebase dialog offers to its keymap actions (Alt+Up / Alt+Down). */
@@ -131,7 +132,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
         ref={root}
         class="git-dialog rebase-dialog"
         role="dialog"
-        aria-label="Rebasing Commits"
+        aria-label={tr("git.logDialogs.rebasingCommits")}
         data-focus-context="toolwindow"
         onKeyDown={(e) => {
           const t = e.target as HTMLElement;
@@ -144,12 +145,12 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
         }}
       >
         <header class="dialog-title">
-          <span>Rebasing Commits</span>
+          <span>{tr("git.logDialogs.rebasingCommits")}</span>
           <span class="rebase-subtitle">
             {rows().length} commits of <b>{branch}</b> onto {onto}
           </span>
         </header>
-        <div class="panel-toolbar rebase-toolbar" role="toolbar" aria-label="Rebase actions">
+        <div class="panel-toolbar rebase-toolbar" role="toolbar" aria-label={tr("git.logDialogs.rebaseActions")}>
           <For each={ACTIONS}>
             {(a) => (
               <button
@@ -160,7 +161,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
                 onClick={() => apply(a.action)}
               >
                 <a.icon size={14} />
-                {a.action === "squash" && selected().size > 1 ? "Unite" : a.label}
+                {a.action === "squash" && selected().size > 1 ? tr("git.logDialogs.unite") : a.label}
               </button>
             )}
           </For>
@@ -172,7 +173,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
             <ArrowDown size={15} />
           </button>
           <span class="spacer" />
-          <button class="rebase-tool" title="Undo all changes of this dialog" disabled={!changed(rows(), initial)} onClick={() => setRows(initial)}>
+          <button class="rebase-tool" title={tr("git.logDialogs.undoAllChangesOfThis")} disabled={!changed(rows(), initial)} onClick={() => setRows(initial)}>
             <RotateCcw size={14} />
             Reset
           </button>
@@ -232,7 +233,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
             <Show
               when={msgAt() !== null && leadRow()}
               fallback={
-                <Show when={details()} keyed fallback={<div class="commit-empty">{lead() ? "Loading…" : "Select a commit"}</div>}>
+                <Show when={details()} keyed fallback={<div class="commit-empty">{lead() ? tr("git.logDialogs.loading") : tr("git.logDialogs.selectACommit")}</div>}>
                   {(d) => (
                     <>
                       <div class="log-files">
@@ -264,7 +265,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
               }
             >
               <label class="rebase-editor">
-                <span class="gd-group-title">{rows()[msgAt()!]?.action === "squash" ? "Message of the squashed commit" : "New commit message"}</span>
+                <span class="gd-group-title">{rows()[msgAt()!]?.action === "squash" ? tr("git.logDialogs.messageOfTheSquashedCommit") : tr("git.logDialogs.newCommitMessage")}</span>
                 <textarea
                   class="gd-textarea"
                   spellcheck={false}
@@ -279,15 +280,15 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
           </div>
         </div>
         <footer class="git-dialog-actions">
-          <Show when={issue()} fallback={<span class="gd-note">Drag commits or use {shortcutLabel("Git.Interactive.Rebase.MoveUp") || "Alt+Up"} / {shortcutLabel("Git.Interactive.Rebase.MoveDown") || "Alt+Down"} to reorder them.</span>}>
+          <Show when={issue()} fallback={<span class="gd-note">{tr("git.logDialogs.reorderHint", { up: shortcutLabel("Git.Interactive.Rebase.MoveUp") || "Alt+Up", down: shortcutLabel("Git.Interactive.Rebase.MoveDown") || "Alt+Down" })}</span>}>
             <span class="gd-invalid">{issue()}</span>
           </Show>
           <span class="spacer" />
           <button class="btn-secondary" onClick={closeGitDialog}>
             Cancel
           </button>
-          <button class="btn-primary" disabled={!!issue()} onClick={() => void start()} title="Start Rebasing (Ctrl+Enter)">
-            Start Rebasing
+          <button class="btn-primary" disabled={!!issue()} onClick={() => void start()} title={tr("git.logDialogs.startRebasing", { shortcut: "Ctrl+Enter" })}>
+            {tr("git.logDialogs.startRebasing2")}
           </button>
         </footer>
       </div>

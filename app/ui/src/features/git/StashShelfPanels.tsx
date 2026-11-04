@@ -137,26 +137,26 @@ function StashPanel() {
   return (
     <div class="vcs-tab-panel stash-panel" tabIndex={-1}>
       <div class="panel-toolbar">
-        <button class="icon-btn" title="Refresh" onClick={() => void refreshStashAndShelf()}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.refresh")} onClick={() => void refreshStashAndShelf()}>
           <RefreshCw size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Apply" disabled={!current()} onClick={() => void run((e) => applyStash(e, { pop: false, reinstateIndex: false }))}>
+        <button class="icon-btn" title={t("common.apply")} disabled={!current()} onClick={() => void run((e) => applyStash(e, { pop: false, reinstateIndex: false }))}>
           <ArchiveRestore size={15} />
         </button>
-        <button class="icon-btn" title="Pop" disabled={!current()} onClick={() => void run((e) => applyStash(e, { pop: true, reinstateIndex: false }))}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.pop")} disabled={!current()} onClick={() => void run((e) => applyStash(e, { pop: true, reinstateIndex: false }))}>
           <Upload size={15} />
         </button>
-        <button class="icon-btn" title="Drop" disabled={!current()} onClick={() => void run(dropStash)}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.drop")} disabled={!current()} onClick={() => void run(dropStash)}>
           <Trash2 size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!current()} onClick={diff}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.showDiff", { shortcut: "Ctrl+D" })} disabled={!current()} onClick={diff}>
           <FileDiff size={15} />
         </button>
       </div>
       <div class="vcs-tab-tree commit-tree" role="tree">
-        <For each={stashes()} fallback={<div class="vcs-tab-empty">No stashes</div>}>
+        <For each={stashes()} fallback={<div class="vcs-tab-empty">{t("git.stashShelfPanels.noStashes")}</div>}>
           {(s) => (
             <>
               <div
@@ -228,7 +228,7 @@ export async function diffSelectedShelved(): Promise<void> {
 /** Unshelve… (ShelveChanges.UnshelveWithDialog): the selected changelist or files. */
 export function unshelveSelected(): void {
   const cl = currentShelved() ?? shelf()[0];
-  if (!cl) return notify("info", "No shelved changes");
+  if (!cl) return notify("info", t("git.stashShelfPanels.noShelvedChanges"));
   unshelveDialog(cl, cl.id === shelfSel()?.id ? (selPaths() ?? undefined) : undefined);
 }
 
@@ -248,7 +248,7 @@ function ShelfPanel() {
   const remove = async () => {
     const cl = current();
     if (!cl) return;
-    const ok = await askConfirm({ title: "Delete Shelved Changes", message: `Delete the shelved changelist "${cl.name}"?`, confirm: "Delete" });
+    const ok = await askConfirm({ title: t("git.stashShelfPanels.deleteShelvedChanges"), message: t("git.stashShelfPanels.deleteTheShelvedChangelistName", { name: cl.name }), confirm: t("git.stashShelfPanels.delete") });
     if (!ok) return;
     const done = await runGit("Could not delete the shelved changes", () => opsApi.shelfDelete(cl.id).then(() => true));
     if (done) setShelfSel(null);
@@ -256,36 +256,36 @@ function ShelfPanel() {
   const rename = async () => {
     const cl = current();
     if (!cl) return;
-    const name = await askName({ title: "Rename Shelved Changelist", label: "Name:", initial: cl.name, confirm: "Rename" });
+    const name = await askName({ title: t("git.stashShelfPanels.renameShelvedChangelist"), label: t("git.stashShelfPanels.name"), initial: cl.name, confirm: t("git.stashShelfPanels.rename") });
     if (name?.trim()) await runGit("Could not rename the shelved changes", () => opsApi.shelfRename(cl.id, name.trim()));
   };
   const diff = () => void diffSelectedShelved();
   return (
     <div class="vcs-tab-panel shelf-panel" tabIndex={-1}>
       <div class="panel-toolbar">
-        <button class="icon-btn" title="Refresh" onClick={() => void refreshStashAndShelf()}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.refresh")} onClick={() => void refreshStashAndShelf()}>
           <RefreshCw size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Unshelve…" disabled={!current()} onClick={() => current() && unshelveDialog(current()!, selPaths() ?? undefined)}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.unshelve")} disabled={!current()} onClick={() => current() && unshelveDialog(current()!, selPaths() ?? undefined)}>
           <ArchiveRestore size={15} />
         </button>
-        <button class="icon-btn" title="Unshelve Silently" disabled={!current()} onClick={() => void silently()}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.unshelveSilently")} disabled={!current()} onClick={() => void silently()}>
           <Undo2 size={15} />
         </button>
-        <button class="icon-btn" title="Delete" disabled={!current()} onClick={() => void remove()}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.delete")} disabled={!current()} onClick={() => void remove()}>
           <Trash2 size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!current()} onClick={diff}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.showDiff", { shortcut: "Ctrl+D" })} disabled={!current()} onClick={diff}>
           <FileDiff size={15} />
         </button>
-        <button class="icon-btn" title="Rename" disabled={!current()} onClick={() => void rename()}>
+        <button class="icon-btn" title={t("git.stashShelfPanels.rename")} disabled={!current()} onClick={() => void rename()}>
           <Pencil size={14} />
         </button>
       </div>
       <div class="vcs-tab-tree commit-tree" role="tree">
-        <For each={shelf()} fallback={<div class="vcs-tab-empty">No shelved changes</div>}>
+        <For each={shelf()} fallback={<div class="vcs-tab-empty">{t("git.stashShelfPanels.noShelvedChanges")}</div>}>
           {(cl) => (
             <>
               <div
@@ -327,7 +327,7 @@ function ShelfPanel() {
 /** Show Shelf (Vcs.Show.Shelf). */
 export async function showShelfTab(open: (id: string) => void): Promise<void> {
   await refreshStashAndShelf();
-  if (!shelf().length) return notify("info", "No shelved changes");
+  if (!shelf().length) return notify("info", t("git.stashShelfPanels.noShelvedChanges"));
   setCommitTab("shelf");
   open("commit");
 }

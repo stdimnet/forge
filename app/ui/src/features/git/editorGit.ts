@@ -32,6 +32,7 @@ import { lineDiffConfig, rollbackEdit } from "./lineDiff";
 import { isToolWindowVisible } from "@/state/layout";
 import { partialCommitGutter, viewHunks } from "./partialGutter";
 import { moveToChangelistDialog } from "./changesDialogs";
+import { t as tr } from "@/i18n";
 
 // ---- shared per-view git data ---------------------------------------------------------
 
@@ -99,7 +100,7 @@ class ChangeMarker extends GutterMarker {
   toDOM() {
     const el = document.createElement("div");
     el.className = `cm-git-change cm-git-${this.kind}`;
-    el.title = this.kind === "deleted" ? "Deleted lines (click for actions)" : `${this.kind === "added" ? "Added" : "Modified"} lines (click for actions)`;
+    el.title = this.kind === "deleted" ? tr("git.editorGit.deletedLinesClickForActions") : `${this.kind === "added" ? tr("git.editorGit.added") : tr("git.editorGit.modified")} lines (click for actions)`;
     return el;
   }
 }
@@ -321,7 +322,7 @@ function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Tex
     setDiffRequest({
       path,
       left: { title: "HEAD", content: head.toString() },
-      right: { title: "Your version", content: view.state.doc.toString() },
+      right: { title: tr("git.editorGit.yourVersion"), content: view.state.doc.toString() },
       editable: true,
     });
   });
@@ -482,7 +483,7 @@ function gutterContextMenu(path: string): Extension {
     el.style.top = `${event.clientY}px`;
     const on = annotated().has(path);
     const item = document.createElement("button");
-    item.textContent = on ? "Close Annotations" : "Annotate with Git Blame";
+    item.textContent = on ? tr("git.editorGit.closeAnnotations") : tr("git.editorGit.annotateWithGitBlame");
     item.onclick = () => {
       el.remove();
       toggleAnnotate(path, !on);

@@ -386,16 +386,16 @@ function Group(props: { id: string; title: string; items: ListItem[]; strong?: b
 function listMenu(list: ChangelistView): MenuEntry[] {
   const paths = list.files.map((f) => f.path);
   return [
-    item("Commit…", () => commitList(list), "CheckinProject"),
-    item("Rollback…", () => confirmRollback(paths), "ChangesView.Rollback", { disabled: !paths.length }),
+    item(t("git.commitPanel.commit"), () => commitList(list), "CheckinProject"),
+    item(t("git.commitPanel.rollback"), () => confirmRollback(paths), "ChangesView.Rollback", { disabled: !paths.length }),
     separator,
-    item("New Changelist…", () => newChangelistDialog(), "ChangesView.NewChangeList"),
-    item("Edit Changelist…", () => editChangelistDialog(list), "ChangesView.Rename"),
-    item("Delete Changelist", () => void deleteChangelist(list), "ChangesView.RemoveChangeList", { disabled: list.active }),
-    item("Set Active Changelist", () => void setActiveChangelist(list), "ChangesView.SetDefault", { disabled: list.active }),
+    item(t("git.commitPanel.newChangelist"), () => newChangelistDialog(), "ChangesView.NewChangeList"),
+    item(t("git.commitPanel.editChangelist"), () => editChangelistDialog(list), "ChangesView.Rename"),
+    item(t("git.commitPanel.deleteChangelist"), () => void deleteChangelist(list), "ChangesView.RemoveChangeList", { disabled: list.active }),
+    item(t("git.commitPanel.setActiveChangelist"), () => void setActiveChangelist(list), "ChangesView.SetDefault", { disabled: list.active }),
     separator,
-    item("Shelve Changes…", () => shelveDialog(paths), "ChangesView.Shelve", { disabled: !paths.length }),
-    item("Create Patch…", () => createPatchDialog(paths, list.name), "ChangesView.CreatePatch", { disabled: !paths.length }),
+    item(t("git.commitPanel.shelveChanges"), () => shelveDialog(paths), "ChangesView.Shelve", { disabled: !paths.length }),
+    item(t("git.commitPanel.createPatch"), () => createPatchDialog(paths, list.name), "ChangesView.CreatePatch", { disabled: !paths.length }),
   ];
 }
 
@@ -404,10 +404,10 @@ function rowMenu(entry: StatusEntry, file: ListItem, list: string): MenuEntry[] 
   const tracked = entry.worktree !== "untracked";
   const target = [entry.path];
   return [
-    item("Commit File…", () => checkOnly(target), "CheckinFiles"),
-    item("Rollback…", () => confirmRollback(target), "ChangesView.Rollback", { disabled: !tracked }),
-    item("Show Diff", () => void showDiff(entry.path, allPaths()), "Compare.SameVersion"),
-    item("Jump to Source", () => void openFile(entry.path), "EditSource"),
+    item(t("git.commitPanel.commitFile"), () => checkOnly(target), "CheckinFiles"),
+    item(t("git.commitPanel.rollback"), () => confirmRollback(target), "ChangesView.Rollback", { disabled: !tracked }),
+    item(t("git.commitPanel.showDiff"), () => void showDiff(entry.path, allPaths()), "Compare.SameVersion"),
+    item(t("git.commitPanel.jumpToSource"), () => void openFile(entry.path), "EditSource"),
     separator,
     item(
       "Move to Another Changelist…",
@@ -415,10 +415,10 @@ function rowMenu(entry: StatusEntry, file: ListItem, list: string): MenuEntry[] 
       "ChangesView.Move",
       { disabled: !tracked },
     ),
-    item("New Changelist…", () => newChangelistDialog(tracked ? target : []), "ChangesView.NewChangeList"),
+    item(t("git.commitPanel.newChangelist"), () => newChangelistDialog(tracked ? target : []), "ChangesView.NewChangeList"),
     separator,
-    item("Shelve Changes…", () => shelveDialog(target), "ChangesView.Shelve", { disabled: !tracked }),
-    item("Create Patch…", () => createPatchDialog(target, nameOf(entry.path)), "ChangesView.CreatePatch"),
+    item(t("git.commitPanel.shelveChanges"), () => shelveDialog(target), "ChangesView.Shelve", { disabled: !tracked }),
+    item(t("git.commitPanel.createPatch"), () => createPatchDialog(target, nameOf(entry.path)), "ChangesView.CreatePatch"),
   ];
 }
 
@@ -491,7 +491,7 @@ const checkedPaths = () => allPaths().filter((p) => includedFiles().has(p));
 async function generate() {
   const paths = checkedPaths();
   if (!paths.length) {
-    notify("info", "Select files to generate a commit message for");
+    notify("info", t("git.commitPanel.selectFilesToGenerateA"));
     return;
   }
   setGenerating(true);
@@ -504,7 +504,7 @@ async function generate() {
     const files = entries.map((e) => ({ path: e.path, status: displayStatus(e) }));
     setMessage(await generateCommitMessage(diff, files, status()?.branch));
   } catch (err) {
-    notify("error", "Could not generate commit message", String(err instanceof Error ? err.message : err), 10000);
+    notify("error", t("git.commitPanel.couldNotGenerateCommitMessage"), String(err instanceof Error ? err.message : err), 10000);
   } finally {
     setGenerating(false);
   }
@@ -530,14 +530,14 @@ async function doCommit(pushAfter: boolean) {
     if (!(await runCommitChecks(paths, setProgress))) return;
     setProgress("Committing…");
     const specs = await commitSpecs(paths);
-    if (!specs.length && !amend()) return notify("info", "No changes are included in the commit");
+    if (!specs.length && !amend()) return notify("info", t("git.commitPanel.noChangesAreIncludedIn"));
     const msg = message();
-    const sha = await runGit("Commit failed", () => changesApi.commitFiles(msg, specs, commitOptions()));
+    const sha = await runGit(t("git.commitPanel.commitFailed"), () => changesApi.commitFiles(msg, specs, commitOptions()));
     if (!sha) return;
     const partial = specs.filter((s) => s.hunks).length;
     notify(
       "success",
-      `${specs.length} file${specs.length === 1 ? "" : "s"} committed${partial ? ` (${partial} partly)` : ""}: ${msg.split("\n")[0]}`,
+      t("git.commitPanel.committed", { count: specs.length, partial, subject: msg.split("\n")[0] }),
     );
     // What is left of partly committed files is not included any more.
     for (const s of specs) if (s.hunks) setInclusion(s.path, null, false);

@@ -3,6 +3,7 @@ import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-j
 import { Search } from "lucide-solid";
 import { suspendKeymap } from "@/keymap";
 import { setChooserDialog, type ChooserDialog, type ChooserItem } from "./overlays";
+import { t } from "@/i18n";
 
 export function Chooser(props: { d: ChooserDialog }) {
   const [query, setQuery] = createSignal("");
@@ -55,7 +56,7 @@ export function Chooser(props: { d: ChooserDialog }) {
         <div class="git-dialog-body">
           <label class="git-chooser-search">
             <Search size={13} class="muted" />
-            <input ref={input} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} placeholder="Search" />
+            <input ref={input} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} placeholder={t("git.chooser.search")} />
           </label>
           <div class="git-chooser-list" ref={list} role="listbox">
             <For each={visible()} fallback={<div class="git-chooser-empty">{props.d.empty}</div>}>

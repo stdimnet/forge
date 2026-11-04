@@ -29,6 +29,7 @@ import { goToRelative, openLogMenu, setLogView } from "./logActions";
 import { showToolWindow } from "@/state/layout";
 import { WorktreesPanel } from "./ExtrasDialogs";
 import { SignatureIcon, signatureLabel } from "./signature";
+import { t as tr } from "@/i18n";
 
 const PAGE = 200;
 const LANE = 14;
@@ -146,13 +147,13 @@ function BranchTree(props: { branches: Branches | undefined }) {
   );
   return (
     <div class="log-branches">
-      <Node label="HEAD (Current Branch)" rev="HEAD" icon="head" depth={0} />
-      <Section label="Local" depth={0}>
+      <Node label={tr("git.gitLogPanel.headCurrentBranch")} rev="HEAD" icon="head" depth={0} />
+      <Section label={tr("git.gitLogPanel.local")} depth={0}>
         <For each={props.branches?.local ?? []}>
           {(b) => <Node label={b.name} rev={b.name} icon="branch" depth={1} current={b.current} />}
         </For>
       </Section>
-      <Section label="Remote" depth={0}>
+      <Section label={tr("git.gitLogPanel.remote")} depth={0}>
         <For each={remotes()}>
           {([remote, names]) => (
             <Section label={remote} depth={1} icon="cloud">
@@ -161,7 +162,7 @@ function BranchTree(props: { branches: Branches | undefined }) {
           )}
         </For>
       </Section>
-      <Section label="Tags" depth={0}>
+      <Section label={tr("git.gitLogPanel.tags")} depth={0}>
         <For each={props.branches?.tags ?? []}>{(t) => <Node label={t.name} rev={t.name} icon="tag" depth={1} />}</For>
       </Section>
     </div>
@@ -177,7 +178,7 @@ function Details(props: { sha: string | null; commit: Commit | undefined }) {
   const statusClass = (s: string) => (s === "A" ? "vcs-added" : s === "D" ? "vcs-deleted" : "vcs-modified");
   return (
     <div class="log-details">
-      <Show when={details()} keyed fallback={<div class="commit-empty">{props.sha ? "Loading…" : "Select a commit to view changes"}</div>}>
+      <Show when={details()} keyed fallback={<div class="commit-empty">{props.sha ? tr("git.gitLogPanel.loading") : tr("git.gitLogPanel.selectACommitToView")}</div>}>
         {(detail) => {
           const d = () => detail;
           const [subject, ...body] = d().message.split("\n");
@@ -335,7 +336,7 @@ export function GitLogPanel() {
             <label class="log-search">
               <Search size={13} class="muted" />
               <input
-                placeholder="Text or hash"
+                placeholder={tr("git.gitLogPanel.textOrHash")}
                 value={filterText()}
                 onInput={(e) => {
                   const v = e.currentTarget.value;
@@ -344,20 +345,20 @@ export function GitLogPanel() {
                 }}
               />
             </label>
-            <button class="pill-btn log-filter" onClick={() => setFilterRev(null)} title="Branch filter">
+            <button class="pill-btn log-filter" onClick={() => setFilterRev(null)} title={tr("git.gitLogPanel.branchFilter")}>
               Branch: <b>{filterRev() ?? "All"}</b>
               <ChevronDown size={12} class="muted" />
             </button>
-            <button class="pill-btn log-filter" title="User filter">
+            <button class="pill-btn log-filter" title={tr("git.gitLogPanel.userFilter")}>
               User <ChevronDown size={12} class="muted" />
             </button>
-            <button class="pill-btn log-filter" title="Date filter">
+            <button class="pill-btn log-filter" title={tr("git.gitLogPanel.dateFilter")}>
               Date <ChevronDown size={12} class="muted" />
             </button>
             <Show
               when={filterPath() !== null}
               fallback={
-                <button class="pill-btn log-filter" title="Paths filter">
+                <button class="pill-btn log-filter" title={tr("git.gitLogPanel.pathsFilter")}>
                   Paths <ChevronDown size={12} class="muted" />
                 </button>
               }
@@ -368,10 +369,10 @@ export function GitLogPanel() {
               </button>
             </Show>
             <span class="spacer" />
-            <button class="icon-btn" title="Fetch All Remotes" onClick={() => void fetchAll()}>
+            <button class="icon-btn" title={tr("git.gitLogPanel.fetchAllRemotes")} onClick={() => void fetchAll()}>
               <Download size={15} />
             </button>
-            <button class="icon-btn" title="Refresh (Ctrl+F5)" onClick={() => void load(true)}>
+            <button class="icon-btn" title={tr("git.gitLogPanel.refresh", { shortcut: "Ctrl+F5" })} onClick={() => void load(true)}>
               <RefreshCw size={15} />
             </button>
           </div>
@@ -417,7 +418,7 @@ export function GitLogPanel() {
               )}
             </For>
             <Show when={!commits().length && !loading()}>
-              <div class="commit-empty">No commits matching filters</div>
+              <div class="commit-empty">{tr("git.gitLogPanel.noCommitsMatchingFilters")}</div>
             </Show>
           </div>
         </div>

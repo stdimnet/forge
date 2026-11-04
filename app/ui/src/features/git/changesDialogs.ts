@@ -14,6 +14,7 @@ import { logApi } from "./logApi";
 import { notify, reloadOpenFiles, repositoryChanged } from "./store";
 import { conflictedPaths, resolveConflicts } from "./conflicts";
 import { setDiffRequest } from "./overlays";
+import { t } from "@/i18n";
 
 const plural = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
 const errorText = (e: unknown) => String(e instanceof Error ? e.message : e);
@@ -45,14 +46,14 @@ export function setActiveChangelist(list: ChangelistView): Promise<boolean> {
 /** Delete Changelist (`ChangesView.RemoveChangeList`): its changes move to the active list. */
 export async function deleteChangelist(list: ChangelistView): Promise<void> {
   if (list.active) {
-    notify("info", "The active changelist cannot be deleted", "Set another changelist active first.");
+    notify("info", t("git.changesDialogs.theActiveChangelistCannotBe"), "Set another changelist active first.");
     return;
   }
   if (list.files.length) {
     const ok = await askConfirm({
-      title: "Delete Changelist",
+      title: t("git.changesDialogs.deleteChangelist"),
       message: `Delete changelist "${list.name}"? Its ${plural(list.files.length, "file")} will be moved to the active changelist.`,
-      confirm: "Delete",
+      confirm: t("git.changesDialogs.delete"),
     });
     if (!ok) return;
   }
@@ -64,7 +65,7 @@ export async function deleteChangelist(list: ChangelistView): Promise<void> {
  * change hunks of `paths[0]` (from the gutter popup or the commit diff).
  */
 export function moveToChangelistDialog(paths: string[], opts: { hunks?: string[]; from?: string } = {}): void {
-  if (!paths.length) return notify("info", "Select changes to move to another changelist");
+  if (!paths.length) return notify("info", t("git.changesDialogs.selectChangesToMoveTo"));
   setGitDialog({ kind: "moveChangelist", paths, hunks: opts.hunks ?? null, from: opts.from ?? null });
 }
 
@@ -109,7 +110,7 @@ export async function intoNewChangelist(name: string, paths: string[]): Promise<
 
 /** Create Patch… from local changes (`ChangesView.CreatePatch`). */
 export function createPatchDialog(paths: string[], name = "Changes"): void {
-  if (!paths.length) return notify("info", "Select changes to create a patch from");
+  if (!paths.length) return notify("info", t("git.changesDialogs.selectChangesToCreateA"));
   setGitDialog({ kind: "createPatch", paths, shas: [], name });
 }
 
@@ -123,20 +124,20 @@ export async function createPatch(opts: { paths: string[]; shas: string[]; file:
   try {
     const patch = opts.shas.length ? await logApi.patch(opts.shas) : await changesApi.createPatch(opts.paths, opts.reverse);
     if (!patch.trim()) {
-      notify("info", "No changes to create a patch from");
+      notify("info", t("git.changesDialogs.noChangesToCreateA"));
       return false;
     }
     if (opts.file === null) {
       await navigator.clipboard.writeText(patch);
-      notify("success", "Patch copied to clipboard");
+      notify("success", t("git.changesDialogs.patchCopiedToClipboard"));
     } else {
       await changesApi.writePatch(opts.file, patch);
-      notify("success", "Patch created", opts.file);
+      notify("success", t("git.changesDialogs.patchCreated"), opts.file);
       await repositoryChanged();
     }
     return true;
   } catch (e) {
-    notify("error", "Create Patch failed", errorText(e), 10000);
+    notify("error", t("git.changesDialogs.createPatchFailed"), errorText(e), 10000);
     return false;
   }
 }
@@ -171,10 +172,10 @@ const baseName = (p: string) => p.slice(Math.max(p.lastIndexOf("/"), p.lastIndex
 export async function previewPatch(patch: string, name: string): Promise<void> {
   try {
     const files = await changesApi.patchPreview(patch, "");
-    if (!files.length) return notify("error", "Apply Patch", "The text is not a patch: no file changes found.");
+    if (!files.length) return notify("error", t("git.changesDialogs.applyPatch"), "The text is not a patch: no file changes found.");
     setGitDialog({ kind: "applyPatch", patch, name, files });
   } catch (e) {
-    notify("error", "Apply Patch failed", errorText(e), 10000);
+    notify("error", t("git.changesDialogs.applyPatchFailed"), errorText(e), 10000);
   }
 }
 
@@ -191,14 +192,14 @@ export async function applyPatchDialog(): Promise<void> {
     const picked = await pickFileText();
     if (picked) await previewPatch(picked.text, baseName(picked.name));
   } catch (e) {
-    notify("error", "Apply Patch failed", errorText(e), 10000);
+    notify("error", t("git.changesDialogs.applyPatchFailed"), errorText(e), 10000);
   }
 }
 
 /** Apply Patch from Clipboard… (`ChangesView.ApplyPatchFromClipboard`). */
 export async function applyPatchFromClipboard(): Promise<void> {
   const text = await navigator.clipboard?.readText().catch(() => "");
-  if (!text?.trim()) return notify("info", "The clipboard holds no patch");
+  if (!text?.trim()) return notify("info", t("git.changesDialogs.theClipboardHoldsNoPatch"));
   await previewPatch(text, "Patch from clipboard");
 }
 
@@ -206,8 +207,8 @@ export async function applyPatchFromClipboard(): Promise<void> {
 export function showPatchFileDiff(f: PatchPreviewFile): void {
   setDiffRequest({
     path: f.path,
-    left: { title: f.before === null ? "Empty (new file)" : "Current version", content: f.before ?? "" },
-    right: { title: f.after === null ? (f.status === "deleted" ? "Deleted" : "Does not apply cleanly") : "Patched version", content: f.after ?? f.before ?? "" },
+    left: { title: f.before === null ? t("git.changesDialogs.emptyNewFile") : t("git.changesDialogs.currentVersion"), content: f.before ?? "" },
+    right: { title: f.after === null ? (f.status === "deleted" ? t("git.changesDialogs.deleted") : t("git.changesDialogs.doesNotApplyCleanly")) : t("git.changesDialogs.patchedVersion"), content: f.after ?? f.before ?? "" },
     editable: false,
   });
 }
@@ -218,7 +219,7 @@ export async function applyPatch(patch: string, base: string, paths: string[] | 
   try {
     res = await changesApi.applyPatch(patch, base, paths);
   } catch (e) {
-    notify("error", "Apply Patch failed", errorText(e), 10000);
+    notify("error", t("git.changesDialogs.applyPatchFailed"), errorText(e), 10000);
     await repositoryChanged();
     return false;
   }
@@ -234,7 +235,7 @@ export async function applyPatch(patch: string, base: string, paths: string[] | 
   if (res.failed.length) {
     notify("error", `Patch could not be applied to ${plural(res.failed.length, "file")}`, res.failed.map(([p, m]) => `${p}: ${m}`).join("\n"), 15000);
   }
-  if (res.applied.length) notify("success", "Patch applied", plural(res.applied.length, "file"));
+  if (res.applied.length) notify("success", t("git.changesDialogs.patchApplied"), plural(res.applied.length, "file"));
   if (res.conflicts.length || conflictedPaths().length) resolveConflicts();
   return !res.failed.length;
 }

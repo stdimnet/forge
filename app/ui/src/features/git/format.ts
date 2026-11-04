@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /** Date helpers matching PHPStorm's wording ("2 days ago", "Today 14:03"). */
 
 export function timeAgo(unixSeconds: number, now = Date.now()): string {
@@ -31,8 +32,8 @@ export function logDate(unixSeconds: number, now = new Date()): string {
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const diff = Math.round((day(now) - day(d)) / 86400000);
-  if (diff === 0) return `Today ${time}`;
-  if (diff === 1) return `Yesterday ${time}`;
+  if (diff === 0) return t("git.format.todayTime", { time });
+  if (diff === 1) return t("git.format.yesterdayTime", { time });
   return `${shortDate(unixSeconds)}, ${time}`;
 }
 
