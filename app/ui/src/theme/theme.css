@@ -148,25 +148,25 @@
   --fg-muted: #575a63;
   --fg-faint: #686b74;
 
-  --accent: #c4500a;
-  --accent-strong: #a94508;
+  --accent: #b84a08;
+  --accent-strong: #9e4006;
   --accent-soft: rgba(232, 98, 12, 0.12);
   --accent-fg: #ffffff;
 
-  --success: #2a7d3f;
-  --warning: #8a6200;
+  --success: #236b35;
+  --warning: #765300;
   --danger: #c42b2b;
   --info: #1f5fbf;
 
-  --vcs-modified: #1f56ad;
+  --vcs-modified: #1a4d9c;
   --vcs-added: #236b35;
   --vcs-deleted: #5a5a63;
-  --vcs-untracked: #9c3d22;
+  --vcs-untracked: #8f3519;
   /* Project view: excluded folders and resource roots (Mark Directory as) */
   --tree-excluded: #c0580e;
   --tree-resource-root: #8a4fb5;
   --tree-test-resource-root: #3a8a3a;
-  --vcs-ignored: #9a9aa3;
+  --vcs-ignored: #6b6b75;
 
   --blame-age-0: #e8620c;
   --blame-age-1: #e48a4a;
@@ -182,9 +182,9 @@
   --diff-changed-bg: rgba(36, 99, 199, 0.08);
   --graph-0: #e8620c;
   --graph-1: #2463c7;
-  --graph-2: #2f8a46;
+  --graph-2: #2a7d3f;
   --graph-3: #7a3fc4;
-  --graph-4: #b58a00;
+  --graph-4: #856600;
   --graph-5: #157a6e;
   --graph-6: #c43f6a;
   --ref-local: #d45608;

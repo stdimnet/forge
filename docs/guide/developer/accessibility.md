@@ -101,5 +101,7 @@ flow fails on any mouse event; extend it when a feature adds a keyboard path use
 When the audit was introduced, axe reported 98 critical and 232 serious violations (counted
 per element, summed over the audited screens) in the dark theme and 98 critical and 260 serious
 in the light theme: unnamed editor, selects and checkboxes, nested interactive editor tabs, a
-tree without tree items, text below 4.5:1 and scroll areas without keyboard access. All
-serious and critical findings were fixed.
+tree without tree items, text below 4.5:1 and scroll areas without keyboard access. All of them were fixed: the Forge Ember, Anvil and both
+High Contrast themes pass without serious or critical findings. The Solarized themes keep
+color-contrast findings that come from the Solarized palette itself (VCS colors, the blue
+accent with light text, search highlights).

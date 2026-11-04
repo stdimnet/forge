@@ -66,8 +66,9 @@ The sun/moon button switches between the two High Contrast themes.
 **Use contrast scrollbars** (`appearance.contrastScrollbars`) draws wider scrollbars in a strong
 color, in every theme.
 
-The Forge Ember, Anvil and Solarized themes meet WCAG AA (4.5:1) for text; Solarized keeps its
-fixed palette for syntax colors.
+The Forge Ember and Anvil themes meet WCAG AA (4.5:1) for text. The Solarized themes meet it
+for normal text but keep the fixed Solarized palette for syntax, file status and accent colors,
+some of which stay below 4.5:1; use a Forge or High Contrast theme if you need them readable.
 
 ## Keyboard-only use
 

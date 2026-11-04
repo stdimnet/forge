@@ -455,7 +455,7 @@ const EMBER: Palette = Palette {
 
 const ANVIL: Palette = Palette {
     text: ("#26272b", "#ffffff"),
-    caret: "#c4500a",
+    caret: "#b84a08",
     caret_row: "#f1f2f6",
     selection: "#ffe3cc",
     line_numbers: "#686b74",
@@ -539,7 +539,8 @@ impl Bundled {
     /// The bundled scheme an IntelliJ parent maps onto.
     pub fn from_icls_parent(parent: &str) -> Self {
         let p = parent.to_ascii_lowercase();
-        if p.contains("high contrast") || p.contains("high_contrast") || p.contains("highcontrast") {
+        if p.contains("high contrast") || p.contains("high_contrast") || p.contains("highcontrast")
+        {
             if p.contains("light") {
                 Self::HighContrastLight
             } else {
@@ -769,11 +770,21 @@ mod tests {
         assert_eq!(Bundled::from(false), Bundled::Anvil);
         assert_eq!(Bundled::for_theme(true, true), Bundled::HighContrast);
         assert_eq!(Bundled::for_theme(false, true), Bundled::HighContrastLight);
-        assert_eq!(Bundled::from_icls_parent("High contrast"), Bundled::HighContrast);
+        assert_eq!(
+            Bundled::from_icls_parent("High contrast"),
+            Bundled::HighContrast
+        );
         assert_eq!(Bundled::from_icls_parent("Darcula"), Bundled::Ember);
-        assert_eq!(Bundled::parse("High Contrast Light"), Some(Bundled::HighContrastLight));
+        assert_eq!(
+            Bundled::parse("High Contrast Light"),
+            Some(Bundled::HighContrastLight)
+        );
         for b in Bundled::ALL {
-            assert_eq!(Bundled::from_icls_parent(b.icls_parent()).dark(), b.dark(), "{b:?}");
+            assert_eq!(
+                Bundled::from_icls_parent(b.icls_parent()).dark(),
+                b.dark(),
+                "{b:?}"
+            );
         }
     }
 

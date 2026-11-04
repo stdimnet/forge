@@ -536,7 +536,10 @@ mod tests {
         assert!(!snap.editable);
         assert_eq!(snap.schemes.len(), 4);
         // The high-contrast themes follow the high-contrast schemes.
-        assert_eq!(s.active_name(Bundled::for_theme(true, true)), "High Contrast");
+        assert_eq!(
+            s.active_name(Bundled::for_theme(true, true)),
+            "High Contrast"
+        );
         let snap = s.snapshot(Bundled::for_theme(false, true));
         assert_eq!(snap.active, "High Contrast Light");
         assert_eq!(snap.base, "High Contrast Light");

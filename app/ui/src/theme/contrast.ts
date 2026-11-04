@@ -122,7 +122,7 @@ export function themePairs(level: "AA" | "AAA" = "AA"): TokenPair[] {
   pairs.push({ fg: "--fg-strong", bg: "--bg-active", kind: "text" });
   pairs.push({ fg: "--accent-fg", bg: "--accent", kind: "text" });
   // Status colors as text (problems, VCS file names).
-  for (const fg of ["--danger", "--warning", "--success", "--info", "--vcs-modified", "--vcs-added", "--vcs-untracked", "--vcs-deleted"])
+  for (const fg of ["--danger", "--warning", "--success", "--info", "--vcs-modified", "--vcs-added", "--vcs-untracked", "--vcs-deleted", "--vcs-ignored"])
     pairs.push({ fg, bg: "--bg-panel", kind: "text" });
   // File names keep their VCS color on the selected row.
   for (const fg of ["--vcs-modified", "--vcs-added", "--vcs-untracked", "--vcs-deleted"]) pairs.push({ fg, bg: "--bg-active", kind: "text" });
