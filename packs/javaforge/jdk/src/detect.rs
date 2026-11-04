@@ -106,8 +106,10 @@ impl DetectEnv {
     pub fn system() -> Self {
         let os = std::env::consts::OS.to_string();
         let home = dirs::home_dir();
+        // In Flatpak: the host's environment, PATH and system folders (as the sandbox sees
+        // them).
         let var = |k: &str| {
-            std::env::var_os(k)
+            forge_hostspawn::env_var(k)
                 .filter(|v| !v.is_empty())
                 .map(PathBuf::from)
         };
@@ -118,8 +120,11 @@ impl DetectEnv {
         };
         DetectEnv {
             java_home: var("JAVA_HOME"),
-            path: std::env::var_os("PATH"),
-            system_roots: system_roots(&os, home.as_deref()),
+            path: forge_hostspawn::sandbox_path_var(),
+            system_roots: system_roots(&os, home.as_deref())
+                .iter()
+                .map(|r| forge_hostspawn::sandbox_view(r))
+                .collect(),
             sdkman_dir: var("SDKMAN_DIR"),
             asdf_dir: var("ASDF_DATA_DIR"),
             jabba_home: var("JABBA_HOME"),

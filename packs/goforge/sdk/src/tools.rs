@@ -101,7 +101,7 @@ pub struct ToolDirs {
 impl ToolDirs {
     pub fn system(gopath: Option<&str>, goroot: Option<&Path>) -> Self {
         let var = |k: &str| {
-            std::env::var_os(k)
+            forge_hostspawn::env_var(k)
                 .filter(|v| !v.is_empty())
                 .map(PathBuf::from)
         };
@@ -118,7 +118,7 @@ impl ToolDirs {
             forge: default_tools_dir(),
             go_bins,
             sdk_bin: goroot.map(|r| r.join("bin")),
-            path: std::env::var_os("PATH")
+            path: forge_hostspawn::sandbox_path_var()
                 .map(|p| std::env::split_paths(&p).collect())
                 .unwrap_or_default(),
             windows: cfg!(windows),

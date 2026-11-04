@@ -38,7 +38,7 @@ pub struct DetectEnv {
 impl DetectEnv {
     pub fn system() -> Self {
         let var = |k: &str| {
-            std::env::var_os(k)
+            forge_hostspawn::env_var(k)
                 .filter(|v| !v.is_empty())
                 .map(PathBuf::from)
         };
@@ -53,7 +53,7 @@ impl DetectEnv {
             "/usr/local/opt/dotnet/libexec",
         ]
         .iter()
-        .map(PathBuf::from)
+        .map(|d| forge_hostspawn::sandbox_view(Path::new(d)))
         .collect();
         for k in ["ProgramFiles", "ProgramW6432"] {
             if let Some(p) = var(k) {
@@ -61,7 +61,7 @@ impl DetectEnv {
             }
         }
         DetectEnv {
-            path: std::env::var_os("PATH")
+            path: forge_hostspawn::sandbox_path_var()
                 .map(|p| std::env::split_paths(&p).collect())
                 .unwrap_or_default(),
             home: dirs::home_dir(),
@@ -265,11 +265,13 @@ pub fn detect(
 
 /// Runs a program with a timeout, outside any project (the temp folder), without a shell.
 pub fn system_runner(program: &Path, args: &[&str]) -> Option<String> {
-    let out = std::process::Command::new(program)
-        .args(args)
+    let mut cmd = std::process::Command::new(program);
+    cmd.args(args)
         .current_dir(std::env::temp_dir())
         .env("DOTNET_NOLOGO", "1")
-        .env("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
+        .env("DOTNET_CLI_TELEMETRY_OPTOUT", "1");
+    // In Flatpak dotnet runs on the host.
+    let out = forge_hostspawn::host_command(cmd)
         .stdin(std::process::Stdio::null())
         .output()
         .ok()?;

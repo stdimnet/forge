@@ -296,8 +296,10 @@ fn artisan_command(root: &Path, php: &str, args: &[String]) -> Command {
     cmd.arg("artisan")
         .args(args)
         .current_dir(root)
-        .env("NO_COLOR", "1")
-        .stdin(Stdio::null());
+        .env("NO_COLOR", "1");
+    // In Flatpak PHP runs on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdin(Stdio::null());
     cmd
 }
 

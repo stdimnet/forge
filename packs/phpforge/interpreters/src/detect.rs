@@ -77,7 +77,8 @@ impl SearchEnv {
             }
         }
         Self {
-            path_var: std::env::var("PATH").ok(),
+            // In Flatpak: the host's PATH (the interpreters run on the host).
+            path_var: forge_hostspawn::path_var().map(|p| p.to_string_lossy().into_owned()),
             home,
             windows,
             install_roots,
@@ -94,13 +95,9 @@ impl SearchEnv {
         }
         out.extend(self.dirs.iter().cloned());
         for root in &self.install_roots {
-            let Ok(entries) = std::fs::read_dir(root) else {
-                continue;
-            };
-            let mut subs: Vec<PathBuf> = entries
-                .flatten()
-                .map(|e| e.path())
-                .filter(|p| p.is_dir())
+            let mut subs: Vec<PathBuf> = forge_hostspawn::list_dir(root)
+                .into_iter()
+                .filter(|p| forge_hostspawn::is_dir(p))
                 .filter(|p| {
                     let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
                     // Version managers name folders by version; others `php*`.
@@ -134,7 +131,7 @@ pub fn is_php_name(name: &str, windows: bool) -> bool {
 }
 
 fn is_executable(path: &Path) -> bool {
-    let Ok(meta) = std::fs::metadata(path) else {
+    let Ok(meta) = forge_hostspawn::metadata(path) else {
         return false;
     };
     if !meta.is_file() {
@@ -154,18 +151,17 @@ pub fn candidates(env: &SearchEnv) -> Vec<PathBuf> {
     let mut out = Vec::new();
     let mut seen = HashSet::new();
     for dir in env.search_dirs() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        let mut found: Vec<PathBuf> = entries
-            .flatten()
-            .filter(|e| is_php_name(&e.file_name().to_string_lossy(), env.windows))
-            .map(|e| e.path())
+        let mut found: Vec<PathBuf> = forge_hostspawn::list_dir(&dir)
+            .into_iter()
+            .filter(|p| {
+                let name = p.file_name().unwrap_or_default().to_string_lossy();
+                is_php_name(&name, env.windows)
+            })
             .filter(|p| is_executable(p))
             .collect();
         found.sort();
         for path in found {
-            let real = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+            let real = forge_hostspawn::canonicalize(&path).unwrap_or_else(|_| path.clone());
             if seen.insert(real) {
                 out.push(path);
             }
@@ -193,8 +189,10 @@ pub fn detect(
 
 /// `<php> -v`, parsed; `None` when it fails or takes longer than `timeout`.
 pub fn version_of(php: &Path, timeout: Duration) -> Option<String> {
-    let mut child = Command::new(php)
-        .arg("-v")
+    let mut cmd = Command::new(php);
+    cmd.arg("-v");
+    // In Flatpak PHP runs on the host.
+    let mut child = forge_hostspawn::host_command(cmd)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

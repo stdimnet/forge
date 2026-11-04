@@ -1150,6 +1150,7 @@ dependencies = [
 name = "cforge-toolchains"
 version = "0.1.0"
 dependencies = [
+ "forge-hostspawn",
  "serde",
  "serde_json",
 ]
@@ -2130,6 +2131,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "dotnetforge-lang-dotnet",
+ "forge-hostspawn",
  "forge-langservers",
  "serde",
  "serde_json",
@@ -4393,6 +4395,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "flate2",
+ "forge-hostspawn",
  "forge-langservers",
  "goforge-lang-go",
  "serde",
@@ -5346,6 +5349,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "flate2",
+ "forge-hostspawn",
  "forge-langservers",
  "forge-lsp",
  "javaforge-lang-java",
@@ -7662,6 +7666,7 @@ dependencies = [
 name = "phpforge-fw-laravel"
 version = "0.1.0"
 dependencies = [
+ "forge-hostspawn",
  "phpforge-lang-php",
  "serde",
  "serde_json",
@@ -7700,6 +7705,7 @@ dependencies = [
 name = "phpforge-interpreters"
 version = "0.1.0"
 dependencies = [
+ "forge-hostspawn",
  "forge-runtargets",
  "serde",
  "serde_json",
@@ -8307,6 +8313,7 @@ name = "pyforge-interpreters"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-hostspawn",
  "phpforge-interpreters",
  "pyforge-lang-python",
  "serde",
@@ -8993,6 +9000,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-dap",
  "forge-debug",
+ "forge-hostspawn",
  "rubyforge-lang-ruby",
  "serde",
  "serde_json",
@@ -9175,6 +9183,7 @@ dependencies = [
  "dirs 6.0.0",
  "flate2",
  "forge-dap",
+ "forge-hostspawn",
  "forge-langservers",
  "forge-plugin-api",
  "rustforge-lang-rust",

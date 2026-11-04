@@ -412,6 +412,20 @@ pub fn path_var() -> Option<OsString> {
     std::env::var_os("PATH")
 }
 
+/// [`path_var`] with every folder as the sandbox sees it ([`sandbox_view`]), for detectors
+/// that scan the folders with plain file system calls. The executables they find may be
+/// `/run/host/…` paths; [`host_command`] starts them by their host path.
+pub fn sandbox_path_var() -> Option<OsString> {
+    let path = path_var()?;
+    if !active() {
+        return Some(path);
+    }
+    let dirs: Vec<PathBuf> = std::env::split_paths(&path)
+        .map(|d| sandbox_view(&d))
+        .collect();
+    std::env::join_paths(dirs).ok().or(Some(path))
+}
+
 /// A host environment variable (`HOME`, `JAVA_HOME`, …): from the host in Flatpak, else
 /// from this process.
 pub fn env_var(key: &str) -> Option<String> {

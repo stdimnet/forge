@@ -37,18 +37,19 @@ pub trait Probe {
 pub struct SystemProbe;
 
 impl Probe for SystemProbe {
+    // In Flatpak: the host's PATH, files and environment; compilers run on the host.
     fn path_dirs(&self) -> Vec<PathBuf> {
-        std::env::var_os("PATH")
+        forge_hostspawn::path_var()
             .map(|p| std::env::split_paths(&p).collect())
             .unwrap_or_default()
     }
 
     fn is_file(&self, path: &Path) -> bool {
-        path.is_file()
+        forge_hostspawn::is_file(path)
     }
 
     fn list(&self, dir: &Path) -> Vec<String> {
-        std::fs::read_dir(dir)
+        std::fs::read_dir(forge_hostspawn::sandbox_view(dir))
             .map(|entries| {
                 entries
                     .flatten()
@@ -63,6 +64,7 @@ impl Probe for SystemProbe {
         cmd.args(args)
             .stdin(std::process::Stdio::null())
             .env("LC_ALL", "C");
+        let mut cmd = forge_hostspawn::host_command(cmd);
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -76,7 +78,7 @@ impl Probe for SystemProbe {
     }
 
     fn var(&self, name: &str) -> Option<String> {
-        std::env::var(name).ok().filter(|v| !v.is_empty())
+        forge_hostspawn::env_var(name).filter(|v| !v.is_empty())
     }
 
     fn windows(&self) -> bool {

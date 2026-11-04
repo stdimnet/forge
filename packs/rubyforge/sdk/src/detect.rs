@@ -27,7 +27,10 @@ pub type Runner<'a> = dyn Fn(&Path, &[String]) -> Option<String> + 'a;
 /// The real runner (stdin closed, no console window on Windows).
 pub fn system_runner(program: &Path, args: &[String]) -> Option<String> {
     let mut cmd = std::process::Command::new(program);
-    cmd.args(args).stdin(std::process::Stdio::null());
+    cmd.args(args);
+    // In Flatpak Ruby runs on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdin(std::process::Stdio::null());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -87,15 +90,14 @@ impl RubyEnv {
         ]
         .iter()
         .filter_map(|k| {
-            std::env::var(k)
-                .ok()
+            forge_hostspawn::env_var(k)
                 .filter(|v| !v.is_empty())
                 .map(|v| (k.to_string(), v))
         })
         .collect();
         RubyEnv {
             home: dirs::home_dir(),
-            path: std::env::var_os("PATH")
+            path: forge_hostspawn::sandbox_path_var()
                 .map(|p| std::env::split_paths(&p).collect())
                 .unwrap_or_default(),
             vars,

@@ -21,12 +21,13 @@ pub type Runner<'a> = dyn Fn(&Path, &[String], Option<&Path>) -> Option<String> 
 /// The real runner: environment without auto-installs, stdin closed.
 pub fn system_runner(program: &Path, args: &[String], cwd: Option<&Path>) -> Option<String> {
     let mut cmd = std::process::Command::new(program);
-    cmd.args(args)
-        .env("RUSTUP_AUTO_INSTALL", "0")
-        .stdin(std::process::Stdio::null());
+    cmd.args(args).env("RUSTUP_AUTO_INSTALL", "0");
     if let Some(c) = cwd {
         cmd.current_dir(c);
     }
+    // In Flatpak cargo / rustup run on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdin(std::process::Stdio::null());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -51,12 +52,12 @@ pub struct RustEnv {
 
 impl RustEnv {
     pub fn system() -> Self {
-        let cargo_home = std::env::var_os("CARGO_HOME")
+        let cargo_home = forge_hostspawn::env_var("CARGO_HOME")
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .or_else(|| dirs::home_dir().map(|h| h.join(".cargo")));
         RustEnv {
-            path: std::env::var_os("PATH")
+            path: forge_hostspawn::sandbox_path_var()
                 .map(|p| std::env::split_paths(&p).collect())
                 .unwrap_or_default(),
             cargo_home,
