@@ -452,6 +452,10 @@ impl Backend for LocalBackend {
         self.web.call(call)
     }
 
+    fn agent_sandbox(&self, call: crate::agent_tasks::SandboxCall) -> Result<Vec<u8>> {
+        crate::agent_tasks::handle(self.root(), call)
+    }
+
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
         Ok(find_executable(self.root(), names, custom))
     }

@@ -9,6 +9,7 @@
 //!   [`protocol`]. [`rpc::RpcClient`] multiplexes calls, events and byte channels over any
 //!   stream (SSH in `crates/forge-remote`, an in-memory pipe in tests).
 
+pub mod agent_tasks;
 pub mod compare;
 pub mod frameworks;
 pub mod langservers;
@@ -441,6 +442,16 @@ pub trait Backend: Send + Sync {
     /// WebForge analysis (npm tool window, component navigation), run next to the files.
     /// The reply is the MessagePack encoding of the call's reply type; use [`web_call`].
     fn web(&self, call: WebCall) -> Result<Vec<u8>>;
+
+    /// An Agent Tasks sandbox next to the project's files (in the cache folder of the
+    /// backend's machine). The reply is the MessagePack encoding of the call's reply type;
+    /// use [`agent_tasks::sandbox_call`].
+    fn agent_sandbox(&self, call: agent_tasks::SandboxCall) -> Result<Vec<u8>> {
+        let _ = call;
+        Err(forge_core::ForgeError::Other(
+            "Agent tasks are not available for this project".into(),
+        ))
+    }
 
     /// Full path of the first of `names` found on the backend's machine (`PATH` plus the
     /// usual package manager directories). An existing `custom` path wins.
