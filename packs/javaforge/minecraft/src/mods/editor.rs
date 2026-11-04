@@ -216,11 +216,11 @@ pub fn references(kind: ModFile, text: &str) -> Vec<Located> {
         ModFile::FabricModJson => {
             for s in &strings {
                 let p: Vec<Option<&str>> = s.path.iter().map(key).collect();
-                let entrypoint = match p.as_slice() {
-                    [Some("entrypoints"), Some(_), None] => true,
-                    [Some("entrypoints"), Some(_), None, Some("value")] => true,
-                    _ => false,
-                };
+                let entrypoint = matches!(
+                    p.as_slice(),
+                    [Some("entrypoints"), Some(_), None]
+                        | [Some("entrypoints"), Some(_), None, Some("value")]
+                );
                 let mixin = matches!(
                     p.as_slice(),
                     [Some("mixins"), None] | [Some("mixins"), None, Some("config")]
