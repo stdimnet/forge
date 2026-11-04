@@ -186,6 +186,12 @@
 .ls-chip.disabled {
   color: var(--fg-faint);
 }
+.ls-chip.failed {
+  color: var(--danger);
+}
+.ls-chip.failed .ls-dot {
+  background: var(--danger);
+}
 .ls-chip-detail {
   color: var(--fg-muted);
   overflow: hidden;
@@ -318,6 +324,30 @@
 .ls-error {
   color: var(--danger);
   font-size: var(--fs-small);
+}
+.ls-start-error {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.ls-server-log {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
 }
 .ls-hint {
   margin: 0;

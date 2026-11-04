@@ -8,7 +8,7 @@ describe("language servers mock", () => {
   it("lists servers with mixed states, including the PHP pack's", async () => {
     const rows = await mockRows();
     const statuses = new Set(rows.map((r) => r.status));
-    expect(statuses).toEqual(new Set(["running", "installed", "notInstalled", "disabled"]));
+    expect(statuses).toEqual(new Set(["running", "failed", "installed", "notInstalled", "disabled"]));
     // php-lsp, the only PHP server, is built in: running, with its version instead of an install option.
     const builtin = rows.find((r) => r.id === "php-lsp")!;
     expect(builtin).toMatchObject({ status: "running", source: "php", builtinVersion: "0.1.0 (7011d4c)", install: [] });

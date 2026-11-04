@@ -4,11 +4,12 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use forge_core::paths::simplified;
 use forge_lsp::lsp_types::{
     CompletionResponse, Diagnostic, DocumentChanges, FormattingOptions, GotoDefinitionResponse,
     HoverContents, MarkedString, Position,
 };
-use forge_lsp::{Feature, LspClient, LspEvent, LspServerConfig};
+use forge_lsp::{uri_to_path, Feature, LspClient, LspEvent, LspServerConfig};
 use phpforge_lang_php::lsp::{php_lsp_config, BuiltinServer, PhpLspSettings};
 use tokio::sync::broadcast;
 
@@ -106,7 +107,7 @@ async fn diagnostics_for(
             match rx.recv().await {
                 Ok(LspEvent::Diagnostics {
                     uri, diagnostics, ..
-                }) if uri.to_file_path().ok().as_deref() == Some(file) && want(&diagnostics) => {
+                }) if uri_to_path(&uri).as_deref() == Some(file) && want(&diagnostics) => {
                     return diagnostics
                 }
                 Ok(_) | Err(broadcast::error::RecvError::Lagged(_)) => {}
@@ -138,6 +139,9 @@ fn hover_text(contents: HoverContents) -> String {
 async fn the_hidden_mode_serves_a_php_project() {
     let project = tempfile::tempdir().unwrap();
     let cache = tempfile::tempdir().unwrap();
+    // `std::fs::canonicalize`: on Windows a verbatim `\\?\C:\…` path, which forge-lsp must
+    // cope with (php-lsp answers with `file:///c%3A/…`). Answers map back to the ordinary
+    // spelling of the same paths.
     let root = project.path().canonicalize().unwrap();
     write(
         &root,
@@ -146,6 +150,7 @@ async fn the_hidden_mode_serves_a_php_project() {
     );
     let user = write(&root, "src/Models/User.php", USER);
     let service = write(&root, "src/Greeter.php", SERVICE);
+    let (user_path, service_path) = (simplified(&user), simplified(&service));
 
     let (tx, mut rx) = broadcast::channel(1024);
     let client = LspClient::start_with_events(config(cache.path()), &root, tx)
@@ -209,7 +214,7 @@ async fn the_hidden_mode_serves_a_php_project() {
         Some(loc)
     })
     .await;
-    assert_eq!(target.uri.to_file_path().unwrap(), user);
+    assert_eq!(uri_to_path(&target.uri).unwrap(), user_path);
     assert_eq!(target.range.start.line, 11);
 
     // completion after `$user->`.
@@ -229,13 +234,29 @@ async fn the_hidden_mode_serves_a_php_project() {
     .await;
     assert!(labels.len() <= 2, "{labels:?}");
 
+    // completion in a file with Windows line endings.
+    let crlf = typed.replace('\n', "\r\n");
+    client.did_change(&service, &crlf).unwrap();
+    let labels: Vec<String> = eventually(|| async {
+        let labels: Vec<String> = match client.completion(&service, at).await.ok().flatten()? {
+            CompletionResponse::Array(items) => items.into_iter().map(|i| i.label).collect(),
+            CompletionResponse::List(list) => list.items.into_iter().map(|i| i.label).collect(),
+        };
+        labels
+            .iter()
+            .any(|l| l.starts_with("displayName"))
+            .then_some(labels)
+    })
+    .await;
+    assert!(labels.len() <= 2, "{labels:?}");
+
     // diagnostics: an undefined function.
     let broken = SERVICE.replace(
         "return 'Hello '",
         "undefined_helper();\n        return 'Hello '",
     );
     client.did_change(&service, &broken).unwrap();
-    let diags = diagnostics_for(&mut rx, &service, |d| {
+    let diags = diagnostics_for(&mut rx, &service_path, |d| {
         d.iter().any(|d| d.message.contains("undefined_helper"))
     })
     .await;
@@ -272,18 +293,47 @@ async fn the_hidden_mode_serves_a_php_project() {
         let edit = client.rename(&user, decl, "label").await.ok().flatten()?;
         let mut files: Vec<PathBuf> = Vec::new();
         if let Some(changes) = &edit.changes {
-            files.extend(changes.keys().filter_map(|u| u.to_file_path().ok()));
+            files.extend(changes.keys().filter_map(uri_to_path));
         }
         if let Some(DocumentChanges::Edits(docs)) = &edit.document_changes {
             files.extend(
                 docs.iter()
-                    .filter_map(|d| d.text_document.uri.to_file_path().ok()),
+                    .filter_map(|d| uri_to_path(&d.text_document.uri)),
             );
         }
-        (files.contains(&user) && files.contains(&service)).then_some(files)
+        (files.contains(&user_path) && files.contains(&service_path)).then_some(files)
     })
     .await;
     assert_eq!(edit.len(), 2, "{edit:?}");
 
+    client.shutdown().await;
+}
+
+#[tokio::test]
+async fn deep_expressions_do_not_overflow_the_stack() {
+    // A long concatenation chain nests the syntax tree thousands of levels deep. On Windows
+    // the main thread's 1 MB stack overflowed on far less, which killed the server.
+    let project = tempfile::tempdir().unwrap();
+    let cache = tempfile::tempdir().unwrap();
+    let root = forge_core::paths::canonicalize(project.path()).unwrap();
+    let chain = vec!["'x'"; 3000].join(" . ");
+    let text = format!("<?php\n$a = {chain};\nstrlen($a);\n");
+    let file = write(&root, "deep.php", &text);
+
+    let client = LspClient::start(config(cache.path()), &root)
+        .await
+        .expect("php-lsp starts");
+    client.did_open(&file, &text).unwrap();
+    let hover = eventually(|| async {
+        client
+            .hover(&file, Position::new(2, 2))
+            .await
+            .ok()
+            .flatten()
+            .map(|h| hover_text(h.contents))
+    })
+    .await;
+    assert!(hover.contains("strlen"), "{hover}");
+    assert!(!client.has_exited());
     client.shutdown().await;
 }

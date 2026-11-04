@@ -22,6 +22,8 @@ interface MockServer {
   command: string;
   args?: string[];
   status: RowStatus;
+  /** Start error of a failed server. */
+  detail?: string;
   path?: string;
   inProject?: boolean;
   install: Install[];
@@ -34,6 +36,10 @@ interface MockServer {
 }
 
 const HOME = "/home/marlon";
+
+/** Start error of the demo's failed server (LemMinX without Java). */
+const LEMMINX_ERROR =
+  "server exited during startup (exit code: 127): /usr/bin/env: 'java': No such file or directory";
 const MANAGED = `${HOME}/.local/share/forge/langservers`;
 const npm = (pkgs: string): Install => ["npm", `npm install --prefix ${MANAGED} --no-fund --no-audit ${pkgs}`];
 const brew = (pkg: string): Install => ["brew", `brew install ${pkg}`];
@@ -54,7 +60,7 @@ const servers: MockServer[] = [
   { id: "vscode-json-language-server", name: "JSON Language Server", group: "JSON", languages: ["JSON"], command: "vscode-json-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/vscode-json-language-server`, inProject: true, install: [npm("vscode-langservers-extracted"), brew("vscode-langservers-extracted")], note: "Validates composer.json, package.json, tsconfig.json and more with schemas from SchemaStore (downloaded by the server)." },
   { id: "yaml-language-server", name: "YAML Language Server", group: "YAML", languages: ["YAML", "Docker Compose"], command: "yaml-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/yaml-language-server`, inProject: true, install: [npm("yaml-language-server"), brew("yaml-language-server"), pacman("yaml-language-server")], note: "Schemas for GitHub Actions, docker-compose and Kubernetes manifests (in k8s/, kubernetes/, deploy/ or manifests/)." },
   { id: "taplo", name: "Taplo (TOML)", group: "TOML", languages: ["TOML"], command: "taplo", args: ["lsp", "stdio"], status: "notInstalled", install: [["cargo", "cargo install --locked taplo-cli"], npm("@taplo/cli"), brew("taplo"), pacman("taplo-cli")], skip: { reason: "notInProject" } },
-  { id: "lemminx", name: "LemMinX (XML)", group: "XML", languages: ["XML"], command: "lemminx", status: "notInstalled", inProject: true, install: [download("https://github.com/redhat-developer/vscode-xml/releases"), brew("lemminx")], license: "EPL-2.0", note: "Validates phpunit.xml, Maven POMs and any XML with an XSD or DTD. Needs Java unless you use the native binary." },
+  { id: "lemminx", name: "LemMinX (XML)", group: "XML", languages: ["XML"], command: "lemminx", status: "failed", path: `${HOME}/.local/bin/lemminx`, detail: LEMMINX_ERROR, inProject: true, install: [download("https://github.com/redhat-developer/vscode-xml/releases"), brew("lemminx")], license: "EPL-2.0", note: "Validates phpunit.xml, Maven POMs and any XML with an XSD or DTD. Needs Java unless you use the native binary." },
   { id: "marksman", name: "Marksman (Markdown)", group: "Markdown", languages: ["Markdown"], command: "marksman", args: ["server"], status: "installed", path: "/home/linuxbrew/.linuxbrew/bin/marksman", inProject: true, install: [brew("marksman"), pacman("marksman"), download("https://github.com/artempyanykh/marksman/releases")] },
   { id: "docker-langserver", name: "Dockerfile Language Server", group: "Docker", languages: ["Dockerfile"], command: "docker-langserver", args: ["--stdio"], status: "notInstalled", install: [npm("dockerfile-language-server-nodejs")], skip: { reason: "notInProject" } },
   { id: "docker-compose-langserver", name: "Docker Compose Language Service", group: "Docker", languages: ["Docker Compose"], command: "docker-compose-langserver", args: ["--stdio"], status: "notInstalled", inProject: true, install: [npm("@microsoft/compose-language-service")] },
@@ -150,7 +156,7 @@ function toRow(s: MockServer, values: Record<string, SettingValue>): ServerRow {
     enabled,
     defaultEnabled: true,
     status,
-    detail: s.id === "typescript-language-server" && status === "running" ? tsDetail : null,
+    detail: s.id === "typescript-language-server" && status === "running" ? tsDetail : status === "failed" ? (s.detail ?? null) : null,
     path,
     customPath,
     inProject: s.inProject ?? false,
@@ -170,6 +176,23 @@ export async function mockRows(): Promise<ServerRow[]> {
 }
 
 registerMock("langservers_list", () => mockRows());
+
+/** Server logs: how a server started, its stderr and, for the failed demo server, why it ended. */
+registerMock("lsp_server_log", ({ id }) => {
+  const s = servers.find((x) => x.id === id);
+  if (!s || (s.status !== "running" && s.status !== "failed")) return [];
+  const command = [s.path ?? s.command, ...(s.args ?? [])].join(" ");
+  const start = `[forge] Starting ${command} in ${HOME}/Projects/acme-shop`;
+  if (s.status === "failed") {
+    return [
+      start,
+      "[stderr] /usr/bin/env: 'java': No such file or directory",
+      "[forge] The server exited.",
+      `[forge] Failed to start: ${s.detail ?? "server exited during startup"}`,
+    ];
+  }
+  return [start, `[server] ${s.name} started`];
+});
 registerMock("langservers_apply", async () => {
   emitMock("langservers://changed", null);
   return mockRows();

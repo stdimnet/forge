@@ -5382,8 +5382,9 @@ icon) searches for executables again.
 Each row has:
 
 - an **Enabled** checkbox (`langservers.servers.<id>.enabled`);
-- the **Status**: Running (with indexing progress), Installed, Not found, Disabled, or why a
-  server is skipped (for example a server of the same alternative group already running);
+- the **Status**: Running (with indexing progress), Failed to start, Installed, Not found,
+  Disabled, or why a server is skipped (for example a server of the same alternative group
+  already running);
 - the **Path** where it was found, or an **Install…** button.
 
 Select a row to see its details:
@@ -5397,6 +5398,10 @@ Select a row to see its details:
 | Executable | a custom path to the executable (`langservers.servers.<id>.path`); empty = detect automatically |
 | Extra settings (JSON) | merged into the server's settings (`langservers.servers.<id>.settings`); put startup options under an `"initializationOptions"` key. **Show Defaults** shows what Forge sends by default. |
 | Install | the ways to install it |
+| Error | why the last start failed (only for **Failed to start**): the start error (`could not start …: The system cannot find the file specified`), or the exit code and the last lines the server wrote to stderr when it quit during startup |
+| Log | **Show Log** shows the server's log for this project: the command line and folder it was started with, what it wrote to stderr, its log messages, start errors and exits (the last 500 lines; kept in memory, not in a file) |
+
+![A server that failed to start, with its error and log](docs/screenshots/language-servers-failed.png)
 
 ### Where Forge looks for servers
 
@@ -29808,6 +29813,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | `error.rs` |  |
 | `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
+| `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
 | `settings.rs` | Layered settings: built-in defaults < user < Settings for New Projects (`SettingsScope::NewProjects`, `new-project-settings.toml`) < project. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes); `parse_settings_toml` / `settings_to_toml` convert between flat keys and the nested files (settings archives). |
@@ -31973,6 +31979,16 @@ Forge's generic Language Server Protocol client.
   closes the socket.
 
 Nothing here is language specific; language packs contribute `LspServerConfig`s.
+
+**Windows.** `path_to_uri` gives every Windows path one URI spelling (`file:///C:/work/a.php`:
+no verbatim `\\?\` prefix, upper-case drive), and `normalize_uri` brings the URIs servers send
+to it (php-lsp answers `file:///c%3A/work/a.php`; `file:////?/C:/…` and `file:////%3F/C%3A/…`
+are understood too), so diagnostics, locations and edits map back to project paths.
+`uri_to_path` and `path_to_uri` also handle POSIX paths of a remote project on a Windows
+client. `LocalLauncher` starts servers with `CREATE_NO_WINDOW` (no console window per server)
+and resolves `.cmd` / `.bat` shims through `PATHEXT`; a failed spawn names the resolved
+program and the reason, and an exit during startup gets its exit code explained (for example
+`0xc0000135`, a missing DLL).
 `LspClient::update_settings` merges later changes (the code style options before Reformat
 Code, `LspManager::format`'s `settings`) into a server's settings, pushes them with
 `workspace/didChangeConfiguration` and answers later `workspace/configuration` requests with
@@ -31987,22 +32003,27 @@ them.
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
 | `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. `tcp://host:port` commands connect to a server that already listens (tested with the fake server bridged to a loopback socket). |
+| `log.rs` | `ServerLog`: the in-memory log of one server (the last 500 lines): how Forge started it, its stderr, `window/logMessage`, start errors and exits. `LspManager::server_log(id)` returns it (IPC `lsp_server_log`, Settings › Language Servers › **Show Log**); it survives restarts and failed starts. A start that fails during `initialize` is explained with the exit status and the last stderr lines (`log::explain`). |
 | `manager.rs` | Routes files to language servers: one server per registered config, started lazily the first time a matching file is used. |
 | `model.rs` | Editor-friendly views of LSP results. |
 
 ## Main public items
 
 ```rust
-pub use client::{path_to_uri, uri_to_path, LspClient, LspEvent, ServerState};
+pub use client::{
+    normalize_file_uri, normalize_uri, path_to_uri, uri_to_path, Feature, LspClient, LspEvent,
+    ServerState,
+};
 pub use config::{find_on_path, LspServerConfig};
 pub use launch::{LocalLauncher, ServerIo, ServerLauncher, ServerProcess};
+pub use log::{LogSource, ServerLog};
 pub use lsp_types;
 pub use manager::{LspManager, ServerStatus, COMPLETION_SERVER_KEY};
 ```
 
 ## Used by
 
-- IPC: `lsp_did_open`, `lsp_did_change`, `lsp_did_save`, `lsp_did_close`, `lsp_hover`, `lsp_completion`, `lsp_completion_resolve`, `lsp_definition`, `lsp_references`, `lsp_document_symbols`, `lsp_signature_help`, `lsp_format`, `lsp_status`, `lsp_register_server` (`app/src-tauri/src/commands/lsp.rs`)
+- IPC: `lsp_did_open`, `lsp_did_change`, `lsp_did_save`, `lsp_did_close`, `lsp_hover`, `lsp_completion`, `lsp_completion_resolve`, `lsp_definition`, `lsp_references`, `lsp_document_symbols`, `lsp_signature_help`, `lsp_format`, `lsp_status`, `lsp_server_log`, `lsp_register_server` (`app/src-tauri/src/commands/lsp.rs`)
 - UI: `app/ui/src/features/lsp`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -36477,6 +36498,12 @@ start. Otherwise it announces the executable to `phpforge-lang-php`
 --stdio` through forge-lsp like any other server. Transport, restarts, Safe Mode, remote
 projects (the agent runs its own copy on the host) and the Language Servers UI work unchanged.
 
+`run_stdio` runs the server on a thread with a 64 MB stack (`SERVER_STACK`) and sets
+`RUST_MIN_STACK` to 16 MB (`WORKER_STACK`) for php-lsp's own threads, unless the environment
+sets it. php-lsp's parser and type inference recurse over the syntax tree; the main thread of a
+Windows program has a 1 MB stack (8 MB on Linux), and long expression chains overflowed it there,
+which killed the server.
+
 The in-process `php_lsp::Embedded` was not used: a server bug would take the IDE down, and the
 LSP client would need a second, in-memory transport.
 
@@ -36501,7 +36528,14 @@ through JSON-RPC, so the versions never meet.
 - `tests/server.rs` starts the test host `phpforge-builtin-lsp-host` (`tests/support/host.rs`,
   never shipped) through forge-lsp's `LspClient` with the configuration Forge builds from its
   PHP settings, on a small project in a temporary folder: initialize (capabilities), hover,
-  cross-file definition, completion, diagnostics, formatting and rename. No network.
+  cross-file definition, completion (also on CRLF text), diagnostics, formatting and rename,
+  with a root from `std::fs::canonicalize` (a verbatim `\\?\C:\…` path on Windows). The test
+  host is a GUI-subsystem program on Windows, like a release build of Forge. A second test opens
+  a file with a 3000-part concatenation chain (deep syntax tree) and expects the server to
+  survive.
+- The tests also run as a Windows build: `cargo xwin test --target x86_64-pc-windows-msvc -p
+  phpforge-builtin-lsp --no-run`, then run `target/x86_64-pc-windows-msvc/debug/deps/server-*.exe`
+  under Wine or on Windows.
 
 
 ---
@@ -37867,6 +37901,14 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
    ESLint, Tailwind and Angular the project must use them.
 
+### Why did a server fail?
+
+Settings | Languages & Frameworks | Language Servers shows a failed server as **Failed to
+start**. Select its row: **Error** says why (the start error, or the exit code and the last
+stderr lines of a server that quit during startup), and **Show Log** shows its log (command
+line, project folder, stderr, log messages, exits). Copy both into a bug report. The status bar
+widget shows the same error in its tooltip.
+
 ### No completion in PHP at all
 
 PHP's language server, php-lsp, is built into Forge and starts when a PHP project opens. Check
@@ -37874,6 +37916,28 @@ that the PHP plugin is enabled (Settings | Plugins) and that Settings | Language
 PHP shows **php-lsp (built-in)** with a version, and look at the language server widget in the
 status bar. Earlier versions could run Intelephense or Phpactor instead; that choice
 (`php.lsp.server`) is ignored now.
+
+## Windows
+
+### Language servers on Windows
+
+Release builds of Forge for Windows run without a console, so nothing Forge or a language
+server prints appears in a terminal, even when you start `forge.exe` from one. To see what a
+server did:
+
+1. Open Settings | Languages & Frameworks | Language Servers (`Ctrl+Alt+S`). The php-lsp row is
+   in the **PHP** group; it should say **Running** once a PHP file is open.
+2. If a row says **Failed to start**, select it. **Error** is the reason, **Show Log** the
+   server's log: the command line (for php-lsp `forge.exe --php-lsp --stdio`), the project
+   folder, stderr and exits. Large exit codes are Windows status codes, explained in the error,
+   for example `0xc0000135` (a DLL is missing) or `0xc00000fd` (stack overflow).
+3. **Running** but no completion: check that the file belongs to the open project (files
+   outside it are not sent to the servers) and look at the log for errors after the start.
+
+php-lsp needs nothing installed: it is `forge.exe` itself, started a second time. Security
+software that blocks a program from starting itself again stops it; allow `forge.exe` there.
+Catalog servers installed with npm are `.cmd` files; Forge finds them through `PATHEXT` and
+starts them without a console window.
 
 ## Keychain on Linux
 

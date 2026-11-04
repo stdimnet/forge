@@ -33,6 +33,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 use crate::config::LspServerConfig;
 use crate::framing;
 use crate::launch::{LocalLauncher, ServerLauncher, ServerProcess};
+use crate::log::{explain, LogSource, ServerLog};
 
 /// Default time to wait for a response before giving up.
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -151,6 +152,8 @@ struct Inner {
     overrides: Mutex<Value>,
     /// The server process ended (crashed, was killed or quit) without being shut down.
     exited: AtomicBool,
+    /// Start, stderr, log messages and exit of the server.
+    log: ServerLog,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -159,15 +162,140 @@ pub struct LspClient {
     inner: Arc<Inner>,
 }
 
-/// Convert a file path into a `file://` URI.
+/// Convert a file path into a `file://` URI. Windows paths lose their verbatim `\\?\`
+/// prefix and get an upper-case drive letter (`file:///C:/work/a.php`), the spelling
+/// [`normalize_uri`] gives the URIs servers send back.
+///
+/// `/var/www/a.php` works on Windows too: the path of a remote project's file on its Linux
+/// host.
 pub fn path_to_uri(path: &Path) -> Result<Url> {
-    Url::from_file_path(path)
-        .map_err(|_| ForgeError::Other(format!("not an absolute path: {}", path.display())))
+    let path = forge_core::paths::simplified(path);
+    Url::from_file_path(&path)
+        .ok()
+        .or_else(|| path.to_str().and_then(posix_path_to_uri))
+        .map(|u| normalize_uri(&u))
+        .ok_or_else(|| ForgeError::Other(format!("not an absolute path: {}", path.display())))
 }
 
-/// Convert a `file://` URI back into a path.
+/// Convert a `file://` URI back into a path (any spelling [`normalize_uri`] accepts).
+/// `file:///var/www/a.php` gives `/var/www/a.php` on Windows too (a remote project's file).
 pub fn uri_to_path(uri: &Url) -> Option<PathBuf> {
-    uri.to_file_path().ok()
+    let uri = normalize_uri(uri);
+    uri.to_file_path()
+        .ok()
+        .or_else(|| uri_to_posix_path(&uri).map(PathBuf::from))
+        .map(|p| forge_core::paths::simplified(&p))
+}
+
+/// `file:///var/www/a%20b.php` for `/var/www/a b.php`, on any platform (`Url::from_file_path`
+/// refuses such paths on Windows, where they are not absolute).
+pub fn posix_path_to_uri(path: &str) -> Option<Url> {
+    if !path.starts_with('/') || path.starts_with("//") {
+        return None;
+    }
+    let mut url = Url::parse("file:///").ok()?;
+    url.set_path(path);
+    Some(url)
+}
+
+/// `/var/www/a b.php` for `file:///var/www/a%20b.php`, on any platform; `None` for URIs with
+/// a host or a drive letter.
+pub fn uri_to_posix_path(uri: &Url) -> Option<String> {
+    if uri.scheme() != "file" || uri.host_str().is_some_and(|h| !h.is_empty()) {
+        return None;
+    }
+    let path = percent_decode(uri.path())?;
+    let b = path.as_bytes();
+    if b.len() >= 3 && b[2] == b':' && b[1].is_ascii_alphabetic() {
+        return None;
+    }
+    Some(path)
+}
+
+fn percent_decode(s: &str) -> Option<String> {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).ok()?;
+            if let Ok(b) = u8::from_str_radix(hex, 16) {
+                out.push(b);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8(out).ok()
+}
+
+/// One spelling for every `file://` URI of a Windows file, so URIs from servers compare
+/// equal to Forge's own and map back to the project's paths. Servers write the drive in
+/// many ways: php-lsp sends `file:///c%3A/work/a.php`, others `file:///c:/…`, and paths
+/// with the verbatim prefix become `file:////?/C:/…`. All of them become
+/// `file:///C:/work/a.php` (`file://server/share/…` for UNC paths). Other URIs are
+/// returned unchanged.
+pub fn normalize_uri(uri: &Url) -> Url {
+    match normalize_file_uri(uri.as_str()) {
+        Some(fixed) => Url::parse(&fixed).unwrap_or_else(|_| uri.clone()),
+        None => uri.clone(),
+    }
+}
+
+/// The string form of [`normalize_uri`]: `None` when `uri` is already normal (or not a
+/// `file://` URI). Works on any platform.
+pub fn normalize_file_uri(uri: &str) -> Option<String> {
+    let rest = uri
+        .strip_prefix("file://")
+        .or_else(|| uri.strip_prefix("FILE://"))?;
+    // `file:` URIs with a host (`file://server/share`) are UNC paths already.
+    let mut path = rest.strip_prefix('/')?.to_string();
+    let mut host = String::new();
+    // A verbatim prefix kept in the URI: `file:////?/C:/…`, `file:////%3F/C%3A/…` (php-lsp's
+    // spelling of `\\?\C:\…`), `file:////?/UNC/server/share/…`.
+    for verbatim in ["/?/", "/%3F/", "/%3f/"] {
+        if let Some(after) = path.strip_prefix(verbatim) {
+            path = after.to_string();
+            if let Some(unc) = path
+                .strip_prefix("UNC/")
+                .or_else(|| path.strip_prefix("unc/"))
+            {
+                let (server, tail) = unc.split_once('/').unwrap_or((unc, ""));
+                host = server.to_string();
+                path = tail.to_string();
+            }
+            break;
+        }
+    }
+    // The drive: `c:`, `C%3A`, `c%3a` → `C:`.
+    let b = path.as_bytes();
+    if host.is_empty() && !b.is_empty() && b[0].is_ascii_alphabetic() {
+        let after = if b.get(1) == Some(&b':') {
+            Some(2)
+        } else if path.len() >= 4 && path[1..4].eq_ignore_ascii_case("%3A") {
+            Some(4)
+        } else {
+            None
+        };
+        if let Some(after) = after {
+            let tail = &path[after..];
+            if tail.is_empty() || tail.starts_with('/') {
+                path = format!(
+                    "{}:{}",
+                    (b[0] as char).to_ascii_uppercase(),
+                    if tail.is_empty() { "/" } else { tail }
+                );
+            }
+        }
+    }
+    let fixed = if host.is_empty() {
+        format!("file:///{path}")
+    } else {
+        format!("file://{host}/{path}")
+    };
+    (fixed != uri).then_some(fixed)
 }
 
 fn other(e: impl std::fmt::Display) -> ForgeError {
@@ -190,16 +318,47 @@ impl LspClient {
         Self::start_with_launcher(config, root, events, &LocalLauncher).await
     }
 
-    /// Like [`start_with_events`](Self::start_with_events) but lets `launcher` start the
-    /// server process (e.g. on a remote development host).
+    /// Like [`start_with_logged`](Self::start_with_logged), with a log of its own.
     pub async fn start_with_launcher(
         config: LspServerConfig,
         root: impl AsRef<Path>,
         events: broadcast::Sender<LspEvent>,
         launcher: &dyn ServerLauncher,
     ) -> Result<Self> {
-        let root = root.as_ref().to_path_buf();
-        let io = launcher.launch(&config, &root).await?;
+        Self::start_with_logged(config, root, events, launcher, ServerLog::new()).await
+    }
+
+    /// Like [`start_with_events`](Self::start_with_events) but lets `launcher` start the
+    /// server process (e.g. on a remote development host), and writes the start, the
+    /// server's stderr and log messages and its exit to `log`. A failed start explains
+    /// itself: the error names the launch error, or the exit status and the last stderr
+    /// lines of a server that quit during `initialize`.
+    pub async fn start_with_logged(
+        config: LspServerConfig,
+        root: impl AsRef<Path>,
+        events: broadcast::Sender<LspEvent>,
+        launcher: &dyn ServerLauncher,
+        log: ServerLog,
+    ) -> Result<Self> {
+        let root = forge_core::paths::simplified(root.as_ref());
+        log.push(
+            LogSource::Forge,
+            &format!(
+                "Starting {} in {}",
+                std::iter::once(config.command.as_str())
+                    .chain(config.args.iter().map(String::as_str))
+                    .collect::<Vec<_>>()
+                    .join(" "),
+                root.display()
+            ),
+        );
+        let io = match launcher.launch(&config, &root).await {
+            Ok(io) => io,
+            Err(e) => {
+                log.push(LogSource::Forge, &format!("Failed to start: {e}"));
+                return Err(e);
+            }
+        };
         let stdin = io.stdin;
         let stdout = io.stdout;
         let stderr = io.stderr;
@@ -222,6 +381,7 @@ impl LspClient {
                 parent_pid: io.parent_pid,
                 overrides: Mutex::new(Value::Null),
                 exited: AtomicBool::new(false),
+                log: log.clone(),
             }),
         };
         client.set_state(ServerState::Starting);
@@ -236,15 +396,21 @@ impl LspClient {
             }
         });
 
-        // Server stderr goes to our log.
+        // Server stderr goes to the server log (and the tracing log).
+        let (stderr_done_tx, stderr_done) = oneshot::channel::<()>();
         if let Some(stderr) = stderr {
             let id = client.id().to_string();
+            let log = log.clone();
             tokio::spawn(async move {
                 let mut lines = BufReader::new(stderr).lines();
                 while let Ok(Some(line)) = lines.next_line().await {
                     tracing::debug!(target: "forge_lsp::stderr", server = %id, "{line}");
+                    log.push(LogSource::Stderr, &line);
                 }
+                let _ = stderr_done_tx.send(());
             });
+        } else {
+            drop(stderr_done_tx);
         }
 
         // Reader: dispatches responses, notifications and server requests.
@@ -270,6 +436,7 @@ impl LspClient {
         });
 
         if let Err(e) = client.initialize().await {
+            let e = client.explain_failure(e, stderr_done).await;
             client.set_state(ServerState::Failed {
                 error: e.to_string(),
             });
@@ -277,6 +444,43 @@ impl LspClient {
             return Err(e);
         }
         Ok(client)
+    }
+
+    /// `error` of a failed `initialize`, with the exit status and the last stderr lines when
+    /// the server quit (a crash, a missing library, a bad argument).
+    async fn explain_failure(
+        &self,
+        error: ForgeError,
+        stderr_done: oneshot::Receiver<()>,
+    ) -> ForgeError {
+        // Give a dying server a moment to exit and its stderr to drain.
+        let _ = tokio::time::timeout(Duration::from_millis(1500), stderr_done).await;
+        let mut status = None;
+        for _ in 0..10 {
+            status = match self.inner.process.lock().await.as_mut() {
+                Some(p) => p.exit_status(),
+                None => None,
+            };
+            if status.is_some() || !self.has_exited() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        let tail = self.inner.log.stderr_tail(5);
+        let error = if status.is_none() && tail.is_empty() {
+            error
+        } else {
+            ForgeError::Other(explain(&error.to_string(), status.as_deref(), &tail))
+        };
+        self.inner
+            .log
+            .push(LogSource::Forge, &format!("Failed to start: {error}"));
+        error
+    }
+
+    /// The server's log (start, stderr, log messages, exit).
+    pub fn log(&self) -> &ServerLog {
+        &self.inner.log
     }
 
     pub fn id(&self) -> &str {
@@ -519,7 +723,8 @@ impl LspClient {
                 {
                     let _ = self.inner.events.send(LspEvent::Diagnostics {
                         server_id: self.id().to_string(),
-                        uri: p.uri,
+                        // The URI as Forge spells it, so it matches the open document.
+                        uri: normalize_uri(&p.uri),
                         version: p.version,
                         diagnostics: p.diagnostics,
                     });
@@ -535,6 +740,7 @@ impl LspClient {
                     .unwrap_or_default()
                     .to_string();
                 tracing::debug!(server = %self.id(), level, "{message}");
+                self.inner.log.push(LogSource::Server, &message);
                 let _ = self.inner.events.send(LspEvent::Log {
                     server_id: self.id().to_string(),
                     level,
@@ -647,6 +853,11 @@ impl LspClient {
         let previous = self.state();
         if previous != ServerState::Stopped {
             self.inner.exited.store(true, Ordering::SeqCst);
+            let how = match &error {
+                Some(e) => format!("The server exited: {e}"),
+                None => "The server exited.".to_string(),
+            };
+            self.inner.log.push(LogSource::Forge, &how);
         }
         let state = match (error, previous) {
             (_, ServerState::Stopped) => ServerState::Stopped,
@@ -1400,6 +1611,104 @@ fn client_capabilities() -> Value {
             }
         }
     })
+}
+
+#[cfg(test)]
+mod uri_tests {
+    use super::*;
+
+    fn norm(uri: &str) -> String {
+        normalize_file_uri(uri).unwrap_or_else(|| uri.to_string())
+    }
+
+    #[test]
+    fn windows_drive_uris_get_one_spelling() {
+        // php-lsp: encoded colon, lower-case drive.
+        assert_eq!(
+            norm("file:///c%3A/work/shop/src/User.php"),
+            "file:///C:/work/shop/src/User.php"
+        );
+        assert_eq!(norm("file:///c%3a/work"), "file:///C:/work");
+        assert_eq!(norm("file:///d:/a%20b/x.php"), "file:///D:/a%20b/x.php");
+        assert_eq!(norm("file:///c%3A"), "file:///C:/");
+        // Verbatim paths that slipped into a URI.
+        assert_eq!(norm("file:////?/C:/work/a.php"), "file:///C:/work/a.php");
+        assert_eq!(
+            norm("file:////%3F/C%3A/work/a.php"),
+            "file:///C:/work/a.php"
+        );
+        assert_eq!(
+            norm("file:////?/UNC/server/share/a.php"),
+            "file://server/share/a.php"
+        );
+        // Already normal, or nothing to do with drives.
+        assert_eq!(normalize_file_uri("file:///C:/work/a.php"), None);
+        assert_eq!(normalize_file_uri("file:///home/me/a.php"), None);
+        assert_eq!(normalize_file_uri("file:///c/work"), None);
+        assert_eq!(normalize_file_uri("file:///cd:/x"), None);
+        assert_eq!(normalize_file_uri("file://server/share/a.php"), None);
+        assert_eq!(normalize_file_uri("untitled:Untitled-1"), None);
+        assert_eq!(normalize_file_uri("jdt://contents/x"), None);
+    }
+
+    #[test]
+    fn server_and_forge_uris_compare_equal() {
+        let ours = Url::parse("file:///C:/work/shop/a.php").unwrap();
+        let php_lsp = Url::parse("file:///c%3A/work/shop/a.php").unwrap();
+        assert_eq!(normalize_uri(&php_lsp), ours);
+        assert_eq!(normalize_uri(&ours), ours);
+    }
+
+    #[test]
+    fn posix_paths_work_as_uris_on_every_platform() {
+        let uri = posix_path_to_uri("/var/www/my shop/a.php").unwrap();
+        assert_eq!(uri.as_str(), "file:///var/www/my%20shop/a.php");
+        assert_eq!(
+            uri_to_posix_path(&uri).as_deref(),
+            Some("/var/www/my shop/a.php")
+        );
+        assert_eq!(posix_path_to_uri("relative/a.php"), None);
+        assert_eq!(
+            uri_to_posix_path(&Url::parse("file:///C:/work/a.php").unwrap()),
+            None
+        );
+        assert_eq!(
+            uri_to_posix_path(&Url::parse("file://server/share/a.php").unwrap()),
+            None
+        );
+    }
+
+    #[test]
+    fn paths_round_trip_through_uris() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("my project").join("a.php");
+        let uri = path_to_uri(&file).unwrap();
+        assert_eq!(
+            uri_to_path(&uri).unwrap(),
+            forge_core::paths::simplified(&file)
+        );
+        // The verbatim spelling Windows' canonicalize returns maps to the same URI.
+        let canonical = dir.path().canonicalize().unwrap().join("a.php");
+        assert_eq!(
+            path_to_uri(&canonical).unwrap(),
+            path_to_uri(&forge_core::paths::simplified(&canonical)).unwrap()
+        );
+        #[cfg(windows)]
+        {
+            let uri = path_to_uri(Path::new(r"\\?\C:\work\a.php")).unwrap();
+            assert_eq!(uri.as_str(), "file:///C:/work/a.php");
+            let back = uri_to_path(&Url::parse("file:///c%3A/work/a.php").unwrap()).unwrap();
+            assert_eq!(back, PathBuf::from(r"C:\work\a.php"));
+            assert_eq!(
+                path_to_uri(Path::new("/var/www/a.php")).unwrap().as_str(),
+                "file:///var/www/a.php"
+            );
+            assert_eq!(
+                uri_to_path(&Url::parse("file:///var/www/a.php").unwrap()).unwrap(),
+                PathBuf::from("/var/www/a.php")
+            );
+        }
+    }
 }
 
 #[cfg(test)]

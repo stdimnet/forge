@@ -7587,6 +7587,7 @@ dependencies = [
 name = "phpforge-builtin-lsp"
 version = "0.1.0"
 dependencies = [
+ "forge-core",
  "forge-lsp",
  "php-lsp",
  "phpforge-lang-php",

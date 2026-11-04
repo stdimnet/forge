@@ -6,7 +6,7 @@
 import { invoke, listen } from "./index";
 import type { LspRange } from "./lsp";
 
-export type RowStatus = "running" | "installed" | "notInstalled" | "disabled";
+export type RowStatus = "running" | "failed" | "installed" | "notInstalled" | "disabled";
 
 export type SkipReason =
   | { reason: "autoStartOff" }
