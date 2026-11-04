@@ -16,6 +16,7 @@ import { validateName, joinPath } from "@/features/new-project/wizard";
 import { demoProjectName } from "./demoProject";
 import { setSetting } from "./settingsMock";
 import generators from "./projectGenerators.json";
+import { minecraftFiles } from "./minecraftMock";
 
 const gens = generators as unknown as Generator[];
 
@@ -153,7 +154,17 @@ export function mockPlan(args: CreateArgs): Plan {
   };
 }
 
-registerMock("project_plan", (args) => mockPlan(args as unknown as CreateArgs));
+registerMock("project_plan", async (raw) => {
+  const args = raw as unknown as CreateArgs;
+  const plan = mockPlan(args);
+  // The Minecraft Plugin generator computes its files in Rust (WebAssembly).
+  if (args.generator === "minecraft-plugin") {
+    const { files, error } = await minecraftFiles(args);
+    plan.files = files;
+    plan.error = plan.error ?? error;
+  }
+  return plan;
+});
 
 /** Simulated tool output per generator, so the progress view looks realistic. */
 function outputFor(gen: string, name: string): string[] {

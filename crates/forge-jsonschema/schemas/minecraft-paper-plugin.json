@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-paper-plugin.json",
+  "title": "Paper paper-plugin.yml",
+  "type": "object",
+  "required": [
+    "name",
+    "version",
+    "main",
+    "api-version"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9 _.-]+$",
+      "description": "The plugin's name: letters, digits, '_', '-' and '.'."
+    },
+    "version": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "The plugin's version."
+    },
+    "main": {
+      "type": "string",
+      "pattern": "^([A-Za-z_$][A-Za-z0-9_$]*\\.)+[A-Za-z_$][A-Za-z0-9_$]*$",
+      "description": "The fully qualified name of the plugin's main class."
+    },
+    "description": {
+      "type": "string",
+      "description": "A short description of what the plugin does."
+    },
+    "api-version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "The Minecraft API version the plugin is written for, e.g. 1.21. Without it Spigot / Paper treat the plugin as legacy (pre-1.13)."
+    },
+    "load": {
+      "type": "string",
+      "enum": [
+        "STARTUP",
+        "POSTWORLD"
+      ],
+      "description": "When the plugin loads: STARTUP (before the worlds) or POSTWORLD (the default, after them)."
+    },
+    "author": {
+      "type": "string",
+      "description": "The plugin's author."
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The plugin's authors."
+    },
+    "contributors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Contributors besides the authors."
+    },
+    "website": {
+      "type": "string",
+      "description": "The plugin's or author's website."
+    },
+    "prefix": {
+      "type": "string",
+      "description": "The name the plugin's logger uses instead of its name."
+    },
+    "provides": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Other plugin names this plugin provides (for dependencies)."
+    },
+    "folia-supported": {
+      "type": "boolean",
+      "description": "The plugin supports Folia's regionized multithreading (Folia refuses plugins without it)."
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Permissions the plugin defines.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What the permission allows."
+          },
+          "default": {
+            "description": "Who has the permission by default.",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "true",
+                  "false",
+                  "op",
+                  "not op",
+                  "!op",
+                  "notop",
+                  "isop",
+                  "admin",
+                  "!admin",
+                  "noop"
+                ]
+              }
+            ]
+          },
+          "children": {
+            "description": "Child permissions: true grants, false revokes them with this one.",
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "bootstrapper": {
+      "type": "string",
+      "pattern": "^([A-Za-z_$][A-Za-z0-9_$]*\\.)+[A-Za-z_$][A-Za-z0-9_$]*$",
+      "description": "A PluginBootstrap class that runs before the server starts."
+    },
+    "loader": {
+      "type": "string",
+      "pattern": "^([A-Za-z_$][A-Za-z0-9_$]*\\.)+[A-Za-z_$][A-Za-z0-9_$]*$",
+      "description": "A PluginLoader class that sets up the plugin's class path (libraries)."
+    },
+    "has-open-classloader": {
+      "type": "boolean",
+      "description": "Other plugins may access this plugin's classes."
+    },
+    "default-permission": {
+      "description": "Who has the permission by default.",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "op",
+            "not op",
+            "!op",
+            "notop",
+            "isop",
+            "admin",
+            "!admin",
+            "noop"
+          ]
+        }
+      ]
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Dependencies on other plugins, for the bootstrap and the server phase.",
+      "properties": {
+        "bootstrap": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "load": {
+                "type": "string",
+                "enum": [
+                  "BEFORE",
+                  "AFTER",
+                  "OMIT"
+                ],
+                "description": "Load the dependency before or after this plugin, or OMIT for no order."
+              },
+              "required": {
+                "type": "boolean",
+                "description": "The plugin does not load without the dependency (default true)."
+              },
+              "join-classpath": {
+                "type": "boolean",
+                "description": "This plugin can use the dependency's classes (default true)."
+              }
+            }
+          },
+          "description": "Dependencies of the bootstrapper."
+        },
+        "server": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "load": {
+                "type": "string",
+                "enum": [
+                  "BEFORE",
+                  "AFTER",
+                  "OMIT"
+                ],
+                "description": "Load the dependency before or after this plugin, or OMIT for no order."
+              },
+              "required": {
+                "type": "boolean",
+                "description": "The plugin does not load without the dependency (default true)."
+              },
+              "join-classpath": {
+                "type": "boolean",
+                "description": "This plugin can use the dependency's classes (default true)."
+              }
+            }
+          },
+          "description": "Dependencies of the plugin."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

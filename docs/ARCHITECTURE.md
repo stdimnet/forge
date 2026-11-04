@@ -1206,6 +1206,15 @@ time than it has); do it on the release machine before merging the Code With Me 
   offline templates embedded from `crates/forge-project/templates/`. The browser copy of the generator
   list is `app/ui/src/mock/projectGenerators.json` (`FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`).
 - The default location is the setting `system.defaultProjectDirectory` (`~/Projects`).
+- Generator options may carry `placeholder`, `visibleWhen: { option, values }[]` (hidden options
+  take their defaults, in Rust and in the dialog) and `refresh` (an IPC command returning fresh
+  `choices`, run only on the Refresh button). Minecraft plugins (`javaforge-minecraft`,
+  `commands/minecraft.rs`): `minecraft_versions_refresh() -> Choice[]` (repo.papermc.io's
+  paper-api `maven-metadata.xml`, cached in `<cache>/forge/minecraft/versions.json`, merged into
+  `project_generators_list`), `minecraft_inspect({ path, content }) -> Problem[]` (descriptor
+  `main` class), `minecraft_goto({ path, content, pos }) -> Target[]`,
+  `minecraft_gutter({ path, content }) -> Marker[]` (event handlers, the main class with
+  run-paper).
 
 ## Terminal and Run/Debug (`forge-process`)
 

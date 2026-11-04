@@ -10,6 +10,7 @@ import {
   defaultOptions,
   initialProgress,
   nameAfterSwitch,
+  withChoices,
   type Progress,
 } from "./wizard";
 
@@ -36,8 +37,11 @@ const [options, setOptions] = createSignal<Record<string, OptionValue>>({});
 const [plan, setPlan] = createSignal<Plan | null>(null);
 const [progress, setProgress] = createSignal<Progress | null>(null);
 const [loadError, setLoadError] = createSignal<string | null>(null);
+/** Option being refreshed, and the last refresh error per option. */
+const [refreshing, setRefreshing] = createSignal<string | null>(null);
+const [refreshError, setRefreshError] = createSignal<Record<string, string>>({});
 
-export { isOpen, generators, selectedId, name, location, options, plan, progress, loadError };
+export { isOpen, generators, selectedId, name, location, options, plan, progress, loadError, refreshing, refreshError };
 export { setName, setLocation };
 
 export const selected = (): Generator | undefined => generators().find((g) => g.id === selectedId());
@@ -59,6 +63,26 @@ export const canCreate = () => {
 
 export function setOption(id: string, value: OptionValue): void {
   setOptions((o) => ({ ...o, [id]: value }));
+}
+
+/**
+ * "Refresh" next to an option with a `refresh` command (the Minecraft versions): fetch fresh
+ * choices, which may use the network, so only on the user's click.
+ */
+export async function refreshOption(optionId: string): Promise<void> {
+  const gen = selected();
+  const command = gen?.options.find((o) => o.id === optionId)?.refresh;
+  if (!gen || !command || refreshing()) return;
+  setRefreshing(optionId);
+  setRefreshError((e) => ({ ...e, [optionId]: "" }));
+  try {
+    const choices = await projectApi.refreshChoices(command);
+    setGenerators((gens) => withChoices(gens, gen.id, optionId, choices));
+  } catch (e) {
+    setRefreshError((errs) => ({ ...errs, [optionId]: String(e).replace(/^Error: /, "") }));
+  } finally {
+    setRefreshing(null);
+  }
 }
 
 export function selectGenerator(id: string): void {

@@ -1,0 +1,37 @@
+# JavaForge: Minecraft plugins, in the style of IntelliJ's Minecraft Development plugin. The
+# logic lives in packs/javaforge/minecraft (the New Project generator with its pinned version
+# table, project detection, plugin descriptor checks and gutter markers) and is wired up by
+# app/src-tauri/src/commands/minecraft.rs; the descriptor schemas are bundled in
+# crates/forge-jsonschema.
+
+id = "forge.minecraft"
+name = "Minecraft Development"
+version = "0.1.0"
+pack = "javaforge"
+vendor = "Forge"
+depends = ["forge.java"]
+description = "Minecraft plugins for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord: the Minecraft Plugin project wizard, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml completion and validation with a checked, navigable main class, the Run Paper Server configuration (run-paper) and gutter icons for event handlers."
+projectTypes = ["minecraft"]
+
+[[contributions.commands]]
+id = "minecraft.runServer"
+title = "Run Paper Server"
+category = "Minecraft"
+
+[[contributions.mainMenu]]
+path = "Tools/_Minecraft"
+items = [
+  { type = "action", id = "minecraft.runServer", label = "_Run Paper Server" },
+]
+
+# ---- Settings | Languages & Frameworks | Java | Minecraft ---------------------------------
+
+[[contributions.settings]]
+key = "minecraft.gutterIcons"
+title = "Show gutter icons"
+description = "Event handler methods (@EventHandler, @Subscribe) show the event they listen to; the plugin's main class runs the Paper test server."
+type = "bool"
+default = true
+group = "lang.java.minecraft"
+section = "Editor"
+order = 0

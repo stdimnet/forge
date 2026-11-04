@@ -786,3 +786,61 @@ fn openapi_documents_by_content() {
     assert_eq!(mapping::openapi_version("swagger: '2.0'\n"), None);
     assert!(mapping::select("config.yaml", "name: x\n", DocKind::Yaml, &[], None).is_none());
 }
+
+#[test]
+fn minecraft_plugin_descriptors() {
+    let s = mapping::select("src/main/resources/plugin.yml", "", DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(s.uri, bundled::MINECRAFT_BUKKIT);
+    let s = mapping::select(
+        "core/src/main/resources/paper-plugin.yml",
+        "",
+        DocKind::Yaml,
+        &[],
+        None,
+    )
+    .unwrap();
+    assert_eq!(s.uri, bundled::MINECRAFT_PAPER);
+    // A plugin.yml elsewhere is not a Minecraft descriptor.
+    assert!(mapping::select("plugin.yml", "", DocKind::Yaml, &[], None).is_none());
+
+    let ok = "name: BetterChat\nversion: '${version}'\nmain: com.example.betterchat.BetterChat\napi-version: '1.21'\nauthors: ['Alex', 'Sam']\nfolia-supported: true\n\ncommands:\n  hello:\n    description: Says hello\n    usage: /<command>\n    aliases: [hi]\npermissions:\n  betterchat.admin:\n    default: op\n    children:\n      betterchat.use: true\n";
+    assert_eq!(
+        bundled_problems(bundled::MINECRAFT_BUKKIT, DocKind::Yaml, ok),
+        Vec::<String>::new()
+    );
+    let bad = bundled_problems(
+        bundled::MINECRAFT_BUKKIT,
+        DocKind::Yaml,
+        "name: Better Chat!\nversion: 1\nload: LATER\n",
+    );
+    assert!(bad.iter().any(|p| p.contains("'main'")), "{bad:?}");
+    assert!(bad.iter().any(|p| p.contains("LATER") || p.contains("STARTUP")), "{bad:?}");
+    assert_eq!(bad.len(), 3, "{bad:?}");
+
+    let paper = "name: X\nversion: '1'\nmain: a.b.X\napi-version: '1.21'\ndependencies:\n  server:\n    LuckPerms:\n      load: BEFORE\n      required: false\n";
+    assert_eq!(
+        bundled_problems(bundled::MINECRAFT_PAPER, DocKind::Yaml, paper),
+        Vec::<String>::new()
+    );
+    let velocity = r#"{"id": "Lobby", "main": "a.b.Lobby", "authors": ["Alex"]}"#;
+    let v = bundled_problems(bundled::MINECRAFT_VELOCITY, DocKind::Json, velocity);
+    assert_eq!(v.len(), 1, "{v:?}");
+    assert_eq!(
+        bundled_problems(
+            bundled::MINECRAFT_BUNGEE,
+            DocKind::Yaml,
+            "name: Lobby\nversion: '1.0'\nmain: a.b.Lobby\nauthor: Alex\n"
+        ),
+        Vec::<String>::new()
+    );
+
+    let mut r = Registry::new();
+    load_bundled(&mut r, bundled::MINECRAFT_BUKKIT);
+    let text = "name: X\nmain: a.b.X\n\n";
+    let c = complete(&r, bundled::MINECRAFT_BUKKIT, DocKind::Yaml, text, text.len()).unwrap();
+    let names: Vec<&str> = c.items.iter().map(|i| i.label.as_str()).collect();
+    assert!(
+        names.contains(&"api-version") && names.contains(&"commands"),
+        "{names:?}"
+    );
+}

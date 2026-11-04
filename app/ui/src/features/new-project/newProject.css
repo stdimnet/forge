@@ -107,6 +107,23 @@
 .np-select {
   flex: 0 1 300px;
 }
+/* A select with a Refresh button (Minecraft versions). */
+.np-select-row {
+  display: flex;
+  flex: 0 1 332px;
+  min-width: 0;
+}
+.np-select-row .np-select {
+  flex: 1;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.np-refresh {
+  height: 28px;
+}
+.np-refresh.spinning svg {
+  animation: np-spin 0.9s linear infinite;
+}
 .np-input.invalid {
   border-color: var(--danger);
 }

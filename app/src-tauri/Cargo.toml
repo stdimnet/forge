@@ -105,6 +105,7 @@ kotlinforge-lang-kotlin.workspace = true
 javaforge-lang-groovy.workspace = true
 javaforge-lang-scala.workspace = true
 javaforge-android.workspace = true
+javaforge-minecraft = { workspace = true, features = ["net"] }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 webforge-lang-web = { path = "../../packs/webforge/lang-web" }

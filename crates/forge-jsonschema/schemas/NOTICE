@@ -4,6 +4,17 @@ Bundled JSON Schemas
 Forge bundles the following JSON Schema files for its built-in schema mappings
 (crate forge-jsonschema, directory `schemas/`). They are included unmodified.
 
+Written for Forge (MIT, like Forge itself)
+------------------------------------------
+
+The Minecraft plugin descriptor schemas, from the Bukkit, Paper, Velocity and BungeeCord
+documentation:
+
+  minecraft-bukkit-plugin.json    plugin.yml (Bukkit, Spigot, Paper and forks)
+  minecraft-paper-plugin.json     paper-plugin.yml
+  minecraft-velocity-plugin.json  velocity-plugin.json
+  minecraft-bungee-plugin.json    bungee.yml
+
 Apache License 2.0 (full text in LICENSE-APACHE-2.0)
 ----------------------------------------------------
 

@@ -27,7 +27,8 @@
 .pt-icon[data-type="symfony"],
 .pt-icon[data-type="flask"],
 .pt-icon[data-type="next"] { --pt: var(--fg-strong); }
-.pt-icon[data-type="spring-boot"] { --pt: var(--success); }
+.pt-icon[data-type="spring-boot"],
+.pt-icon[data-type="minecraft"] { --pt: var(--success); }
 .pt-icon[data-type="composer"],
 .pt-icon[data-type="javascript"],
 .pt-icon[data-type="python"] { --pt: var(--warning); }

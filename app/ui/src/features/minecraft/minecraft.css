@@ -1,0 +1,4 @@
+/* Minecraft plugins: the event handler gutter icon. */
+.cm-line-marker.marker-minecraft-listener {
+  color: var(--info);
+}

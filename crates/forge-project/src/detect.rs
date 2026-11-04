@@ -157,6 +157,7 @@ const NPM_FRAMEWORKS: &[(&str, &str, &str)] = &[
 const PRIMARY_PRIORITY: &[&str] = &[
     "spring-boot",
     "jakarta-ee",
+    "minecraft",
     "laravel",
     "symfony",
     "drupal",
@@ -905,6 +906,13 @@ fn scan_java(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
     {
         let version = builds.iter().find_map(|b| spring_boot_version(b));
         c.framework("spring-boot", "Spring Boot", "java", version, rel);
+    }
+    // Minecraft plugins (Paper, Spigot, Velocity, ... API dependencies).
+    let catalog = fs::read_to_string(dir.join("gradle/libs.versions.toml")).unwrap_or_default();
+    let mut texts: Vec<&str> = builds.iter().map(String::as_str).collect();
+    texts.push(&catalog);
+    if let Some(mc) = javaforge_minecraft::detect(&texts) {
+        c.framework("minecraft", &mc.name(), "java", mc.mc_version.clone(), rel);
     }
     const JAKARTA: &[&str] = &[
         "jakarta.platform",

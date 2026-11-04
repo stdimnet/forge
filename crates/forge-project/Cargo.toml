@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 forge-core.workspace = true
+javaforge-minecraft.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true

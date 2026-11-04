@@ -29,6 +29,40 @@ pub struct GeneratorOption {
     pub choices: Vec<Choice>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Hint in an empty text field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placeholder: Option<String>,
+    /// The option is shown (and used) only while every condition holds; a hidden option
+    /// takes its default.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub visible_when: Vec<Condition>,
+    /// IPC command that returns fresh choices for an `enum` option (a "Refresh" button next
+    /// to it); it may use the network, so it only runs when the user clicks it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh: Option<String>,
+}
+
+/// `option` has one of `values`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Condition {
+    pub option: String,
+    pub values: Vec<String>,
+}
+
+impl GeneratorOption {
+    fn placeholder(mut self, text: &str) -> Self {
+        self.placeholder = Some(text.into());
+        self
+    }
+
+    fn visible_when(mut self, option: &str, values: &[&str]) -> Self {
+        self.visible_when.push(Condition {
+            option: option.into(),
+            values: values.iter().map(|v| v.to_string()).collect(),
+        });
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -69,6 +103,9 @@ fn enum_opt(id: &str, label: &str, default: &str, choices: Vec<Choice>) -> Gener
         default: json!(default),
         choices,
         description: None,
+        placeholder: None,
+        visible_when: Vec::new(),
+        refresh: None,
     }
 }
 
@@ -80,6 +117,9 @@ fn bool_opt(id: &str, label: &str, default: bool, description: Option<&str>) -> 
         default: json!(default),
         choices: Vec::new(),
         description: description.map(Into::into),
+        placeholder: None,
+        visible_when: Vec::new(),
+        refresh: None,
     }
 }
 
@@ -91,6 +131,9 @@ fn string_opt(id: &str, label: &str, default: &str) -> GeneratorOption {
         default: json!(default),
         choices: Vec::new(),
         description: None,
+        placeholder: None,
+        visible_when: Vec::new(),
+        refresh: None,
     }
 }
 
@@ -163,6 +206,12 @@ fn generator(d: Def, options: Vec<GeneratorOption>) -> Generator {
 
 /// All generators in display order.
 pub fn generators() -> Vec<Generator> {
+    generators_with(&[])
+}
+
+/// All generators, with Minecraft versions from "Refresh versions" added to the Minecraft
+/// Plugin generator's choices.
+pub fn generators_with(mc_versions: &[String]) -> Vec<Generator> {
     vec![
         generator(
             Def {
@@ -352,6 +401,20 @@ pub fn generators() -> Vec<Generator> {
         ),
         generator(
             Def {
+                id: "minecraft-plugin",
+                name: "Minecraft Plugin",
+                group: "Java",
+                pack: "javaforge",
+                icon: "minecraft",
+                default_name: "my-plugin",
+                description: "A Paper, Purpur, Folia, Spigot, Bukkit, Velocity or BungeeCord plugin with a main class, a command, a listener and the plugin descriptor.",
+                tools: &[],
+                fallback: None,
+            },
+            minecraft_options(mc_versions),
+        ),
+        generator(
+            Def {
                 id: "lua-script",
                 name: "Lua Script",
                 group: "Lua",
@@ -504,6 +567,9 @@ pub fn generators() -> Vec<Generator> {
                     default: json!(""),
                     choices: Vec::new(),
                     description: Some("Any template from dotnet new list, e.g. grpc or avalonia.app; replaces the template above.".into()),
+                    placeholder: None,
+                    visible_when: Vec::new(),
+                    refresh: None,
                 },
                 bool_opt(
                     "solution",
@@ -528,6 +594,87 @@ pub fn generators() -> Vec<Generator> {
             },
             vec![git()],
         ),
+    ]
+}
+
+const SERVERS: &[&str] = &["paper", "purpur", "folia", "spigot", "bukkit"];
+const GRADLE: &[&str] = &["gradle-kts", "gradle-groovy"];
+
+fn minecraft_options(mc_versions: &[String]) -> Vec<GeneratorOption> {
+    use javaforge_minecraft::versions::{self, Platform};
+    let platforms = Platform::ALL
+        .iter()
+        .map(|p| choice(p.id(), p.label()))
+        .collect();
+    let mut mc = enum_opt(
+        "mcVersion",
+        "Minecraft version",
+        versions::DEFAULT_MC_VERSION,
+        versions::version_choices(mc_versions)
+            .into_iter()
+            .map(|(v, l)| Choice { value: v, label: l })
+            .collect(),
+    )
+    .visible_when("platform", SERVERS);
+    mc.refresh = Some("minecraft_versions_refresh".into());
+    mc.description = Some(
+        "Refresh reads the versions Paper publishes from repo.papermc.io.".into(),
+    );
+    vec![
+        enum_opt("platform", "Platform", "paper", platforms),
+        enum_opt(
+            "descriptor",
+            "Descriptor",
+            "plugin",
+            vec![
+                choice("plugin", "plugin.yml"),
+                choice("paper-plugin", "paper-plugin.yml"),
+            ],
+        )
+        .visible_when("platform", &["paper", "purpur", "folia"]),
+        mc,
+        enum_opt(
+            "buildSystem",
+            "Build system",
+            "gradle-kts",
+            vec![
+                choice("gradle-kts", "Gradle Kotlin"),
+                choice("gradle-groovy", "Gradle Groovy"),
+                choice("maven", "Maven"),
+            ],
+        ),
+        enum_opt(
+            "language",
+            "Language",
+            "java",
+            vec![choice("java", "Java"), choice("kotlin", "Kotlin")],
+        )
+        .visible_when("buildSystem", GRADLE),
+        string_opt("groupId", "Group ID", "com.example"),
+        string_opt("pluginName", "Plugin name", "").placeholder("From the project name"),
+        string_opt("mainClass", "Main class", "")
+            .placeholder("<group id>.<project>.<Project>"),
+        string_opt("authors", "Authors", "").placeholder("Comma-separated"),
+        string_opt("description", "Description", ""),
+        string_opt("website", "Website", "").placeholder("https://"),
+        string_opt("apiVersion", "API version", "")
+            .placeholder("From the Minecraft version")
+            .visible_when("platform", SERVERS),
+        bool_opt(
+            "runPaper",
+            "Run Paper server (run-paper)",
+            true,
+            Some("Adds the runServer task and the Run Paper Server configuration."),
+        )
+        .visible_when("platform", SERVERS)
+        .visible_when("buildSystem", GRADLE),
+        bool_opt(
+            "shadow",
+            "Shadow jar",
+            false,
+            Some("Bundles libraries into the plugin jar; always on for Kotlin."),
+        ),
+        git(),
     ]
 }
 
@@ -584,6 +731,21 @@ impl CreateRequest {
                 out.insert(k.clone(), v.clone());
             }
         }
+        // Hidden options take their defaults.
+        let visible = |o: &GeneratorOption| {
+            o.visible_when.iter().all(|c| {
+                out.get(&c.option)
+                    .and_then(Value::as_str)
+                    .is_some_and(|v| c.values.iter().any(|x| x == v))
+            })
+        };
+        let hidden: Vec<_> = gen
+            .options
+            .iter()
+            .filter(|o| !visible(o))
+            .map(|o| (o.id.clone(), o.default.clone()))
+            .collect();
+        out.extend(hidden);
         out
     }
 }
@@ -923,14 +1085,17 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
             sample,
         } = step
         {
-            let vars = crate::templates::TemplateVars::new(n, options);
-            let rendered = crate::templates::render_template(template, &vars, *sample)?;
-            files.extend(
-                rendered
-                    .files
-                    .iter()
-                    .map(|(p, _)| p.to_string_lossy().replace('\\', "/")),
-            );
+            match crate::templates::render(template, n, options, *sample) {
+                Ok(rendered) => files.extend(
+                    rendered
+                        .files
+                        .iter()
+                        .map(|(p, _)| p.to_string_lossy().replace('\\', "/")),
+                ),
+                // Options a generator rejects (the Minecraft plugin's names and versions).
+                Err(e) if error.is_none() => error = Some(e.to_string()),
+                Err(_) => {}
+            }
         }
     }
     let fallback = if missing.iter().any(|m| m != "git") {
@@ -981,10 +1146,13 @@ mod tests {
         let groups: Vec<_> = gens.iter().map(|g| g.group.as_str()).collect();
         let mut dedup = groups.clone();
         dedup.dedup();
-        assert_eq!(dedup, vec!["PHP", "Web", "Lua", "Ruby", ".NET", "Other"]);
+        assert_eq!(
+            dedup,
+            vec!["PHP", "Web", "Java", "Lua", "Ruby", ".NET", "Other"]
+        );
         for g in gens.iter().filter(|g| g.tools.is_empty()) {
             assert!(
-                crate::templates::template(&g.id).is_some(),
+                crate::templates::is_template(&g.id),
                 "{} has no template",
                 g.id
             );
@@ -1159,6 +1327,75 @@ mod tests {
         );
         assert!(p.files.contains(&"test/greeter_test.rb".to_string()));
         assert!(p.files.contains(&"bin/demo".to_string()));
+    }
+
+    #[test]
+    fn minecraft_plugin_generator() {
+        let p = plan(&req("minecraft-plugin", &[]), &|_| false).unwrap();
+        assert!(p.missing_tools.is_empty());
+        assert_eq!(p.error, None);
+        assert_eq!(p.preview, vec!["Create demo/ from the built-in template"]);
+        assert!(p.files.contains(&"src/main/java/com/example/demo/Demo.java".to_string()));
+        assert!(p.files.contains(&"src/main/resources/plugin.yml".to_string()));
+        assert!(p.files.contains(&".forge/runConfigurations.toml".to_string()));
+
+        // Hidden options take their defaults: Kotlin with Maven builds a Java project, a
+        // proxy ignores run-paper.
+        let p = plan(
+            &req(
+                "minecraft-plugin",
+                &[
+                    ("buildSystem", json!("maven")),
+                    ("language", json!("kotlin")),
+                    ("platform", json!("velocity")),
+                ],
+            ),
+            &all_tools,
+        )
+        .unwrap();
+        assert_eq!(p.error, None);
+        assert!(p.files.contains(&"pom.xml".to_string()));
+        assert!(p.files.contains(&"src/main/resources/velocity-plugin.json".to_string()));
+        assert!(!p.files.iter().any(|f| f.ends_with(".kt") || f.starts_with(".forge")));
+
+        // Invalid names are shown under the form.
+        let p = plan(
+            &req("minecraft-plugin", &[("groupId", json!("com..x"))]),
+            &all_tools,
+        )
+        .unwrap();
+        assert!(p.error.unwrap().contains("Group ID"));
+
+        // Refreshed versions join the choices.
+        let gens = generators_with(&["1.21.11".to_string()]);
+        let mc = gens
+            .iter()
+            .find(|g| g.id == "minecraft-plugin")
+            .unwrap()
+            .options
+            .iter()
+            .find(|o| o.id == "mcVersion")
+            .unwrap();
+        assert_eq!(mc.choices[0].value, "1.21.11");
+        assert_eq!(mc.refresh.as_deref(), Some("minecraft_versions_refresh"));
+    }
+
+    #[test]
+    fn creates_a_minecraft_plugin_offline() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut r = req("minecraft-plugin", &[("platform", json!("spigot"))]);
+        r.location = dir.path().display().to_string();
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        let root = crate::create::create(&r, &cancel, &mut |_| {}).unwrap();
+        let yml = std::fs::read_to_string(root.join("src/main/resources/plugin.yml")).unwrap();
+        assert!(yml.contains("main: com.example.demo.Demo"));
+        let build = std::fs::read_to_string(root.join("build.gradle.kts")).unwrap();
+        assert!(build.contains("org.spigotmc:spigot-api:"));
+        let info = crate::detect(&root);
+        let mc = info.framework("minecraft").unwrap();
+        assert_eq!(mc.name, "Spigot Plugin");
+        assert_eq!(mc.version.as_deref(), Some("1.21.8"));
+        assert_eq!(info.primary.as_ref().map(|p| p.id.as_str()), Some("minecraft"));
     }
 
     #[test]

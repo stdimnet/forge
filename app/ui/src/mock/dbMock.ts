@@ -25,6 +25,7 @@ import { isJavaDemo } from "./demoJavaProject";
 import { isKotlinDemo } from "./demoKotlinProject";
 import { isScalaDemo } from "./demoScalaProject";
 import { isAndroidDemo } from "./demoAndroidProject";
+import { isMinecraftDemo } from "./demoMinecraftProject";
 import {
   DATA_SOURCES_EVENT,
   MODEL_EVENT,
@@ -1062,7 +1063,7 @@ registerMock("db_cancel", () => undefined);
 
 registerMock("db_detect_env", (): DetectedDataSource[] => {
   // The WebForge demos and the Lua demo game have no .env with a database.
-  if (webDemo() || isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isJavaDemo() || isKotlinDemo() || isScalaDemo() || isAndroidDemo() || isCppDemo() || isDotnetDemo()) return [];
+  if (webDemo() || isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isJavaDemo() || isKotlinDemo() || isScalaDemo() || isAndroidDemo() || isMinecraftDemo() || isCppDemo() || isDotnetDemo()) return [];
   const ds = envSource();
   if (sources.some((s) => s.source.driver === "mysql" && s.source.database === ds.database)) return [];
   return [{ source: ds, hasPassword: true, origin: ".env" }];

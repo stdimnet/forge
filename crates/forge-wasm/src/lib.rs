@@ -54,6 +54,7 @@ mod localhistory;
 mod lua;
 mod maintenance;
 mod mcp;
+mod minecraft;
 mod php_interpreters;
 mod profiler;
 mod project_structure;

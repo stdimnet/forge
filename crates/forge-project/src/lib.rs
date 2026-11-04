@@ -9,6 +9,6 @@ pub mod templates;
 pub use create::{create, find_executable, has_tool, plan_for_system, CreateEvent};
 pub use detect::{detect, language_name, Framework, ProjectInfo};
 pub use generators::{
-    find_generator, generators, plan, validate_name, CreateRequest, Generator, GeneratorOption,
+    find_generator, generators, generators_with, plan, validate_name, CreateRequest, Generator, GeneratorOption,
     Plan, Step,
 };

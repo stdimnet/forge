@@ -62,6 +62,7 @@ cforge-embedded.workspace = true
 javaforge-lang-groovy.workspace = true
 javaforge-lang-scala.workspace = true
 javaforge-android.workspace = true
+javaforge-minecraft.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
 forge-vcs = { path = "../forge-vcs", default-features = false }
