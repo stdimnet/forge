@@ -15,6 +15,7 @@ import {
   type InlineDialogRequest,
   type IntroduceDialogRequest,
 } from "./extract";
+import { t } from "@/i18n";
 
 const capitalized = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -122,7 +123,7 @@ function NameField(props: { value: string; names: string[]; onInput: (v: string)
 
 function VisibilityChoice(props: { value: Visibility; onChange: (v: Visibility) => void; disabled?: boolean }) {
   return (
-    <div class="refactor-radios" role="radiogroup" aria-label="Visibility">
+    <div class="refactor-radios" role="radiogroup" aria-label={t("codeintel.extractDialogs.visibility")}>
       <For each={VISIBILITIES}>
         {(v) => (
           <label class="form-label check">
@@ -195,15 +196,15 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
         <div class="dialog-title">{TITLES[kind]}</div>
         <div class="dialog-body">
           <div class="refactor-expression" title={info.text}>
-            <span class="refactor-expression-label">Expression:</span> <code>{info.text}</code>
+            <span class="refactor-expression-label">{t("codeintel.extractDialogs.expression")}</span> <code>{info.text}</code>
           </div>
           <div class="form-row">
-            <label class="form-label">Name:</label>
+            <label class="form-label">{t("codeintel.extractDialogs.name")}</label>
             <NameField value={name()} names={info.names} onInput={setName} prefix={kind === "constant" ? undefined : "$"} />
           </div>
           <Show when={kind === "field"}>
             <fieldset class="refactor-group">
-              <legend>Initialize in</legend>
+              <legend>{t("codeintel.extractDialogs.initializeIn")}</legend>
               <For each={info.initPlaces}>
                 {(p) => (
                   <label class="form-label check">
@@ -216,7 +217,7 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
           </Show>
           <Show when={kind !== "parameter" && !info.global}>
             <fieldset class="refactor-group">
-              <legend>Visibility</legend>
+              <legend>{t("codeintel.extractDialogs.visibility")}</legend>
               <VisibilityChoice value={visibility()} onChange={setVisibility} />
             </fieldset>
           </Show>
@@ -232,7 +233,7 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
             </div>
             <label
               class="form-label check"
-              title={info.constantExpression ? undefined : "Only a constant expression can be a default value"}
+              title={info.constantExpression ? undefined : t("codeintel.extractDialogs.onlyAConstantExpressionCan")}
             >
               <input
                 type="checkbox"
@@ -244,7 +245,7 @@ export function IntroduceDialog(props: { req: IntroduceDialogRequest }) {
             </label>
           </Show>
           <Show when={kind === "constant" && info.global}>
-            <div class="refactor-note">A global constant is declared in this file.</div>
+            <div class="refactor-note">{t("codeintel.extractDialogs.aGlobalConstantIsDeclared")}</div>
           </Show>
           <Show when={info.occurrences > 1}>
             <label class="form-label check">
@@ -319,31 +320,31 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
         <div class="dialog-title">{info.title}</div>
         <div class="dialog-body">
           <div class="form-row">
-            <label class="form-label">Name:</label>
+            <label class="form-label">{t("codeintel.extractDialogs.name")}</label>
             <NameField value={name()} names={[]} onInput={setName} />
           </div>
           <Show when={info.inClass}>
             <div class="extract-method-options">
               <fieldset class="refactor-group">
-                <legend>Visibility</legend>
+                <legend>{t("codeintel.extractDialogs.visibility")}</legend>
                 <VisibilityChoice value={visibility()} onChange={setVisibility} />
               </fieldset>
-              <label class="form-label check" title={info.usesThis ? "The fragment uses $this" : undefined}>
+              <label class="form-label check" title={info.usesThis ? t("codeintel.extractDialogs.theFragmentUsesThis") : undefined}>
                 <input
                   type="checkbox"
                   checked={isStatic()}
                   disabled={info.usesThis || info.staticContext}
                   onChange={(e) => setStatic(e.currentTarget.checked)}
                 />
-                Declare static
+                {t("codeintel.extractDialogs.declareStatic")}
               </label>
             </div>
           </Show>
           <fieldset class="refactor-group">
-            <legend>Parameters</legend>
-            <Show when={params().length} fallback={<div class="refactor-note">No parameters</div>}>
+            <legend>{t("codeintel.extractDialogs.parameters")}</legend>
+            <Show when={params().length} fallback={<div class="refactor-note">{t("codeintel.extractDialogs.noParameters")}</div>}>
               <div class="extract-params">
-                <div class="extract-params-list" role="listbox" aria-label="Parameters">
+                <div class="extract-params-list" role="listbox" aria-label={t("codeintel.extractDialogs.parameters")}>
                   <For each={params()}>
                     {(p, i) => (
                       <div class="extract-param" classList={{ selected: selected() === i() }} onMouseDown={() => setSelected(i())}>
@@ -352,7 +353,7 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
                         <input
                           value={p.name}
                           spellcheck={false}
-                          aria-label={`Parameter ${p.original}`}
+                          aria-label={t("codeintel.extractDialogs.parameterOriginal", { original: p.original })}
                           onFocus={() => setSelected(i())}
                           onInput={(e) => {
                             const v = e.currentTarget.value.replace(/^\$/, "");
@@ -364,13 +365,13 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
                   </For>
                 </div>
                 <div class="extract-params-buttons">
-                  <button class="icon-btn" title="Move Up" aria-label="Move Up" disabled={selected() === 0} onClick={() => move(-1)}>
+                  <button class="icon-btn" title={t("common.moveUp")} aria-label={t("common.moveUp")} disabled={selected() === 0} onClick={() => move(-1)}>
                     <ArrowUp size={14} />
                   </button>
                   <button
                     class="icon-btn"
-                    title="Move Down"
-                    aria-label="Move Down"
+                    title={t("common.moveDown")}
+                    aria-label={t("common.moveDown")}
                     disabled={selected() >= params().length - 1}
                     onClick={() => move(1)}
                   >
@@ -388,7 +389,7 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
               {info.duplicates === 1 ? "" : "s"} found that can be replaced with a call
             </label>
           </Show>
-          <div class="refactor-signature-label">Signature preview</div>
+          <div class="refactor-signature-label">{t("codeintel.extractDialogs.signaturePreview")}</div>
           <pre class="refactor-signature">{signature()}</pre>
         </div>
         <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
@@ -397,34 +398,25 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
   );
 }
 
-const ELEMENT: Record<string, { word: string; refs: string }> = {
-  variable: { word: "variable", refs: "references" },
-  method: { word: "method", refs: "invocations" },
-  function: { word: "function", refs: "invocations" },
-  constant: { word: "constant", refs: "references" },
-};
-
 export function InlineDialog(props: { req: InlineDialogRequest }) {
   const info = props.req.info;
-  const el = ELEMENT[info.kind];
-  const one = el.refs === "invocations" ? "invocation" : "reference";
   const options = (): { mode: InlineMode; label: string }[] => {
     const out: { mode: InlineMode; label: string }[] = [];
     if (!info.readOnly) {
       out.push({
         mode: "all",
-        label: `Inline all ${el.refs} and remove the ${el.word} (${info.occurrences} ${info.occurrences === 1 ? one : el.refs})`,
+        label: t("codeintel.inline.all", { kind: info.kind, count: info.occurrences }),
       });
       if (info.kind !== "variable")
         out.push({
           mode: "allKeep",
-          label: `Inline all ${el.refs} and keep the ${el.word}`,
+          label: t("codeintel.inline.allKeep", { kind: info.kind }),
         });
     }
     if (info.onReference)
       out.push({
         mode: "this",
-        label: `Inline this ${one} only and keep the ${el.word}`,
+        label: t("codeintel.inline.this", { kind: info.kind }),
       });
     return out;
   };
@@ -446,7 +438,7 @@ export function InlineDialog(props: { req: InlineDialogRequest }) {
         <div class="dialog-title">{info.title}</div>
         <div class="dialog-body">
           <div class="refactor-expression">
-            {capitalized(el.word)} <code>{info.name}</code>
+            {t("codeintel.inline.kind", { kind: info.kind })} <code>{info.name}</code>
           </div>
           <div class="refactor-radios vertical" role="radiogroup">
             <For each={options()}>

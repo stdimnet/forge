@@ -14,6 +14,7 @@ import { showHint } from "@/features/lsp/hint";
 import { toLsp } from "@/features/lsp/util";
 import { applyAnswer } from "./extract";
 import { renameSessionOf } from "./rename";
+import { t } from "@/i18n";
 
 /** WebForge's Extract Component action. */
 export const EXTRACT_COMPONENT = "WebForge.ExtractComponent";
@@ -91,7 +92,7 @@ export async function extractComponentAt(path: string, view: EditorView): Promis
     showHint(view, sel.head, message(e));
     return;
   }
-  if (await applyAnswer(`Extract Component ${choice.name}`, answer, { preview: choice.preview })) {
+  if (await applyAnswer(t("codeintel.extractComponent.extractComponentName", { name: choice.name }), answer, { preview: choice.preview })) {
     const created = answer.edit.changes.find((c) => c.kind === "create");
     if (created && created.kind === "create") await openFile(created.path).catch(() => undefined);
   }

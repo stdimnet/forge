@@ -16,6 +16,7 @@ import { showHint } from "@/features/lsp/hint";
 import { toLsp } from "@/features/lsp/util";
 import type { LspPosition } from "@/ipc/lsp";
 import { scopeContext, scopeEntries } from "@/features/scopes/model";
+import { t as tr } from "@/i18n";
 
 export const OPTIONS_PREFIX = "findUsages.options.";
 
@@ -29,13 +30,13 @@ export function usageOptions(): UsageOptions {
 }
 
 export const SCOPES: { value: SearchScope; label: string }[] = [
-  { value: "projectFiles", label: "Project Files" },
-  { value: "projectAndLibraries", label: "Project and Libraries" },
-  { value: "openFiles", label: "Open Files" },
-  { value: "currentFile", label: "Current File" },
-  { value: "recentlyChangedFiles", label: "Recently Changed Files" },
-  { value: "directory", label: "Directory" },
-  { value: "custom", label: "Custom" },
+  { value: "projectFiles", label: tr("codeintel.findSettings.projectFiles") },
+  { value: "projectAndLibraries", label: tr("codeintel.findSettings.projectAndLibraries") },
+  { value: "openFiles", label: tr("codeintel.findSettings.openFiles") },
+  { value: "currentFile", label: tr("codeintel.findSettings.currentFile") },
+  { value: "recentlyChangedFiles", label: tr("codeintel.findSettings.recentlyChangedFiles") },
+  { value: "directory", label: tr("codeintel.findSettings.directory") },
+  { value: "custom", label: tr("codeintel.findSettings.custom") },
 ];
 
 /** Files changed recently: the working tree's changes and unsaved editors. */

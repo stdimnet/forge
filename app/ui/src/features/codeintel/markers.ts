@@ -10,6 +10,7 @@ import { codeApi, isLibraryPath, type LineMarkerInfo } from "@/ipc/codeintel";
 import { isPluginActive } from "@/state/project";
 import { getSetting } from "@/state/settings";
 import { chooseTargetAtPoint } from "./targets";
+import { t } from "@/i18n";
 
 const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
 
@@ -18,9 +19,9 @@ export function markerChooserTitle(m: LineMarkerInfo): string {
   const subject = m.targets[0]?.name.split("::")[1]?.replace(/\(\)$/, "");
   const what =
     m.kind === "implements" || m.kind === "overrides"
-      ? "Choose Super Method"
+      ? t("codeintel.markers.chooseSuperMethod")
       : m.kind === "subclassed"
-        ? "Choose Subclass"
+        ? t("codeintel.markers.chooseSubclass")
         : "Choose Implementation";
   return `${what}${subject && m.kind !== "subclassed" ? ` of ${subject}` : ""} (${m.targets.length} found)`;
 }

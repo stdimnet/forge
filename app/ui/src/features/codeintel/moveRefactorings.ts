@@ -35,6 +35,7 @@ import { applyAnswer, dirtyBuffers } from "./extract";
 import { renameSessionOf } from "./rename";
 import { openInFindWindow } from "./usages";
 import { type FileOp } from "./refactoring";
+import { t as tr } from "@/i18n";
 
 export const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !/\.blade\.php$/i.test(path);
 const message = (e: unknown) => String(e instanceof Error ? e.message : e);
@@ -199,12 +200,12 @@ async function moveClass(target: ClassTarget, editorPath: string | null, view: E
   } catch (e) {
     return fail(view, "Move", e);
   }
-  await applyAnswer(`Move class ${target.name}`, answer, { preview: choice.preview });
+  await applyAnswer(tr("codeintel.moveRefactorings.moveClassName", { name: target.name }), answer, { preview: choice.preview });
 }
 
 async function moveMembers(target: MembersTarget, editorPath: string, view: EditorView): Promise<void> {
   if (!target.members.length) {
-    showHint(view, view.state.selection.main.head, `Class ${target.className} has no static members to move`);
+    showHint(view, view.state.selection.main.head, tr("codeintel.moveRefactorings.classClassnameHasNoStatic", { className: target.className }));
     return;
   }
   const choice = await ask("moveMembers", { target });
@@ -229,14 +230,14 @@ async function moveFunction(target: FunctionTarget, editorPath: string, view: Ed
   } catch (e) {
     return fail(view, "Move", e);
   }
-  await applyAnswer(`Move function ${target.name}()`, answer, { preview: choice.preview });
+  await applyAnswer(tr("codeintel.moveRefactorings.moveFunctionName", { name: target.name }), answer, { preview: choice.preview });
 }
 
 /** "file 'User.php'", "directory 'Models'", "3 items". */
 export function describeEntries(entries: { path: string; kind: "file" | "dir" }[]): string {
-  if (entries.length !== 1) return `${entries.length} items`;
+  if (entries.length !== 1) return tr("codeintel.entries.items", { count: entries.length });
   const e = entries[0];
-  return `${e.kind === "dir" ? "directory" : "file"} '${baseName(e.path)}'`;
+  return tr("codeintel.entries.one", { kind: e.kind, name: baseName(e.path) });
 }
 
 /**
@@ -265,14 +266,14 @@ export async function moveEntries(paths: string[], targetDir?: string): Promise<
   if (!moves.length) return;
   for (const m of moves) {
     if (await entryOf(m.to)) {
-      showBalloon("Move failed", `${m.to} already exists`, 6000);
+      showBalloon(tr("codeintel.moveRefactorings.moveFailed"), `${m.to} already exists`, 6000);
       return;
     }
   }
   try {
     const answer = await moveApi.moveFiles(moves, choice.searchForReferences, choice.searchInComments, dirtyBuffers());
     const fileOps: FileOp[] = moves.map((m) => ({ kind: "move", ...m }));
-    await applyAnswer(`Move ${describeEntries(entries)}`, answer.answer, { fileOps });
+    await applyAnswer(tr("codeintel.moveRefactorings.moveDescribeentries", { describeEntries: describeEntries(entries) }), answer.answer, { fileOps });
   } catch (e) {
     fail(null, "Move", e);
   }
@@ -311,7 +312,7 @@ async function copyClass(target: ClassTarget, editorPath: string | null, view: E
   } catch (e) {
     return fail(view, "Copy", e);
   }
-  if (await applyAnswer(`Copy class ${target.name}`, answer)) {
+  if (await applyAnswer(tr("codeintel.moveRefactorings.copyClassName", { name: target.name }), answer)) {
     const created = answer.edit.changes.find((c) => c.kind === "create");
     if (created && created.kind === "create") await openFile(created.path).catch(() => undefined);
   }
@@ -337,11 +338,11 @@ export async function copyEntries(paths: string[], targetDir?: string): Promise<
   if (!choice) return;
   const to = join(choice.directory.replace(/^\/+|\/+$/g, ""), choice.name.trim());
   if (await entryOf(to)) {
-    showBalloon("Copy failed", `${to} already exists`, 6000);
+    showBalloon(tr("codeintel.moveRefactorings.copyFailed"), `${to} already exists`, 6000);
     return;
   }
   const empty: RefactorAnswer = { edit: { changes: [] }, preview: [], conflicts: [], nameRanges: [], skipped: 0 };
-  if (await applyAnswer(`Copy ${describeEntries(entries)}`, empty, { fileOps: [{ kind: "copy", from: entry.path, to }] })) {
+  if (await applyAnswer(tr("codeintel.moveRefactorings.copyDescribeentries", { describeEntries: describeEntries(entries) }), empty, { fileOps: [{ kind: "copy", from: entry.path, to }] })) {
     if (entry.kind === "file") await openFile(to).catch(() => undefined);
   }
 }
@@ -358,10 +359,10 @@ async function confirmUsages(answer: SafeDeleteAnswer, deleteAnyway: () => Promi
   if (choice === "view") {
     openInFindWindow(answer.usages, {
       kind: "usages",
-      title: `Safe Delete ${answer.name}`,
-      header: `Usages of ${answer.kind} ${answer.name} that are not safe to delete`,
+      title: tr("codeintel.moveRefactorings.safeDeleteName", { name: answer.name }),
+      header: tr("codeintel.moveRefactorings.usagesOfKindNameThat", { kind: answer.kind, name: answer.name }),
       newTab: true,
-      actions: [{ label: "Delete Anyway", primary: true, run: () => deleteAnyway() }],
+      actions: [{ label: tr("codeintel.moveRefactorings.deleteAnyway"), primary: true, run: () => deleteAnyway() }],
     });
     return false;
   }
@@ -394,7 +395,7 @@ export async function safeDeleteAt(path: string, view: EditorView): Promise<void
       return fail(view, "Safe Delete", e);
     }
   }
-  const run = async () => void (await applyAnswer(`Safe Delete ${answer.name}`, answer.answer));
+  const run = async () => void (await applyAnswer(tr("codeintel.moveRefactorings.safeDeleteName", { name: answer.name }), answer.answer));
   if (await confirmUsages(answer, run)) await run();
 }
 
@@ -421,12 +422,12 @@ export async function safeDeleteEntries(paths: string[]): Promise<void> {
 }
 
 async function deleteFiles(answer: SafeDeleteAnswer): Promise<void> {
-  if (answer.answer.edit.changes.length) await applyAnswer(`Safe Delete ${answer.name}`, answer.answer);
+  if (answer.answer.edit.changes.length) await applyAnswer(tr("codeintel.moveRefactorings.safeDeleteName", { name: answer.name }), answer.answer);
   for (const p of answer.paths) {
     try {
       await workspaceApi.delete(p);
     } catch (e) {
-      showBalloon("Safe Delete failed", message(e), 6000);
+      showBalloon(tr("codeintel.moveRefactorings.safeDeleteFailed"), message(e), 6000);
     }
   }
   if (!answer.paths.length) return;
@@ -487,7 +488,7 @@ export async function makeStaticAt(path: string, view: EditorView): Promise<void
   } catch (e) {
     return fail(view, "Make Static", e);
   }
-  await applyAnswer(`Make Static ${info.name}()`, answer, { preview });
+  await applyAnswer(tr("codeintel.moveRefactorings.makeStaticName", { name: info.name }), answer, { preview });
 }
 
 // ---------- Change Signature model (pure, tested) ----------

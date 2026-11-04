@@ -11,6 +11,7 @@ import type { OptionField, SearchScope } from "@/ipc/codeintel";
 import { closeFindUsagesDialog, extraUsageScopes, SCOPES, type FindUsagesDialogRequest } from "./findSettings";
 import { checkPattern } from "@/features/scopes/model";
 import { openSettings } from "@/features/settings/dialogState";
+import { t } from "@/i18n";
 
 const capitalized = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -70,7 +71,7 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
       <div
         class="dialog find-usages-dialog"
         role="dialog"
-        aria-label="Find Usages"
+        aria-label={t("codeintel.findUsagesDialog.findUsages")}
         onKeyDown={(e) => {
           if (e.key === "Escape") close();
           else if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "SELECT") void run();
@@ -79,19 +80,19 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Find Usages</div>
+        <div class="dialog-title">{t("codeintel.findUsagesDialog.findUsages")}</div>
         <div class="dialog-body">
           <div class="find-usages-element">
             {capitalized(target.label.slice(0, target.label.length - target.title.length).trim())} <strong>{target.title}</strong>
           </div>
           <div class="find-usages-groups">
             <fieldset class="find-usages-group">
-              <legend>Find</legend>
+              <legend>{t("codeintel.findUsagesDialog.find")}</legend>
               <For each={find}>{checkbox}</For>
             </fieldset>
             <Show when={options.length}>
               <fieldset class="find-usages-group">
-                <legend>Options</legend>
+                <legend>{t("codeintel.findUsagesDialog.options")}</legend>
                 <For each={options}>{checkbox}</For>
               </fieldset>
             </Show>
@@ -99,26 +100,26 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
           <Show when={target.scoped}>
             <div class="form-row">
               <label class="form-label" for="find-usages-scope">
-                Scope:
+                {t("codeintel.findUsagesDialog.scope")}
               </label>
               <select id="find-usages-scope" value={selectValue()} onChange={(e) => choose(e.currentTarget.value)}>
                 <For each={SCOPES}>{(s) => <option value={s.value}>{s.label}</option>}</For>
                 <Show when={extraUsageScopes().length}>
-                  <optgroup label="Scopes">
+                  <optgroup label={t("codeintel.findUsagesDialog.scopes")}>
                     <For each={extraUsageScopes()}>{(s) => <option value={`scope:${s.name}`}>{s.name}</option>}</For>
                   </optgroup>
                 </Show>
               </select>
-              <button class="icon-btn" title="Edit Scopes…" aria-label="Edit Scopes" onClick={() => openSettings("appearance.scopes")}>
+              <button class="icon-btn" title={t("codeintel.findUsagesDialog.editScopes")} aria-label={t("codeintel.findUsagesDialog.editScopes2")} onClick={() => openSettings("appearance.scopes")}>
                 …
               </button>
             </div>
             <Show when={scope() === "directory"}>
               <div class="form-row">
-                <label class="form-label">Directory:</label>
+                <label class="form-label">{t("codeintel.findUsagesDialog.directory")}</label>
                 <input
                   value={value<string>("findUsages.scope.directory")}
-                  placeholder="app/Models"
+                  placeholder={"app/Models"}
                   spellcheck={false}
                   onInput={(e) => set("findUsages.scope.directory", e.currentTarget.value)}
                 />
@@ -131,16 +132,16 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
                     checked={value<boolean>("findUsages.scope.includeSubdirectories")}
                     onChange={(e) => set("findUsages.scope.includeSubdirectories", e.currentTarget.checked)}
                   />
-                  Include subdirectories
+                  {t("codeintel.findUsagesDialog.includeSubdirectories")}
                 </label>
               </div>
             </Show>
             <Show when={scope() === "custom" && !value<string>("findUsages.scope.name")}>
               <div class="form-row">
-                <label class="form-label">Pattern:</label>
+                <label class="form-label">{t("codeintel.findUsagesDialog.pattern")}</label>
                 <input
                   value={value<string>("findUsages.scope.pattern")}
-                  placeholder="file:app//*.php&&!test:*..*"
+                  placeholder={"file:app//*.php&&!test:*..*"}
                   spellcheck={false}
                   classList={{ invalid: !!patternError() }}
                   title={patternError()?.message}
@@ -157,7 +158,7 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
               checked={value<boolean>("findUsages.openInNewTab")}
               onChange={(e) => set("findUsages.openInNewTab", e.currentTarget.checked)}
             />
-            Open in new tab
+            {t("codeintel.findUsagesDialog.openInNewTab")}
           </label>
           <button class="btn-secondary" onClick={close}>
             Cancel

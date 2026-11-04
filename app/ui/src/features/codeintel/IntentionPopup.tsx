@@ -9,6 +9,7 @@ import { ChevronRight, FileCode, Lightbulb, Sparkles, Wrench } from "lucide-soli
 import type { ContextAction } from "@/ipc/codeintel";
 import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { actionIcon, closeIntentionPopup, runContextAction, type IntentionPopupState } from "./intentions";
+import { t } from "@/i18n";
 
 function ActionIcon(props: { action: ContextAction }) {
   const kind = () => actionIcon(props.action);
@@ -120,7 +121,7 @@ export function IntentionPopup(props: { popup: IntentionPopupState }) {
       ref={el}
       tabIndex={-1}
       role="dialog"
-      aria-label="Context actions"
+      aria-label={t("codeintel.intentionPopup.contextActions")}
       style={{ left: `${props.popup.x}px`, top: `${props.popup.y}px` }}
       onKeyDown={onKey}
     >
@@ -130,7 +131,7 @@ export function IntentionPopup(props: { popup: IntentionPopupState }) {
         </div>
       </Show>
       <div class="intention-list" role="listbox">
-        <For each={rows()} fallback={<div class="intention-empty">Nothing matches</div>}>
+        <For each={rows()} fallback={<div class="intention-empty">{t("codeintel.intentionPopup.nothingMatches")}</div>}>
           {(row, i) => (
             <div class="intention-row-wrap">
               <button

@@ -26,6 +26,7 @@ import {
   type UsagesDetectedRequest,
 } from "./moveRefactorings";
 import { VISIBILITIES } from "./extract";
+import { t as tr } from "@/i18n";
 
 /** Escape cancels, Enter confirms (not on buttons or in the parameter table). */
 export function keys(cancel: () => void, ok: () => void): JSX.EventHandler<HTMLDivElement, KeyboardEvent> {
@@ -126,15 +127,15 @@ export function NamespaceFields(props: {
         class="move-input"
         value={props.namespace}
         spellcheck={false}
-        aria-label="Namespace"
+        aria-label={tr("codeintel.moveDialogs.namespace")}
         onInput={(e) => props.setNamespace(e.currentTarget.value)}
       />
-      <label class="form-label">Target destination directory:</label>
+      <label class="form-label">{tr("codeintel.moveDialogs.targetDestinationDirectory")}</label>
       <input
         class="move-input"
         value={props.directory}
         spellcheck={false}
-        aria-label="Directory"
+        aria-label={tr("codeintel.moveDialogs.directory")}
         onInput={(e) => {
           setTouched(true);
           props.setDirectory(e.currentTarget.value);
@@ -156,14 +157,14 @@ export function MoveClassDialog(props: { req: MoveClassRequest }) {
     );
   const run = () => valid() && close(false);
   return (
-    <Frame title="Move Class" class="move-class-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.moveDialogs.moveClass")} class="move-class-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <NamespaceFields
           namespace={ns()}
           setNamespace={setNs}
           directory={dir()}
           setDirectory={setDir}
-          label={`Move ${t.classKind} ${t.name} to namespace:`}
+          label={tr("codeintel.moveDialogs.moveClasskindNameToNamespace", { classKind: t.classKind, name: t.name })}
           autofocus
         />
         <Show when={!valid()}>
@@ -172,7 +173,7 @@ export function MoveClassDialog(props: { req: MoveClassRequest }) {
         <Show when={!t.sole}>
           <div class="refactor-note">The file declares more than {t.name}: the class moves to a new file.</div>
         </Show>
-        <Check label="Search in comments and strings" checked={comments()} onChange={setComments} />
+        <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} onChange={setComments} />
       </div>
       <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
@@ -189,14 +190,14 @@ export function CopyClassDialog(props: { req: CopyClassRequest }) {
     props.req.done(ok ? { name: name().trim(), namespace: ns().trim().replace(/^\\/, ""), directory: dir().trim() } : null);
   const run = () => valid() && close(true);
   return (
-    <Frame title="Copy Class" class="move-class-dialog" onKeyDown={keys(() => close(false), run)}>
+    <Frame title={tr("codeintel.moveDialogs.copyClass")} class="move-class-dialog" onKeyDown={keys(() => close(false), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Copy {t.classKind} <code>{t.fqn}</code>
+          {tr("codeintel.moveDialogs.copyKind", { classKind: t.classKind })} <code>{t.fqn}</code>
         </div>
-        <label class="form-label">New name:</label>
-        <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label="New name" onInput={(e) => setName(e.currentTarget.value)} />
-        <NamespaceFields namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} label="To namespace:" />
+        <label class="form-label">{tr("codeintel.moveDialogs.newName")}</label>
+        <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.newName2")} onInput={(e) => setName(e.currentTarget.value)} />
+        <NamespaceFields namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} label={tr("codeintel.moveDialogs.toNamespace")} />
       </div>
       <Buttons ok="OK" disabled={!valid()} cancel={() => close(false)} run={run} />
     </Frame>
@@ -219,7 +220,7 @@ export function MoveMembersDialog(props: { req: MoveMembersRequest }) {
     props.req.done(preview === null ? null : { members: [...selected()], target: target().trim().replace(/^\\/, ""), preview });
   const run = () => valid() && close(false);
   return (
-    <Frame title="Move Members" class="move-members-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.moveDialogs.moveMembers")} class="move-members-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
           Move members from: <code>{t.classFqn}</code>
@@ -229,9 +230,9 @@ export function MoveMembersDialog(props: { req: MoveMembersRequest }) {
           ref={focusSelect}
           class="move-input"
           value={target()}
-          placeholder="App\Support\Helpers"
+          placeholder={"App\\Support\\Helpers"}
           spellcheck={false}
-          aria-label="Target class"
+          aria-label={tr("codeintel.moveDialogs.targetClass")}
           onInput={(e) => setTarget(e.currentTarget.value)}
         />
         <fieldset class="refactor-group">
@@ -261,13 +262,13 @@ export function MoveFunctionDialog(props: { req: MoveFunctionRequest }) {
   const close = (preview: boolean | null) => props.req.done(preview === null ? null : { file: file().trim(), preview });
   const run = () => valid() && close(false);
   return (
-    <Frame title="Move Function" class="move-class-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.moveDialogs.moveFunction")} class="move-class-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
           Move function <code>{t.fqn}()</code>
         </div>
-        <label class="form-label">To file:</label>
-        <input ref={focusSelect} class="move-input" value={file()} spellcheck={false} aria-label="To file" onInput={(e) => setFile(e.currentTarget.value)} />
+        <label class="form-label">{tr("codeintel.moveDialogs.toFile")}</label>
+        <input ref={focusSelect} class="move-input" value={file()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toFile2")} onInput={(e) => setFile(e.currentTarget.value)} />
       </div>
       <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
@@ -281,14 +282,14 @@ export function MoveFilesDialog(props: { req: MoveFilesRequest }) {
   const close = (ok: boolean) =>
     props.req.done(ok ? { directory: dir().trim(), searchForReferences: refs() && props.req.php, searchInComments: comments() && props.req.php } : null);
   return (
-    <Frame title="Move" class="move-class-dialog" onKeyDown={keys(() => close(false), () => close(true))}>
+    <Frame title={tr("codeintel.moveDialogs.move")} class="move-class-dialog" onKeyDown={keys(() => close(false), () => close(true))}>
       <div class="dialog-body">
         <div class="refactor-note">Move {props.req.what}</div>
-        <label class="form-label">To directory:</label>
-        <input ref={focusSelect} class="move-input" value={dir()} spellcheck={false} aria-label="To directory" onInput={(e) => setDir(e.currentTarget.value)} />
+        <label class="form-label">{tr("codeintel.moveDialogs.toDirectory")}</label>
+        <input ref={focusSelect} class="move-input" value={dir()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toDirectory2")} onInput={(e) => setDir(e.currentTarget.value)} />
         <Show when={props.req.php}>
-          <Check label="Search for references" checked={refs()} onChange={setRefs} />
-          <Check label="Search in comments and strings" checked={comments()} disabled={!refs()} onChange={setComments} />
+          <Check label={tr("codeintel.moveDialogs.searchForReferences")} checked={refs()} onChange={setRefs} />
+          <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} disabled={!refs()} onChange={setComments} />
         </Show>
       </div>
       <Buttons ok="Refactor" cancel={() => close(false)} run={() => close(true)} />
@@ -303,13 +304,13 @@ export function CopyFilesDialog(props: { req: CopyFilesRequest }) {
   const close = (ok: boolean) => props.req.done(ok ? { name: name().trim(), directory: dir().trim() } : null);
   const run = () => valid() && close(true);
   return (
-    <Frame title="Copy" class="move-class-dialog" onKeyDown={keys(() => close(false), run)}>
+    <Frame title={tr("codeintel.moveDialogs.copy")} class="move-class-dialog" onKeyDown={keys(() => close(false), run)}>
       <div class="dialog-body">
         <div class="refactor-note">Copy {props.req.what}</div>
-        <label class="form-label">New name:</label>
-        <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label="New name" onInput={(e) => setName(e.currentTarget.value)} />
-        <label class="form-label">To directory:</label>
-        <input class="move-input" value={dir()} spellcheck={false} aria-label="To directory" onInput={(e) => setDir(e.currentTarget.value)} />
+        <label class="form-label">{tr("codeintel.moveDialogs.newName")}</label>
+        <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.newName2")} onInput={(e) => setName(e.currentTarget.value)} />
+        <label class="form-label">{tr("codeintel.moveDialogs.toDirectory")}</label>
+        <input class="move-input" value={dir()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toDirectory2")} onInput={(e) => setDir(e.currentTarget.value)} />
       </div>
       <Buttons ok="OK" disabled={!valid()} cancel={() => close(false)} run={run} />
     </Frame>
@@ -320,10 +321,10 @@ export function SafeDeleteDialog(props: { req: SafeDeleteRequest }) {
   const [comments, setComments] = createSignal(false);
   const close = (ok: boolean) => props.req.done(ok ? { searchInComments: comments() } : null);
   return (
-    <Frame title="Safe Delete" class="safe-delete-dialog" focus onKeyDown={keys(() => close(false), () => close(true))}>
+    <Frame title={tr("codeintel.moveDialogs.safeDelete")} class="safe-delete-dialog" focus onKeyDown={keys(() => close(false), () => close(true))}>
       <div class="dialog-body">
         <div>Delete {props.req.what}?</div>
-        <Check label="Search in comments and strings" checked={comments()} onChange={setComments} />
+        <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} onChange={setComments} />
       </div>
       <Buttons ok="OK" cancel={() => close(false)} run={() => close(true)} />
     </Frame>
@@ -332,7 +333,7 @@ export function SafeDeleteDialog(props: { req: SafeDeleteRequest }) {
 
 export function UsagesDetectedDialog(props: { req: UsagesDetectedRequest }) {
   return (
-    <Frame title="Usages Detected" class="safe-delete-dialog" focus onKeyDown={keys(() => props.req.done(null), () => props.req.done("view"))}>
+    <Frame title={tr("codeintel.moveDialogs.usagesDetected")} class="safe-delete-dialog" focus onKeyDown={keys(() => props.req.done(null), () => props.req.done("view"))}>
       <div class="dialog-body usages-detected">
         <TriangleAlert size={28} class="usages-detected-icon" />
         <div class="usages-detected-text">
@@ -341,10 +342,10 @@ export function UsagesDetectedDialog(props: { req: UsagesDetectedRequest }) {
       </div>
       <div class="dialog-buttons">
         <button class="btn-primary" onClick={() => props.req.done("view")}>
-          View Usages
+          {tr("codeintel.moveDialogs.viewUsages")}
         </button>
         <button class="btn-secondary" onClick={() => props.req.done("delete")}>
-          Delete Anyway
+          {tr("codeintel.moveDialogs.deleteAnyway")}
         </button>
         <span class="dialog-buttons-gap" />
         <button class="btn-secondary" onClick={() => props.req.done(null)}>
@@ -396,56 +397,56 @@ export function ChangeSignatureDialog(props: { req: ChangeSignatureRequest }) {
   const removedUsed = () =>
     info.parameters.map((p, i) => ({ p, i })).filter(({ p, i }) => p.used && !rows().some((r) => r.original === i));
   return (
-    <Frame title="Change Signature" class="change-signature-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.moveDialogs.changeSignature")} class="change-signature-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="change-signature-head">
           <Show when={info.kind === "method"}>
             <label class="form-label">
-              Visibility:
-              <select value={visibility() ?? "public"} onChange={(e) => setVisibility(e.currentTarget.value)} aria-label="Visibility">
+              {tr("codeintel.moveDialogs.visibility2")}
+              <select value={visibility() ?? "public"} onChange={(e) => setVisibility(e.currentTarget.value)} aria-label={tr("codeintel.moveDialogs.visibility")}>
                 <For each={VISIBILITIES}>{(v) => <option value={v}>{v}</option>}</For>
               </select>
             </label>
           </Show>
           <label class="form-label">
             Return type:
-            <input class="move-input mono" value={returnType()} spellcheck={false} aria-label="Return type" onInput={(e) => setReturnType(e.currentTarget.value)} />
+            <input class="move-input mono" value={returnType()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.returnType")} onInput={(e) => setReturnType(e.currentTarget.value)} />
           </label>
           <label class="form-label">
-            Name:
+            {tr("codeintel.moveDialogs.name2")}
             <input
               ref={focusSelect}
               class="move-input mono"
               value={name()}
               spellcheck={false}
-              aria-label="Name"
+              aria-label={tr("codeintel.moveDialogs.name")}
               disabled={info.constructor}
               onInput={(e) => setName(e.currentTarget.value)}
             />
           </label>
         </div>
         <fieldset class="refactor-group">
-          <legend>Parameters</legend>
+          <legend>{tr("codeintel.moveDialogs.parameters")}</legend>
           <div class="signature-params">
-            <div class="signature-table" role="grid" aria-label="Parameters">
+            <div class="signature-table" role="grid" aria-label={tr("codeintel.moveDialogs.parameters")}>
               <div class="signature-row head" role="row">
-                <span>Type</span>
-                <span>Name</span>
-                <span>Default value</span>
-                <span title="The value passed at call sites for a new parameter">Value at call sites</span>
+                <span>{tr("codeintel.moveDialogs.type")}</span>
+                <span>{tr("codeintel.moveDialogs.name")}</span>
+                <span>{tr("codeintel.moveDialogs.defaultValue")}</span>
+                <span title={tr("codeintel.moveDialogs.theValuePassedAtCall")}>{tr("codeintel.moveDialogs.valueAtCallSites")}</span>
               </div>
-              <For each={rows()} fallback={<div class="refactor-note signature-empty">No parameters</div>}>
+              <For each={rows()} fallback={<div class="refactor-note signature-empty">{tr("codeintel.moveDialogs.noParameters")}</div>}>
                 {(r, i) => (
                   <div class="signature-row" role="row" classList={{ selected: selected() === i(), added: r.original === null }} onMouseDown={() => setSelected(i())}>
-                    <input value={r.type} spellcheck={false} aria-label="Type" onFocus={() => setSelected(i())} onInput={(e) => update(i(), { type: e.currentTarget.value })} />
+                    <input value={r.type} spellcheck={false} aria-label={tr("codeintel.moveDialogs.type")} onFocus={() => setSelected(i())} onInput={(e) => update(i(), { type: e.currentTarget.value })} />
                     <span class="signature-name">
                       <span class="refactor-name-prefix">{r.variadic ? "...$" : "$"}</span>
-                      <input value={r.name} spellcheck={false} aria-label="Name" onFocus={() => setSelected(i())} onInput={(e) => update(i(), { name: e.currentTarget.value.replace(/^\$/, "") })} />
+                      <input value={r.name} spellcheck={false} aria-label={tr("codeintel.moveDialogs.name")} onFocus={() => setSelected(i())} onInput={(e) => update(i(), { name: e.currentTarget.value.replace(/^\$/, "") })} />
                     </span>
                     <input
                       value={r.defaultValue}
                       spellcheck={false}
-                      aria-label="Default value"
+                      aria-label={tr("codeintel.moveDialogs.defaultValue")}
                       disabled={r.variadic}
                       onFocus={() => setSelected(i())}
                       onInput={(e) => update(i(), { defaultValue: e.currentTarget.value })}
@@ -453,7 +454,7 @@ export function ChangeSignatureDialog(props: { req: ChangeSignatureRequest }) {
                     <input
                       value={r.callValue}
                       spellcheck={false}
-                      aria-label="Value at call sites"
+                      aria-label={tr("codeintel.moveDialogs.valueAtCallSites")}
                       disabled={r.original !== null}
                       placeholder={r.original !== null ? "" : r.defaultValue || ""}
                       onFocus={() => setSelected(i())}
@@ -464,23 +465,23 @@ export function ChangeSignatureDialog(props: { req: ChangeSignatureRequest }) {
               </For>
             </div>
             <div class="extract-params-buttons">
-              <button class="icon-btn" title="Add" aria-label="Add" onClick={add}>
+              <button class="icon-btn" title={tr("common.add")} aria-label={tr("common.add")} onClick={add}>
                 <Plus size={14} />
               </button>
-              <button class="icon-btn" title="Remove" aria-label="Remove" disabled={!rows().length} onClick={remove}>
+              <button class="icon-btn" title={tr("common.remove")} aria-label={tr("common.remove")} disabled={!rows().length} onClick={remove}>
                 <Minus size={14} />
               </button>
-              <button class="icon-btn" title="Move Up" aria-label="Move Up" disabled={selected() === 0} onClick={() => move(-1)}>
+              <button class="icon-btn" title={tr("common.moveUp")} aria-label={tr("common.moveUp")} disabled={selected() === 0} onClick={() => move(-1)}>
                 <ArrowUp size={14} />
               </button>
-              <button class="icon-btn" title="Move Down" aria-label="Move Down" disabled={selected() >= rows().length - 1} onClick={() => move(1)}>
+              <button class="icon-btn" title={tr("common.moveDown")} aria-label={tr("common.moveDown")} disabled={selected() >= rows().length - 1} onClick={() => move(1)}>
                 <ArrowDown size={14} />
               </button>
             </div>
           </div>
         </fieldset>
         <For each={removedUsed()}>{({ p }) => <div class="refactor-note warning">Parameter ${p.name} is used in the body and is removed.</div>}</For>
-        <div class="refactor-signature-label">Signature Preview</div>
+        <div class="refactor-signature-label">{tr("codeintel.moveDialogs.signaturePreview")}</div>
         <pre class="refactor-signature">{preview()}</pre>
         <Show when={error()}>
           <div class="dialog-error">{error()}</div>
@@ -508,7 +509,7 @@ export function MakeStaticDialog(props: { req: MakeStaticRequest }) {
     );
   const run = () => valid() && close(false);
   return (
-    <Frame title="Make Method Static" class="move-class-dialog" focus onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.moveDialogs.makeMethodStatic")} class="move-class-dialog" focus onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div>
           Make method <code>{`${info.className}::${info.name}()`}</code> static
@@ -517,13 +518,13 @@ export function MakeStaticDialog(props: { req: MakeStaticRequest }) {
           <div class="refactor-radios vertical" role="radiogroup">
             <label class="form-label check">
               <input type="radio" name="make-static" checked={mode() === "object"} onChange={() => setMode("object")} />
-              Add object as a parameter with name:
+              {tr("codeintel.moveDialogs.addObjectAsAParameter")}
             </label>
             <div class="refactor-name make-static-param">
               <span class="refactor-name-prefix">$</span>
-              <input value={param()} spellcheck={false} aria-label="Parameter name" disabled={mode() !== "object"} onInput={(e) => setParam(e.currentTarget.value)} />
+              <input value={param()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.parameterName")} disabled={mode() !== "object"} onInput={(e) => setParam(e.currentTarget.value)} />
             </div>
-            <label class="form-label check" title={info.needsObject ? "The method calls methods or writes fields of $this" : undefined}>
+            <label class="form-label check" title={info.needsObject ? tr("codeintel.moveDialogs.theMethodCallsMethodsOr") : undefined}>
               <input type="radio" name="make-static" checked={mode() === "fields"} disabled={info.needsObject || !info.fields.length} onChange={() => setMode("fields")} />
               Add parameters for fields: {info.fields.map((f) => `$${f}`).join(", ") || "none"}
             </label>

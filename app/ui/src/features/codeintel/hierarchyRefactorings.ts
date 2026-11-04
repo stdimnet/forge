@@ -25,6 +25,7 @@ import { syncNow } from "@/features/lsp/sync";
 import { toLsp } from "@/features/lsp/util";
 import { applyAnswer, dirtyBuffers } from "./extract";
 import { renameSessionOf } from "./rename";
+import { t } from "@/i18n";
 
 export const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !/\.blade\.php$/i.test(path);
 const message = (e: unknown) => String(e instanceof Error ? e.message : e);
@@ -123,8 +124,8 @@ const NAME = /^[A-Za-z_\u0080-￿][\w\u0080-￿]*$/;
 /** The dialog's validation message for a new type name, or `null`. */
 export function validateTypeName(name: string, info: HierarchyInfo): string | null {
   const n = name.trim();
-  if (!NAME.test(n)) return n ? `'${n}' is not a valid class name` : "Specify the name";
-  if (n.toLowerCase() === info.name.toLowerCase()) return `The name should differ from ${info.name}`;
+  if (!NAME.test(n)) return n ? `'${n}' is not a valid class name` : t("codeintel.hierarchyRefactorings.specifyTheName");
+  if (n.toLowerCase() === info.name.toLowerCase()) return t("codeintel.hierarchyRefactorings.theNameShouldDifferFrom", { name: info.name });
   return null;
 }
 
@@ -180,7 +181,7 @@ export async function extractInterfaceAt(path: string, view: EditorView): Promis
   if (!choice) return;
   const { preview, ...options } = choice;
   await run(
-    `Extract Interface ${options.name}`,
+    t("codeintel.hierarchyRefactorings.extractInterfaceName", { name: options.name }),
     view,
     () => hierarchyApi.extractInterface(info, options, contentFor(info.path, path, view), dirtyBuffers()),
     preview,
@@ -196,7 +197,7 @@ export async function extractSuperclassAt(path: string, view: EditorView): Promi
   if (!choice) return;
   const { preview, ...options } = choice;
   await run(
-    `Extract Superclass ${options.name}`,
+    t("codeintel.hierarchyRefactorings.extractSuperclassName", { name: options.name }),
     view,
     () => hierarchyApi.extractSuperclass(info, options, contentFor(info.path, path, view), dirtyBuffers()),
     preview,
@@ -223,7 +224,7 @@ export async function pushDownAt(path: string, view: EditorView): Promise<void> 
   const info = await prepare("pushDown", path, view);
   if (!info) return;
   if (!info.targets.length) {
-    showHint(view, view.state.selection.main.head, `${info.kind === "interface" ? "Interface" : "Class"} ${info.name} has no subclasses`);
+    showHint(view, view.state.selection.main.head, `${info.kind === "interface" ? t("codeintel.hierarchyRefactorings.interface") : t("codeintel.hierarchyRefactorings.class")} ${info.name} has no subclasses`);
     return;
   }
   const choice = await ask("pushDown", info);

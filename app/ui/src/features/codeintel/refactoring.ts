@@ -22,6 +22,7 @@ import { showBalloon } from "@/keymap";
 import { refreshDirs } from "@/features/project/ProjectView";
 import { viewFor } from "@/features/lsp/navigation";
 import { fromLsp } from "@/features/lsp/util";
+import { t as tr } from "@/i18n";
 
 /** Marks the history entry of a refactoring in an editor; `undo` on the inverse entry. */
 const refactoringStep = StateEffect.define<{ id: number; undo: boolean }>();
@@ -150,7 +151,7 @@ export interface ApplyResult {
  * Local History records it as one change ("Refactoring: Rename A to B").
  */
 export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions): Promise<ApplyResult> {
-  const name = `Refactoring: ${opts.label}`;
+  const name = tr("codeintel.refactoring.refactoringLabel", { label: opts.label });
   return withLocalHistory("refactoring", name, async () => {
     const result = await applyNow(edit, opts);
     const r = refactorings.get(result.id);
@@ -333,7 +334,7 @@ export function refactoringHistory(): Extension {
 export function listenForServerEdits(): void {
   void listen<{ label?: string | null; edit: WorkspaceEdit }>("lsp://apply-edit", (e) => {
     applyWorkspaceEdit(e.edit, { label: e.label ?? "Edit" }).catch((err) =>
-      showBalloon(`${e.label ?? "Edit"} failed`, String(err instanceof Error ? err.message : err)),
+      showBalloon(`${e.label ?? tr("codeintel.refactoring.edit")} failed`, String(err instanceof Error ? err.message : err)),
     );
   });
 }

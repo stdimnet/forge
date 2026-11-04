@@ -25,6 +25,7 @@ import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
 import { toLsp } from "@/features/lsp/util";
 import { openFindUsagesSettings, openUsageSettingsAt, usageOptions, usageScope } from "./findSettings";
+import { t as tr } from "@/i18n";
 
 /** Where a search started, to run it again (Rerun, Settings). */
 export interface UsagesOrigin {
@@ -210,7 +211,7 @@ export function openInFindWindow(answer: UsagesAnswer, opts: FindTabOptions = {}
   const tab: FindTab = {
     id: nextTab++,
     kind: opts.kind ?? "usages",
-    title: opts.title ?? `Usages of ${answer.title}`,
+    title: opts.title ?? tr("codeintel.usages.usagesOfTitle", { title: answer.title }),
     header: opts.header ?? `Usages of ${answer.title} in ${answer.scope ?? "Project Files"}`,
     answer,
     rerun: opts.rerun,
@@ -297,7 +298,7 @@ export async function findUsagesInFileAt(path: string, view: EditorView, pos: nu
   const origin = { path, pos: toLsp(view.state.doc, pos) };
   const file = path.split("/").pop() ?? path;
   openInFindWindow(answer, {
-    title: `Usages of ${answer.title} in ${file}`,
+    title: tr("codeintel.usages.usagesOfTitleInFile", { title: answer.title, file }),
     rerun: () => searchUsages(origin, undefined, "currentFile"),
   });
 }
@@ -315,7 +316,7 @@ export function findUsagesSettingsFor(tab: FindTab): void {
       const answer = await searchUsages(origin, content);
       openInFindWindow(answer, { origin, rerun: () => searchUsages(origin) });
     } catch (e) {
-      showBalloon("Find Usages failed", String(e instanceof Error ? e.message : e));
+      showBalloon(tr("codeintel.usages.findUsagesFailed"), String(e instanceof Error ? e.message : e));
     }
   });
 }
