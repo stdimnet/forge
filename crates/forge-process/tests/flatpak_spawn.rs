@@ -30,7 +30,9 @@ fn fake() -> &'static Fake {
         std::fs::copy(src, &fake).unwrap();
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let log = dir.join("calls.log");
+        // One file per call (see the fixture), so parallel tests cannot interleave records.
+        let log = dir.join("calls");
+        std::fs::create_dir_all(&log).unwrap();
         let path = std::env::join_paths(
             std::iter::once(bin).chain(std::env::split_paths(&std::env::var_os("PATH").unwrap())),
         )
@@ -45,10 +47,15 @@ fn fake() -> &'static Fake {
 
 /// The recorded `flatpak-spawn` calls whose arguments contain `marker`.
 fn calls(marker: &str) -> Vec<Vec<String>> {
-    let text = std::fs::read_to_string(&fake().log).unwrap_or_default();
-    text.split('\u{1e}')
-        .map(|l| {
-            l.split('\u{1f}')
+    let entries = std::fs::read_dir(&fake().log).unwrap();
+    entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "call"))
+        .filter_map(|p| std::fs::read_to_string(p).ok())
+        .map(|record| {
+            record
+                .split('\u{1f}')
                 .filter(|a| !a.is_empty())
                 .map(str::to_string)
                 .collect::<Vec<_>>()

@@ -1,10 +1,12 @@
 #!/bin/sh
-# A fake `flatpak-spawn` for tests: records its arguments (separated by \037, each call
-# ended by \036) in $FAKE_FLATPAK_LOG, then runs the command the way
-# `flatpak-spawn --host` would run it on the host.
+# A fake `flatpak-spawn` for tests: records its arguments (each ended by \037) in a file of
+# its own in the folder $FAKE_FLATPAK_LOG (calls running in parallel never interleave; the
+# file appears complete through `mv`), then runs the command the way `flatpak-spawn --host`
+# would run it on the host.
 if [ -n "$FAKE_FLATPAK_LOG" ]; then
-  for a in "$@"; do printf '%s\037' "$a"; done >>"$FAKE_FLATPAK_LOG"
-  printf '\036' >>"$FAKE_FLATPAK_LOG"
+  tmp="$FAKE_FLATPAK_LOG/.$$.tmp"
+  for a in "$@"; do printf '%s\037' "$a"; done >"$tmp"
+  mv "$tmp" "$FAKE_FLATPAK_LOG/$$.call"
 fi
 dir=
 while [ $# -gt 0 ]; do
