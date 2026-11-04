@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bumpVersion, parseVersion, readVersion, writeVersion } from "./versionBump.mjs";
+import { bumpVersion, comparePre, parseVersion, readVersion, writeVersion } from "./versionBump.mjs";
 
 describe("Pride Versioning", () => {
   it("resets the lower parts like the pridever.org example", () => {
@@ -14,9 +14,33 @@ describe("Pride Versioning", () => {
     expect(parseVersion("2.7.123-rc.2")).toEqual({ proud: 2, default: 7, shame: 123, pre: "rc.2" });
   });
 
+  it("bumps only the pre-release label with pre", () => {
+    expect(bumpVersion("0.1.1-beta.1", "pre")).toBe("0.1.1-beta.2");
+    expect(bumpVersion("0.1.1-beta.9", "pre")).toBe("0.1.1-beta.10");
+    expect(bumpVersion("0.1.1-beta", "pre")).toBe("0.1.1-beta.1");
+    expect(bumpVersion("0.1.1-beta.2", "pre", "rc.1")).toBe("0.1.1-rc.1");
+    expect(() => bumpVersion("0.1.1", "pre")).toThrow(/not a pre-release/);
+    expect(() => bumpVersion("0.1.1-rc.1", "pre", "beta.3")).toThrow(/does not come after/);
+    expect(() => bumpVersion("0.1.1-beta.2", "pre", "beta.2")).toThrow(/does not come after/);
+  });
+
+  it("drops the pre-release label with release", () => {
+    expect(bumpVersion("0.1.1-rc.1", "release")).toBe("0.1.1");
+    expect(() => bumpVersion("0.1.1", "release")).toThrow(/already a release/);
+    expect(() => bumpVersion("0.1.1-rc.1", "release", "rc.2")).toThrow(/no --pre/);
+  });
+
+  it("orders pre-release labels like SemVer", () => {
+    expect(comparePre("beta.2", "beta.10")).toBe(-1);
+    expect(comparePre("beta", "beta.1")).toBe(-1);
+    expect(comparePre("rc.1", "beta.5")).toBe(1);
+    expect(comparePre("1", "alpha")).toBe(-1);
+    expect(comparePre("beta.1", "beta.1")).toBe(0);
+  });
+
   it("rejects what is not PROUD.DEFAULT.SHAME", () => {
     expect(() => parseVersion("1.2")).toThrow();
-    expect(() => bumpVersion("1.2.3", /** @type {any} */ ("minor"))).toThrow(/proud, default or shame/);
+    expect(() => bumpVersion("1.2.3", /** @type {any} */ ("minor"))).toThrow(/proud, default, shame, pre or release/);
     expect(() => bumpVersion("1.2.3", "proud", "bad label")).toThrow(/pre-release/);
   });
 
