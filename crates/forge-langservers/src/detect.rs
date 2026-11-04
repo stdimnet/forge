@@ -46,8 +46,9 @@ pub fn default_managed_dir() -> Option<PathBuf> {
     dirs::data_dir().map(|d| d.join("forge").join("langservers"))
 }
 
+/// A host environment variable (in Flatpak the host's, see `forge_hostspawn::env_var`).
 fn env_path(key: &str) -> Option<PathBuf> {
-    std::env::var_os(key)
+    forge_hostspawn::env_var(key)
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
 }
@@ -55,7 +56,7 @@ fn env_path(key: &str) -> Option<PathBuf> {
 impl DetectEnv {
     pub fn from_system() -> Self {
         DetectEnv {
-            path: std::env::var_os("PATH"),
+            path: forge_hostspawn::path_var(),
             home: dirs::home_dir(),
             npm_prefix: env_path("NPM_CONFIG_PREFIX").or_else(|| env_path("npm_config_prefix")),
             gopath: env_path("GOPATH"),
@@ -193,13 +194,9 @@ impl DetectEnv {
 
 /// `<dir>/<version>/<sub>` for every version directory, newest (by name) first.
 fn newest_first(dir: &Path, sub: &str) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return vec![];
-    };
-    let mut versions: Vec<PathBuf> = entries
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.is_dir())
+    let mut versions: Vec<PathBuf> = forge_hostspawn::list_dir(dir)
+        .into_iter()
+        .filter(|p| forge_hostspawn::is_dir(p))
         .collect();
     versions.sort_by(|a, b| natural_cmp(&b.to_string_lossy(), &a.to_string_lossy()));
     versions.into_iter().map(|v| v.join(sub)).collect()
@@ -372,7 +369,7 @@ impl Detector {
         let bin = executable.parent()?;
         // `<dir>/node_modules/.bin/x` (project or managed install) → `<dir>/node_modules`.
         if bin.file_name().is_some_and(|n| n == ".bin") {
-            if let Some(modules) = bin.parent().filter(|p| p.is_dir()) {
+            if let Some(modules) = bin.parent().filter(|p| forge_hostspawn::is_dir(p)) {
                 return Some(modules.to_path_buf());
             }
         }
@@ -381,21 +378,24 @@ impl Detector {
             Some(bin.join("node_modules")),
             bin.parent().map(|p| p.join("node_modules")),
         ];
-        candidates.into_iter().flatten().find(|p| p.is_dir())
+        candidates
+            .into_iter()
+            .flatten()
+            .find(|p| forge_hostspawn::is_dir(p))
     }
 }
 
 #[cfg(unix)]
 fn is_executable(path: &Path) -> bool {
     use std::os::unix::fs::PermissionsExt;
-    std::fs::metadata(path)
+    forge_hostspawn::metadata(path)
         .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
         .unwrap_or(false)
 }
 
 #[cfg(not(unix))]
 fn is_executable(path: &Path) -> bool {
-    path.is_file()
+    forge_hostspawn::is_file(path)
 }
 
 #[cfg(test)]

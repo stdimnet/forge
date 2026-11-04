@@ -2201,6 +2201,8 @@
   "setting.system.confirmExit.title": "Vor dem Beenden der IDE bestätigen",
   "setting.system.defaultProjectDirectory.description": "Neue Projekte werden hier angelegt, sofern Sie keinen anderen Ort wählen.",
   "setting.system.defaultProjectDirectory.title": "Standard-Projektverzeichnis",
+  "setting.system.flatpak.runOnHost.description": "Im Flatpak-Build PHP, Composer, Node, Git, Docker, Language-Server, Debug-Adapter und die Shell des Terminals über flatpak-spawn --host auf dem Host starten. Nur mit einer Laufzeitumgebung ausschalten, die diese Tools mitbringt. Außerhalb von Flatpak ohne Wirkung.",
+  "setting.system.flatpak.runOnHost.title": "Tools auf dem Host ausführen (Flatpak)",
   "setting.system.openProjectIn.description": "Wo „Datei | Öffnen“ und die zuletzt geöffneten Projekte ein Projekt öffnen, während in diesem Fenster bereits eines geöffnet ist.",
   "setting.system.openProjectIn.option.ask": "Fragen",
   "setting.system.openProjectIn.option.newWindow": "Neues Fenster",

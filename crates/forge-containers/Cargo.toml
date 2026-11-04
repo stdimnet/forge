@@ -22,6 +22,7 @@ runtime = [
 ]
 
 [dependencies]
+forge-hostspawn.workspace = true
 serde.workspace = true
 forge-output.workspace = true
 serde_json.workspace = true

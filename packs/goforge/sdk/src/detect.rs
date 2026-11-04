@@ -49,7 +49,7 @@ pub fn default_sdks_dir() -> Option<PathBuf> {
 impl DetectEnv {
     pub fn system() -> Self {
         let var = |k: &str| {
-            std::env::var_os(k)
+            forge_hostspawn::env_var(k)
                 .filter(|v| !v.is_empty())
                 .map(PathBuf::from)
         };
@@ -61,7 +61,7 @@ impl DetectEnv {
             "/snap/go/current",
         ]
         .iter()
-        .map(|f| (PathBuf::from(f), f.to_string()))
+        .map(|f| (forge_hostspawn::sandbox_view(Path::new(f)), f.to_string()))
         .collect();
         for brew in [
             "/opt/homebrew/opt/go/libexec",
@@ -80,7 +80,7 @@ impl DetectEnv {
             folders.push((go.clone(), go.to_string_lossy().into_owned()));
         }
         DetectEnv {
-            path: std::env::var_os("PATH")
+            path: forge_hostspawn::sandbox_path_var()
                 .map(|p| std::env::split_paths(&p).collect())
                 .unwrap_or_default(),
             home: dirs::home_dir(),

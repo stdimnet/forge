@@ -106,12 +106,15 @@ pub trait Runner: Send + Sync {
 pub struct SystemRunner;
 
 fn command(program: &str, args: &[String]) -> tokio::process::Command {
-    let mut cmd = tokio::process::Command::new(program);
-    cmd.args(args)
+    let mut std_cmd = std::process::Command::new(program);
+    std_cmd
+        .args(args)
         // Plain progress output instead of TTY animations in the build log.
         .env("BUILDKIT_PROGRESS", "plain")
-        .env("COMPOSE_PROGRESS", "plain")
-        .kill_on_drop(true);
+        .env("COMPOSE_PROGRESS", "plain");
+    // In Flatpak docker / devcontainer / wsl run on the host.
+    let mut cmd: tokio::process::Command = forge_hostspawn::host_command(std_cmd).into();
+    cmd.kill_on_drop(true);
     #[cfg(windows)]
     {
         // No console window for docker.exe / wsl.exe.

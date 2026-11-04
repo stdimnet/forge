@@ -853,15 +853,17 @@ fn spawn_proxy_command(
     ),
     ConnectError,
 > {
-    let mut cmd = if cfg!(windows) {
-        let mut c = tokio::process::Command::new("cmd");
+    let cmd = if cfg!(windows) {
+        let mut c = std::process::Command::new("cmd");
         c.arg("/C").arg(command);
         c
     } else {
-        let mut c = tokio::process::Command::new("sh");
+        let mut c = std::process::Command::new("sh");
         c.arg("-c").arg(command);
         c
     };
+    // In Flatpak the proxy command (cloudflared, ssh -W, …) runs on the host.
+    let mut cmd: tokio::process::Command = forge_process::host::host_command(cmd).into();
     let mut child = cmd
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

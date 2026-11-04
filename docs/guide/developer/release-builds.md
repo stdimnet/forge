@@ -287,15 +287,59 @@ Permissions (`finish-args`) and why Forge needs them:
 | `--socket=wayland`, `--socket=fallback-x11`, `--share=ipc`, `--device=dri` | the window and GPU-accelerated webview |
 | `--share=network` | AI providers, Git remotes, Composer/npm, update checks, remote development |
 | `--filesystem=home`, `/media`, `/run/media`, `/mnt` | projects can live anywhere in the home directory or on other drives |
+| `--filesystem=host-os:ro` | the host's `/usr`, `/bin`, `/lib` and `/etc` under `/run/host`, so Forge finds interpreters and SDKs installed in system folders (read-only) |
 | `--socket=ssh-auth` | Git over SSH and SSH remote development use the user's agent |
 | `--talk-name=org.freedesktop.secrets` | AI keys and passwords are stored in the Secret Service (keyring) |
 | `--talk-name=org.freedesktop.Notifications` | notifications |
-| `--talk-name=org.freedesktop.Flatpak` | `flatpak-spawn --host` to run PHP, Composer, Node, language servers, Docker and the terminal shell, which are installed on the host |
+| `--talk-name=org.freedesktop.Flatpak` | `flatpak-spawn --host` to run PHP, Composer, Node, language servers, Docker and the terminal shell, which are installed on the host (see below) |
 
-> **Note:** Forge does not yet route its tool runs through `flatpak-spawn --host`; inside the
-> Flatpak it finds only the tools of the GNOME runtime. Until it does, the Flatpak suits
-> editing and Git; prefer the AppImage, the `.deb` or the AUR package for full tool support.
-> Updates of a Flatpak come from Flatpak itself, not from Forge's updater.
+#### Running host tools from the sandbox
+
+Inside the sandbox `/usr` is the GNOME runtime, so PHP, Composer, Node, Git, Docker and the
+user's shell live on the host. Forge detects the sandbox at start (`/.flatpak-info` or
+`FLATPAK_ID`) and then starts every process that targets a host tool as
+`flatpak-spawn --host --watch-bus …` (`crates/forge-hostspawn`, re-exported as
+`forge_process::host`). That covers run configurations, test runners, quality tools and
+package managers (all of them go through `forge_process::runner`), the Terminal, language
+servers (`forge-lsp`), debug adapters and their `runInTerminal` debuggees (`forge-dap`), Git
+(`forge-vcs`, settings sync), Docker / Podman / kubectl and Dev Containers, project generators,
+language server installers, the AI agent CLIs, Agent Tasks (their commands, git sandbox and container engine), plugin processes and the SDK detectors.
+
+- **Environment and working directory** travel as `--env=KEY=VALUE`, `--unset-env=KEY` and
+  `--directory=`; the host process starts from the host session's environment, not the
+  sandbox's. A `PATH` that Forge sets loses its `/app/…` entries.
+- **Pipes**: `flatpak-spawn` passes stdin, stdout and stderr through, so Run consoles,
+  language servers and debug adapters work unchanged.
+- **Stop and exit**: Stop signals `flatpak-spawn`, which forwards the signal to the host
+  process; `--watch-bus` kills the host process when `flatpak-spawn` (or Forge) dies, so
+  nothing outlives Forge.
+- **Terminal**: the shell runs in a small `sh` wrapper (`forge_hostspawn::PTY_WRAPPER`) that
+  starts it with `setsid -c` on the host, so the pseudo terminal becomes its controlling
+  terminal there: job control, Ctrl+C and resizing work as in a native terminal, and closing
+  the tab sends the shell a hang-up. The sandbox side does not claim the terminal
+  (`set_controlling_tty(false)`). Without `setsid` on the host the shell runs without job
+  control.
+- **Lookups** (`which`, interpreter and SDK detection) use the host's `PATH` and environment
+  (read once from a login shell, `sh -lc env`) and the host's files: the home folder is shared,
+  system folders are read through `/run/host`. Detected executables are started by their host
+  path (`/run/host/usr/bin/php` becomes `/usr/bin/php`).
+- **Stays in the sandbox**: Forge's own executable (the built-in PHP language server, new
+  project windows) and anything under `/app`.
+- Outside Flatpak all of this is a no-op. Settings | Tools | Flatpak shows the mode and has
+  the setting **Run tools on the host (Flatpak)** (`system.flatpak.runOnHost`, default on);
+  turn it off only with a runtime that ships the tools.
+
+Limits: `/opt` and `/tmp` of the host are not visible in the sandbox, so tools installed only
+in `/opt` must be on the host's `PATH`, and the Docker socket in `/var/run` is reached only
+through the Docker CLI. Process ids that Forge shows for host processes are those of
+`flatpak-spawn` in the sandbox.
+
+Tests: `crates/forge-hostspawn` unit-tests the command rewriting;
+`crates/forge-process/tests/flatpak_spawn.rs` puts a fake `flatpak-spawn` on `PATH` that
+records its arguments and runs the command, and drives a run configuration (pipes, stdin, exit
+code, Stop) and a terminal (controlling terminal, resize, hang-up) through it.
+
+Updates of a Flatpak come from Flatpak itself, not from Forge's updater.
 
 Build it locally (needs `flatpak-builder` and `flatpak install --user flathub
 org.gnome.Platform//48 org.gnome.Sdk//48`; without `flatpak-builder` the script says so and

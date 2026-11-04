@@ -119,24 +119,26 @@ pub async fn run(
     cancel: Arc<Notify>,
     mut on_line: impl FnMut(Stream, String),
 ) -> InstallOutcome {
-    let mut cmd = Command::new(&program);
-    cmd.args(&args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
+    let mut std_cmd = std::process::Command::new(&program);
+    std_cmd.args(&args);
     // The tool's own directory first, so npm finds node next to it.
     let mut path_dirs: Vec<PathBuf> = program
         .parent()
         .map(|p| vec![p.to_path_buf()])
         .unwrap_or_default();
     path_dirs.extend(extra_path);
-    if let Some(current) = std::env::var_os("PATH") {
+    if let Some(current) = forge_hostspawn::path_var() {
         path_dirs.extend(std::env::split_paths(&current));
     }
     if let Ok(joined) = std::env::join_paths(path_dirs) {
-        cmd.env("PATH", joined);
+        std_cmd.env("PATH", joined);
     }
+    // In Flatpak installers (npm, pip, go, gem) run on the host.
+    let mut cmd: Command = forge_hostspawn::host_command(std_cmd).into();
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => {

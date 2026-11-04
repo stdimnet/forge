@@ -945,6 +945,16 @@
           "order": 2
         },
         {
+          "key": "system.flatpak.runOnHost",
+          "title": "Run tools on the host (Flatpak)",
+          "description": "In the Flatpak build, start PHP, Composer, Node, Git, Docker, language servers, debug adapters and the terminal's shell on the host through flatpak-spawn --host. Turn it off only with a runtime that ships these tools. Has no effect outside Flatpak.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.flatpak",
+          "project": false,
+          "order": 0
+        },
+        {
           "key": "system.defaultProjectDirectory",
           "title": "Default project directory",
           "description": "New projects are created here unless you pick another location.",

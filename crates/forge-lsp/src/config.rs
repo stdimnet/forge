@@ -154,8 +154,12 @@ pub fn merge_settings(base: &mut Value, patch: &Value) {
     }
 }
 
-/// Look up an executable on `PATH` (with `PATHEXT` handling on Windows).
+/// Look up an executable on `PATH` (with `PATHEXT` handling on Windows); in Flatpak on the
+/// host's `PATH`.
 pub fn find_on_path(command: &str) -> Option<PathBuf> {
+    if forge_hostspawn::active() {
+        return forge_hostspawn::which(command);
+    }
     let candidate = Path::new(command);
     if candidate.components().count() > 1 {
         return candidate.is_file().then(|| candidate.to_path_buf());

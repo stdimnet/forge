@@ -4,8 +4,9 @@ use std::path::Path;
 
 /// The shell a new terminal starts: `$SHELL` on Unix (falling back to bash, then sh); on
 /// Windows PowerShell 7 (`pwsh`) when installed, then Windows PowerShell, then `%ComSpec%`.
+/// In Flatpak the host's `$SHELL` and files count, since the terminal runs on the host.
 pub fn default_shell() -> String {
-    default_shell_from(|k| std::env::var(k).ok(), |p| find_in_path(p).is_some())
+    default_shell_from(forge_hostspawn::env_var, |p| find_in_path(p).is_some())
 }
 
 /// Testable core of [`default_shell`].
@@ -47,8 +48,12 @@ pub fn shell_args(shell: &str) -> Vec<String> {
     }
 }
 
-/// Resolve a program name or path to an existing file, searching `PATH` for bare names.
+/// Resolve a program name or path to an existing file, searching `PATH` for bare names (the
+/// host's `PATH` and files in Flatpak, see [`forge_hostspawn::which`]).
 pub fn find_in_path(program: &str) -> Option<std::path::PathBuf> {
+    if forge_hostspawn::active() {
+        return forge_hostspawn::which(program);
+    }
     let p = Path::new(program);
     if p.components().count() > 1 || p.is_absolute() {
         return p.is_file().then(|| p.to_path_buf());

@@ -152,8 +152,10 @@ pub async fn reveal_in_file_manager(path: String, state: State<'_, AppState>) ->
     let target = target.to_string_lossy().into_owned();
     tauri::async_runtime::spawn_blocking(move || {
         for cmd in forge_window::reveal_commands(Os::current(), &target) {
-            let status = std::process::Command::new(&cmd.program)
-                .args(&cmd.args)
+            let mut command = std::process::Command::new(&cmd.program);
+            command.args(&cmd.args);
+            // In Flatpak the host's file manager is asked.
+            let status = forge_process::host::host_command(command)
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status();

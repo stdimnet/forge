@@ -58,8 +58,9 @@ pub struct SearchEnv {
     pub skip_system_dirs: bool,
 }
 
+/// A host environment variable (the host's in Flatpak).
 fn env_path(key: &str) -> Option<PathBuf> {
-    std::env::var_os(key)
+    forge_hostspawn::env_var(key)
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
 }
@@ -69,7 +70,8 @@ impl SearchEnv {
     pub fn system(project_root: Option<PathBuf>) -> Self {
         let home = dirs::home_dir();
         SearchEnv {
-            path: std::env::var_os("PATH"),
+            // In Flatpak: the host's PATH, its system folders as the sandbox sees them.
+            path: forge_hostspawn::sandbox_path_var(),
             windows: cfg!(windows),
             project_root,
             pyenv_root: env_path("PYENV_ROOT"),
@@ -407,7 +409,7 @@ pub fn detect(
                     "/opt/local/bin",
                 ]
                 .iter()
-                .map(PathBuf::from),
+                .map(|d| forge_hostspawn::sandbox_view(Path::new(d))),
             );
         }
     }
@@ -489,13 +491,15 @@ pub fn run_with_timeout(
     use std::io::Read;
     use std::process::{Command, Stdio};
     let mut cmd = Command::new(program);
-    cmd.args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.args(args);
     if let Some(d) = cwd {
         cmd.current_dir(d);
     }
+    // In Flatpak the interpreter runs on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     let mut child = cmd.spawn().ok()?;
     let start = std::time::Instant::now();
     loop {

@@ -1,0 +1,11 @@
+[package]
+name = "forge-hostspawn"
+description = "Forge IDE: run host tools from inside a Flatpak sandbox through flatpak-spawn --host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+tempfile.workspace = true

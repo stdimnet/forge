@@ -283,6 +283,7 @@ pub fn run() {
             commands::agent::agent_stop,
             commands::settings::settings_get_all,
             commands::settings::settings_set,
+            commands::flatpak::flatpak_status,
             commands::settings::settings_schema,
             commands::settings::plugins_list,
             commands::third_party::plugins_installed,
@@ -1288,6 +1289,15 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
         .subscribe(move |change| {
             if let Err(e) = handle.emit("settings://changed", change) {
                 tracing::warn!("cannot emit settings change: {e}");
+            }
+        });
+
+    // Flatpak: "Run tools on the host" (applied at startup in `AppState::new`).
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if change.key == forge_process::host::SETTING_KEY {
+                commands::flatpak::apply_setting(change.value.as_bool());
             }
         });
 

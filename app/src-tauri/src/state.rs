@@ -106,6 +106,12 @@ impl AppState {
         // applies to Rust-originated text from the start.
         let language: Option<String> = state.read_settings().get_as(LANGUAGE_KEY);
         forge_i18n::set_locale(language.as_deref().unwrap_or("en"));
+        // Flatpak: start host tools through `flatpak-spawn --host` unless turned off.
+        crate::commands::flatpak::apply_setting(
+            state
+                .read_settings()
+                .get_bool(forge_process::host::SETTING_KEY),
+        );
         state
     }
 

@@ -200,11 +200,12 @@ pub fn spawn_local_with_env(
 ) -> Result<ServerIo> {
     let program = find_on_path(command).unwrap_or_else(|| command.into());
     let cwd = forge_core::paths::simplified(cwd);
-    let mut cmd = Command::new(&program);
-    cmd.args(args)
-        .envs(env)
-        .current_dir(&cwd)
-        .stdin(Stdio::piped())
+    let mut std_cmd = std::process::Command::new(&program);
+    std_cmd.args(args).envs(env).current_dir(&cwd);
+    // In Flatpak, language servers run on the host; Forge's own built-in server stays in the
+    // sandbox (see `forge_hostspawn::is_sandbox_program`).
+    let mut cmd: Command = forge_hostspawn::host_command(std_cmd).into();
+    cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);

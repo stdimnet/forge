@@ -1177,6 +1177,7 @@ dependencies = [
 name = "cforge-toolchains"
 version = "0.1.0"
 dependencies = [
+ "forge-hostspawn",
  "serde",
  "serde_json",
 ]
@@ -2166,6 +2167,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "dotnetforge-lang-dotnet",
+ "forge-hostspawn",
  "forge-langservers",
  "serde",
  "serde_json",
@@ -2618,6 +2620,7 @@ name = "forge-agent-cli"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-hostspawn",
  "forge-markdown",
  "serde",
  "serde_json",
@@ -2636,6 +2639,7 @@ dependencies = [
  "forge-ai",
  "forge-ai-editor",
  "forge-core",
+ "forge-hostspawn",
  "forge-output",
  "forge-vcs",
  "serde",
@@ -2965,6 +2969,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
+ "forge-hostspawn",
  "forge-output",
  "forge-remote",
  "keyring",
@@ -3007,6 +3012,7 @@ dependencies = [
  "base64 0.22.1",
  "forge-core",
  "forge-debug",
+ "forge-hostspawn",
  "forge-plugin-api",
  "forge-ports",
  "forge-runtools",
@@ -3040,6 +3046,7 @@ dependencies = [
  "forge-dbmodel",
  "forge-dbschema",
  "forge-dbtransfer",
+ "forge-hostspawn",
  "forge-ports",
  "forge-remote",
  "forge-sql",
@@ -3141,6 +3148,7 @@ version = "0.1.0"
 dependencies = [
  "forge-backend",
  "forge-core",
+ "forge-hostspawn",
  "forge-remote",
  "forge-remote-agent",
  "forge-runtargets",
@@ -3234,6 +3242,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-hostspawn"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+]
+
+[[package]]
 name = "forge-i18n"
 version = "0.1.0"
 dependencies = [
@@ -3301,6 +3316,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "flate2",
+ "forge-hostspawn",
  "forge-lsp",
  "ignore",
  "reqwest 0.12.28",
@@ -3343,6 +3359,7 @@ version = "0.1.0"
 dependencies = [
  "forge-codeintel",
  "forge-core",
+ "forge-hostspawn",
  "futures-util",
  "lsp-types 0.95.1",
  "serde",
@@ -3358,6 +3375,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "forge-hostspawn",
  "hex",
  "serde",
  "serde_json",
@@ -3443,6 +3461,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "ed25519-dalek",
+ "forge-hostspawn",
  "forge-icons",
  "forge-keymap",
  "forge-langservers",
@@ -3471,6 +3490,7 @@ name = "forge-process"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-hostspawn",
  "forge-output",
  "forge-runtargets",
  "forge-runtools",
@@ -3499,6 +3519,7 @@ name = "forge-project"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-hostspawn",
  "javaforge-minecraft",
  "serde",
  "serde_json",
@@ -3762,6 +3783,7 @@ name = "forge-vcs"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-hostspawn",
  "serde",
  "serde_json",
  "similar",
@@ -4454,6 +4476,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "flate2",
+ "forge-hostspawn",
  "forge-langservers",
  "goforge-lang-go",
  "serde",
@@ -5432,6 +5455,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "flate2",
+ "forge-hostspawn",
  "forge-langservers",
  "forge-lsp",
  "javaforge-lang-java",
@@ -7789,6 +7813,7 @@ dependencies = [
 name = "phpforge-fw-laravel"
 version = "0.1.0"
 dependencies = [
+ "forge-hostspawn",
  "phpforge-lang-php",
  "serde",
  "serde_json",
@@ -7827,6 +7852,7 @@ dependencies = [
 name = "phpforge-interpreters"
 version = "0.1.0"
 dependencies = [
+ "forge-hostspawn",
  "forge-runtargets",
  "serde",
  "serde_json",
@@ -8440,6 +8466,7 @@ name = "pyforge-interpreters"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-hostspawn",
  "phpforge-interpreters",
  "pyforge-lang-python",
  "serde",
@@ -9141,6 +9168,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-dap",
  "forge-debug",
+ "forge-hostspawn",
  "rubyforge-lang-ruby",
  "serde",
  "serde_json",
@@ -9323,6 +9351,7 @@ dependencies = [
  "dirs 6.0.0",
  "flate2",
  "forge-dap",
+ "forge-hostspawn",
  "forge-langservers",
  "forge-plugin-api",
  "rustforge-lang-rust",

@@ -57,8 +57,9 @@ pub fn parse_exec_credential(stdout: &str) -> Result<ExecCredential> {
 }
 
 async fn run_exec_plugin(cfg: &crate::kube::ExecConfig) -> Result<ExecCredential> {
-    let mut cmd = tokio::process::Command::new(&cfg.command);
-    cmd.args(&cfg.args)
+    let mut std_cmd = std::process::Command::new(&cfg.command);
+    std_cmd
+        .args(&cfg.args)
         .envs(cfg.env.iter().cloned())
         .env(
             "KUBERNETES_EXEC_INFO",
@@ -68,9 +69,10 @@ async fn run_exec_plugin(cfg: &crate::kube::ExecConfig) -> Result<ExecCredential
                 "spec": { "interactive": false }
             })
             .to_string(),
-        )
-        .stdin(std::process::Stdio::null())
-        .kill_on_drop(true);
+        );
+    // In Flatpak the credential plugin (gcloud, aws, kubelogin) runs on the host.
+    let mut cmd: tokio::process::Command = forge_hostspawn::host_command(std_cmd).into();
+    cmd.stdin(std::process::Stdio::null()).kill_on_drop(true);
     let out = tokio::time::timeout(std::time::Duration::from_secs(30), cmd.output())
         .await
         .map_err(|_| Error(format!("The credential plugin `{}` timed out", cfg.command)))?

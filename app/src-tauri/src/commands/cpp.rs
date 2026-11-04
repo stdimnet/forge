@@ -1019,8 +1019,9 @@ pub struct ClangdInfo {
 }
 
 fn clangd_version(path: &str) -> Option<String> {
-    let out = std::process::Command::new(path)
-        .arg("--version")
+    let mut cmd = std::process::Command::new(path);
+    cmd.arg("--version");
+    let out = forge_process::host::host_command(cmd)
         .stdin(std::process::Stdio::null())
         .output()
         .ok()?;

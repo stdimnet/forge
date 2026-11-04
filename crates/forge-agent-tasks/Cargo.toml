@@ -16,6 +16,7 @@ agent = ["dep:forge-ai", "dep:tokio", "dep:async-trait"]
 forge-ai = { workspace = true, optional = true }
 forge-ai-editor.workspace = true
 forge-core.workspace = true
+forge-hostspawn.workspace = true
 dirs.workspace = true
 forge-output.workspace = true
 forge-vcs.workspace = true

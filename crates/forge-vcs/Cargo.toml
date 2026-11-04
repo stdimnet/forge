@@ -9,10 +9,11 @@ license.workspace = true
 default = ["git"]
 # Running git (local or through a `GitExec`). Without it only the pure parsers and the
 # three-way merge are built (e.g. for WebAssembly).
-git = ["dep:forge-core", "dep:tracing"]
+git = ["dep:forge-core", "dep:forge-hostspawn", "dep:tracing"]
 
 [dependencies]
 forge-core = { workspace = true, optional = true }
+forge-hostspawn = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 similar = "2"

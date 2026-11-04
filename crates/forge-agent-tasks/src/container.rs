@@ -8,7 +8,8 @@
 //! removable) and has the CPU and memory limits of the settings. It lives as long as its
 //! task runs and is removed when the task finishes or is discarded.
 //!
-//! Everything here builds command lines ([`ShellCommand`]s for the engine's CLI); running
+//! Everything here builds command lines ([`ShellCommand`]s for the engine's CLI; in Flatpak
+//! `commands::run_process` starts them on the host through `flatpak-spawn --host`); running
 //! them is the caller's business (on this machine or on a remote project's host).
 
 use std::collections::BTreeMap;

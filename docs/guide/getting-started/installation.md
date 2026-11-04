@@ -1,8 +1,8 @@
 ---
 title: Installation
-description: Install Forge as an AppImage, deb or rpm package on Linux, or as an installer on Windows and macOS.
+description: Install Forge as an AppImage, deb, rpm or Flatpak package on Linux, or as an installer on Windows and macOS.
 order: 10
-tags: [install, appimage, linux, windows, macos]
+tags: [install, appimage, flatpak, linux, windows, macos]
 ---
 
 # Installation
@@ -83,6 +83,21 @@ start it from a terminal (see [command-line arguments](../reference/cli-and-link
 sudo dnf install ./Forge-0.1.0-1.x86_64.rpm      # Fedora, RHEL
 sudo zypper install ./Forge-0.1.0-1.x86_64.rpm   # openSUSE
 ```
+
+### Flatpak
+
+```sh
+flatpak install --user Forge.flatpak
+flatpak run dev.forge.ide
+```
+
+The Flatpak runs Forge in a sandbox, but your tools stay where they are: Forge starts PHP,
+Composer, Node, Git, Docker, language servers, debuggers and the Terminal's shell **on your
+system** through `flatpak-spawn --host`, finds them on your normal `PATH` and in system folders,
+and passes the project folder and environment along. Settings | Tools | Flatpak shows whether
+this mode is active and has the switch **Run tools on the host (Flatpak)** (on by default).
+Tools installed only in `/opt` must be on your `PATH` to be found. Flatpak updates Forge;
+Forge's own updater is not used. How it works: [Release builds](../developer/release-builds.md#running-host-tools-from-the-sandbox).
 
 ### What else Forge uses on Linux
 

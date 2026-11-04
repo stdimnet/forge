@@ -188,14 +188,17 @@ pub async fn run_process(
     timeout: Duration,
     cancel: &forge_ai::CancellationToken,
 ) -> RunOutput {
-    use tokio::process::Command;
-    let mut c = Command::new(&cmd.program);
-    c.args(&cmd.args)
+    let mut std_cmd = std::process::Command::new(&cmd.program);
+    std_cmd
+        .args(&cmd.args)
         .current_dir(&cmd.cwd)
         .envs(&cmd.env)
         .env("CI", "1")
-        .env("GIT_TERMINAL_PROMPT", "0")
-        .stdin(std::process::Stdio::null())
+        .env("GIT_TERMINAL_PROMPT", "0");
+    // In Flatpak the command (and the docker / podman CLI of the container sandbox) runs on
+    // the host.
+    let mut c: tokio::process::Command = forge_hostspawn::host_command(std_cmd).into();
+    c.stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .kill_on_drop(true);

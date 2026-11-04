@@ -122,7 +122,8 @@ pub fn run(
     if let Some(cwd) = cwd {
         cmd.current_dir(cwd);
     }
-    let out = cmd
+    // In Flatpak the granted program runs on the host.
+    let out = forge_hostspawn::host_command(cmd)
         .output()
         .map_err(|e| format!("cannot start {program}: {e}"))?;
     let cut = |b: &[u8]| String::from_utf8_lossy(&b[..b.len().min(MAX_BODY)]).into_owned();

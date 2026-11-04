@@ -42,7 +42,7 @@ pub fn find_tool(path_var: Option<&std::ffi::OsStr>) -> Option<(PathBuf, Tool)> 
             ]
             .into_iter()
             .map(|n| d.join(n))
-            .find(|p| p.is_file())
+            .find(|p| forge_hostspawn::is_file(p))
         })
     };
     exe("sqlplus")
@@ -250,7 +250,7 @@ pub fn parse_output(output: &str) -> DbResult<RawResult> {
 
 impl OraclePool {
     pub fn connect(spec: &ConnectSpec<'_>) -> DbResult<Self> {
-        let (tool, kind) = find_tool(std::env::var_os("PATH").as_deref()).ok_or_else(|| {
+        let (tool, kind) = find_tool(forge_hostspawn::path_var().as_deref()).ok_or_else(|| {
             DbError::Config(
                 "Oracle needs SQL*Plus (Oracle Instant Client with the SQL*Plus package) or SQLcl on PATH; Forge does not bundle the Oracle client".into(),
             )
@@ -319,11 +319,13 @@ impl OracleConn {
             &s.init,
             sql,
         );
-        let mut cmd = tokio::process::Command::new(&s.tool);
+        let mut std_cmd = std::process::Command::new(&s.tool);
         match s.kind {
-            Tool::SqlPlus => cmd.args(["-S", "-L", "/nolog"]),
-            Tool::SqlCl => cmd.args(["-S", "/nolog"]),
+            Tool::SqlPlus => std_cmd.args(["-S", "-L", "/nolog"]),
+            Tool::SqlCl => std_cmd.args(["-S", "/nolog"]),
         };
+        // In Flatpak the Oracle client runs on the host.
+        let mut cmd: tokio::process::Command = forge_hostspawn::host_command(std_cmd).into();
         cmd.stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

@@ -1052,11 +1052,8 @@ impl DapSession {
         let Some((program, rest)) = args.args.split_first() else {
             return Err(DapError::Other("runInTerminal without a command".into()));
         };
-        let mut cmd = tokio::process::Command::new(program);
-        cmd.args(rest)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
+        let mut cmd = std::process::Command::new(program);
+        cmd.args(rest);
         if !args.cwd.is_empty() {
             cmd.current_dir(&args.cwd);
         }
@@ -1073,6 +1070,11 @@ impl DapSession {
                 }
             }
         }
+        // In Flatpak the debuggee runs on the host, like the adapter that asked for it.
+        let mut cmd: tokio::process::Command = forge_hostspawn::host_command(cmd).into();
+        cmd.stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
         let mut child = cmd
             .spawn()
             .map_err(|e| DapError::Other(format!("Cannot start {program}: {e}")))?;

@@ -199,7 +199,7 @@ pub trait AgentCli: Send + Sync {
     fn detect(&self, override_path: Option<&str>) -> Option<PathBuf> {
         if let Some(p) = override_path.filter(|p| !p.trim().is_empty()) {
             let p = PathBuf::from(p);
-            return p.is_file().then_some(p);
+            return forge_hostspawn::is_file(&p).then_some(p);
         }
         find_executable(self.executable_names())
     }
@@ -221,9 +221,9 @@ pub trait AgentCli: Send + Sync {
 
 /// Search `PATH` (and a few user-level install dirs) for one of `names`. On Windows the
 /// `PATHEXT` extensions (`.cmd`, `.exe`, ...) are tried, so npm shims like `claude.cmd`
-/// are found.
+/// are found. In Flatpak the host's `PATH` and files are searched.
 pub fn find_executable(names: &[&str]) -> Option<PathBuf> {
-    let mut dirs: Vec<PathBuf> = std::env::var_os("PATH")
+    let mut dirs: Vec<PathBuf> = forge_hostspawn::path_var()
         .map(|p| std::env::split_paths(&p).collect())
         .unwrap_or_default();
     if let Some(home) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
@@ -269,7 +269,7 @@ pub fn find_in_dirs(names: &[&str], dirs: &[PathBuf], extensions: &[String]) -> 
 }
 
 fn is_executable(p: &Path) -> bool {
-    let Ok(meta) = p.metadata() else {
+    let Ok(meta) = forge_hostspawn::sandbox_view(p).metadata() else {
         return false;
     };
     if !meta.is_file() {
