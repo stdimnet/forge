@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-mixins.json",
+  "title": "Mixin configuration (*.mixins.json)",
+  "type": "object",
+  "required": [
+    "package"
+  ],
+  "properties": {
+    "required": {
+      "type": "boolean",
+      "description": "Fail when a mixin of this configuration cannot be applied."
+    },
+    "minVersion": {
+      "type": "string",
+      "description": "The minimum Mixin version, e.g. 0.8."
+    },
+    "package": {
+      "type": "string",
+      "description": "The package of the mixin classes; the lists below are relative to it."
+    },
+    "compatibilityLevel": {
+      "anyOf": [
+        {
+          "enum": [
+            "JAVA_8",
+            "JAVA_9",
+            "JAVA_11",
+            "JAVA_16",
+            "JAVA_17",
+            "JAVA_18",
+            "JAVA_21",
+            "JAVA_22",
+            "JAVA_25"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^JAVA_[0-9]+$"
+        }
+      ],
+      "description": "The Java level of the mixin classes, e.g. JAVA_21 or JAVA_25."
+    },
+    "mixins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Mixins applied on both sides (class names relative to the package)."
+    },
+    "client": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Mixins applied only on the client."
+    },
+    "server": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Mixins applied only on dedicated servers."
+    },
+    "injectors": {
+      "type": "object",
+      "description": "Defaults of @Inject and other injectors.",
+      "properties": {
+        "defaultRequire": {
+          "type": "integer",
+          "description": "How many times each injector must apply by default (1: fail when it does not)."
+        },
+        "defaultGroup": {
+          "type": "string",
+          "description": "The default injector group."
+        },
+        "injectionPoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Custom injection point classes."
+        },
+        "maxShiftBy": {
+          "type": "integer",
+          "description": "The largest allowed At.shift().by() value."
+        }
+      }
+    },
+    "overwrites": {
+      "type": "object",
+      "description": "Rules for @Overwrite.",
+      "properties": {
+        "conformVisibility": {
+          "type": "boolean",
+          "description": "Allow overwrites with a different visibility."
+        },
+        "requireAnnotations": {
+          "type": "boolean",
+          "description": "Require @Overwrite on overwritten methods."
+        }
+      }
+    },
+    "refmap": {
+      "type": "string",
+      "description": "The reference map (Loom and ModDevGradle generate it)."
+    },
+    "plugin": {
+      "type": "string",
+      "description": "An IMixinConfigPlugin class that decides which mixins apply."
+    },
+    "priority": {
+      "type": "integer",
+      "description": "The configuration's priority (default 1000)."
+    },
+    "mixinPriority": {
+      "type": "integer",
+      "description": "The default priority of its mixins (default 1000)."
+    },
+    "setSourceFile": {
+      "type": "boolean",
+      "description": "Set the source file of target classes to the mixin's."
+    },
+    "verbose": {
+      "type": "boolean",
+      "description": "Log more about this configuration."
+    },
+    "target": {
+      "type": "string",
+      "description": "The environment phase to apply in, e.g. @env(DEFAULT)."
+    }
+  }
+}

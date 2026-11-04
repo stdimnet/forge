@@ -396,7 +396,11 @@ pub fn goto(
         .find(|r| r.start <= at && at <= r.end)?;
     match r.reference {
         Reference::Class(class) => {
-            let simple = class.rsplit(['.', '$']).next().unwrap_or(&class).to_string();
+            let simple = class
+                .rsplit(['.', '$'])
+                .next()
+                .unwrap_or(&class)
+                .to_string();
             class_candidates(&prefix, &class).into_iter().find_map(|c| {
                 let source = read(&c)?;
                 Some(Target {
@@ -503,7 +507,10 @@ mod tests {
         ];
         let exists = |p: &str| files.contains(&p);
         let problems = inspect(path, FABRIC, &exists);
-        let codes: Vec<_> = problems.iter().map(|p| (p.code, p.message.as_str())).collect();
+        let codes: Vec<_> = problems
+            .iter()
+            .map(|p| (p.code, p.message.as_str()))
+            .collect();
         assert_eq!(
             codes,
             vec![
@@ -517,7 +524,11 @@ mod tests {
                 ),
             ]
         );
-        let bad = inspect(path, r#"{"entrypoints": {"main": ["not a class"]}}"#, &exists);
+        let bad = inspect(
+            path,
+            r#"{"entrypoints": {"main": ["not a class"]}}"#,
+            &exists,
+        );
         assert_eq!(bad[0].code, "minecraft.modClass.invalid");
         let mixins = inspect("src/main/resources/demo.mixins.json", MIXINS, &|_| false);
         assert_eq!(mixins.len(), 2);
@@ -527,9 +538,10 @@ mod tests {
     fn goes_to_classes_and_configs() {
         let path = "src/main/resources/fabric.mod.json";
         let read = |p: &str| match p {
-            "src/main/java/com/example/demo/Demo.java" => {
-                Some("package com.example.demo;\n\npublic class Demo implements ModInitializer {\n}\n".to_string())
-            }
+            "src/main/java/com/example/demo/Demo.java" => Some(
+                "package com.example.demo;\n\npublic class Demo implements ModInitializer {\n}\n"
+                    .to_string(),
+            ),
             "src/main/resources/demo.mixins.json" => Some("{}".to_string()),
             _ => None,
         };

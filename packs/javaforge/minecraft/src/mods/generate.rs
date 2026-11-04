@@ -237,7 +237,9 @@ pub fn resolve(project: &str, o: &ModOptions) -> Result<ModProject, String> {
     let kotlin = match o.language.trim() {
         "" | "java" => false,
         "kotlin" if loader == Loader::Fabric => true,
-        "kotlin" => return Err("Kotlin mods are generated for Fabric (Fabric Language Kotlin)".into()),
+        "kotlin" => {
+            return Err("Kotlin mods are generated for Fabric (Fabric Language Kotlin)".into())
+        }
         other => return Err(format!("Unknown language '{other}'")),
     };
     let loader_version = match (loader, o.loader_version.trim()) {
@@ -301,8 +303,15 @@ pub fn resolve(project: &str, o: &ModOptions) -> Result<ModProject, String> {
                 .into(),
         );
     }
-    if ["minecraft", "fabric", "fabricloader", "neoforge", "java", "forge"]
-        .contains(&mod_id.as_str())
+    if [
+        "minecraft",
+        "fabric",
+        "fabricloader",
+        "neoforge",
+        "java",
+        "forge",
+    ]
+    .contains(&mod_id.as_str())
     {
         return Err(format!("The mod ID '{mod_id}' is reserved"));
     }
@@ -390,6 +399,10 @@ pub fn mod_files(p: &ModProject) -> Vec<GeneratedFile> {
     let mut out = Vec::new();
     out.push(text("settings.gradle", settings_gradle(p)));
     out.push(text("gradle.properties", gradle_properties(p)));
+    out.push(text(
+        "gradle/gradle-daemon-jvm.properties",
+        versions::DAEMON_JVM_PROPERTIES,
+    ));
     match p.loader {
         Loader::Fabric => {
             out.push(text("build.gradle", fabric_build(p)));
@@ -579,7 +592,10 @@ fn fabric_build(p: &ModProject) -> String {
     if p.split_sources() {
         s += "    // Client code lives in src/client and cannot be loaded on a dedicated server.\n    splitEnvironmentSourceSets()\n\n";
     }
-    s += &format!("    mods {{\n        '{}' {{\n            sourceSet sourceSets.main\n", p.mod_id);
+    s += &format!(
+        "    mods {{\n        '{}' {{\n            sourceSet sourceSets.main\n",
+        p.mod_id
+    );
     if p.split_sources() {
         s += "            sourceSet sourceSets.client\n";
     }
@@ -593,7 +609,9 @@ fn fabric_build(p: &ModProject) -> String {
     }
     s += "dependencies {\n    minecraft \"com.mojang:minecraft:${project.minecraft_version}\"\n";
     match &p.mappings {
-        Mappings::Yarn(_) => s += "    mappings \"net.fabricmc:yarn:${project.yarn_mappings}:v2\"\n",
+        Mappings::Yarn(_) => {
+            s += "    mappings \"net.fabricmc:yarn:${project.yarn_mappings}:v2\"\n"
+        }
         Mappings::Mojang => s += "    mappings loom.officialMojangMappings()\n",
         _ => {}
     }
@@ -694,7 +712,10 @@ fn fabric_mod_json(p: &ModProject) -> String {
             p.class
         ));
     }
-    s += &format!("  \"entrypoints\": {{\n{}\n  }},\n", entrypoints.join(",\n"));
+    s += &format!(
+        "  \"entrypoints\": {{\n{}\n  }},\n",
+        entrypoints.join(",\n")
+    );
     if p.mixins {
         s += &format!("  \"mixins\": [\n    \"{}\"", mixin_config(p));
         if p.environment.has_client() {
@@ -928,7 +949,10 @@ fn neoforge_sources(p: &ModProject, out: &mut Vec<GeneratedFile>) {
             "GatherDataEvent".into()
         },
     );
-    v.insert("client_mixin_package", format!("{}.mixin.client", p.package));
+    v.insert(
+        "client_mixin_package",
+        format!("{}.mixin.client", p.package),
+    );
     let main_dir = format!("src/main/java/{}", pkg_dir(&p.package));
     let render = |t: &str, extra: &[(&'static str, &str)]| {
         let mut v = v.clone();
@@ -1004,14 +1028,8 @@ fn assets(p: &ModProject, out: &mut Vec<GeneratedFile>) {
     let id = &p.mod_id;
     let base = format!("src/main/resources/assets/{id}");
     let mut lang = serde_json::Map::new();
-    lang.insert(
-        format!("item.{id}.example_item"),
-        "Example Item".into(),
-    );
-    lang.insert(
-        format!("block.{id}.example_block"),
-        "Example Block".into(),
-    );
+    lang.insert(format!("item.{id}.example_item"), "Example Item".into());
+    lang.insert(format!("block.{id}.example_block"), "Example Block".into());
     out.push(text(
         format!("{base}/lang/en_us.json"),
         serde_json::to_string_pretty(&lang).unwrap_or_default() + "\n",
@@ -1105,8 +1123,12 @@ fn readme(p: &ModProject) -> String {
         s += &format!("{}\n\n", p.description);
     }
     let lang = if p.kotlin { "Kotlin" } else { "Java" };
+    let loader_name = match p.loader {
+        Loader::Fabric => "Fabric Loader",
+        Loader::Neoforge => "NeoForge",
+    };
     s += &format!(
-        "A {loader} mod for Minecraft {} ({loader} {}), written in {lang} (Java {}).\n\n",
+        "A {loader} mod for Minecraft {} ({loader_name} {}), written in {lang} (Java {}).\n\n",
         p.mc(),
         p.loader_version,
         p.versions.java
@@ -1320,8 +1342,10 @@ mod tests {
         );
         assert_eq!(json["depends"]["minecraft"], "~26.3");
         assert_eq!(json["depends"]["java"], ">=25");
-        assert!(files.iter().any(|f| f.path
-            == "src/client/java/com/example/betterchests/client/BetterChestsClient.java"));
+        assert!(files
+            .iter()
+            .any(|f| f.path
+                == "src/client/java/com/example/betterchests/client/BetterChestsClient.java"));
         let props = file(&files, "gradle.properties");
         assert!(props.contains("fabric_api_version=0.165.2+26.3\n"));
         let items = file(
@@ -1330,13 +1354,14 @@ mod tests {
         );
         assert!(items.contains("ResourceKey.create(Registries.ITEM, BetterChests.id(name))"));
         assert!(items.contains("properties.setId(key)"));
-        let main = file(&files, "src/main/java/com/example/betterchests/BetterChests.java");
-        assert!(main.contains("Identifier.fromNamespaceAndPath(MOD_ID, path)"));
-        let mixins: serde_json::Value = serde_json::from_str(file(
+        let main = file(
             &files,
-            "src/main/resources/better_chests.mixins.json",
-        ))
-        .unwrap();
+            "src/main/java/com/example/betterchests/BetterChests.java",
+        );
+        assert!(main.contains("Identifier.fromNamespaceAndPath(MOD_ID, path)"));
+        let mixins: serde_json::Value =
+            serde_json::from_str(file(&files, "src/main/resources/better_chests.mixins.json"))
+                .unwrap();
         assert_eq!(mixins["package"], "com.example.betterchests.mixin");
         assert_eq!(mixins["compatibilityLevel"], "JAVA_25");
         let png = files
@@ -1410,7 +1435,10 @@ mod tests {
             toml["mods"][0]["displayTest"].as_str(),
             Some("IGNORE_ALL_VERSION")
         );
-        assert_eq!(toml["mixins"][0]["config"].as_str(), Some("demo.mixins.json"));
+        assert_eq!(
+            toml["mixins"][0]["config"].as_str(),
+            Some("demo.mixins.json")
+        );
         assert_eq!(
             toml["dependencies"]["demo"][1]["versionRange"].as_str(),
             Some("[26.3]")
@@ -1434,7 +1462,10 @@ mod tests {
         assert!(build.contains("id 'fabric-loom'"));
         assert!(build.contains("mappings \"net.fabricmc:yarn:${project.yarn_mappings}:v2\""));
         assert!(build.contains("modImplementation \"net.fabricmc.fabric-api"));
-        let items = file(&yarn, "src/main/java/com/example/demo/registry/ModItems.java");
+        let items = file(
+            &yarn,
+            "src/main/java/com/example/demo/registry/ModItems.java",
+        );
         assert!(items.contains("RegistryKey.of(RegistryKeys.ITEM"));
         assert!(items.contains("settings") || items.contains("properties.registryKey(key)"));
         let old = generate_mod(
@@ -1448,7 +1479,10 @@ mod tests {
         .unwrap();
         assert!(file(&old, "build.gradle").contains("            data()\n"));
         assert!(file(&old, "build.gradle").contains("parchment {"));
-        let blocks = file(&old, "src/main/java/com/example/demo/registry/ModBlocks.java");
+        let blocks = file(
+            &old,
+            "src/main/java/com/example/demo/registry/ModBlocks.java",
+        );
         assert!(blocks.contains("BlockBehaviour.Properties.of()"));
         assert!(old
             .iter()
@@ -1460,8 +1494,10 @@ mod tests {
         );
         assert!(items.contains("ResourceLocation") || !items.contains("setId"));
         assert!(!items.contains("setId"));
-        assert!(file(&fabric_old, "src/main/java/com/example/demo/Demo.java")
-            .contains("ResourceLocation.fromNamespaceAndPath"));
+        assert!(
+            file(&fabric_old, "src/main/java/com/example/demo/Demo.java")
+                .contains("ResourceLocation.fromNamespaceAndPath")
+        );
     }
 
     #[test]
@@ -1484,9 +1520,12 @@ mod tests {
                                     o.datagen = datagen;
                                     o.fabric_mappings =
                                         if mappings == "a" { "mojang" } else { "yarn" }.into();
-                                    o.neo_mappings =
-                                        if mappings == "a" { "official" } else { "parchment" }
-                                            .into();
+                                    o.neo_mappings = if mappings == "a" {
+                                        "official"
+                                    } else {
+                                        "parchment"
+                                    }
+                                    .into();
                                 });
                                 let files = generate_mod("demo", &o).unwrap_or_else(|e| {
                                     panic!("{loader} {} {language} {env}: {e}", mc.version)

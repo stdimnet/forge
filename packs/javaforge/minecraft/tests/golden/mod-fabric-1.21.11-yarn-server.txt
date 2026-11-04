@@ -1,0 +1,316 @@
+==== .forge/runConfigurations.toml ====
+selected = "Minecraft Server"
+
+[[configuration]]
+name = "Minecraft Server"
+type = "gradle"
+
+[configuration.options]
+tasks = "runServer"
+==== .gitignore ====
+# Gradle
+.gradle/
+build/
+out/
+
+# The game directories of runClient / runServer
+run/
+runs/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.DS_Store
+==== README.md ====
+# Better Chests
+
+A Fabric mod for Minecraft 1.21.11 (Fabric 0.20.1), written in Java (Java 21).
+
+The code uses Fabric's Yarn names (1.21.11+build.6).
+
+## Build
+
+The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer:
+
+```sh
+gradle wrapper
+```
+
+Then build the mod (Gradle downloads a JDK 21 with the foojay toolchain resolver when none is installed):
+
+```sh
+./gradlew build
+```
+
+The mod jar is `build/libs/better_chests-1.0.0.jar`. Copy it into the `mods/` folder of a Minecraft 1.21.11 installation with Fabric and Fabric API.
+
+## Run
+
+- `./gradlew runServer` (**Minecraft Server**) starts a dedicated server in `run/`. Accept the Minecraft EULA in `run/eula.txt` on the first start.
+
+## Structure
+
+- `src/main/java/com/example/betterchests/BetterChests.java`: the main class
+- `src/main/java/com/example/betterchests/BetterChestsServer.java`: the dedicated server initializer
+- `src/main/java/com/example/betterchests/registry/`: the example item and block
+- `src/main/resources/assets/better_chests/`: translations, models and textures
+- `src/main/resources/fabric.mod.json`: the mod's metadata
+==== build.gradle ====
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    // Loom adds the repositories of Minecraft, Fabric and their libraries. Add the
+    // repositories of other mods you depend on here.
+}
+
+loom {
+    mods {
+        'better_chests' {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property 'version', version
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': version
+    }
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+==== gradle.properties ====
+# Gradle
+org.gradle.jvmargs=-Xmx2G
+org.gradle.parallel=true
+
+# Fabric: see https://fabricmc.net/develop for newer versions
+minecraft_version=1.21.11
+loader_version=0.20.1
+loom_version=1.19.3
+yarn_mappings=1.21.11+build.6
+fabric_api_version=0.141.6+1.21.11
+
+# Mod
+mod_version=1.0.0
+maven_group=com.example
+archives_base_name=better_chests
+==== settings.gradle ====
+pluginManagement {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    // Downloads the JDK of the project's Java release when it is not installed.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'better-chests'
+==== src/main/java/com/example/betterchests/BetterChests.java ====
+package com.example.betterchests;
+
+import net.fabricmc.api.ModInitializer;
+import net.minecraft.util.Identifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.example.betterchests.registry.ModBlocks;
+import com.example.betterchests.registry.ModItems;
+
+public class BetterChests implements ModInitializer {
+    public static final String MOD_ID = "better_chests";
+
+    // Named after the mod id, so the log shows which mod wrote a line.
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    @Override
+    public void onInitialize() {
+        // Runs as soon as Minecraft is ready to load mods: register content here.
+        ModItems.initialize();
+        ModBlocks.initialize();
+        LOGGER.info("Hello from Better Chests!");
+    }
+
+    public static Identifier id(String path) {
+        return Identifier.of(MOD_ID, path);
+    }
+}
+==== src/main/java/com/example/betterchests/BetterChestsServer.java ====
+package com.example.betterchests;
+
+import net.fabricmc.api.DedicatedServerModInitializer;
+
+public class BetterChestsServer implements DedicatedServerModInitializer {
+    @Override
+    public void onInitializeServer() {
+        // Runs only on dedicated servers.
+        BetterChests.LOGGER.info("Hello from the server of Better Chests!");
+    }
+}
+==== src/main/java/com/example/betterchests/registry/ModBlocks.java ====
+package com.example.betterchests.registry;
+
+import java.util.function.Function;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.item.Item;
+import net.minecraft.item.BlockItem;
+import net.minecraft.block.Block;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.sound.BlockSoundGroup;
+import com.example.betterchests.BetterChests;
+
+public final class ModBlocks {
+    public static final Block EXAMPLE_BLOCK = register("example_block", Block::new,
+            AbstractBlock.Settings.create().strength(1.5f).sounds(BlockSoundGroup.STONE));
+
+    private ModBlocks() {
+    }
+
+    /** Registers the block and its item. */
+    public static Block register(String name, Function<AbstractBlock.Settings, Block> factory, AbstractBlock.Settings properties) {
+        RegistryKey<Block> key = RegistryKey.of(RegistryKeys.BLOCK, BetterChests.id(name));
+        Block block = Registry.register(Registries.BLOCK, key, factory.apply(properties.registryKey(key)));
+        ModItems.register(name, p -> new BlockItem(block, p), new Item.Settings().useBlockPrefixedTranslationKey());
+        return block;
+    }
+
+    /** Loads the class, which registers its blocks. */
+    public static void initialize() {
+    }
+}
+==== src/main/java/com/example/betterchests/registry/ModItems.java ====
+package com.example.betterchests.registry;
+
+import java.util.function.Function;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.item.Item;
+import com.example.betterchests.BetterChests;
+
+public final class ModItems {
+    public static final Item EXAMPLE_ITEM = register("example_item", Item::new, new Item.Settings());
+
+    private ModItems() {
+    }
+
+    public static <T extends Item> T register(String name, Function<Item.Settings, T> factory, Item.Settings properties) {
+        RegistryKey<Item> key = RegistryKey.of(RegistryKeys.ITEM, BetterChests.id(name));
+        return Registry.register(Registries.ITEM, key, factory.apply(properties.registryKey(key)));
+    }
+
+    /** Loads the class, which registers its items. */
+    public static void initialize() {
+    }
+}
+==== src/main/resources/assets/better_chests/blockstates/example_block.json ====
+{
+  "variants": {
+    "": {
+      "model": "better_chests:block/example_block"
+    }
+  }
+}
+==== src/main/resources/assets/better_chests/icon.png ====
+(binary, 16516 bytes, checksum 1732d3dd)
+==== src/main/resources/assets/better_chests/items/example_block.json ====
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "better_chests:block/example_block"
+  }
+}
+==== src/main/resources/assets/better_chests/items/example_item.json ====
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "better_chests:item/example_item"
+  }
+}
+==== src/main/resources/assets/better_chests/lang/en_us.json ====
+{
+  "block.better_chests.example_block": "Example Block",
+  "item.better_chests.example_item": "Example Item"
+}
+==== src/main/resources/assets/better_chests/models/block/example_block.json ====
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "better_chests:block/example_block"
+  }
+}
+==== src/main/resources/assets/better_chests/models/item/example_item.json ====
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "better_chests:item/example_item"
+  }
+}
+==== src/main/resources/assets/better_chests/textures/block/example_block.png ====
+(binary, 1108 bytes, checksum 03d35307)
+==== src/main/resources/assets/better_chests/textures/item/example_item.png ====
+(binary, 1108 bytes, checksum 2fc0f433)
+==== src/main/resources/fabric.mod.json ====
+{
+  "schemaVersion": 1,
+  "id": "better_chests",
+  "version": "${version}",
+  "name": "Better Chests",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All Rights Reserved",
+  "icon": "assets/better_chests/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.example.betterchests.BetterChests"
+    ],
+    "server": [
+      "com.example.betterchests.BetterChestsServer"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

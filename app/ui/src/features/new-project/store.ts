@@ -76,7 +76,7 @@ export async function refreshOption(optionId: string): Promise<void> {
   setRefreshing(optionId);
   setRefreshError((e) => ({ ...e, [optionId]: "" }));
   try {
-    const choices = await projectApi.refreshChoices(command);
+    const choices = await projectApi.refreshChoices(command, gen.id);
     setGenerators((gens) => withChoices(gens, gen.id, optionId, choices));
   } catch (e) {
     setRefreshError((errs) => ({ ...errs, [optionId]: String(e).replace(/^Error: /, "") }));

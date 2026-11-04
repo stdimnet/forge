@@ -159,8 +159,8 @@ export function mockPlan(args: CreateArgs): Plan {
 registerMock("project_plan", async (raw) => {
   const args = raw as unknown as CreateArgs;
   const plan = mockPlan(args);
-  // The Minecraft Plugin generator computes its files in Rust (WebAssembly).
-  if (args.generator === "minecraft-plugin") {
+  // The Minecraft Plugin and Mod generators compute their files in Rust (WebAssembly).
+  if (args.generator === "minecraft-plugin" || args.generator === "minecraft-mod") {
     const { files, error } = await minecraftFiles(args);
     plan.files = files;
     plan.error = plan.error ?? error;

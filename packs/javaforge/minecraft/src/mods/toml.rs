@@ -50,13 +50,41 @@ type Key = (&'static str, &'static str, &'static [&'static str]);
 const BOOL: &[&str] = &["true", "false"];
 
 const ROOT: &[Key] = &[
-    ("modLoader", "The language loader: javafml (Java mods) or lowcodefml", &["javafml", "lowcodefml"]),
-    ("loaderVersion", "Accepted versions of the language loader, a Maven range such as [1,)", &[]),
-    ("license", "Required. The license of the mod, e.g. MIT or All Rights Reserved", &[]),
-    ("showAsResourcePack", "Show the mod's resources as a separate resource pack", BOOL),
-    ("showAsDataPack", "Show the mod's data as a separate data pack", BOOL),
-    ("services", "Service interfaces the mod uses (ServiceLoader)", &[]),
-    ("issueTrackerURL", "Where to report problems with the mod", &[]),
+    (
+        "modLoader",
+        "The language loader: javafml (Java mods) or lowcodefml",
+        &["javafml", "lowcodefml"],
+    ),
+    (
+        "loaderVersion",
+        "Accepted versions of the language loader, a Maven range such as [1,)",
+        &[],
+    ),
+    (
+        "license",
+        "Required. The license of the mod, e.g. MIT or All Rights Reserved",
+        &[],
+    ),
+    (
+        "showAsResourcePack",
+        "Show the mod's resources as a separate resource pack",
+        BOOL,
+    ),
+    (
+        "showAsDataPack",
+        "Show the mod's data as a separate data pack",
+        BOOL,
+    ),
+    (
+        "services",
+        "Service interfaces the mod uses (ServiceLoader)",
+        &[],
+    ),
+    (
+        "issueTrackerURL",
+        "Where to report problems with the mod",
+        &[],
+    ),
 ];
 
 const MODS: &[Key] = &[
@@ -88,16 +116,40 @@ const DEPENDENCY: &[Key] = &[
         "Required. required, optional, incompatible or discouraged",
         &["required", "optional", "incompatible", "discouraged"],
     ),
-    ("versionRange", "Accepted versions, a Maven range such as [1.0,2.0)", &[]),
-    ("reason", "Why the dependency is needed or incompatible", &[]),
-    ("ordering", "Load BEFORE or AFTER the dependency, or NONE", &["NONE", "BEFORE", "AFTER"]),
-    ("side", "BOTH, CLIENT or SERVER", &["BOTH", "CLIENT", "SERVER"]),
+    (
+        "versionRange",
+        "Accepted versions, a Maven range such as [1.0,2.0)",
+        &[],
+    ),
+    (
+        "reason",
+        "Why the dependency is needed or incompatible",
+        &[],
+    ),
+    (
+        "ordering",
+        "Load BEFORE or AFTER the dependency, or NONE",
+        &["NONE", "BEFORE", "AFTER"],
+    ),
+    (
+        "side",
+        "BOTH, CLIENT or SERVER",
+        &["BOTH", "CLIENT", "SERVER"],
+    ),
     ("referralUrl", "Where to get the dependency", &[]),
 ];
 
 const MIXINS: &[Key] = &[
-    ("config", "A mixin configuration in the resources, e.g. ${mod_id}.mixins.json", &[]),
-    ("requiredMods", "Apply the configuration only when these mods are present", &[]),
+    (
+        "config",
+        "A mixin configuration in the resources, e.g. ${mod_id}.mixins.json",
+        &[],
+    ),
+    (
+        "requiredMods",
+        "Apply the configuration only when these mods are present",
+        &[],
+    ),
     ("behaviorVersion", "The Mixin behavior version", &[]),
 ];
 
@@ -107,7 +159,11 @@ const ACCESS_TRANSFORMERS: &[Key] = &[(
     &[],
 )];
 
-const FEATURES: &[Key] = &[("openGLVersion", "Required OpenGL versions, e.g. [3.2,)", &[])];
+const FEATURES: &[Key] = &[(
+    "openGLVersion",
+    "Required OpenGL versions, e.g. [3.2,)",
+    &[],
+)];
 
 fn keys(table: Table) -> &'static [Key] {
     match table {
@@ -369,7 +425,9 @@ mod tests {
         assert_eq!(utf16(&text, text.len() - 2), c.from);
         let c = complete("[", 1).unwrap();
         assert!(labels(&c).contains(&"[features.${mod_id}]"));
-        assert!(is_mods_toml("src/main/templates/META-INF/neoforge.mods.toml"));
+        assert!(is_mods_toml(
+            "src/main/templates/META-INF/neoforge.mods.toml"
+        ));
         assert!(!is_mods_toml("Cargo.toml"));
     }
 }

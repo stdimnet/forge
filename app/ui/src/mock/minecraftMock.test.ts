@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DescriptorProblem, MinecraftMarker, MinecraftTarget } from "@/ipc/minecraft";
+import type { DescriptorProblem, MinecraftCompletion, MinecraftMarker, MinecraftTarget } from "@/ipc/minecraft";
 import type { GeneratorChoice, Plan, ProjectInfo } from "@/ipc/project";
 
 // The Minecraft demo is chosen by the page URL, before the mocks load.
@@ -54,5 +54,34 @@ describe("Minecraft mock (javaforge-minecraft through WebAssembly)", () => {
     const main = `${PKG}/BetterChat.java`;
     const mainMarks = await invoke<MinecraftMarker[]>("minecraft_gutter", { path: main, content: mockFiles[main] });
     expect(mainMarks[0]).toMatchObject({ kind: "plugin", name: "BetterChat" });
+  });
+
+  it("plans a mod and refreshes the mod versions", async () => {
+    const args = { generator: "minecraft-mod", location: "~/Projects", name: "better-chests" };
+    const plan = await invoke<Plan>("project_plan", { ...args, options: { loader: "neoforge", language: "kotlin" } });
+    expect(plan.error).toBeUndefined();
+    expect(plan.files).toContain("src/main/templates/META-INF/neoforge.mods.toml");
+    expect(plan.files).toContain("src/main/resources/assets/better_chests/textures/item/example_item.png");
+    const bad = await invoke<Plan>("project_plan", { ...args, options: { modId: "Better" } });
+    expect(bad.error).toContain("Mod ID");
+    const choices = await invoke<GeneratorChoice[]>("minecraft_versions_refresh", { generator: "minecraft-mod" });
+    expect(choices[0]).toEqual({ value: "26.3", label: "26.3 (Java 25)" });
+    expect(choices.some((c) => c.value === "1.21.5")).toBe(true);
+    expect(choices.some((c) => c.value === "1.16.5")).toBe(false);
+  });
+
+  it("checks fabric.mod.json entrypoints and completes neoforge.mods.toml", async () => {
+    const path = "src/main/resources/fabric.mod.json";
+    const content = '{ "entrypoints": { "main": ["com.example.demo.Demo"] } }';
+    const problems = await invoke<DescriptorProblem[]>("minecraft_inspect", { path, content });
+    expect(problems.map((p) => p.code)).toEqual(["minecraft.modClass.unresolved"]);
+    const toml = 'modLoader = "javafml"\n[[mods]]\nmodId = "demo"\ndis';
+    const completion = await invoke<MinecraftCompletion | null>("minecraft_complete", {
+      path: "src/main/templates/META-INF/neoforge.mods.toml",
+      content: toml,
+      pos: toml.length,
+    });
+    expect(completion?.items.map((i) => i.label)).toContain("displayName");
+    expect(completion?.from).toBe(toml.length - 3);
   });
 });

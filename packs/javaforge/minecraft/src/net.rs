@@ -66,7 +66,10 @@ pub async fn refresh_mods(sources: &ModSources) -> Result<ModVersions, String> {
     let moddev = fetch_text(&sources.neoforge_maven, mods::MODDEV_METADATA_PATH)
         .await
         .ok();
-    let neoforge = neoforge.ok().map(|x| mods::neoforge_from_metadata(&x)).unwrap_or_default();
+    let neoforge = neoforge
+        .ok()
+        .map(|x| mods::neoforge_from_metadata(&x))
+        .unwrap_or_default();
     let fabric_api = fabric_api
         .map(|x| mods::fabric_api_from_metadata(&x))
         .unwrap_or_default();
@@ -196,9 +199,18 @@ mod tests {
     #[tokio::test]
     async fn refreshes_mod_versions() {
         let url = serve(&[
-            ("/meta/game", include_str!("../tests/fixtures/fabric-meta-game.json")),
-            ("/meta/loader", include_str!("../tests/fixtures/fabric-meta-loader.json")),
-            ("/meta/yarn", include_str!("../tests/fixtures/fabric-meta-yarn.json")),
+            (
+                "/meta/game",
+                include_str!("../tests/fixtures/fabric-meta-game.json"),
+            ),
+            (
+                "/meta/loader",
+                include_str!("../tests/fixtures/fabric-meta-loader.json"),
+            ),
+            (
+                "/meta/yarn",
+                include_str!("../tests/fixtures/fabric-meta-yarn.json"),
+            ),
             (
                 "/fabric/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml",
                 include_str!("../tests/fixtures/fabric-api-maven-metadata.xml"),
