@@ -193,8 +193,9 @@ supports, the newest Fabric API, Yarn and NeoForge version of each (a stable Neo
 wins over a newer beta), and newer Fabric Loader, Loom and ModDevGradle versions. The result
 is cached with the plugin versions in `<cache>/forge/minecraft/versions.json`.
 
-Generated Fabric (Java and Kotlin, 26.3; Java with Yarn, 1.21.11) and NeoForge (Java, 26.3)
-mods were built with Gradle 9.8.2.
+Generated Fabric (Java with mixins and data generation, and Kotlin, 26.3; Java with Yarn,
+1.21.11) and NeoForge (Java with mixins and data generation, 26.3; Parchment, 1.21.1) mods were
+built with Gradle 9.8.2.
 
 ## Minecraft plugin and mod projects
 
