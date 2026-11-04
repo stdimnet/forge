@@ -177,9 +177,9 @@ strings; #140 reached 4,416 of 5,614 keys and 3,382 strings):
 
 | Measure | Value |
 | --- | --- |
-| English catalog keys | 9,154 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
-| German translations | 9,154 (100 %): every hand-written key, all menu labels, action titles and manifest texts of every pack |
-| Keys used in the UI code | 5,641 literal keys plus 9 dynamic `t()` calls |
+| English catalog keys | 9,160 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
+| German translations | 9,160 (100 %): every hand-written key, all menu labels, action titles and manifest texts of every pack |
+| Keys used in the UI code | 5,647 literal keys plus 9 dynamic `t()` calls |
 | Hard-coded strings left in `.tsx` (heuristic) | 783 (87.8 % of UI strings go through `t()`) |
 
 Translated: the main menu (including the entries UI features contribute), Find Action and the
