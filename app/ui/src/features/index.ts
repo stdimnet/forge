@@ -42,6 +42,7 @@ import "./languages";
 import "./browserCompanion";
 import "./mcp";
 import "./terminal";
+import "./flatpak";
 import "./run";
 import "./testFrameworks";
 import "./externalTools";

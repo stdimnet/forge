@@ -22,14 +22,17 @@ finish-args:
   - --filesystem=/media
   - --filesystem=/run/media
   - --filesystem=/mnt
+  # Interpreters and SDKs in the host's system folders (/usr/bin/php, /usr/lib/jvm) are
+  # detected through /run/host; they run on the host through flatpak-spawn --host.
+  - --filesystem=host-os:ro
   # Git over SSH and remote development use the user's SSH agent.
   - --socket=ssh-auth
   # AI keys and database passwords live in the OS keychain (Secret Service).
   - --talk-name=org.freedesktop.secrets
   # Balloon notifications.
   - --talk-name=org.freedesktop.Notifications
-  # `flatpak-spawn --host`: PHP, Composer, Node, language servers, Docker and the terminal's
-  # shell are installed on the host, not in the sandbox.
+  # `flatpak-spawn --host`: PHP, Composer, Node, Git, language servers, Docker and the
+  # terminal's shell are installed on the host; Forge starts them there (crates/forge-hostspawn).
   - --talk-name=org.freedesktop.Flatpak
 modules:
   - name: forge

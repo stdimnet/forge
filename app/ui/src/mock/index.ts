@@ -1,5 +1,6 @@
 /** Browser-mode backend. Features add their own `*Mock.ts` imports here. */
 import "./settingsMock";
+import "./flatpakMock";
 import "./maintenanceMock";
 import "./pluginsMock";
 import "./keymapMock";

@@ -1,0 +1,16 @@
+.flatpak-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  color: var(--fg);
+}
+
+.flatpak-note {
+  margin: -4px 0 12px;
+  color: var(--fg-muted);
+}
