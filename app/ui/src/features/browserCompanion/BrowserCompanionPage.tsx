@@ -31,6 +31,7 @@ import {
 } from "./integrations";
 import { formatAgo, formatCountdown, formatPairingCode } from "./format";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const PAGE_ID = "tools.browser-companion";
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);
@@ -53,11 +54,8 @@ function CopyButton(props: { text: string; label?: string }) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   onCleanup(() => clearTimeout(timer));
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(props.text);
-    } catch {
-      /* clipboard unavailable (e.g. insecure context); the text stays selectable */
-    }
+    // On failure a balloon says so; the text stays selectable.
+    if (!(await writeClipboard(props.text))) return;
     setCopied(true);
     clearTimeout(timer);
     timer = setTimeout(() => setCopied(false), 1500);

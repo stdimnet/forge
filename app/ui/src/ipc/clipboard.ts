@@ -3,6 +3,11 @@
  * `app/src-tauri/src/commands/clipboard.rs`): the texts copied or cut in Forge, newest
  * first, kept in memory for the session. Browser mode runs the same Rust code as
  * WebAssembly.
+ *
+ * `readText` / `writeText` use the system clipboard: natively in the desktop app (WebKitGTK
+ * refuses `navigator.clipboard.readText()`), through `navigator.clipboard` in browser mode
+ * (`mock/clipboardMock.ts`). Features call them through `@/features/clipboard/system`,
+ * which reports failures.
  */
 import { invoke } from "./index";
 
@@ -30,4 +35,8 @@ export const clipboardApi = {
   remove: (index: number) => invoke<boolean>("clipboard_history_remove", { index }),
   /** Move a pasted entry to the top. */
   promote: (index: number) => invoke<ClipEntry | null>("clipboard_history_promote", { index }),
+  /** The text on the system clipboard ("" without text); rejects when it cannot be read. */
+  readText: () => invoke<string>("clipboard_read_text"),
+  /** Put a text on the system clipboard; rejects when it cannot be written. */
+  writeText: (text: string) => invoke<void>("clipboard_write_text", { text }),
 };

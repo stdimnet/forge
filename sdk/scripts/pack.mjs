@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pack a Forge plugin into `<id>-<version>.forgeplugin` (a zip file): forge-plugin.json,
- * everything in dist/, and README.md, LICENSE and CHANGELOG.md when present. Prints the
+ * everything in dist/, the folder of each icon theme file, and README.md, LICENSE and CHANGELOG.md when present. Prints the
  * SHA-256 a marketplace index lists for it. Self-contained (Node.js only), so `forge plugin
  * new` copies it into new plugin projects.
  *
@@ -94,6 +94,13 @@ export function pack(dir, out) {
     .map((f) => join(root, f))
     .filter((f) => existsSync(f));
   if (existsSync(join(root, "dist"))) files.push(...walk(join(root, "dist")));
+  // Icon themes: the theme file and everything in its folder (the SVGs it names).
+  for (const theme of manifest.contributes?.iconThemes ?? []) {
+    const dir = join(root, theme.path, "..");
+    if (!existsSync(join(root, theme.path))) throw new Error(`${theme.path} does not exist`);
+    if (resolve(dir) === root) throw new Error(`put ${theme.path} into a folder of its own (e.g. theme/), next to its SVGs`);
+    files.push(...walk(dir));
+  }
   const entries = [...new Set(files)].map((f) => [relative(root, f).split(sep).join("/"), readFileSync(f)]);
   const bytes = zip(entries);
   const file = resolve(out ?? join(root, `${manifest.id}-${manifest.version}.forgeplugin`));

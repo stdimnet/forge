@@ -79,6 +79,16 @@ impl Package {
                 return Err(format!("`main` names {main}, which is not in the package"));
             }
         }
+        // Icon themes are checked on install, so a broken theme never reaches the settings.
+        for theme in &manifest.contributes.icon_themes {
+            crate::icon_themes::load(&manifest, &theme.id, |p| {
+                files
+                    .get(p)
+                    .cloned()
+                    .ok_or_else(|| format!("{p} is not in the package"))
+            })
+            .map_err(|e| format!("icon theme `{}`: {e}", theme.id))?;
+        }
         Ok(Self {
             manifest,
             files,
@@ -113,6 +123,26 @@ pub(crate) mod tests {
             ("README.md", b"# Word Count"),
         ])
         .unwrap()
+    }
+
+    #[test]
+    fn icon_themes_are_checked_on_install() {
+        let files = crate::icon_themes::tests::shapes_files();
+        let list: Vec<(&str, &[u8])> = files
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_slice()))
+            .collect();
+        assert!(Package::read(&write(&list).unwrap(), "0.1.0").is_ok());
+        let broken: Vec<(&str, &[u8])> = list
+            .iter()
+            .copied()
+            .filter(|(k, _)| !k.ends_with("php.svg"))
+            .collect();
+        let err = Package::read(&write(&broken).unwrap(), "0.1.0").unwrap_err();
+        assert!(
+            err.contains("icon theme `example.shapes-icons.shapes`"),
+            "{err}"
+        );
     }
 
     #[test]

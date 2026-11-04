@@ -167,6 +167,22 @@ pub struct Contributes {
     /// File types (languages) the plugin adds: names, extensions, indentation.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub languages: Vec<FileTypeContribution>,
+    /// File icon themes: an `icon-theme.json` (`forge_icons::IconThemeDef`) and its SVGs.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub icon_themes: Vec<IconThemeContribution>,
+}
+
+/// An icon theme a plugin contributes. It is data only (no code, no permission): Forge
+/// reads the theme file and the SVGs it names from the package and draws them as images.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IconThemeContribution {
+    /// `<plugin id>.<name>`, the value of the `ide.iconTheme` setting.
+    pub id: String,
+    /// Shown in Settings | Appearance & Behavior | File Icons.
+    pub label: String,
+    /// The theme file inside the package, e.g. `icons/icon-theme.json`.
+    pub path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -423,6 +439,27 @@ impl PluginManifest {
                 out.push(problem(format!("contributes.settings[{i}].default"), e));
             }
         }
+        for (i, theme) in c.icon_themes.iter().enumerate() {
+            own(format!("contributes.iconThemes[{i}].id"), &theme.id, out);
+            if theme.label.trim().is_empty() || theme.label.len() > 64 {
+                out.push(problem(
+                    format!("contributes.iconThemes[{i}].label"),
+                    "must be 1 to 64 characters",
+                ));
+            }
+            if !is_package_path(&theme.path) || !theme.path.ends_with(".json") {
+                out.push(problem(
+                    format!("contributes.iconThemes[{i}].path"),
+                    "must be a relative `.json` path inside the package",
+                ));
+            }
+            if c.icon_themes[..i].iter().any(|t| t.id == theme.id) {
+                out.push(problem(
+                    format!("contributes.iconThemes[{i}].id"),
+                    "is declared twice",
+                ));
+            }
+        }
         for (i, lang) in c.languages.iter().enumerate() {
             if lang.id.is_empty() || lang.extensions.is_empty() && lang.file_names.is_empty() {
                 out.push(problem(
@@ -660,6 +697,39 @@ pub(crate) mod tests {
         );
         assert_eq!(ActivationEvent::parse("workspaceContains:../x"), None);
         assert_eq!(ActivationEvent::parse("onCommand:"), None);
+    }
+
+    #[test]
+    fn icon_themes_are_owned_and_point_at_json_files() {
+        let mut m = PluginManifest::parse(WORD_COUNT).unwrap();
+        let theme = |id: &str, label: &str, path: &str| IconThemeContribution {
+            id: id.into(),
+            label: label.into(),
+            path: path.into(),
+        };
+        m.contributes.icon_themes = vec![theme(
+            "example.word-count.shapes",
+            "Shapes",
+            "icons/icon-theme.json",
+        )];
+        assert_eq!(m.validate("0.1.0"), vec![]);
+        m.contributes
+            .icon_themes
+            .push(theme("other.theme", "", "../theme.json"));
+        m.contributes
+            .icon_themes
+            .push(theme("example.word-count.shapes", "Again", "theme.toml"));
+        let fields: Vec<String> = m.validate("0.1.0").into_iter().map(|p| p.field).collect();
+        assert_eq!(
+            fields,
+            [
+                "contributes.iconThemes[1].id",
+                "contributes.iconThemes[1].label",
+                "contributes.iconThemes[1].path",
+                "contributes.iconThemes[2].path",
+                "contributes.iconThemes[2].id",
+            ]
+        );
     }
 
     #[test]

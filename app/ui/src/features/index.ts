@@ -11,6 +11,7 @@ import "./settings";
 import "./language";
 import "./maintenance";
 import "./plugins";
+import "./iconThemes";
 import "./fileTypes";
 import "./codeStyle";
 import "./langservers";

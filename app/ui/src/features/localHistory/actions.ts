@@ -19,6 +19,7 @@ import { workspace } from "@/state/workspace";
 import { isTauri } from "@/ipc";
 import { showBalloon } from "@/keymap";
 import { t as tr } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 /** What a Local History tab shows. */
 export type HistoryTarget =
@@ -261,7 +262,7 @@ export async function createPatch(target: Extract<HistoryTarget, { kind: "file" 
   if (!how) return;
   try {
     if (how === "clipboard") {
-      await navigator.clipboard.writeText(patch);
+      await writeClipboardText(patch);
       return notifyInfo(tr("tools.localHistory.patchCopiedToClipboard"));
     }
     const base = `${nameOf(target.path || workspace()?.name || "project")}-local-history.patch`;

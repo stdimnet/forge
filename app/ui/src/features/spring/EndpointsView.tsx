@@ -11,6 +11,7 @@ import type { EndpointRow } from "@/ipc/spring";
 import { openMenu } from "@/features/run/PopupMenu";
 import { endpointUrl, loadSpring, loading, openInHttpClient, overview, reveal } from "./store";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const [query, setQuery] = createSignal("");
 const [selected, setSelected] = createSignal(-1);
@@ -18,7 +19,7 @@ const [framework, setFramework] = createSignal<"all" | "spring" | "jaxrs" | "run
 
 export { setQuery as setEndpointsQuery };
 
-const copyText = (text: string) => navigator.clipboard?.writeText(text).catch(() => undefined);
+const copyText = (text: string) => writeClipboard(text);
 
 const FRAMEWORKS: Record<string, string> = { spring: "Spring MVC", jaxrs: "JAX-RS", runtime: "Runtime" };
 

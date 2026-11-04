@@ -23,6 +23,7 @@ import {
   webProject,
 } from "./state";
 import { t as tr } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const [query, setQuery] = createSignal("");
 const [framework, setFramework] = createSignal<"all" | WebRoute["framework"]>("all");
@@ -81,8 +82,8 @@ function routeMenu(r: WebRoute, e: MouseEvent) {
       item("Open in HTTP Client", () => void openInHttpClient(r), undefined, { disabled: !http }),
       item("Open in Browser", () => openRouteInBrowser(r), undefined, { disabled: !http || !sortedMethods(r).some((m) => m === "GET" || m === "ANY") }),
       separator,
-      item("Copy URL", () => void navigator.clipboard?.writeText(`${serverBase(r.framework)}${r.samplePath}`)),
-      item("Copy Path", () => void navigator.clipboard?.writeText(r.path)),
+      item("Copy URL", () => void writeClipboard(`${serverBase(r.framework)}${r.samplePath}`)),
+      item("Copy Path", () => void writeClipboard(r.path)),
     ],
     e.clientX,
     e.clientY,

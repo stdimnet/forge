@@ -31,6 +31,7 @@ import { languageIdFor } from "@/editor/languages";
 import { workspace } from "@/state/workspace";
 import { workspaceApi } from "@/ipc/workspace";
 import { pluginDocument, VIEW_CSP } from "./sandbox";
+import { registerIconTheme } from "@/features/iconThemes/state";
 import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Plugins");
@@ -49,6 +50,7 @@ const [statusTexts, setStatusTexts] = createSignal<Record<string, { text: string
 const [toolWindowHtml, setToolWindowHtml] = createSignal<Record<string, string>>({});
 const toolWindowFrames = new Map<string, HTMLIFrameElement>();
 let registeredCommands: string[] = [];
+let iconThemeRegistrations: (() => void)[] = [];
 
 /** Plugins whose contributions are registered (enabled third-party plugins). */
 export const loadedPlugins = loaded;
@@ -336,6 +338,23 @@ async function activateOnEvents(p: InstalledPlugin): Promise<void> {
 }
 
 /** (Re)load the installed plugins: called at startup and after install, uninstall or enablement changes. */
+/** Icon themes are data: they come from every enabled plugin, with or without code. */
+function registerIconThemes(installed: InstalledPlugin[]): void {
+  for (const remove of iconThemeRegistrations) remove();
+  iconThemeRegistrations = installed
+    .filter((p) => p.enabled)
+    .flatMap((p) =>
+      (p.manifest.contributes.iconThemes ?? []).map((th) =>
+        registerIconTheme({ id: th.id, label: th.label, source: p.manifest.name, load: () => pluginsApi.iconTheme(th.id) }),
+      ),
+    );
+}
+
+/** Only the icon themes of the installed plugins (dialog windows, which run no plugin code). */
+export async function reloadIconThemes(): Promise<void> {
+  registerIconThemes(await pluginsApi.installed().catch(() => []));
+}
+
 export async function reloadPlugins(): Promise<void> {
   for (const inst of instances.values()) inst.frame.remove();
   instances.clear();
@@ -347,6 +366,7 @@ export async function reloadPlugins(): Promise<void> {
   } catch (e) {
     console.warn("installed plugins could not be read", e);
   }
+  registerIconThemes(installed);
   const enabled = installed.filter((p) => p.enabled && p.manifest.main);
   setLoaded(enabled);
   setStatusTexts({});

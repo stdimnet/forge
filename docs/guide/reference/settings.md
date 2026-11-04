@@ -99,6 +99,19 @@ Page id `appearance.fileColors` (custom page).
 | `fileColors.local` | objects (`scope`, `color`) | Non-Project Files: Yellow, Tests: Green | user |  | Local colors |
 | `fileColors.shared` | objects (`scope`, `color`) | `[]` | project |  | Shared colors |
 
+### Appearance & Behavior | File Icons
+
+Page id `appearance.fileIcons`. See [Settings and themes](../user/settings-and-themes.md#file-icons).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileIcons.theme` | string | `""` | user | Icon Theme | Icon theme. The icon theme of the Project view, editor tabs, Recent Files, Search Everywhere, Find in Files, Structure, completion and the navigation bar. Plugins contribute icon themes; empty: Forge's own icons. |
+| `fileIcons.treeArrows` | enum (`theme`, `chevron`, `triangle`, `none`) | `theme` | user | Look | Tree arrows |
+| `fileIcons.monochrome` | enum (`theme`, `on`, `off`) | `theme` | user | Look | Monochrome icons |
+| `fileIcons.accentColor` | string | `""` | user | Look | Folder accent color. A color like #e0a040 for folder icons. Empty: the icon theme's accent color, if it sets one. |
+| `fileIcons.size` | int (0–32) | `0` | user | Look | Icon size (pixels). 0: the size the icon theme sets, else each view's own size. |
+| `fileIcons.associations` | objects (`kind`, `value`, `icon`) | `[]` | user | Custom Associations | Custom associations. Your own file and folder icons; they come before the theme's own rules. |
+
 ### Appearance & Behavior | System Settings
 
 Page id `system`.

@@ -12,6 +12,7 @@ import { openHttpRequest } from "@/features/scratches/store";
 import { openFileAt } from "@/editor/views";
 import { dotnetActive, dotnetWorkspace, errorText, showDotnetBalloon } from "../state";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 /** ASP.NET Core is used: a web project in the solution. */
 export const aspnetActive = () => dotnetActive() && (dotnetWorkspace()?.projects ?? []).some((p) => p.web);
@@ -50,7 +51,7 @@ export async function generateHttpRequest(e: Endpoint): Promise<void> {
 
 const reveal = (e: Endpoint) => void openFileAt(e.file, e.line + 1);
 const urlOf = (e: Endpoint) => `${(e.project && model()?.baseUrls[e.project]) || "http://localhost:5000"}${e.path}`;
-const copy = (text: string) => navigator.clipboard?.writeText(text).catch(() => undefined);
+const copy = (text: string) => writeClipboard(text);
 
 function rowMenu(e: Endpoint, ev: MouseEvent) {
   ev.preventDefault();

@@ -756,6 +756,80 @@ default = "en"
 group = "system.language"
 order = 0
 
+# ---- Appearance & Behavior > File Icons ---------------------------------------------
+
+[[contributions.settings]]
+key = "fileIcons.theme"
+title = "Icon theme"
+description = "The icon theme of the Project view, editor tabs, Recent Files, Search Everywhere, Find in Files, Structure, completion and the navigation bar. Plugins contribute icon themes; empty: Forge's own icons."
+type = "string"
+default = ""
+group = "appearance.fileIcons"
+section = "Icon Theme"
+order = 0
+
+[[contributions.settings]]
+key = "fileIcons.treeArrows"
+title = "Tree arrows"
+type = "enum"
+options = [
+  { value = "theme", label = "As the icon theme sets" },
+  { value = "chevron", label = "Chevrons" },
+  { value = "triangle", label = "Triangles" },
+  { value = "none", label = "None" },
+]
+default = "theme"
+group = "appearance.fileIcons"
+section = "Look"
+order = 10
+
+[[contributions.settings]]
+key = "fileIcons.monochrome"
+title = "Monochrome icons"
+type = "enum"
+options = [
+  { value = "theme", label = "As the icon theme sets" },
+  { value = "on", label = "On" },
+  { value = "off", label = "Off" },
+]
+default = "theme"
+group = "appearance.fileIcons"
+section = "Look"
+order = 11
+
+[[contributions.settings]]
+key = "fileIcons.accentColor"
+title = "Folder accent color"
+description = "A color like #e0a040 for folder icons. Empty: the icon theme's accent color, if it sets one."
+type = "string"
+default = ""
+group = "appearance.fileIcons"
+section = "Look"
+order = 12
+
+[[contributions.settings]]
+key = "fileIcons.size"
+title = "Icon size (pixels)"
+description = "0: the size the icon theme sets, else each view's own size."
+type = "int"
+min = 0
+max = 32
+default = 0
+group = "appearance.fileIcons"
+section = "Look"
+order = 13
+
+[[contributions.settings]]
+key = "fileIcons.associations"
+title = "Custom associations"
+description = "Your own file and folder icons (kind \"fileName\", \"extension\", \"pattern\", \"regex\" or \"folderName\", value, icon id of the active theme). They come before the theme's own rules."
+type = "objects"
+unique = ["kind", "value"]
+default = []
+group = "appearance.fileIcons"
+section = "Custom Associations"
+order = 20
+
 # ---- Appearance & Behavior > System Settings > Updates ------------------------------
 
 [[contributions.settings]]

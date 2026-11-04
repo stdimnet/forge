@@ -21,6 +21,7 @@ import { compareFocusedDirDiffRow, DirDiffView } from "./DirDiffView";
 import { SelectPathDialog } from "./SelectPathDialog";
 import { t } from "@/i18n";
 import "./compare.css";
+import { readClipboard } from "@/features/clipboard/system";
 
 const nameOf = (path: string) => path.split("/").pop() || path || "/";
 
@@ -83,9 +84,7 @@ export async function compareWithClipboard(): Promise<void> {
   if (!view || !tab) return;
   // The system clipboard may be off limits or wait for a permission prompt (browsers); Forge's
   // last copy is the same text then.
-  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
-  const system = navigator.clipboard?.readText().catch(() => null) ?? Promise.resolve(null);
-  const clip = (await Promise.race([system, timeout])) ?? lastCopy()?.text ?? null;
+  const clip = (await readClipboard({ timeoutMs: 1500 })) ?? lastCopy()?.text ?? null;
   if (clip === null) return void showBalloon(t("tools.compare.clipboardIsNotAvailable"), t("tools.compare.copySomeTextFirst"));
   const sel = view.state.selection.main;
   const name = nameOf(tab.path);

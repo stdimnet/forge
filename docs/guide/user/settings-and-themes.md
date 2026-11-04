@@ -191,6 +191,31 @@ Editor fonts are under Settings | Editor | Font: JetBrains Mono (default), Fira 
 Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5), line height
 (1.6) and ligatures.
 
+## File icons
+
+Settings | Appearance & Behavior | **File Icons** picks the icon theme of the Project view,
+editor tabs, Recent Files, Search Everywhere, Find in Files, the Structure tool window, code
+completion and the navigation bar. Icon themes come from plugins (for example an Atom
+Material Icons plugin from the Marketplace); "Forge (built-in)" keeps Forge's own icons, and
+files a theme has no icon for keep them too.
+
+![File Icons settings](../../screenshots/settings-file-icons.png)
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Icon theme | `fileIcons.theme` | Forge (built-in) |
+| Tree arrows (as the theme sets, chevrons, triangles, none) | `fileIcons.treeArrows` | as the theme sets |
+| Monochrome icons (as the theme sets, on, off) | `fileIcons.monochrome` | as the theme sets |
+| Folder accent color (`#rrggbb`; empty: the theme's) | `fileIcons.accentColor` | empty |
+| Icon size in pixels (0: the theme's or the view's) | `fileIcons.size` | 0 |
+| Custom associations: file name, extension, pattern, regular expression or folder name → an icon of the active theme | `fileIcons.associations` | none |
+
+Custom associations come before the theme's own rules, so `Makefile` or `*.stub` can get the
+icon you want. Associations that name an icon the theme does not have are listed under the
+theme picker and ignored.
+
+![Shapes icon theme in the Project view](../../screenshots/icon-theme-project-view.png)
+
 ### Window controls
 
 Forge draws its own title bars. **Window controls** chooses how their buttons look:

@@ -15,6 +15,7 @@ import { notify, reloadOpenFiles, repositoryChanged } from "./store";
 import { conflictedPaths, resolveConflicts } from "./conflicts";
 import { setDiffRequest } from "./overlays";
 import { t } from "@/i18n";
+import { readClipboard, writeClipboardText } from "@/features/clipboard/system";
 
 const plural = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
 const errorText = (e: unknown) => String(e instanceof Error ? e.message : e);
@@ -128,7 +129,7 @@ export async function createPatch(opts: { paths: string[]; shas: string[]; file:
       return false;
     }
     if (opts.file === null) {
-      await navigator.clipboard.writeText(patch);
+      await writeClipboardText(patch);
       notify("success", t("git.changesDialogs.patchCopiedToClipboard"));
     } else {
       await changesApi.writePatch(opts.file, patch);
@@ -198,8 +199,9 @@ export async function applyPatchDialog(): Promise<void> {
 
 /** Apply Patch from Clipboard… (`ChangesView.ApplyPatchFromClipboard`). */
 export async function applyPatchFromClipboard(): Promise<void> {
-  const text = await navigator.clipboard?.readText().catch(() => "");
-  if (!text?.trim()) return notify("info", t("git.changesDialogs.theClipboardHoldsNoPatch"));
+  const text = await readClipboard();
+  if (text === null) return;
+  if (!text.trim()) return notify("info", t("git.changesDialogs.theClipboardHoldsNoPatch"));
   await previewPatch(text, "Patch from clipboard");
 }
 

@@ -26,6 +26,7 @@ import { activeTab, closeTab, displayTitle, setActiveTab, tabs, updateTab, type 
 import { isLinkActivation, linkTarget, parseOsc, terminalKeySequence, type Progress } from "./osc";
 import { terminalOptions, terminalRenderer, type TerminalRenderer } from "./options";
 import { t as tr } from "@/i18n";
+import { readClipboard, writeClipboard } from "@/features/clipboard/system";
 
 interface Session {
   term: Terminal;
@@ -121,12 +122,13 @@ const hideLinkHint = (s: Session) => linkHint(s)?.remove();
 
 export async function copySelection(id: string): Promise<void> {
   const sel = sessions.get(id)?.term.getSelection();
-  if (sel) await navigator.clipboard?.writeText(sel).catch(() => undefined);
+  if (sel) await writeClipboard(sel);
 }
 
+/** Paste the clipboard; `term.paste` wraps it in bracketed paste markers when the shell asks for them. */
 export async function paste(id: string): Promise<void> {
+  const text = await readClipboard();
   const s = sessions.get(id);
-  const text = await navigator.clipboard?.readText().catch(() => "");
   if (s && text) s.term.paste(text);
 }
 
