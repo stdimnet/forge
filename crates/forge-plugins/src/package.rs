@@ -160,7 +160,9 @@ mod sdk_tests {
     use std::path::Path;
 
     fn sdk(path: &str) -> Vec<u8> {
-        let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk").join(path);
+        let file = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../sdk")
+            .join(path);
         std::fs::read(&file).unwrap_or_else(|e| panic!("{}: {e}", file.display()))
     }
 
@@ -175,7 +177,10 @@ mod sdk_tests {
         let p = Package::read(&bytes, crate::FORGE_VERSION).unwrap();
         assert_eq!(p.manifest.id, "example.word-count");
         let bundle = String::from_utf8(p.files["dist/plugin.js"].clone()).unwrap();
-        assert!(bundle.contains("var __forgePlugin"), "dist/plugin.js is an esbuild IIFE");
+        assert!(
+            bundle.contains("var __forgePlugin"),
+            "dist/plugin.js is an esbuild IIFE"
+        );
     }
 
     /// `pnpm plugin new` fills the template's placeholders into a valid manifest.

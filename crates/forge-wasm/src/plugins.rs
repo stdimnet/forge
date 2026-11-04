@@ -85,7 +85,10 @@ mod tests {
             "permissions":{"network":["api.acme.dev"]}}]}]}"#;
         let req = serde_json::json!({ "index": index, "forgeVersion": "0.1.0", "query": "tool" });
         let out = plugins_marketplace(&req.to_string());
-        assert!(out.contains(r#""id":"acme.tool""#) && out.contains("Connect to the internet"), "{out}");
+        assert!(
+            out.contains(r#""id":"acme.tool""#) && out.contains("Connect to the internet"),
+            "{out}"
+        );
         assert!(plugins_permission_lines(r#"{"editor":["read"]}"#).contains("editor.read"));
         let bad = serde_json::json!({ "manifest": "{}", "forgeVersion": "0.1.0" });
         assert!(plugins_validate_manifest(&bad.to_string()).contains("error"));

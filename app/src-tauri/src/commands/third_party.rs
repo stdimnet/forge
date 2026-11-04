@@ -170,7 +170,9 @@ pub async fn plugin_install_file(
     let file = path.clone();
     let package = blocking(move || read_package(&file)).await?;
     if package.sha256 != sha256 {
-        return Err(err("the file changed after it was checked; install it again"));
+        return Err(err(
+            "the file changed after it was checked; install it again",
+        ));
     }
     inspect(&state, &package)?;
     let installed = store(&state)?

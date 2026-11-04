@@ -11,7 +11,9 @@ use forge_core::{ForgeError, Result, SettingsScope};
 use forge_maintenance::archive::{self, SettingsArchive};
 use forge_maintenance::caches::CacheOption;
 use forge_maintenance::dirs::ForgeDirs;
-use forge_maintenance::groups::{count_groups, settings_groups, GroupCount, INSTALLED_PLUGINS_FILE};
+use forge_maintenance::groups::{
+    count_groups, settings_groups, GroupCount, INSTALLED_PLUGINS_FILE,
+};
 use forge_maintenance::{pending, restore, InvalidateModel};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -144,13 +146,8 @@ pub async fn settings_export(
         if let Some(bytes) = plugins {
             files.insert(INSTALLED_PLUGINS_FILE.to_string(), bytes);
         }
-        let bytes = archive::export_settings(
-            &user,
-            &files,
-            &groups,
-            env!("CARGO_PKG_VERSION"),
-        )
-        .map_err(err)?;
+        let bytes = archive::export_settings(&user, &files, &groups, env!("CARGO_PKG_VERSION"))
+            .map_err(err)?;
         let path = PathBuf::from(path);
         std::fs::write(&path, bytes).map_err(|e| ForgeError::io(&path, e))?;
         Ok(path.display().to_string())

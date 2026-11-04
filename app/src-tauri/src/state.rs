@@ -42,10 +42,12 @@ impl AppState {
         let plugin_store = forge_plugins::PluginStore::default_location();
         let third_party = plugin_store
             .as_ref()
-            .map(|s| s.list().unwrap_or_else(|e| {
-                tracing::warn!("installed plugins not loaded: {e}");
-                Vec::new()
-            }))
+            .map(|s| {
+                s.list().unwrap_or_else(|e| {
+                    tracing::warn!("installed plugins not loaded: {e}");
+                    Vec::new()
+                })
+            })
             .unwrap_or_default();
         for p in &third_party {
             if let Err(e) = registry.register_descriptor(forge_plugins::store::descriptor(p)) {

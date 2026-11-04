@@ -113,7 +113,9 @@ fn machine_name() -> String {
 #[tauri::command]
 pub fn settings_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let s = state.read_settings();
-    let method: String = s.get_as("settingsSync.method").unwrap_or_else(|| "folder".into());
+    let method: String = s
+        .get_as("settingsSync.method")
+        .unwrap_or_else(|| "folder".into());
     let target = if method == "git" {
         s.get_as("settingsSync.gitUrl")
     } else {
@@ -153,8 +155,10 @@ pub async fn settings_sync_now(app: AppHandle) -> Result<SyncResult> {
                 s.layer_values(SettingsScope::User).clone(),
                 s.get_as::<String>("settingsSync.method")
                     .unwrap_or_else(|| "folder".into()),
-                s.get_as::<String>("settingsSync.folder").unwrap_or_default(),
-                s.get_as::<String>("settingsSync.gitUrl").unwrap_or_default(),
+                s.get_as::<String>("settingsSync.folder")
+                    .unwrap_or_default(),
+                s.get_as::<String>("settingsSync.gitUrl")
+                    .unwrap_or_default(),
                 s.get_as::<String>("settingsSync.gitBranch")
                     .unwrap_or_else(|| "main".into()),
                 s.get_as::<Vec<String>>("settingsSync.groups")
