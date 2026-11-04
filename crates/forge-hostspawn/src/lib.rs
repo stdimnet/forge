@@ -366,7 +366,10 @@ pub fn host_env() -> &'static BTreeMap<String, String> {
         }
         let spec = rewrite(&Spec {
             program: "/bin/sh".into(),
-            args: vec!["-lc".into(), format!("echo {ENV_MARKER}; exec env -0").into()],
+            args: vec![
+                "-lc".into(),
+                format!("echo {ENV_MARKER}; exec env -0").into(),
+            ],
             ..Spec::default()
         });
         let out = spec
@@ -641,7 +644,9 @@ mod tests {
 
     #[test]
     fn parses_env_output_after_the_marker() {
-        let out = format!("Welcome!\n{ENV_MARKER}\nPATH=/usr/bin:/bin\0HOME=/home/me\0MULTI=a\nb\0=bad\0");
+        let out = format!(
+            "Welcome!\n{ENV_MARKER}\nPATH=/usr/bin:/bin\0HOME=/home/me\0MULTI=a\nb\0=bad\0"
+        );
         let env = parse_env(&out);
         assert_eq!(env.get("PATH").map(String::as_str), Some("/usr/bin:/bin"));
         assert_eq!(env.get("HOME").map(String::as_str), Some("/home/me"));

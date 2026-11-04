@@ -169,8 +169,10 @@ fn the_terminal_shell_runs_on_the_host_with_a_controlling_terminal() {
     .expect("spawn");
     s.resize(100, 30).unwrap();
     // Opening /dev/tty only works with a controlling terminal (job control, Ctrl+C).
-    s.write(b": </dev/tty && echo ctty-$((40+2)); stty size; echo \"$TERM:$FORGE_FAKE_PTY:done\"\n")
-        .unwrap();
+    s.write(
+        b": </dev/tty && echo ctty-$((40+2)); stty size; echo \"$TERM:$FORGE_FAKE_PTY:done\"\n",
+    )
+    .unwrap();
     let (text, _) = collect_until(&rx, |t| t.contains("xterm-256color:pty-1:done"));
     assert!(text.contains("ctty-42"), "{text:?}");
     assert!(text.contains("30 100"), "{text:?}");

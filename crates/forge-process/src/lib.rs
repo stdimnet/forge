@@ -23,9 +23,9 @@ pub mod termenv;
 pub mod test_history;
 mod utf8;
 
-pub use forge_output as output;
 /// Running host tools from inside a Flatpak sandbox (`flatpak-spawn --host`).
 pub use forge_hostspawn as host;
+pub use forge_output as output;
 
 pub use args::{quote_arg, split_args};
 pub use config::{

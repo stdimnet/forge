@@ -6,7 +6,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 
 ## Getting started
 
-- [Installation](guide/getting-started/installation.md): install Forge as an AppImage, deb or rpm on Linux, or an installer on Windows and macOS
+- [Installation](guide/getting-started/installation.md): install Forge as an AppImage, deb, rpm or Flatpak on Linux (Flatpak runs tools on the host), or an installer on Windows and macOS
 - [First start](guide/getting-started/first-start.md): the Welcome screen and its recent projects list
 - [Opening and creating projects](guide/getting-started/projects.md): open folders, recent projects, the New Project dialog and generators
 - [Project detection](guide/getting-started/project-detection.md): how Forge detects frameworks and activates plugins
