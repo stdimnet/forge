@@ -3174,6 +3174,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-i18n"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-injections"
 version = "0.1.0"
 dependencies = [
