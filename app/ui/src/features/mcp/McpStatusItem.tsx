@@ -10,6 +10,7 @@ import { StatusPopup } from "@/shell/StatusPopup";
 import { ApprovalCards } from "./ApprovalCards";
 import { CallLog } from "./CallLog";
 import { clearLog, mcpLog, mcpStatus, popupOpen, setPopupOpen, statusText, timeOf } from "./store";
+import { t } from "@/i18n";
 
 export const MCP_PAGE_ID = "tools.mcp-server";
 
@@ -34,40 +35,40 @@ export function McpStatusItem() {
       </button>
       <ApprovalCards />
       <Show when={popupOpen()}>
-        <StatusPopup anchor={el!} align="end" class="mcp-popup" label="MCP Server" testId="mcp-popup" onClose={() => setPopupOpen(false)}>
+        <StatusPopup anchor={el!} align="end" class="mcp-popup" label={t("tools.mcp.mcpServer")} testId="mcp-popup" onClose={() => setPopupOpen(false)}>
           <div class="mcp-popup-title">
-            <PlugZap size={14} /> MCP Server
-            <span class="muted mono mcp-popup-url">{s()?.url ?? "not running"}</span>
-            <button class="icon-btn" title="MCP Server Settings" onClick={() => (setPopupOpen(false), openSettings(MCP_PAGE_ID))}>
+            <PlugZap size={14} /> {t("tools.mcp.mcpServer")}
+            <span class="muted mono mcp-popup-url">{s()?.url ?? t("tools.mcp.notRunning")}</span>
+            <button class="icon-btn" title={t("tools.mcp.mcpServerSettings")} onClick={() => (setPopupOpen(false), openSettings(MCP_PAGE_ID))}>
               <Settings size={14} />
             </button>
           </div>
           <Show when={s()?.safeMode}>
-            <div class="mcp-popup-note">Safe Mode: run configurations and terminal commands are refused until you trust the project.</div>
+            <div class="mcp-popup-note">{t("tools.mcp.safeModeRunConfigurationsAnd")}</div>
           </Show>
           <Show when={s()?.aiDisabled}>
-            <div class="mcp-popup-note">AI features are off for this project: every tool call is refused.</div>
+            <div class="mcp-popup-note">{t("tools.mcp.aiFeaturesAreOffFor")}</div>
           </Show>
-          <div class="mcp-popup-label muted">Connected clients</div>
-          <For each={s()?.sessions ?? []} fallback={<div class="muted mcp-popup-empty">None. Copy a client configuration in Settings | Tools | MCP Server.</div>}>
+          <div class="mcp-popup-label muted">{t("tools.mcp.connectedClients")}</div>
+          <For each={s()?.sessions ?? []} fallback={<div class="muted mcp-popup-empty">{t("tools.mcp.noneCopyAClientConfiguration")}</div>}>
             {(session) => (
               <div class="mcp-session" data-session={session.id}>
                 <span class="mcp-dot" />
                 <span class="mcp-session-name">{session.client.name}</span>
                 <span class="muted">
-                  {session.transport === "sse" ? "SSE" : "HTTP"} · since {timeOf(session.connectedAt)} · {session.calls} calls
+                  {t("tools.mcp.sinceCalls", { value: session.transport === "sse" ? "SSE" : "HTTP", value2: timeOf(session.connectedAt), calls: session.calls })}
                 </span>
-                <button class="icon-btn" title="Disconnect" onClick={() => void mcpApi.disconnect(session.id)}>
+                <button class="icon-btn" title={t("tools.mcp.disconnect")} onClick={() => void mcpApi.disconnect(session.id)}>
                   <Unplug size={13} />
                 </button>
               </div>
             )}
           </For>
           <div class="mcp-popup-label muted mcp-popup-row">
-            <span>Recent tool calls</span>
+            <span>{t("tools.mcp.recentToolCalls")}</span>
             <Show when={mcpLog().length}>
               <button class="mcp-link" onClick={() => void clearLog()}>
-                Clear
+                {t("common.clear")}
               </button>
             </Show>
           </div>

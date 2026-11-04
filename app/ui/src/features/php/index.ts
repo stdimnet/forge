@@ -10,6 +10,7 @@ import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
+import { languageIdFor } from "@/editor/languages";
 import { isLibraryPath } from "@/ipc/codeintel";
 import { registerCommand } from "@/state/commands";
 import { workspace } from "@/state/workspace";
@@ -31,8 +32,8 @@ import "./sourceRoots";
 import "./php.css";
 import { t } from "@/i18n";
 
-const isPhp = (path: string) =>
-  /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
+/** PHP files by their file type: `.php`, but also `artisan`, `bin/console` and overrides. */
+const isPhp = (path: string) => languageIdFor(path) === "php" && !isLibraryPath(path);
 
 registerEditorExtension(({ path }) =>
   isPhp(path)

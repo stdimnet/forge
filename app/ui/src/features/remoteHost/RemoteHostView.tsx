@@ -29,6 +29,7 @@ import {
   tree,
   uploadToHere,
 } from "./store";
+import { t } from "@/i18n";
 
 interface Row {
   node: RemoteNode;
@@ -56,7 +57,7 @@ function menuFor(node: RemoteNode): MenuEntry[] {
 function Toolbar() {
   return (
     <div class="rh-toolbar">
-      <Show when={currentServer()} fallback={<span class="muted rh-small">No servers</span>}>
+      <Show when={currentServer()} fallback={<span class="muted rh-small">{t("tools.remoteHost.noServers")}</span>}>
         {(s) => (
           <label class="rh-server" title={`${KIND_LABELS[s().kind]}: ${s().label}`}>
             <KindIcon kind={s().kind} size={14} />
@@ -67,13 +68,13 @@ function Toolbar() {
         )}
       </Show>
       <span class="rh-spacer" />
-      <button class="icon-btn" title="Refresh" disabled={!currentServer()} onClick={() => void refresh()}>
+      <button class="icon-btn" title={t("common.refresh")} disabled={!currentServer()} onClick={() => void refresh()}>
         <RefreshCw size={14} />
       </button>
-      <button class="icon-btn" title="Collapse All" disabled={!currentServer()} onClick={collapseAll}>
+      <button class="icon-btn" title={t("common.collapseAll2")} disabled={!currentServer()} onClick={collapseAll}>
         <ChevronsDownUp size={15} />
       </button>
-      <button class="icon-btn" title="Configure Servers…" onClick={() => openDeploymentSettings()}>
+      <button class="icon-btn" title={t("tools.remoteHost.configureServersEllipsis")} onClick={() => openDeploymentSettings()}>
         <Settings size={14} />
       </button>
     </div>
@@ -125,14 +126,14 @@ export function RemoteHostView() {
         when={config()?.servers.length}
         fallback={
           <div class="placeholder-panel">
-            No deployment servers.{" "}
+            {t("tools.remoteHost.noDeploymentServers")}
             <button class="link-btn" onClick={() => openDeploymentSettings()}>
-              Configure servers
+              {t("tools.remoteHost.configureServers")}
             </button>
           </div>
         }
       >
-        <div class="rh-tree project-tree" tabIndex={0} role="tree" aria-label="Remote Host" data-testid="remote-host-tree">
+        <div class="rh-tree project-tree" tabIndex={0} role="tree" aria-label={t("tools.remoteHost.remoteHost")} data-testid="remote-host-tree">
           <For each={rows()}>
             {(row) => (
               <>
@@ -148,7 +149,7 @@ export function RemoteHostView() {
                   aria-expanded={row.node.dir ? !!tree.expanded[row.node.path] : undefined}
                   data-remote-path={row.node.path}
                   data-dir={row.node.dir ? "" : undefined}
-                  title={row.node.local !== null ? `Mapped to ${row.node.local || "the project root"}` : row.node.excluded ? "Excluded path" : undefined}
+                  title={row.node.local !== null ? t("tools.remoteHost.mappedTo", { value: row.node.local || "the project root" }) : row.node.excluded ? t("tools.remoteHost.excludedPath") : undefined}
                   onClick={() => select(row.node.path)}
                   onDblClick={() => (row.node.dir ? void toggle(row.node) : void editRemoteFile(row.node))}
                   onContextMenu={(e) => {
@@ -177,7 +178,7 @@ export function RemoteHostView() {
                     {row.node.name}
                   </span>
                   <Show when={row.node.mappingRoot && row.node.local !== null}>
-                    <span class="tree-hint">{row.node.local || "project root"}</span>
+                    <span class="tree-hint">{row.node.local || t("tools.remoteHost.projectRoot")}</span>
                   </Show>
                 </div>
                 <Show when={row.node.dir && tree.expanded[row.node.path]}>{errorRow(row.node.path, row.depth + 1)}</Show>

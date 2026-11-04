@@ -21,6 +21,7 @@ import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
 import { editPlaces } from "@/features/editorNavigation/editHistory";
 import { movePath, recordLocation, shiftLocations, snippet, type Location } from "./locations";
+import { t as tr } from "@/i18n";
 
 const [locations, setLocations] = createSignal<Location[]>([]);
 export { locations };
@@ -175,11 +176,11 @@ function RecentLocationsPopup() {
           </Show>
           <label class="se-check recent-check" onMouseDown={(e) => e.preventDefault()}>
             <input type="checkbox" checked={changedOnly()} onChange={(e) => setChangedOnly(e.currentTarget.checked)} />
-            <span>Show changed only</span>
+            <span>{tr("tools.editorTabs.showChangedOnly")}</span>
           </label>
         </div>
         <div class="locations-list" ref={list}>
-          <Show when={rows().length} fallback={<div class="se-empty">{changedOnly() ? "No changed locations" : "No recent locations"}</div>}>
+          <Show when={rows().length} fallback={<div class="se-empty">{changedOnly() ? tr("tools.editorTabs.noChangedLocations") : tr("tools.editorTabs.noRecentLocations")}</div>}>
             <For each={rows()}>
               {(row, i) => (
                 <div
@@ -196,7 +197,7 @@ function RecentLocationsPopup() {
                     </span>
                     <span class="recent-path">{row.loc.path.split("/").slice(0, -1).join("/")}</span>
                     <Show when={row.loc.changed}>
-                      <span class="location-changed" title="Changed here" />
+                      <span class="location-changed" title={tr("tools.editorTabs.changedHere")} />
                     </Show>
                   </div>
                   <div class="location-code">
@@ -214,7 +215,7 @@ function RecentLocationsPopup() {
             </For>
           </Show>
         </div>
-        <div class="se-footer">{`Press ${shortcutLabel("RecentLocations")} again to show changed only · type to search`}</div>
+        <div class="se-footer">{tr("tools.editorTabs.pressAgainToShowChanged", { value: shortcutLabel("RecentLocations") })}</div>
       </div>
     </div>
   );

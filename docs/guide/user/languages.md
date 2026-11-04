@@ -49,16 +49,16 @@ settings, so it applies to every project.
 | Forge's own actions without a PHPStorm counterpart (e.g. New Window, Code With Me, AI, Database actions) in Find Action and the keymap | yes |
 | Settings pages Languages & Frameworks \| PHP (with Composer, Quality Tools, Debug, Laravel, Symfony, Doctrine, WordPress), Editor, Version Control and Tools | yes |
 | Safe Mode refusals and common backend errors (no project open, file not found, I/O errors) | yes |
-| Other tool windows and dialogs (.NET, C/C++, code hosts, Code With Me, game engines, Python, Java, Services, …), the settings of other language packs, file templates and New Project generator names | not yet, they stay English |
+| Tool windows and dialogs of the language packs and tools: .NET, C/C++, code hosts (merge requests, review), game engines, Python, PHP, web tooling, Java, Kotlin, Rust, Go, Ruby, Jupyter, inspections, remote development, Services, deployment | yes |
+| Settings of every bundled plugin and language pack, plugin names and descriptions | yes |
+| Code With Me, Agent Tasks, file templates and New Project generator names | not yet, they stay English |
 
 Untranslated text is always English, never a key or an empty label. The
 [developer guide](../developer/localization.md) explains how the coverage is measured and how
 to add translations.
 
-> **Note:** plugin names, settings and tool window titles of the bundled plugins are about half
-> translated: the PHP, Editor, Version Control and Tools pages are German, the settings of the
-> other language packs stay English for now. Third-party plugins can ship their own translations
-> in their manifest.
+> **Note:** plugin names, settings and tool window titles of all bundled plugins are translated.
+> Third-party plugins can ship their own translations in their manifest.
 
 ## Find Action in two languages
 

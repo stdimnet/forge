@@ -191,3 +191,16 @@
   font-family: var(--font-mono);
   font-size: var(--fs-small);
 }
+
+/* File | File Properties | Override File Type. */
+.ft-override-popup {
+  width: min(420px, calc(100vw - 32px));
+}
+.ft-override-popup .se-results {
+  max-height: min(420px, 60vh);
+}
+.ft-override-title {
+  padding: 10px 14px 0;
+  font-weight: 600;
+  color: var(--fg-strong);
+}

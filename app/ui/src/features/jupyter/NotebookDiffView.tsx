@@ -7,6 +7,7 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { ChevronDown, ChevronRight } from "lucide-solid";
 import { jupyterApi, type CellDiff, type CellSide, type TextChange } from "@/ipc/jupyter";
 import type { DiffRequest } from "@/features/git/overlays";
+import { t } from "@/i18n";
 
 const STATUS_LABEL: Record<CellDiff["status"], string> = {
   unchanged: "Unchanged",
@@ -68,10 +69,10 @@ function CellCard(props: { cell: CellDiff }) {
         <span class="muted nbd-notes">{notes().join(", ")}</span>
       </div>
       <Show when={c().status !== "modified" || c().source.changed}>
-        <Lines change={c().source} title="Source" />
+        <Lines change={c().source} title={t("common.source")} />
       </Show>
       <Show when={c().outputs.changed}>
-        <Lines change={c().outputs} title="Outputs" />
+        <Lines change={c().outputs} title={t("langs.jupyter.outputs")} />
       </Show>
     </div>
   );
@@ -84,7 +85,7 @@ function Unchanged(props: { cells: CellDiff[] }) {
     <div class="nbd-fold">
       <button class="nbd-fold-btn" onClick={() => setOpen(!open())}>
         {open() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        {props.cells.length} unchanged {props.cells.length === 1 ? "cell" : "cells"}
+        {t("langs.jupyter.unchangedCells", { count: props.cells.length })}
       </button>
       <Show when={open()}>
         <For each={props.cells}>{(c) => <CellCard cell={c} />}</For>
@@ -114,7 +115,7 @@ export function NotebookDiffView(props: { request: DiffRequest }) {
   return (
     <div class="nbd" data-testid="notebook-diff">
       <Show when={diff.error}>
-        <div class="nbd-error">Cannot compare the notebooks cell by cell: {String(diff.error).replace(/^Error: /, "")}. Switch to Text.</div>
+        <div class="nbd-error">{t("langs.jupyter.cannotCompareTheNotebooksCell", { value: String(diff.error).replace(/^Error: /, "") })}</div>
       </Show>
       <Show when={diff.latest}>
         {(d) => (
@@ -125,7 +126,7 @@ export function NotebookDiffView(props: { request: DiffRequest }) {
               <span class="nbd-badge removed">{d().stats.removed} deleted</span>
               <span class="muted">{d().stats.unchanged} unchanged</span>
               <Show when={d().metadataChanged}>
-                <span class="muted">· notebook metadata changed</span>
+                <span class="muted">{t("langs.jupyter.notebookMetadataChanged")}</span>
               </Show>
             </div>
             <For each={groupCells(d().cells)}>{(g) => (Array.isArray(g) ? <Unchanged cells={g} /> : <CellCard cell={g} />)}</For>

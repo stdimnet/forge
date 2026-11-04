@@ -242,10 +242,10 @@ export function CompareView(props: { tab: EditorTab }) {
       <Show when={d()}>
         {(x) => (
           <div class="dc-info muted">
-            Key: {x().key.length ? x().key.join(", ") : "whole rows"}
-            <Show when={x().rightOnlyColumns?.length}> · only right: {x().rightOnlyColumns!.join(", ")}</Show>
-            <Show when={x().leftOnlyColumns?.length}> · only left: {x().leftOnlyColumns!.join(", ")}</Show>
-            <Show when={x().duplicateKeys}> · {x().duplicateKeys} duplicate keys</Show>
+            {tr("tools.database.key", { value: x().key.length ? x().key.join(", ") : tr("tools.database.wholeRows") })}
+            <Show when={x().rightOnlyColumns?.length}> {tr("tools.database.onlyRight", { rightOnlyColumns: x().rightOnlyColumns!.join(", ") })}</Show>
+            <Show when={x().leftOnlyColumns?.length}> {tr("tools.database.onlyLeft", { leftOnlyColumns: x().leftOnlyColumns!.join(", ") })}</Show>
+            <Show when={x().duplicateKeys}> {tr("tools.database.duplicateKeys", { duplicateKeys: x().duplicateKeys })}</Show>
           </div>
         )}
       </Show>

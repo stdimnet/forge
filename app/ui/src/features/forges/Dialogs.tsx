@@ -8,6 +8,7 @@ import { notify } from "@/features/git/store";
 import { dialog, openMergeRequest, setDialog, type Dialog } from "./actions";
 import { caps, context, errorText, me, ref, refreshAll, requestName } from "./store";
 import { Avatar, displayName } from "./ui";
+import { t } from "@/i18n";
 
 export function ForgeDialogs() {
   return (
@@ -47,7 +48,7 @@ function Frame(props: { title: string; icon?: unknown; class?: string; children:
           {props.icon as never}
           <span>{props.title}</span>
           <span class="spacer" />
-          <button class="icon-btn" title="Close (Escape)" onClick={props.onClose}>
+          <button class="icon-btn" title={t("tools.forges.closeEscape")} onClick={props.onClose}>
             <X size={15} />
           </button>
         </header>
@@ -138,14 +139,14 @@ function CreateDialog() {
       <div class="fg-form">
         <div class="fg-branches">
           <label class="fg-branch-field">
-            <span class="muted fg-small">Base branch</span>
+            <span class="muted fg-small">{t("tools.forges.baseBranch")}</span>
             <select value={tgt()} onChange={(e) => setTarget(e.currentTarget.value)} data-field="target">
               <For each={targets()}>{(b) => <option value={b}>{`${remoteName()}/${b}`}</option>}</For>
             </select>
           </label>
           <ArrowLeft size={16} class="muted fg-branch-arrow" />
           <label class="fg-branch-field">
-            <span class="muted fg-small">Head branch</span>
+            <span class="muted fg-small">{t("tools.forges.headBranch")}</span>
             <select value={src()} onChange={(e) => setSource(e.currentTarget.value)} data-field="source">
               <For each={sources()}>{(b) => <option value={b}>{b}</option>}</For>
             </select>
@@ -155,13 +156,13 @@ function CreateDialog() {
           <label class="git-dialog-check fg-push-hint">
             <input type="checkbox" checked={pushFirst()} onChange={(e) => setPushFirst(e.currentTarget.checked)} />
             <span>
-              Push <b>{src()}</b> to {remoteName()} first
-              <span class="muted"> ({branchInfo()?.upstream ? `${branchInfo()!.ahead} unpushed commit${branchInfo()!.ahead === 1 ? "" : "s"}` : "not on the remote yet"})</span>
+              {t("tools.forges.push")} <b>{src()}</b> {t("tools.forges.toFirst", { remoteName: remoteName() })}
+              <span class="muted"> ({branchInfo()?.upstream ? t("tools.forges.unpushedCommits", { count: branchInfo()!.ahead }) : t("tools.forges.notOnTheRemoteYet")})</span>
             </span>
           </label>
         </Show>
         <label class="fg-field">
-          <span>Title:</span>
+          <span>{t("tools.forges.titleLabel")}</span>
           <input
             value={effectiveTitle()}
             onInput={(e) => {
@@ -172,29 +173,29 @@ function CreateDialog() {
           />
         </label>
         <label class="fg-field fg-field-top">
-          <span>Description:</span>
-          <textarea rows={7} placeholder="Describe the change (Markdown)" value={description()} onInput={(e) => setDescription(e.currentTarget.value)} data-field="description" />
+          <span>{t("common.descriptionLabel")}</span>
+          <textarea rows={7} placeholder={t("tools.forges.describeTheChangeMarkdown")} value={description()} onInput={(e) => setDescription(e.currentTarget.value)} data-field="description" />
         </label>
         <div class="fg-field">
-          <span>Reviewers:</span>
+          <span>{t("tools.forges.reviewersLabel")}</span>
           <div class="fg-reviewer-picker">
             <For each={reviewers()}>
               {(u) => (
                 <span class="fg-token">
                   <Avatar user={members()?.find((m) => m.username === u) ?? { username: u, name: null, avatarUrl: null }} size={16} />
                   {memberName(u)}
-                  <button class="fg-token-x" title="Remove" onClick={() => setReviewers((r) => r.filter((x) => x !== u))}>
+                  <button class="fg-token-x" title={t("common.remove")} onClick={() => setReviewers((r) => r.filter((x) => x !== u))}>
                     <X size={11} />
                   </button>
                 </span>
               )}
             </For>
             <button class="fg-link fg-add-reviewer" onClick={() => setPicker(!picker())} data-field="add-reviewer">
-              <Plus size={12} /> Add
+              <Plus size={12} /> {t("common.add")}
             </button>
             <Show when={picker()}>
               <div class="popup fg-picker">
-                <For each={(members() ?? []).filter((m) => m.username !== me() && !reviewers().includes(m.username))} fallback={<div class="popup-row muted">No more members</div>}>
+                <For each={(members() ?? []).filter((m) => m.username !== me() && !reviewers().includes(m.username))} fallback={<div class="popup-row muted">{t("tools.forges.noMoreMembers")}</div>}>
                   {(m) => (
                     <div
                       class="popup-row"
@@ -214,8 +215,8 @@ function CreateDialog() {
           </div>
         </div>
         <label class="fg-field">
-          <span>Labels:</span>
-          <input placeholder="Comma-separated, e.g. backend, security" value={labels()} onInput={(e) => setLabels(e.currentTarget.value)} />
+          <span>{t("tools.forges.labelsLabel")}</span>
+          <input placeholder={t("tools.forges.commaSeparatedEGBackend")} value={labels()} onInput={(e) => setLabels(e.currentTarget.value)} />
         </label>
         <div class="fg-field">
           <span />
@@ -223,13 +224,13 @@ function CreateDialog() {
             <Show when={caps().draft}>
               <label class="git-dialog-check">
                 <input type="checkbox" checked={draft()} onChange={(e) => setDraft(e.currentTarget.checked)} data-field="draft" />
-                Mark as draft
+                {t("tools.forges.markAsDraft")}
               </label>
             </Show>
             <Show when={context()?.repo.kind === "gitlab" || context()?.repo.kind === "azure"}>
               <label class="git-dialog-check">
                 <input type="checkbox" checked={removeSource()} onChange={(e) => setRemoveSource(e.currentTarget.checked)} />
-                Delete source branch when merged
+                {t("tools.forges.deleteSourceBranchWhenMerged")}
               </label>
             </Show>
           </div>
@@ -246,13 +247,13 @@ function CreateDialog() {
           {context()?.repo.path} · {src()} → {tgt()}
         </span>
         <button class="btn-secondary" onClick={close}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button class="btn-primary" disabled={busy() || !effectiveTitle().trim() || !src() || src() === tgt()} onClick={() => void create()} data-action="create">
           <Show when={busy()}>
             <LoaderCircle size={13} class="spin" />
           </Show>
-          {draft() ? `Create Draft ${requestName()}` : `Create ${requestName()}`}
+          {draft() ? t("tools.forges.createDraft", { requestName: requestName() }) : `Create ${requestName()}`}
         </button>
       </div>
     </Frame>
@@ -307,7 +308,7 @@ function MergeDialog(props: { d: Extract<Dialog, { kind: "merge" }> }) {
     <Frame title={`Merge ${requestName()} ${ref(mr.number)}`} icon={<GitMerge size={15} />} class="fg-merge" onClose={close}>
       <div class="fg-form">
         <div class="fg-merge-summary">
-          Merge <b>{mr.sourceBranch}</b> into <b>{mr.targetBranch}</b>: “{mr.title}”
+          {t("tools.forges.merge")} <b>{mr.sourceBranch}</b> into <b>{mr.targetBranch}</b>: “{mr.title}”
         </div>
         <For each={warnings()}>
           {(w) => (
@@ -337,13 +338,13 @@ function MergeDialog(props: { d: Extract<Dialog, { kind: "merge" }> }) {
         </div>
         <Show when={method() !== "rebase"}>
           <label class="fg-field fg-field-top">
-            <span>Commit message:</span>
+            <span>{t("tools.forges.commitMessageLabel")}</span>
             <textarea rows={4} class="mono" value={message()} onInput={(e) => setMessage(e.currentTarget.value)} />
           </label>
         </Show>
         <label class="git-dialog-check">
           <input type="checkbox" checked={deleteBranch()} onChange={(e) => setDeleteBranch(e.currentTarget.checked)} />
-          Delete source branch <b>{mr.sourceBranch}</b> after merge
+          {t("tools.forges.deleteSourceBranch")} <b>{mr.sourceBranch}</b> {t("tools.forges.afterMerge")}
         </label>
         <Show when={error()}>
           <div class="fg-error-box">
@@ -354,13 +355,13 @@ function MergeDialog(props: { d: Extract<Dialog, { kind: "merge" }> }) {
       </div>
       <div class="git-dialog-actions">
         <button class="btn-secondary" onClick={close}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button class="btn-primary" disabled={busy()} onClick={() => void merge()} data-action="confirm-merge">
           <Show when={busy()}>
             <LoaderCircle size={13} class="spin" />
           </Show>
-          Merge
+          {t("tools.forges.merge")}
         </button>
       </div>
     </Frame>
@@ -375,7 +376,7 @@ function ConfirmDialog(props: { d: Extract<Dialog, { kind: "confirm" }> }) {
       <div class="git-dialog-body">{props.d.text}</div>
       <div class="git-dialog-actions">
         <button class="btn-secondary" onClick={close}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button
           class="btn-primary"

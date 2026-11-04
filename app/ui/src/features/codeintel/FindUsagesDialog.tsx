@@ -119,7 +119,7 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
                 <label class="form-label">{t("codeintel.findUsagesDialog.directory")}</label>
                 <input
                   value={value<string>("findUsages.scope.directory")}
-                  placeholder={"app/Models"}
+                  placeholder={t("tools.codeintel.appModels")}
                   spellcheck={false}
                   onInput={(e) => set("findUsages.scope.directory", e.currentTarget.value)}
                 />
@@ -141,7 +141,7 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
                 <label class="form-label">{t("codeintel.findUsagesDialog.pattern")}</label>
                 <input
                   value={value<string>("findUsages.scope.pattern")}
-                  placeholder={"file:app//*.php&&!test:*..*"}
+                  placeholder={t("tools.codeintel.fileAppPhpTest")}
                   spellcheck={false}
                   classList={{ invalid: !!patternError() }}
                   title={patternError()?.message}

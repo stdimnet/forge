@@ -10,6 +10,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { AUTH_LABELS } from "./SshForm";
 import { isDialogOpen } from "@/shell/window/dialogs";
 import { connecting, openNewSshConnection, openRecentRemote, SSH_CONNECTION_DIALOG } from "./store";
+import { t } from "@/i18n";
 
 /** The badge of a remote project: SSH, WSL or Container. */
 export function SshBadge(props: { kind?: RemoteKind }) {
@@ -32,10 +33,9 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
     <div class="welcome-remote" data-testid="welcome-remote">
       <div class="welcome-remote-head">
         <div>
-          <h2>Remote Development</h2>
+          <h2>{t("tools.remote.remoteDevelopment")}</h2>
           <p class="muted">
-            Open a project on another machine over SSH. Forge starts its agent there, so indexing, php-lsp and other
-            language servers, git, terminals and run configurations work next to the files.
+            {t("tools.remote.openAProjectOnAnother")}
           </p>
         </div>
       </div>
@@ -45,7 +45,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
           <Server size={15} />
           <span>SSH</span>
           <button class="btn-primary welcome-remote-new" onClick={() => openNewSshConnection()} data-testid="ssh-new">
-            <Plus size={14} /> New Connection
+            <Plus size={14} /> {t("tools.remote.newConnection")}
           </button>
         </div>
 
@@ -62,23 +62,23 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
           fallback={
             <div class="welcome-remote-empty">
               <Server size={30} class="muted" />
-              <p>No remote connections yet.</p>
+              <p>{t("tools.remote.noRemoteConnectionsYet")}</p>
               <button class="btn-secondary" onClick={() => openNewSshConnection()}>
-                New SSH Connection…
+                {t("tools.remote.newSshConnectionEllipsis")}
               </button>
             </div>
           }
         >
           <Show when={remoteProjects().length}>
-            <div class="welcome-remote-group">Recent projects</div>
+            <div class="welcome-remote-group">{t("tools.remote.recentProjects")}</div>
             <div class="welcome-list">
               <For each={remoteProjects()}>{(p) => <>{props.row(p)}</>}</For>
             </div>
           </Show>
           <Show when={configs()?.length}>
             <div class="welcome-remote-group">
-              Connections
-              <button class="icon-btn welcome-remote-gear" title="SSH Configurations…" onClick={() => openSettings("tools.ssh")}>
+              {t("tools.remote.connections")}
+              <button class="icon-btn welcome-remote-gear" title={t("tools.remote.sshConfigurationsEllipsis")} onClick={() => openSettings("tools.ssh")}>
                 <Settings size={13} />
               </button>
             </div>
@@ -91,7 +91,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
                       const { label: _l, hasSecret: _h, ...config } = c;
                       openNewSshConnection({ config });
                     }}
-                    title={`Connect to ${c.label}`}
+                    title={t("tools.remote.connectTo", { label: c.label })}
                   >
                     <span class="welcome-badge ssh-host-badge">
                       <Server size={16} />
@@ -100,7 +100,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
                       <span class="welcome-project-name">{c.name || c.label}</span>
                       <span class="welcome-project-path">{AUTH_LABELS[c.auth]}</span>
                     </span>
-                    <span class="welcome-project-type">Connect…</span>
+                    <span class="welcome-project-type">{t("tools.remote.connectEllipsis")}</span>
                   </button>
                 )}
               </For>

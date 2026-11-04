@@ -9,6 +9,7 @@ import { CircleAlert, LoaderCircle, Sparkles, X } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { DiffView } from "@/features/ai-chat/DiffView";
 import { ACTION_TITLES, applyProposal, closeProposal, proposalState, runProposal } from "./actions";
+import { t } from "@/i18n";
 
 export function ProposalDialog() {
   const st = () => proposalState()!;
@@ -49,7 +50,7 @@ export function ProposalDialog() {
             <Sparkles size={15} class="ai-proposal-icon" />
             <span class="chat-dialog-title">{p()?.title ?? ACTION_TITLES[st().kind]}</span>
             <span class="chat-flex" />
-            <button class="icon-btn" title="Close (Esc)" onClick={closeProposal}>
+            <button class="icon-btn" title={t("common.closeEsc")} onClick={closeProposal}>
               <X size={15} />
             </button>
           </header>
@@ -58,7 +59,7 @@ export function ProposalDialog() {
             <span class="ai-proposal-name">{name()}</span>
             <span class="muted">{p()?.path ?? st().path}</span>
             <Show when={p()}>
-              <span class="ai-proposal-badge">{p()!.newFile ? "new file" : "modified"}</span>
+              <span class="ai-proposal-badge">{p()!.newFile ? t("tools.aiEditor.newFile") : "modified"}</span>
               <span class="ai-proposal-stat add">+{p()!.diff.added}</span>
               <span class="ai-proposal-stat del">−{p()!.diff.removed}</span>
             </Show>
@@ -71,7 +72,7 @@ export function ProposalDialog() {
                   when={st().error}
                   fallback={
                     <div class="ai-proposal-wait">
-                      <LoaderCircle size={16} class="spin" /> Waiting for the AI…
+                      <LoaderCircle size={16} class="spin" /> {t("tools.aiEditor.waitingForTheAiEllipsis")}
                     </div>
                   }
                 >
@@ -90,18 +91,18 @@ export function ProposalDialog() {
             </Show>
           </div>
           <footer class="ai-proposal-footer">
-            <span class="muted ai-proposal-note">Review the change before applying it. AI can make mistakes.</span>
+            <span class="muted ai-proposal-note">{t("tools.aiEditor.reviewTheChangeBeforeApplying")}</span>
             <span class="chat-flex" />
             <Show when={st().error && !p()}>
               <button class="btn-secondary" onClick={retry}>
-                Try Again
+                {t("tools.aiEditor.tryAgain")}
               </button>
             </Show>
             <button class="btn-secondary" onClick={closeProposal}>
-              Discard
+              {t("tools.aiEditor.discard")}
             </button>
-            <button class="btn-primary" disabled={!p()} onClick={() => void applyProposal()} title="Apply (Ctrl+Enter)">
-              {p()?.newFile ? "Create File" : "Apply"}
+            <button class="btn-primary" disabled={!p()} onClick={() => void applyProposal()} title={t("tools.aiEditor.applyCtrlEnter")}>
+              {p()?.newFile ? t("tools.aiEditor.createFile") : t("common.apply")}
             </button>
           </footer>
         </div>

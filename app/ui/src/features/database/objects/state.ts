@@ -38,7 +38,7 @@ export async function runObjectScript(opts: { ds: string; schema?: string; sql: 
   try {
     const g = await dbObjectsApi.guard(ds, sql);
     if (g.blocked) {
-      showBalloon(`${title} not executed`, g.blocked);
+      showBalloon(tr("tools.database.notExecuted", { title }), g.blocked);
       return false;
     }
     const destructive = (opts.warnings ?? []).filter((w) => w.destructive);
@@ -61,7 +61,7 @@ export async function runObjectScript(opts: { ds: string; schema?: string; sql: 
       await afterChange(ds, opts.schema);
       return false;
     }
-    showBalloon(title, `${r.executed} statement${r.executed === 1 ? "" : "s"} executed in ${r.elapsedMs} ms`);
+    showBalloon(title, tr("tools.database.statementsExecutedInMs", { count: r.executed, elapsedMs: r.elapsedMs }));
     await afterChange(ds, opts.schema);
     return true;
   } catch (e) {

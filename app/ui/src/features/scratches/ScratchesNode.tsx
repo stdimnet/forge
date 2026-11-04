@@ -13,6 +13,7 @@ import type { ScratchFile } from "@/ipc/scratches";
 import { FileIcon } from "@/shell/FileIcon";
 import { openNewScratchPopup } from "./NewScratchPopup";
 import { createBuffer, deleteScratch, openScratch, renameScratch, runScratch, scratchPath, scratches } from "./store";
+import { t as tr } from "@/i18n";
 
 export const ROOT_ID = "scratches-and-consoles://";
 const SCRATCHES_ID = `${ROOT_ID}scratches`;
@@ -127,14 +128,14 @@ function scratchMenu(file: ScratchFile, e: MouseEvent) {
   const items: MenuItem[] = [];
   if (file.runner && file.runner !== "sql")
     items.push(
-      { label: `Run '${file.name}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void runScratch(file.name) },
+      { label: tr("common.run", { name: file.name }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void runScratch(file.name) },
       { separator: true },
     );
   if (file.runner === "sql")
-    items.push({ label: file.dataSource ? "Open Console" : "Attach Data Source…", icon: Database, run: () => void runScratch(file.name) }, { separator: true });
+    items.push({ label: file.dataSource ? tr("tools.scratches.openConsole") : tr("tools.scratches.attachDataSourceEllipsis"), icon: Database, run: () => void runScratch(file.name) }, { separator: true });
   items.push(
-    { label: "Rename…", shortcut: shortcutLabel("RenameElement"), run: () => startRename(file.name) },
-    { label: "Delete", icon: Trash2, shortcut: "Delete", run: () => void deleteScratch(file.name) },
+    { label: tr("tools.scratches.renameEllipsis"), shortcut: shortcutLabel("RenameElement"), run: () => startRename(file.name) },
+    { label: tr("common.delete"), icon: Trash2, shortcut: "Delete", run: () => void deleteScratch(file.name) },
   );
   openMenu({ x: e.clientX, y: e.clientY, items });
 }
@@ -144,8 +145,8 @@ function folderMenu(e: MouseEvent) {
     x: e.clientX,
     y: e.clientY,
     items: [
-      { label: "New Scratch File…", icon: FilePlus2, shortcut: shortcutLabel("NewScratchFile"), run: () => void openNewScratchPopup() },
-      { label: "New Scratch Buffer", run: () => void createBuffer() },
+      { label: tr("tools.scratches.newScratchFileEllipsis"), icon: FilePlus2, shortcut: shortcutLabel("NewScratchFile"), run: () => void openNewScratchPopup() },
+      { label: tr("tools.scratches.newScratchBuffer"), run: () => void createBuffer() },
     ],
   });
 }
@@ -191,7 +192,7 @@ export function ScratchesNode() {
         depth={0}
         dir
         icon={<NotebookPen size={15} stroke-width={1.75} class="file-icon scratches-root-icon" />}
-        label={<span class="tree-label">Scratches and Consoles</span>}
+        label={<span class="tree-label">{tr("tools.scratches.scratchesAndConsoles")}</span>}
       />
       <Show when={expanded().has(ROOT_ID)}>
         <Show when={groups().length}>
@@ -200,7 +201,7 @@ export function ScratchesNode() {
             depth={1}
             dir
             icon={<FileIcon name="Database Consoles" dir open={expanded().has(CONSOLES_ID)} />}
-            label={<span class="tree-label">Database Consoles</span>}
+            label={<span class="tree-label">{tr("tools.scratches.databaseConsoles")}</span>}
           />
           <Show when={expanded().has(CONSOLES_ID)}>
             <For each={groups()}>
@@ -240,11 +241,11 @@ export function ScratchesNode() {
           depth={1}
           dir
           icon={<FileIcon name="Scratches" dir open={expanded().has(SCRATCHES_ID)} />}
-          label={<span class="tree-label">Scratches</span>}
+          label={<span class="tree-label">{tr("tools.scratches.scratches")}</span>}
           onContextMenu={folderMenu}
         />
         <Show when={expanded().has(SCRATCHES_ID)}>
-          <For each={scratches()} fallback={<div class="tree-row muted scratch-empty" style={{ "padding-left": `${8 + 2 * 16 + 19}px` }}>No scratches yet</div>}>
+          <For each={scratches()} fallback={<div class="tree-row muted scratch-empty" style={{ "padding-left": `${8 + 2 * 16 + 19}px` }}>{tr("tools.scratches.noScratchesYet")}</div>}>
             {(file) => <ScratchRow file={file} depth={2} />}
           </For>
         </Show>

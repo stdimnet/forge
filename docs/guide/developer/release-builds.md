@@ -262,6 +262,13 @@ Pre-release versions come from `pnpm version:bump default --pre beta.1` and the 
 `pnpm version:bump pre` (see [Versioning](versioning.md)). The `meta` job creates a tag with a
 `-label` as a pre-release, so a beta never becomes GitHub's "latest".
 
+The MSI cannot carry a SemVer pre-release, so on Windows `pnpm tauri build` sets
+`bundle.windows.wix.version` to a numeric version (`0.1.1-beta.1` → `0.1.1.1`) and keeps
+`bundle.windows.allowDowngrades` on, so betas and the final release of a version install over
+each other ([MSI version](versioning.md#msi-version)). The NSIS installer and the bundle file
+names keep the SemVer version (`Forge_0.1.1-beta.1_x64-setup.exe`). Without this, WiX stops with
+"optional pre-release identifier in app version must be numeric-only".
+
 ## Linux packages
 
 ### Flatpak

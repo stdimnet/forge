@@ -15,6 +15,7 @@ import { scopeFilter } from "@/features/scopes/model";
 import { InlineDiff } from "@/features/git/InlineDiff";
 import { INSPECTIONS_PAGE } from "./draft";
 import { findInspections, loadInspections, profiles } from "./model";
+import { t } from "@/i18n";
 
 export interface ScopeDialogRequest {
   title: string;
@@ -89,18 +90,18 @@ export function ScopeDialog(props: { req: ScopeDialogRequest }) {
   const scope = (): InspectScope | null => {
     switch (kind()) {
       case "project":
-        return { kind: "project", includeTests: tests(), label: `Project '${project()}'` };
+        return { kind: "project", includeTests: tests(), label: t("tools.inspections.project", { project: project() }) };
       case "module":
-        return { kind: "module", includeTests: tests(), label: `Module '${project()}'` };
+        return { kind: "module", includeTests: tests(), label: t("tools.inspections.module", { project: project() }) };
       case "file":
-        return file() ? { kind: "file", path: file(), label: `File '${file()}'` } : null;
+        return file() ? { kind: "file", path: file(), label: t("tools.inspections.file", { file: file() }) } : null;
       case "directory": {
         const d = dirOf(file() ?? "");
-        return { kind: "directory", path: d, includeTests: tests(), label: `Directory '${d || project()}'` };
+        return { kind: "directory", path: d, includeTests: tests(), label: t("tools.inspections.directory", { value: d || project() }) };
       }
       case "scope": {
         const filter = scopeFilter(scopeName());
-        return filter ? { kind: "scope", filter, label: `Scope '${scopeName()}'` } : null;
+        return filter ? { kind: "scope", filter, label: t("tools.inspections.scope", { scopeName: scopeName() }) } : null;
       }
     }
   };
@@ -122,7 +123,7 @@ export function ScopeDialog(props: { req: ScopeDialogRequest }) {
         <div class="dialog-title">{props.req.title}</div>
         <div class="dialog-body">
           <fieldset class="insp-scope-group">
-            <legend>Inspection scope</legend>
+            <legend>{t("tools.inspections.inspectionScope")}</legend>
             {radio("project", "Whole project")}
             {radio("module", `Module '${project()}'`)}
             {radio("file", file() ? `File '${file()}'` : "File", !file())}
@@ -133,40 +134,40 @@ export function ScopeDialog(props: { req: ScopeDialogRequest }) {
             </div>
             <label class="insp-radio insp-tests" classList={{ disabled: kind() === "file" || kind() === "scope" }}>
               <input type="checkbox" checked={tests()} disabled={kind() === "file" || kind() === "scope"} onChange={(e) => setTests(e.currentTarget.checked)} />
-              Include test sources
+              {t("tools.inspections.includeTestSources")}
             </label>
           </fieldset>
           <Show
             when={!props.req.inspection}
             fallback={
               <div class="insp-by-name-info">
-                <span class="insp-form-label">Inspection:</span> <strong>{props.req.inspection!.name}</strong>
+                <span class="insp-form-label">{t("tools.inspections.inspectionLabel")}</span> <strong>{props.req.inspection!.name}</strong>
                 <span class="insp-muted"> ({props.req.inspection!.group.replace(/\//g, " | ")})</span>
               </div>
             }
           >
             <div class="insp-profile-row">
               <label class="insp-form-label" for="insp-run-profile">
-                Inspection profile:
+                {t("tools.inspections.inspectionProfileLabel")}
               </label>
               <select id="insp-run-profile" class="set-input set-select" value={profile()} onChange={(e) => setProfile(e.currentTarget.value)}>
                 <For each={profiles()?.profiles ?? []}>
                   {(p) => (
                     <option value={p.name}>
-                      {p.name} {p.level === "project" ? "(Project)" : "(IDE)"}
+                      {p.name} {p.level === "project" ? t("tools.inspections.project2") : t("tools.inspections.ide")}
                     </option>
                   )}
                 </For>
               </select>
               <button class="link-btn" onClick={() => (cancel(), openSettings(INSPECTIONS_PAGE))}>
-                Configure…
+                {t("common.configureEllipsis")}
               </button>
             </div>
           </Show>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={cancel}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!scope()} onClick={ok}>
             {props.req.confirm}
@@ -193,7 +194,7 @@ export function RunByNamePopup(props: { done: (spec: InspectionSpec | null) => v
       <div
         class="popup insp-by-name"
         role="dialog"
-        aria-label="Run Inspection by Name"
+        aria-label={t("tools.inspections.runInspectionByName")}
         onKeyDown={(e) => {
           if (e.key === "Escape") props.done(null);
           else if (e.key === "Enter") pick();
@@ -204,7 +205,7 @@ export function RunByNamePopup(props: { done: (spec: InspectionSpec | null) => v
           e.stopPropagation();
         }}
       >
-        <div class="insp-by-name-title">Enter inspection name:</div>
+        <div class="insp-by-name-title">{t("tools.inspections.enterInspectionNameLabel")}</div>
         <div class="search-field">
           <Search size={14} class="muted" />
           <input
@@ -215,11 +216,11 @@ export function RunByNamePopup(props: { done: (spec: InspectionSpec | null) => v
               setIndex(0);
             }}
             spellcheck={false}
-            aria-label="Inspection name"
+            aria-label={t("tools.inspections.inspectionName")}
           />
         </div>
         <div class="insp-by-name-list" role="listbox">
-          <For each={list()} fallback={<div class="insp-empty">No inspections found</div>}>
+          <For each={list()} fallback={<div class="insp-empty">{t("tools.inspections.noInspectionsFound")}</div>}>
             {(s, i) => (
               <div
                 class="insp-by-name-item"
@@ -246,18 +247,18 @@ export function CleanupPreview(props: { plan: CleanupPlan; done: (apply: boolean
   const total = () => props.plan.files.reduce((n, f) => n + f.fixes.length, 0);
   return (
     <div class="popup-backdrop modal">
-      <div class="dialog insp-cleanup" role="dialog" aria-label="Code Cleanup" onKeyDown={(e) => e.key === "Escape" && props.done(false)}>
+      <div class="dialog insp-cleanup" role="dialog" aria-label={t("tools.inspections.codeCleanup")} onKeyDown={(e) => e.key === "Escape" && props.done(false)}>
         <div class="dialog-title">
-          Code Cleanup: {total()} fix{total() === 1 ? "" : "es"} in {props.plan.files.length} file{props.plan.files.length === 1 ? "" : "s"}
+          {t("tools.inspections.codeCleanupFixInFile", { total: total(), value: total(), count: props.plan.files.length, value2: props.plan.files.length })}
         </div>
         <div class="insp-cleanup-body">
           <div class="insp-cleanup-files">
-            <For each={props.plan.files} fallback={<div class="insp-empty">Nothing to clean up</div>}>
+            <For each={props.plan.files} fallback={<div class="insp-empty">{t("tools.inspections.nothingToCleanUp")}</div>}>
               {(f) => (
                 <div class="insp-cleanup-file" classList={{ selected: f.path === file() }} onClick={() => setFile(f.path)}>
                   <div>{f.path.split("/").pop()}</div>
                   <div class="insp-muted">
-                    {f.fixes.length} fix{f.fixes.length === 1 ? "" : "es"} · {f.path}
+                    {t("tools.inspections.fixes", { count: f.fixes.length, path: f.path })}
                   </div>
                 </div>
               )}
@@ -268,7 +269,7 @@ export function CleanupPreview(props: { plan: CleanupPlan; done: (apply: boolean
               {(f) => (
                 <>
                   <div class="insp-cleanup-fixes">{[...new Set(f.fixes)].join(", ")}</div>
-                  <InlineDiff path={f.path} left={{ title: "Before", content: f.before }} right={{ title: "After Code Cleanup", content: f.after }} />
+                  <InlineDiff path={f.path} left={{ title: t("tools.inspections.before"), content: f.before }} right={{ title: t("tools.inspections.afterCodeCleanup"), content: f.after }} />
                 </>
               )}
             </Show>
@@ -276,13 +277,13 @@ export function CleanupPreview(props: { plan: CleanupPlan; done: (apply: boolean
         </div>
         <div class="dialog-buttons">
           <Show when={props.plan.skipped}>
-            <span class="dialog-checkbox insp-muted">{props.plan.skipped} overlapping fixes left out</span>
+            <span class="dialog-checkbox insp-muted">{t("tools.inspections.overlappingFixesLeftOut", { skipped: props.plan.skipped })}</span>
           </Show>
           <button class="btn-secondary" onClick={() => props.done(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!props.plan.files.length} onClick={() => props.done(true)}>
-            Apply
+            {t("common.apply")}
           </button>
         </div>
       </div>

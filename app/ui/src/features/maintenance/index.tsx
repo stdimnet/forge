@@ -15,6 +15,7 @@ import { maintenanceApi } from "@/ipc/maintenance";
 import { INVALIDATE_DIALOG, InvalidateCachesDialog, type InvalidateResult } from "./InvalidateCachesDialog";
 import { SettingsTransferDialog, TRANSFER_DIALOG, type TransferProps, type TransferResult } from "./SettingsTransferDialog";
 import { refreshProjectFiles, startRepair } from "./repair";
+import { t } from "@/i18n";
 import "./maintenance.css";
 
 const showBalloon = balloonsFor("IDE Settings");
@@ -24,7 +25,7 @@ const message = (e: unknown) => String(e instanceof Error ? e.message : e);
 /** Restart Forge; browser mode only says so (it cannot restart). */
 async function restart(): Promise<void> {
   if (!isTauri()) {
-    showBalloon("Forge would restart now", "Restarting is not available in browser mode.");
+    showBalloon(t("tools.maintenance.forgeWouldRestartNow"), t("tools.maintenance.restartingIsNotAvailableIn"));
     return;
   }
   await maintenanceApi.restart();
@@ -32,7 +33,7 @@ async function restart(): Promise<void> {
 
 registerDialog<Record<string, never>, InvalidateResult>({
   id: INVALIDATE_DIALOG,
-  title: "Invalidate Caches",
+  title: t("tools.maintenance.invalidateCaches"),
   width: 540,
   height: 400,
   minWidth: 440,
@@ -42,9 +43,9 @@ registerDialog<Record<string, never>, InvalidateResult>({
     if (!result) return;
     if (!isTauri()) {
       const what = result.invalidate ? "Caches will be invalidated on the next start" : "Forge would restart now";
-      showBalloon(what, "Restarting is not available in browser mode.");
+      showBalloon(what, t("tools.maintenance.restartingIsNotAvailableIn"));
     }
-    void maintenanceApi.invalidateCaches(result.options, result.invalidate).catch((e) => showBalloon("Invalidate Caches failed", message(e), 6000, undefined, { type: "error" }));
+    void maintenanceApi.invalidateCaches(result.options, result.invalidate).catch((e) => showBalloon(t("tools.maintenance.invalidateCachesFailed"), message(e), 6000, undefined, { type: "error" }));
   },
 });
 
@@ -66,9 +67,9 @@ registerDialog<TransferProps, TransferResult>({
 async function exportTo(result: TransferResult): Promise<void> {
   try {
     const path = await maintenanceApi.exportSettings(result.path, result.groups);
-    showBalloon("Settings exported", path);
+    showBalloon(t("tools.maintenance.settingsExported"), path);
   } catch (e) {
-    showBalloon("Export failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("common.exportFailed"), message(e), 6000, undefined, { type: "error" });
   }
 }
 
@@ -76,7 +77,7 @@ async function importFrom(result: TransferResult): Promise<void> {
   try {
     await maintenanceApi.importSettings(result.path, result.groups);
   } catch (e) {
-    showBalloon("Import failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("common.importFailed"), message(e), 6000, undefined, { type: "error" });
     return;
   }
   // Like PHPStorm, the imported settings take effect after a restart.
@@ -92,7 +93,7 @@ async function importSettings(): Promise<void> {
   let path = "settings.zip";
   if (isTauri()) {
     const { open } = await import("@tauri-apps/plugin-dialog");
-    const picked = await open({ multiple: false, title: "Import Settings", filters: [{ name: "Settings archive", extensions: ["zip"] }] });
+    const picked = await open({ multiple: false, title: t("tools.maintenance.importSettings"), filters: [{ name: "Settings archive", extensions: ["zip"] }] });
     if (typeof picked !== "string") return;
     path = picked;
   }
@@ -100,22 +101,22 @@ async function importSettings(): Promise<void> {
     const groups = await maintenanceApi.importPreview(path);
     await openDialogWindow(TRANSFER_DIALOG, { mode: "import", groups, path } satisfies TransferProps);
   } catch (e) {
-    showBalloon("Import failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("common.importFailed"), message(e), 6000, undefined, { type: "error" });
   }
 }
 
 async function restoreDefaultSettings(): Promise<void> {
   const answer = await askChoice({
-    title: "Restore Default Settings",
-    message: "Forge will back up your current settings and restart with the default settings. Connections, accounts and recent projects are kept.",
-    choices: [{ id: "restore", label: "Restore and Restart" }],
+    title: t("tools.maintenance.restoreDefaultSettings"),
+    message: t("tools.maintenance.forgeWillBackUpYour"),
+    choices: [{ id: "restore", label: t("tools.maintenance.restoreAndRestart") }],
   });
   if (answer !== "restore") return;
   try {
     const backup = await maintenanceApi.restoreDefaults();
-    showBalloon("Settings were backed up", backup, 6000);
+    showBalloon(t("tools.maintenance.settingsWereBackedUp"), backup, 6000);
   } catch (e) {
-    showBalloon("Restore Default Settings failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("tools.maintenance.restoreDefaultSettingsFailed"), message(e), 6000, undefined, { type: "error" });
     return;
   }
   await restart();
@@ -124,6 +125,6 @@ async function restoreDefaultSettings(): Promise<void> {
 registerCommand({ id: "InvalidateCaches", title: "Invalidate Caches…", category: "File", run: () => void openDialogWindow(INVALIDATE_DIALOG, {}) });
 registerCommand({ id: "CallSaul", title: "Repair IDE", category: "File", run: () => void startRepair() });
 registerCommand({ id: "Synchronize", title: "Reload All from Disk", category: "File", run: refreshProjectFiles });
-registerCommand({ id: "ExportSettings", title: "Export Settings…", category: "File", run: () => void exportSettings().catch((e) => showBalloon("Export failed", message(e))) });
+registerCommand({ id: "ExportSettings", title: "Export Settings…", category: "File", run: () => void exportSettings().catch((e) => showBalloon(t("common.exportFailed"), message(e))) });
 registerCommand({ id: "ImportSettings", title: "Import Settings…", category: "File", run: () => void importSettings() });
 registerCommand({ id: "RestoreDefaultSettings", title: "Restore Default Settings…", category: "File", run: () => void restoreDefaultSettings() });

@@ -21,6 +21,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { bracketMatching, indentOnInput } from "@codemirror/language";
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
+import { findBar } from "@/features/find/findBar/FindBar";
 import {
   Check,
   ChevronDown,
@@ -172,8 +173,7 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
         </Show>
         <span class="db-spacer" />
         <span class="db-status muted">
-          {rowsText(props.result.rows.length)}
-          {props.result.hasMore ? "+" : ""} · {props.result.elapsedMs} ms
+          {t("tools.database.ms", { value: rowsText(props.result.rows.length), value2: props.result.hasMore ? "+" : "", elapsedMs: props.result.elapsedMs })}
         </span>
       </div>
       <Show
@@ -401,7 +401,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
       append("sql", r.sql);
       append("info", raw ? `${rowsText(r.rows.length)} of the plan retrieved in ${r.elapsedMs} ms` : r.plan ? t("database.consoleView.planBuiltInElapsedmsMs", { elapsedMs: r.elapsedMs }) : (r.error ?? t("database.consoleView.noPlan")));
       const tab: ResultTab = raw
-        ? { key: ++resultSeq, title: "Plan (Raw)", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs }
+        ? { key: ++resultSeq, title: t("tools.database.planRaw"), sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs }
         : { key: ++resultSeq, title: t("database.consoleView.plan"), sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs, explain: r };
       setResults((list) => [...list.filter((x) => x.title !== tab.title), tab]);
       setActive(results().length - 1);
@@ -502,6 +502,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
           closeBrackets(),
           autocompletion({ activateOnTyping: true }),
           highlightSelectionMatches(),
+          findBar(),
           keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap]),
           forgeEditorTheme,
           forgeHighlight,
@@ -575,7 +576,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
       <div class="db-toolbar">
         <button
           class="icon-btn db-tool db-run"
-          title={`Execute (${shortcutLabel("Console.Jdbc.Execute")})`}
+          title={t("tools.database.execute", { value: shortcutLabel("Console.Jdbc.Execute") })}
           disabled={running()}
           onClick={() => void execute()}
         >
@@ -584,7 +585,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
         <button class="icon-btn db-tool db-stop" title={t("database.consoleView.cancelRunningStatements")} disabled={!running()} onClick={cancel}>
           <Square size={13} />
         </button>
-        <button class="icon-btn db-tool" title={`Browse Query History (${shortcutLabel("Console.History.Browse")})`} data-testid="db-history" onClick={showHistory}>
+        <button class="icon-btn db-tool" title={t("tools.database.browseQueryHistory", { value: shortcutLabel("Console.History.Browse") })} data-testid="db-history" onClick={showHistory}>
           <History size={14} />
         </button>
         <Show when={consoleDialect(dialect())}>
@@ -616,11 +617,11 @@ export function ConsoleView(props: { tab: EditorTab }) {
         <button
           class="db-chip-btn"
           classList={{ manual: !autoCommit(), open: txOpen() }}
-          title={transactional() ? t("database.consoleView.transactionMode") : `${ds()?.driver ?? ""} consoles run every statement on its own`}
+          title={transactional() ? t("database.consoleView.transactionMode") : t("tools.database.consolesRunEveryStatementOn", { value: ds()?.driver ?? "" })}
           disabled={!transactional()}
           onClick={txMenu}
         >
-          Tx: {autoCommit() ? t("database.consoleView.auto") : t("database.consoleView.manual")}
+          {t("tools.database.tx", { value: autoCommit() ? t("database.consoleView.auto") : t("database.consoleView.manual") })}
           <ChevronDown size={12} />
         </button>
         <button class="icon-btn db-tool db-commit" title={t("database.consoleView.commit")} disabled={autoCommit() || !txOpen()} onClick={() => void endTx(true)}>
@@ -671,7 +672,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
               <For each={results()}>
                 {(r, i) => (
                   <button class="db-result-tab" classList={{ active: active() === i() }} onClick={() => setActive(i())} title={r.sql}>
-                    <Show when={r.explain || r.title === "Plan (Raw)"} fallback={<Table2 size={13} />}>
+                    <Show when={r.explain || r.title === t("tools.database.planRaw")} fallback={<Table2 size={13} />}>
                       <ListTree size={13} />
                     </Show>
                     {r.title}

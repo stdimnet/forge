@@ -17,6 +17,7 @@ import { refreshDirs } from "@/features/project/ProjectView";
 import { showToolWindow } from "@/state/layout";
 import { getSetting } from "@/state/settings";
 import { balloonsFor } from "@/keymap";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("File Watchers");
 
@@ -124,7 +125,7 @@ export async function triggerWatchers(paths: string[], trigger: WatcherTrigger):
   try {
     runs = await fileWatchersApi.plan(relevant, trigger);
   } catch (err) {
-    showBalloon("File Watchers did not run", String(err));
+    showBalloon(t("langs.webTooling.fileWatchersDidNotRun"), String(err));
     return [];
   }
   for (const r of runs) void start(r);

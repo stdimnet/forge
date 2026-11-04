@@ -167,7 +167,7 @@ function CommitMessage(props: { sha: string | null }) {
               <p class="log-body">{body.join("\n").trim().replace(/([^\n])\n(?!\n)/g, "$1 ")}</p>
             </Show>
             <div class="log-meta">
-              <span class="log-sha">{shortSha(d().sha)}</span> {d().author} <span class="muted">&lt;{d().email}&gt;</span> on{" "}
+              <span class="log-sha">{shortSha(d().sha)}</span> {d().author} <span class="muted">{tr("tools.git.ltGt", { email: d().email })}</span> on{" "}
               {fullDate(d().time)}
             </div>
           </div>
@@ -331,7 +331,7 @@ function FileHistoryView(props: { tab: HistoryTab }) {
             )}
           </For>
           <Show when={!revs().length && !loading()}>
-            <div class="commit-empty">{error() ?? "No history: the file is not committed yet"}</div>
+            <div class="commit-empty">{error() ?? tr("tools.git.noHistoryTheFileIs")}</div>
           </Show>
         </div>
         <div class="history-details">
@@ -374,7 +374,7 @@ function FileHistoryView(props: { tab: HistoryTab }) {
           <InlineDiff
             path={r().file.path}
             left={{ title: leftTitle(), content: texts()?.before ?? "" }}
-            right={{ title: r().file.status === "D" ? `${shortSha(r().sha)} (file deleted)` : `${shortSha(r().sha)} · ${r().file.path}`, content: texts()?.after ?? "" }}
+            right={{ title: r().file.status === "D" ? tr("tools.git.fileDeleted", { value: shortSha(r().sha) }) : `${shortSha(r().sha)} · ${r().file.path}`, content: texts()?.after ?? "" }}
           />
         )}
       </Show>
@@ -491,7 +491,7 @@ function SelectionHistoryView(props: { tab: HistoryTab }) {
               title: r().before === null ? tr("git.fileHistoryPanel.emptyLinesAdded") : r().parents[0] ? shortSha(r().parents[0]) : tr("git.fileHistoryPanel.empty"),
               content: r().before ?? "",
             }}
-            right={{ title: `${shortSha(r().sha)} · ${r().path}, from line ${r().startLine}`, content: r().after }}
+            right={{ title: tr("tools.git.fromLine", { value: shortSha(r().sha), path: r().path, startLine: r().startLine }), content: r().after }}
           />
         )}
       </Show>

@@ -6,6 +6,7 @@ import { createSignal } from "solid-js";
 import { inspectionsApi, type ProfileOp, type ProfilesState } from "@/ipc/inspections";
 import { showBalloon } from "@/keymap";
 import { loadInspections, profileOp, profiles, setProfiles } from "./model";
+import { t } from "@/i18n";
 
 export const INSPECTIONS_PAGE = "editor.inspections";
 
@@ -26,7 +27,7 @@ export function change(op: ProfileOp): boolean {
   if (!d) return false;
   const next = profileOp(d, op);
   if ("error" in next) {
-    showBalloon("Inspections", next.error, 4000, undefined, { type: "warning" });
+    showBalloon(t("tools.inspections.inspections"), next.error, 4000, undefined, { type: "warning" });
     return false;
   }
   setDraft(next);

@@ -17,6 +17,7 @@ import { registerCommand } from "@/state/commands";
 import { openFileAt } from "@/editor/views";
 import { isPluginActive, projectInfo, usesFramework } from "@/state/project";
 import { npmPackages } from "./npmPackages";
+import { t as tr } from "@/i18n";
 
 // ---- Nuxt ------------------------------------------------------------------------------
 
@@ -33,10 +34,10 @@ function NuxtView() {
     <div class="wt-endpoints" data-testid="nuxt-view">
       <div class="wt-tabs">
         <button classList={{ active: nuxtTab() === "pages" }} onClick={() => setNuxtTab("pages")}>
-          Pages
+          {tr("langs.webTooling.pages")}
         </button>
         <button classList={{ active: nuxtTab() === "components" }} onClick={() => setNuxtTab("components")}>
-          Components
+          {tr("langs.webTooling.components")}
         </button>
       </div>
       <Show
@@ -53,7 +54,7 @@ function NuxtView() {
           </For>
         }
       >
-        <For each={nuxt()?.routes ?? []} fallback={<div class="set-list-empty">No pages.</div>}>
+        <For each={nuxt()?.routes ?? []} fallback={<div class="set-list-empty">{tr("langs.webTooling.noPages")}</div>}>
           {(r) => (
             <div class="wt-row" onClick={() => void openFileAt(r.path, 1)}>
               <File size={13} class="muted" />
@@ -70,12 +71,12 @@ function NuxtView() {
 
 registerEndpointsView({
   id: "nuxt",
-  title: "Nuxt",
+  title: tr("langs.webTooling.nuxt"),
   order: 25,
   when: nuxtActive,
   component: NuxtView,
   actions: () => (
-    <button class="icon-btn" title="Refresh" aria-label="Refresh" onClick={() => void reloadNuxt()}>
+    <button class="icon-btn" title={tr("common.refresh")} aria-label={tr("common.refresh")} onClick={() => void reloadNuxt()}>
       <RefreshCw size={14} />
     </button>
   ),
@@ -116,21 +117,21 @@ registerCommand({
   title: "Prisma: Migrate Dev…",
   category: "Tools",
   run: async () => {
-    const name = await askName({ title: "Prisma Migrate Dev", label: "Migration name:", initial: "", confirm: "Migrate" });
+    const name = await askName({ title: tr("langs.webTooling.prismaMigrateDev"), label: tr("langs.webTooling.migrationNameLabel"), initial: "", confirm: tr("langs.webTooling.migrate") });
     if (name === null) return;
     runPrisma(["migrate", "dev", ...(name.trim() ? ["--name", JSON.stringify(name.trim())] : [])], "prisma migrate dev");
   },
 });
 registerRunAnythingProvider({
   id: "prisma",
-  title: "Prisma",
+  title: tr("langs.webTooling.prisma"),
   when: prismaActive,
   commands: async () => [
-    { command: "npx prisma generate", description: "Generate the Prisma Client" },
-    { command: "npx prisma migrate dev", description: "Create and apply a migration" },
-    { command: "npx prisma migrate deploy", description: "Apply pending migrations" },
-    { command: "npx prisma db push", description: "Push the schema to the database" },
-    { command: "npx prisma studio", description: "Open Prisma Studio" },
+    { command: "npx prisma generate", description: tr("langs.webTooling.generateThePrismaClient") },
+    { command: "npx prisma migrate dev", description: tr("langs.webTooling.createAndApplyAMigration") },
+    { command: "npx prisma migrate deploy", description: tr("langs.webTooling.applyPendingMigrations") },
+    { command: "npx prisma db push", description: tr("langs.webTooling.pushTheSchemaToThe") },
+    { command: "npx prisma studio", description: tr("langs.webTooling.openPrismaStudio") },
   ],
 });
 
@@ -138,18 +139,18 @@ registerRunAnythingProvider({
 
 registerRunAnythingProvider({
   id: "deno",
-  title: "Deno tasks",
+  title: tr("langs.webTooling.denoTasks"),
   when: () => isPluginActive("forge.deno"),
   commands: async () => (await denoApi.tasks()).map((t) => ({ command: `deno task ${t.name}`, description: t.command })),
 });
 
 registerRunAnythingProvider({
   id: "bun",
-  title: "Bun",
+  title: tr("langs.webTooling.bun"),
   when: () => isPluginActive("forge.bun"),
   commands: async () => [
-    { command: "bun test", description: "Run the tests with Bun" },
-    { command: "bun install", description: "Install dependencies" },
+    { command: "bun test", description: tr("langs.webTooling.runTheTestsWithBun") },
+    { command: "bun install", description: tr("langs.webTooling.installDependencies") },
     ...(await npmPackages()).flatMap((p) => p.scripts.map((s) => ({ command: `bun run ${s.name}`, description: s.command }))),
   ],
 });

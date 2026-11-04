@@ -10,6 +10,7 @@ import type { ExternalTool } from "@/ipc/runTools";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { EditToolDialog } from "./ToolDialogs";
 import { decodeTools, encodeTools, groupName, newTool, TOOLS_KEY } from "./model";
+import { t as tr } from "@/i18n";
 
 interface Editing {
   /** Index of the edited tool; -1 creates one. */
@@ -92,27 +93,27 @@ export function ExternalToolsPage() {
     <div class="et-page">
       <div class="set-list et-list">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" aria-label="Add" onClick={create}>
+          <button class="icon-btn" title={tr("common.add")} aria-label={tr("common.add")} onClick={create}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" aria-label="Remove" disabled={!current()} onClick={remove}>
+          <button class="icon-btn" title={tr("common.remove")} aria-label={tr("common.remove")} disabled={!current()} onClick={remove}>
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Edit" aria-label="Edit" disabled={!current()} onClick={() => edit()}>
+          <button class="icon-btn" title={tr("common.edit")} aria-label={tr("common.edit")} disabled={!current()} onClick={() => edit()}>
             <Pencil size={14} />
           </button>
-          <button class="icon-btn" title="Copy" aria-label="Copy" disabled={!current()} onClick={copy}>
+          <button class="icon-btn" title={tr("common.copy")} aria-label={tr("common.copy")} disabled={!current()} onClick={copy}>
             <Copy size={14} />
           </button>
-          <button class="icon-btn" title="Move Up" aria-label="Move Up" disabled={!current()} onClick={() => move(-1)}>
+          <button class="icon-btn" title={tr("common.moveUp")} aria-label={tr("common.moveUp")} disabled={!current()} onClick={() => move(-1)}>
             <ArrowUp size={14} />
           </button>
-          <button class="icon-btn" title="Move Down" aria-label="Move Down" disabled={!current()} onClick={() => move(1)}>
+          <button class="icon-btn" title={tr("common.moveDown")} aria-label={tr("common.moveDown")} disabled={!current()} onClick={() => move(1)}>
             <ArrowDown size={14} />
           </button>
         </div>
         <div class="et-tree" role="tree">
-          <For each={groups()} fallback={<div class="set-list-empty">No tools configured. Click + to add one.</div>}>
+          <For each={groups()} fallback={<div class="set-list-empty">{tr("tools.externalTools.noToolsConfiguredClickTo")}</div>}>
             {(g) => {
               const open = () => !collapsed().includes(g.name);
               return (

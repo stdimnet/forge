@@ -8,6 +8,7 @@ import { agentModes, chat, detectAgents, newChat, openHistory, setAgent, setMode
 import { Dropdown } from "./Dropdown";
 import { MessageList } from "./MessageList";
 import { Composer, focusChatInput, setComposerText } from "./Composer";
+import { t as tr } from "@/i18n";
 
 const MODE_ICONS: Record<PermissionMode, typeof Hand> = {
   default: Hand,
@@ -28,8 +29,8 @@ function ChatToolbar() {
   return (
     <div class="chat-toolbar">
       <Dropdown
-        title="Agent"
-        header="Agent"
+        title={tr("tools.aiChat.agent")}
+        header={tr("tools.aiChat.agent")}
         value={chat.agentId}
         items={chatAgents().map((a) => ({
           value: a.id,
@@ -38,9 +39,9 @@ function ChatToolbar() {
           hint: a.comingSoon
             ? undefined
             : chat.detected[a.id] && !chat.detected[a.id].installed
-              ? "Not installed"
+              ? tr("common.notInstalled")
               : chat.detected[a.id]?.supported === false
-                ? "Not supported yet"
+                ? tr("tools.aiChat.notSupportedYet")
                 : undefined,
           badge: a.comingSoon ? "Soon" : undefined,
           disabled: a.comingSoon,
@@ -56,8 +57,8 @@ function ChatToolbar() {
         }
       />
       <Dropdown
-        title="Model"
-        header="Model"
+        title={tr("common.model")}
+        header={tr("common.model")}
         value={chat.model}
         items={(agent()?.models ?? []).map((m) => ({ value: m.id, label: m.label, hint: m.hint }))}
         onSelect={(m) => void setModel(m)}
@@ -65,8 +66,8 @@ function ChatToolbar() {
       />
       <span class="chat-flex" />
       <Dropdown
-        title="Permission mode"
-        header="Permission mode"
+        title={tr("tools.aiChat.permissionMode")}
+        header={tr("tools.aiChat.permissionMode")}
         align="right"
         class={`chat-mode chat-mode-${chat.mode}`}
         value={chat.mode}
@@ -96,14 +97,13 @@ function EmptyState() {
       <div class="chat-empty-logo">
         <Dynamic component={agent()?.icon ?? Sparkles} size={26} stroke-width={1.6} />
       </div>
-      <div class="chat-empty-title">{agent()?.name ?? "AI Chat"}</div>
+      <div class="chat-empty-title">{agent()?.name ?? tr("tools.aiChat.aiChat")}</div>
       <div class="chat-empty-text">
-        {agent()?.tagline ?? "Chat with an AI agent about your project."}
+        {agent()?.tagline ?? tr("tools.aiChat.chatWithAnAiAgent")}
         <Show when={workspace()}>
           {(ws) => (
             <>
-              {" "}
-              Working in <strong>{ws().name}</strong>.
+              {tr("tools.aiChat.workingIn")} <strong>{ws().name}</strong>.
             </>
           )}
         </Show>
@@ -116,13 +116,12 @@ function EmptyState() {
               when={i().installed}
               fallback={
                 <span>
-                  {i().name} not found on PATH. Install it with <code>{i().installHint}</code> and sign in once in a terminal, or
-                  set its path in Settings | Tools | AI Agents.
+                  {tr("tools.aiChat.notFoundOnPathInstall", { name: i().name })} <code>{i().installHint}</code> {tr("tools.aiChat.andSignInOnceIn")}
                 </span>
               }
             >
               <span class="chat-ellipsis" title={i().path ?? ""}>
-                {/\bCLI$/.test(i().name) ? i().name : `${i().name} CLI`} ready · uses your own login
+                {tr("tools.aiChat.readyUsesYourOwnLogin", { value: /\bCLI$/.test(i().name) ? i().name : `${i().name} CLI` })}
               </span>
             </Show>
           </div>
@@ -171,13 +170,13 @@ export function ChatActions() {
   };
   return (
     <>
-      <button class="icon-btn" title="New chat" onClick={() => void newChat()}>
+      <button class="icon-btn" title={tr("tools.aiChat.newChat")} onClick={() => void newChat()}>
         <MessageSquarePlus size={15} />
       </button>
       <Dropdown
         class="chat-history"
-        title="Chat history"
-        header="Recent chats"
+        title={tr("tools.aiChat.chatHistory")}
+        header={tr("tools.aiChat.recentChats")}
         align="right"
         hideChevron
         empty="No previous chats yet"

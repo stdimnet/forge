@@ -442,6 +442,8 @@ pub fn run() {
             commands::search::search_rank,
             commands::search::filetypes_detect,
             commands::search::filetypes_list,
+            commands::search::filetypes_override_choices,
+            commands::search::filetypes_edit_overrides,
             commands::search::filetypes_template_delimiters,
             commands::search::search_find_symbols,
             commands::search::search_status,

@@ -7,6 +7,7 @@ import { createSignal, Show } from "solid-js";
 import { Crosshair, ExternalLink, Pencil } from "lucide-solid";
 import { shortcutLabel } from "@/keymap";
 import type { Documentation } from "./docs";
+import { t } from "@/i18n";
 
 const [shown, setShown] = createSignal<Documentation | null>(null);
 const [autoUpdate, setAutoUpdate] = createSignal(true);
@@ -33,7 +34,7 @@ export function DocumentationActionsBar() {
       <button
         class="icon-btn"
         classList={{ active: autoUpdate() }}
-        title="Auto-Update from Source"
+        title={t("tools.documentation.autoUpdateFromSource")}
         aria-pressed={autoUpdate()}
         onClick={() => setAutoUpdate(!autoUpdate())}
       >
@@ -67,7 +68,7 @@ export function DocumentationView() {
         keyed
         fallback={
           <div class="doc-view-empty muted">
-            Place the caret on a symbol to see its documentation, or press {shortcutLabel("QuickJavaDoc") || "Ctrl+Q"}
+            {t("tools.documentation.placeTheCaretOnA", { value: shortcutLabel("QuickJavaDoc") || "Ctrl+Q" })}
           </div>
         }
       >

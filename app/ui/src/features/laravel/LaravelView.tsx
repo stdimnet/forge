@@ -13,6 +13,7 @@ import { askName } from "@/features/contextMenu/dialogs";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
 import { laravelActive, laravelSetting, reveal } from "./state";
+import { t as tr } from "@/i18n";
 
 const [tab, setTab] = createSignal<"overview" | "logs">("overview");
 export { setTab as setLaravelTab };
@@ -74,9 +75,9 @@ function Fact(props: { label: string; value?: string | number | null; mono?: boo
 async function runGeneration(id: string, name: string, suffix?: string) {
   const input = await askName({
     title: name,
-    label: suffix ? `Class name (the '${suffix}' suffix is added)` : "Class name",
+    label: suffix ? tr("langs.laravel.classNameTheSuffixIs", { suffix }) : tr("langs.laravel.className"),
     initial: "",
-    confirm: "Create",
+    confirm: tr("common.create"),
     validate: (v) => (/^[A-Za-z_][\w\\/]*$/.test(v.trim()) ? null : "Enter a class name, e.g. Orders/Invoice"),
   });
   if (!input) return;
@@ -86,7 +87,7 @@ async function runGeneration(id: string, name: string, suffix?: string) {
     const skipped = files.filter((f) => f.exists);
     if (created[0]) void revealLocation(created[0].path, { line: 0, character: 0 });
     showBalloon(
-      created.length ? `${name}: created ${created.map((f) => f.path).join(", ")}` : `${name}: nothing created`,
+      created.length ? `${name}: created ${created.map((f) => f.path).join(", ")}` : tr("langs.laravel.nothingCreated", { name }),
       skipped.length ? `Already exists: ${skipped.map((f) => f.path).join(", ")}` : undefined,
       4000,
       undefined,
@@ -101,42 +102,42 @@ async function runGeneration(id: string, name: string, suffix?: string) {
 function OverviewTab() {
   createEffect(on(laravelActive, (a) => a && !overview() && !overviewLoading() && void loadOverview()));
   return (
-    <Show when={overview()} fallback={<div class="placeholder-panel">{overviewLoading() ? "Analysing the application…" : "No Laravel application detected."}</div>}>
+    <Show when={overview()} fallback={<div class="placeholder-panel">{overviewLoading() ? tr("langs.laravel.analysingTheApplicationEllipsis") : tr("langs.laravel.noLaravelApplicationDetected")}</div>}>
       {(o) => (
         <div class="lv-overview">
           <section class="lv-card">
-            <h3>Application</h3>
-            <Fact label="Name" value={o().appName} />
+            <h3>{tr("langs.laravel.application")}</h3>
+            <Fact label={tr("common.name")} value={o().appName} />
             <Fact label="Laravel" value={o().version} />
             <Fact label="PHP" value={o().php} mono />
-            <Fact label="Environment" value={o().environment} />
-            <Fact label="Debug" value={o().debug === undefined ? null : o().debug ? "on" : "off"} />
+            <Fact label={tr("langs.laravel.environment")} value={o().environment} />
+            <Fact label={tr("common.debug2")} value={o().debug === undefined ? null : o().debug ? "on" : "off"} />
             <Fact label="URL" value={o().url} mono />
           </section>
           <section class="lv-card">
-            <h3>Project</h3>
-            <Fact label="Routes" value={o().routes} />
-            <Fact label="Models" value={o().models.length} />
-            <Fact label="Artisan commands" value={o().commands.length} />
-            <Fact label="Views" value={o().views} />
-            <Fact label="Blade components" value={o().components} />
-            <Fact label="Translations" value={o().translations} />
-            <Fact label="Config keys" value={o().configKeys} />
-            <Fact label="Log files" value={o().logFiles.length} />
+            <h3>{tr("common.project")}</h3>
+            <Fact label={tr("langs.laravel.routes")} value={o().routes} />
+            <Fact label={tr("langs.laravel.models")} value={o().models.length} />
+            <Fact label={tr("langs.laravel.artisanCommands")} value={o().commands.length} />
+            <Fact label={tr("langs.laravel.views")} value={o().views} />
+            <Fact label={tr("langs.laravel.bladeComponents")} value={o().components} />
+            <Fact label={tr("langs.laravel.translations")} value={o().translations} />
+            <Fact label={tr("langs.laravel.configKeys")} value={o().configKeys} />
+            <Fact label={tr("langs.laravel.logFiles")} value={o().logFiles.length} />
           </section>
           <section class="lv-card lv-wide">
-            <h3>Models</h3>
+            <h3>{tr("langs.laravel.models")}</h3>
             <table class="lv-table">
               <thead>
                 <tr>
-                  <th>Model</th>
-                  <th>Table</th>
-                  <th>Attributes</th>
-                  <th>Relations</th>
+                  <th>{tr("common.model")}</th>
+                  <th>{tr("common.table")}</th>
+                  <th>{tr("langs.laravel.attributes")}</th>
+                  <th>{tr("langs.laravel.relations")}</th>
                 </tr>
               </thead>
               <tbody>
-                <For each={o().models} fallback={<tr><td colSpan={4} class="muted">No Eloquent models</td></tr>}>
+                <For each={o().models} fallback={<tr><td colSpan={4} class="muted">{tr("langs.laravel.noEloquentModels")}</td></tr>}>
                   {(m) => (
                     <tr onClick={() => void reveal(m.location)} title={m.class}>
                       <td class="lv-strong">
@@ -153,10 +154,10 @@ function OverviewTab() {
             </table>
           </section>
           <section class="lv-card lv-wide">
-            <h3>Artisan commands</h3>
+            <h3>{tr("langs.laravel.artisanCommands")}</h3>
             <table class="lv-table">
               <tbody>
-                <For each={o().commands} fallback={<tr><td class="muted">The application defines no commands</td></tr>}>
+                <For each={o().commands} fallback={<tr><td class="muted">{tr("langs.laravel.theApplicationDefinesNoCommands")}</td></tr>}>
                   {(c) => (
                     <tr onClick={() => void reveal(c.location)} title={c.signature}>
                       <td class="lv-strong mono">
@@ -167,7 +168,7 @@ function OverviewTab() {
                       <td class="lv-actions">
                         <button
                           class="icon-btn"
-                          title={`Run '${c.name}'…`}
+                          title={tr("langs.laravel.runEllipsis", { name: c.name })}
                           onClick={(e) => {
                             e.stopPropagation();
                             openRunCommand(`${artisanAlias()} ${c.name} `);
@@ -184,7 +185,7 @@ function OverviewTab() {
           </section>
           <section class="lv-card lv-wide">
             <h3>ide.json</h3>
-            <Show when={o().ideJson.files.length} fallback={<div class="muted lv-note">No ide.json in the project or its packages.</div>}>
+            <Show when={o().ideJson.files.length} fallback={<div class="muted lv-note">{tr("langs.laravel.noIdeJsonInThe")}</div>}>
               <div class="lv-note">
                 <For each={o().ideJson.files}>
                   {(f) => (
@@ -193,7 +194,7 @@ function OverviewTab() {
                     </button>
                   )}
                 </For>
-                <span class="muted"> · {o().ideJson.completions} completion{o().ideJson.completions === 1 ? "" : "s"}</span>
+                <span class="muted"> {tr("langs.laravel.completions", { count: o().ideJson.completions })}</span>
               </div>
               <For each={o().ideJson.errors ?? []}>{(e) => <div class="lv-error">{e}</div>}</For>
               <table class="lv-table">
@@ -209,7 +210,7 @@ function OverviewTab() {
                         <td class="muted">{g.source}</td>
                         <td class="lv-actions">
                           <button class="pill-btn" onClick={() => void runGeneration(g.id, g.name, g.classSuffix)}>
-                            Generate…
+                            {tr("langs.laravel.generateEllipsis")}
                           </button>
                         </td>
                       </tr>
@@ -331,36 +332,36 @@ function LogsTab() {
   return (
     <div class="lv-logs">
       <div class="panel-toolbar lv-toolbar">
-        <select class="lv-select" value={logFile()} onChange={(e) => { setLogFile(e.currentTarget.value); void loadLogs(); }} title="Log file">
-          <For each={page()?.files ?? []} fallback={<option value="">No log files</option>}>
+        <select class="lv-select" value={logFile()} onChange={(e) => { setLogFile(e.currentTarget.value); void loadLogs(); }} title={tr("langs.laravel.logFile")}>
+          <For each={page()?.files ?? []} fallback={<option value="">{tr("langs.laravel.noLogFiles")}</option>}>
             {(f) => <option value={f.path}>{f.path.replace(/^storage\/logs\//, "")} ({size(f.size)})</option>}
           </For>
         </select>
-        <select class="lv-select" value={minLevel()} onChange={(e) => setMinLevel(e.currentTarget.value as LogLevel)} title="Minimum level">
-          <For each={LEVELS}>{(l) => <option value={l}>{l === "debug" ? "All levels" : `${l[0].toUpperCase()}${l.slice(1)} and above`}</option>}</For>
+        <select class="lv-select" value={minLevel()} onChange={(e) => setMinLevel(e.currentTarget.value as LogLevel)} title={tr("langs.laravel.minimumLevel")}>
+          <For each={LEVELS}>{(l) => <option value={l}>{l === "debug" ? tr("langs.laravel.allLevels") : tr("langs.laravel.andAbove", { value: l[0].toUpperCase(), l: l.slice(1) })}</option>}</For>
         </select>
         <label class="lv-search">
           <Search size={13} />
-          <input type="text" placeholder="Search messages" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
+          <input type="text" placeholder={tr("langs.laravel.searchMessages")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
           <Show when={query()}>
-            <button class="icon-btn" title="Clear" onClick={() => setQuery("")}>
+            <button class="icon-btn" title={tr("common.clear")} onClick={() => setQuery("")}>
               <X size={11} />
             </button>
           </Show>
         </label>
-        <button class="icon-btn" classList={{ active: follow() }} title="Follow (reload and scroll to new entries)" aria-pressed={follow()} onClick={() => setFollow(!follow())}>
+        <button class="icon-btn" classList={{ active: follow() }} title={tr("langs.laravel.followReloadAndScrollTo")} aria-pressed={follow()} onClick={() => setFollow(!follow())}>
           <ArrowDownToLine size={14} />
         </button>
-        <button class="icon-btn" title="Reload" onClick={() => void loadLogs()}>
+        <button class="icon-btn" title={tr("common.reload")} onClick={() => void loadLogs()}>
           <RefreshCw size={14} class={logsLoading() ? "laravel-spin" : undefined} />
         </button>
         <span class="lv-count muted">
-          {shown().length} of {page()?.entries.length ?? 0} entries
-          <Show when={page()?.truncated}> · last {size(2 * 1024 * 1024)}</Show>
+          {tr("langs.laravel.ofEntries", { count: shown().length, value: page()?.entries.length ?? 0 })}
+          <Show when={page()?.truncated}> {tr("langs.laravel.last", { value: size(2 * 1024 * 1024) })}</Show>
         </span>
       </div>
       <div class="lv-entries" ref={scroller}>
-        <For each={shown()} fallback={<div class="routes-empty">{page()?.path ? "No entries match" : "No log files in storage/logs"}</div>}>
+        <For each={shown()} fallback={<div class="routes-empty">{page()?.path ? tr("langs.laravel.noEntriesMatch") : tr("langs.laravel.noLogFilesInStorage")}</div>}>
           {(e) => <Entry entry={e} open={open().has(e.line)} onToggle={() => toggle(e.line)} />}
         </For>
       </div>
@@ -375,10 +376,10 @@ export function LaravelView() {
     <div class="lv-panel">
       <div class="sf-tabs" role="tablist">
         <button role="tab" class="sf-tab" classList={{ active: tab() === "overview" }} onClick={() => setTab("overview")}>
-          Overview
+          {tr("langs.laravel.overview")}
         </button>
         <button role="tab" class="sf-tab" classList={{ active: tab() === "logs" }} onClick={() => setTab("logs")}>
-          Logs
+          {tr("langs.laravel.logs")}
         </button>
       </div>
       <Switch>
@@ -396,13 +397,13 @@ export function LaravelView() {
 export function LaravelActions() {
   return (
     <>
-      <Show when={overview()}>{(o) => <span class="sf-header-info muted">Laravel {o().version?.split(".")[0]} · {o().environment ?? "?"}</span>}</Show>
-      <button class="icon-btn" title="Run Artisan Command…" onClick={() => openRunCommand(`${artisanAlias()} `)}>
+      <Show when={overview()}>{(o) => <span class="sf-header-info muted">{tr("langs.laravel.laravel", { value: o().version?.split(".")[0], value2: o().environment ?? "?" })}</span>}</Show>
+      <button class="icon-btn" title={tr("langs.laravel.runArtisanCommandEllipsis")} onClick={() => openRunCommand(`${artisanAlias()} `)}>
         <Play size={14} />
       </button>
       <button
         class="icon-btn"
-        title="Refresh"
+        title={tr("common.refresh")}
         onClick={() => {
           void loadOverview();
           if (tab() === "logs") void loadLogs();

@@ -17,7 +17,7 @@ id = "shell"
 name = "Shell Script"
 extensions = ["sh", "bash", "zsh", "ksh", "bats"]
 fileNames = [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile", ".zshrc", ".zprofile", ".envrc", "PKGBUILD", ".xinitrc", ".xprofile"]
-interpreters = ["sh", "bash", "zsh", "ksh", "dash", "ash"]
+interpreters = ["sh", "bash", "zsh", "ksh", "mksh", "dash", "ash", "busybox", "fish"]
 indentSize = 2
 
 [[plugin]]

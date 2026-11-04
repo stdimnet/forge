@@ -112,7 +112,7 @@ export async function compareRevisionWithLocal(r: RevisionFile, local: string): 
 /** Get: replace the working copy of `local` with the file as it was in the revision. */
 export async function getRevision(r: RevisionFile, local: string): Promise<void> {
   const text = await gitApi.show(r.sha, r.file.path).catch(() => null);
-  if (text === null) return notify("info", `${nameOf(local)} does not exist in revision ${shortSha(r.sha)}`);
+  if (text === null) return notify("info", tr("tools.git.doesNotExistInRevision", { value: nameOf(local), value2: shortSha(r.sha) }));
   const ok = await askConfirm({
     title: tr("git.history.getRevision"),
     message: tr("git.history.replaceTheContentOfLocal", { local, sha: shortSha(r.sha) }),

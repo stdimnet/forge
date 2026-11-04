@@ -481,7 +481,7 @@ export async function commitRename(view: EditorView, opts: { name?: string; prev
       return;
     }
     if (answer.skipped > 0) {
-      showBalloon(`${answer.skipped} dynamic usage${answer.skipped === 1 ? " was" : "s were"} not renamed`, "Find them with Find Usages (Alt+F7).");
+      showBalloon(tr("tools.codeintel.dynamicUsageNotRenamed", { skipped: answer.skipped, value: answer.skipped === 1 ? " was" : "s were" }), tr("tools.codeintel.findThemWithFindUsages"));
     }
     if (view.dom.isConnected) view.focus();
   } finally {

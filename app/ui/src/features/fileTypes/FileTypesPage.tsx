@@ -12,6 +12,7 @@ import { fileTypeConfig } from "@/editor/fileTypes";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { CustomFileTypeForm } from "./CustomFileTypeForm";
 import { addPattern, joinIgnored, ownerOf, removeCustomType, removePattern, splitIgnored } from "./model";
+import { t } from "@/i18n";
 
 export const ASSOCIATIONS_KEY = "fileTypes.associations";
 export const CUSTOM_KEY = "fileTypes.custom";
@@ -50,7 +51,7 @@ function LineForm(props: {
         OK
       </button>
       <button class="btn-secondary set-btn" onClick={() => props.onCancel()}>
-        Cancel
+        {t("common.cancel")}
       </button>
       <Show when={hint()}>
         <div class="ft-hint">{hint()}</div>
@@ -150,19 +151,19 @@ export function FileTypesPage() {
     <div class="set-page ft-page">
       <div class="ft-columns">
         <div class="ft-column">
-          <div class="ft-caption">Recognized File Types</div>
+          <div class="ft-caption">{t("tools.fileTypes.recognizedFileTypes")}</div>
           <div class="set-list ft-list">
             <div class="set-list-toolbar">
-              <button class="icon-btn" title="Add custom file type" data-testid="ft-add-type" onClick={() => setCustomForm({ entry: null })}>
+              <button class="icon-btn" title={t("tools.fileTypes.addCustomFileType")} data-testid="ft-add-type" onClick={() => setCustomForm({ entry: null })}>
                 <Plus size={14} />
               </button>
-              <button class="icon-btn" title="Remove" disabled={!selected()?.custom} onClick={deleteCustom}>
+              <button class="icon-btn" title={t("common.remove")} disabled={!selected()?.custom} onClick={deleteCustom}>
                 <Minus size={14} />
               </button>
-              <button class="icon-btn" title="Edit" disabled={!selected()?.custom} onClick={editCustom}>
+              <button class="icon-btn" title={t("common.edit")} disabled={!selected()?.custom} onClick={editCustom}>
                 <Pencil size={13} />
               </button>
-              <input class="set-input ft-filter" placeholder="Filter" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
+              <input class="set-input ft-filter" placeholder={t("tools.fileTypes.filter")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
             </div>
             <div class="set-list-items ft-items" data-testid="ft-types">
               <For each={visible()}>
@@ -190,21 +191,21 @@ export function FileTypesPage() {
           </div>
         </div>
         <div class="ft-column">
-          <div class="ft-caption">File name patterns{selected() ? ` (${selected()!.name})` : ""}</div>
+          <div class="ft-caption">{t("tools.fileTypes.fileNamePatterns", { value: selected() ? ` (${selected()!.name})` : "" })}</div>
           <div class="set-list ft-list">
             <div class="set-list-toolbar">
-              <button class="icon-btn" title="Add pattern" data-testid="ft-add-pattern" disabled={!selected()} onClick={() => setPatternForm({ old: null })}>
+              <button class="icon-btn" title={t("tools.fileTypes.addPattern")} data-testid="ft-add-pattern" disabled={!selected()} onClick={() => setPatternForm({ old: null })}>
                 <Plus size={14} />
               </button>
-              <button class="icon-btn" title="Remove" disabled={!pattern()} onClick={deletePattern}>
+              <button class="icon-btn" title={t("common.remove")} disabled={!pattern()} onClick={deletePattern}>
                 <Minus size={14} />
               </button>
-              <button class="icon-btn" title="Edit" disabled={!pattern()} onClick={() => setPatternForm({ old: pattern() })}>
+              <button class="icon-btn" title={t("common.edit")} disabled={!pattern()} onClick={() => setPatternForm({ old: pattern() })}>
                 <Pencil size={13} />
               </button>
             </div>
             <div class="set-list-items ft-items" data-testid="ft-patterns">
-              <For each={selected()?.patterns ?? []} fallback={<div class="set-list-empty">No patterns</div>}>
+              <For each={selected()?.patterns ?? []} fallback={<div class="set-list-empty">{t("tools.fileTypes.noPatterns")}</div>}>
                 {(p) => (
                   <button
                     class="set-list-item"
@@ -219,7 +220,7 @@ export function FileTypesPage() {
               </For>
               <For each={selected()?.removed ?? []}>
                 {(p) => (
-                  <span class="set-list-item ft-removed" title="Removed; add it again to restore it">
+                  <span class="set-list-item ft-removed" title={t("tools.fileTypes.removedAddItAgainTo")}>
                     {p}
                   </span>
                 )}
@@ -229,7 +230,7 @@ export function FileTypesPage() {
           <Show when={patternForm()}>
             {(form) => (
               <LineForm
-                label={form().old ? "Edit pattern:" : "Add pattern:"}
+                label={form().old ? t("tools.fileTypes.editPatternLabel") : t("tools.fileTypes.addPatternLabel")}
                 initial={form().old ?? "*."}
                 hint={(v) => reassignHint(v) ?? "Wildcards: * matches any characters, e.g. *.module or Procfile*"}
                 onSave={savePattern}
@@ -238,21 +239,21 @@ export function FileTypesPage() {
             )}
           </Show>
           <Show when={selected()?.syntax}>
-            <div class="ft-muted ft-syntax-note">Custom file type: double-click it or use Edit to change its syntax highlighting.</div>
+            <div class="ft-muted ft-syntax-note">{t("tools.fileTypes.customFileTypeDoubleClick")}</div>
           </Show>
         </div>
       </div>
 
-      <div class="ft-caption ft-ignored-caption">Ignored Files and Folders</div>
+      <div class="ft-caption ft-ignored-caption">{t("tools.fileTypes.ignoredFilesAndFolders")}</div>
       <div class="set-list ft-ignored">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" onClick={() => setIgnoredForm({ index: null })}>
+          <button class="icon-btn" title={t("common.add")} onClick={() => setIgnoredForm({ index: null })}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={ignoredSel() === null} onClick={deleteIgnored}>
+          <button class="icon-btn" title={t("common.remove")} disabled={ignoredSel() === null} onClick={deleteIgnored}>
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Edit" disabled={ignoredSel() === null} onClick={() => setIgnoredForm({ index: ignoredSel() })}>
+          <button class="icon-btn" title={t("common.edit")} disabled={ignoredSel() === null} onClick={() => setIgnoredForm({ index: ignoredSel() })}>
             <Pencil size={13} />
           </button>
         </div>
@@ -269,7 +270,7 @@ export function FileTypesPage() {
       <Show when={ignoredForm()}>
         {(form) => (
           <LineForm
-            label="Ignored name:"
+            label={t("tools.fileTypes.ignoredNameLabel")}
             initial={form().index === null ? "" : ignored()[form().index!]}
             hint={() => "Files and folders with this name are hidden from the Project view (* and ? wildcards)."}
             onSave={saveIgnored}

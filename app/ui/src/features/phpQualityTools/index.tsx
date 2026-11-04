@@ -34,7 +34,7 @@ import { QualityToolsPage } from "./QualityToolsPage";
 import { RECTOR_DIALOG, RectorPreviewDialog, type RectorPreviewProps } from "./RectorPreviewDialog";
 import { active, ALL_TOOLS, checkFile, enabledTools, FIXERS, fixWith, inspectWithQualityTools, isPhpCode, onTheFly } from "./run";
 import "./phpQualityTools.css";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 export { inspectWithQualityTools } from "./run";
 
@@ -64,7 +64,7 @@ registerSettingsPage({
 
 registerDialog<RectorPreviewProps, { apply: boolean }>({
   id: RECTOR_DIALOG,
-  title: "Rector: Preview Changes",
+  title: tr("langs.phpQualityTools.rectorPreviewChanges"),
   width: 760,
   height: 540,
   minWidth: 480,

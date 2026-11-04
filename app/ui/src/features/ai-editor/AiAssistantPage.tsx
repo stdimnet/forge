@@ -8,6 +8,7 @@ import { aiApi, type AiFeature, type ModelInfo } from "@/ipc/ai";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { openSettings } from "@/features/settings/dialogState";
 import { refreshAiStatus } from "./status";
+import { t } from "@/i18n";
 
 function ModelPicker(props: { feature: AiFeature; label: string; hint: string }) {
   const [state, { refetch }] = createResource(() => aiApi.providers());
@@ -43,9 +44,9 @@ function ModelPicker(props: { feature: AiFeature; label: string; hint: string })
         when={enabled().length}
         fallback={
           <span class="muted">
-            No AI provider is configured; nothing is sent anywhere.{" "}
+            {t("tools.aiEditor.noAiProviderIsConfigured")}
             <a href="#" onClick={(e) => (e.preventDefault(), openSettings("tools.ai-providers"))}>
-              Add a provider…
+              {t("tools.aiEditor.addAProviderEllipsis")}
             </a>
           </span>
         }
@@ -57,7 +58,7 @@ function ModelPicker(props: { feature: AiFeature; label: string; hint: string })
         <input
           list={listId}
           value={model()}
-          placeholder="Provider default"
+          placeholder={t("tools.aiEditor.providerDefault")}
           onFocus={() => void fetchModels()}
           onChange={(e) => void choose(providerId(), e.currentTarget.value.trim())}
         />
@@ -81,11 +82,11 @@ export function AiAssistantPage() {
         section === "General" ? (
           <ModelPicker
             feature="chat"
-            label="Actions model"
-            hint="Explain, Fix, Generate Documentation and Generate Tests with AI. Exclude files with .aiignore in the project root."
+            label={t("tools.aiEditor.actionsModel")}
+            hint={t("tools.aiEditor.explainFixGenerateDocumentationAnd")}
           />
         ) : section === "Inline Completion" ? (
-          <ModelPicker feature="completion" label="Completion model" hint="Prefer a fast local code model, e.g. qwen2.5-coder on Ollama." />
+          <ModelPicker feature="completion" label={t("tools.aiEditor.completionModel")} hint={t("tools.aiEditor.preferAFastLocalCode")} />
         ) : undefined
       }
     />

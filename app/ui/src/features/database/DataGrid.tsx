@@ -431,7 +431,7 @@ export function DataGrid(props: DataGridProps) {
         </For>
       </div>
       <Show when={total() === 0}>
-        <div class="dg-empty">{props.emptyText ?? "No rows"}</div>
+        <div class="dg-empty">{props.emptyText ?? t("common.noRows")}</div>
       </Show>
       <Show when={menu()}>{(m) => <ContextMenu x={m().x} y={m().y} items={menuItems()} onClose={() => setMenu(null)} />}</Show>
       <Show when={headerMenu()}>{(m) => <ContextMenu {...m()} onClose={() => setHeaderMenu(null)} />}</Show>

@@ -19,6 +19,7 @@ import {
   type ServicesEvent,
 } from "@/ipc/services";
 import { providerFor, providerNodes, providers } from "./providers";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Services");
 
@@ -60,7 +61,7 @@ export async function selectKube(context: string, namespace?: string): Promise<v
     const node = findNode("kube")?.children?.find((n) => n.icon === "context" && n.label === context);
     if (node) select(node.id);
   } catch (err) {
-    showBalloon("Cannot switch the Kubernetes context", String(err).replace(/^Error: /, ""));
+    showBalloon(t("tools.services.cannotSwitchTheKubernetesContext"), String(err).replace(/^Error: /, ""));
   }
 }
 
@@ -218,7 +219,7 @@ export async function refresh(): Promise<void> {
   try {
     applyNodes(await servicesApi.refresh());
   } catch (err) {
-    showBalloon("Refresh failed", String(err));
+    showBalloon(t("tools.services.refreshFailed"), String(err));
   }
 }
 
@@ -242,7 +243,7 @@ export async function setOpen(node: ServiceNode, open: boolean): Promise<void> {
     try {
       applyNodes(await servicesApi.expand(node.id));
     } catch (err) {
-      showBalloon(`Cannot load ${node.label}`, String(err));
+      showBalloon(t("tools.services.cannotLoad", { label: node.label }), String(err));
     } finally {
       setLoading((s) => {
         const n = new Set(s);
@@ -349,7 +350,7 @@ export async function stopForward(id: number): Promise<void> {
   try {
     await servicesApi.portForwardStop(id);
   } catch (err) {
-    showBalloon("Cannot stop the port forward", String(err).replace(/^Error: /, ""));
+    showBalloon(t("tools.services.cannotStopThePortForward"), String(err).replace(/^Error: /, ""));
   }
 }
 
@@ -366,7 +367,7 @@ export function pullImageDialog(): void {
       try {
         await servicesApi.pull(image);
       } catch (err) {
-        showBalloon("Pull failed", String(err).replace(/^Error: /, ""), 6000);
+        showBalloon(t("tools.services.pullFailed"), String(err).replace(/^Error: /, ""), 6000);
       }
     },
   });
@@ -378,6 +379,6 @@ export async function openExec(nodeId: string, container?: string): Promise<void
     const cmd = await servicesApi.terminal(nodeId, false, container);
     openTerminalWith({ title: cmd.title, program: cmd.program, args: cmd.args, env: cmd.env, local: !cmd.onHost });
   } catch (err) {
-    showBalloon("Cannot open a terminal", String(err).replace(/^Error: /, ""));
+    showBalloon(t("tools.services.cannotOpenATerminal"), String(err).replace(/^Error: /, ""));
   }
 }

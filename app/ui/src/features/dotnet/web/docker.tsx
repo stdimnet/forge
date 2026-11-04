@@ -17,25 +17,26 @@ import { openFileAt } from "@/editor/views";
 import { suspendKeymap } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { dotnetWorkspace, errorText, PLUGIN, runDotnetCommand, runnableProjects, showDotnetBalloon } from "../state";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
 registerRunConfigurationType({
   id: "dotnet-docker",
   name: ".NET Docker",
-  description: "Build a .NET project's Dockerfile from the solution folder (docker build) and run the image as a container with published ports and environment.",
+  description: t("langs.dotnet.buildANetProjectS"),
   icon: Container,
   color: "var(--info)",
   pluginId: PLUGIN,
   argumentsLabel: "Container arguments",
   noRunTarget: true,
   fields: [
-    { key: "dockerfile", label: "Dockerfile", kind: "path", required: true, placeholder: "src/Bookstore.Api/Dockerfile" },
-    { key: "context", label: "Build context", placeholder: ". (the solution folder)" },
-    { key: "image", label: "Image tag", placeholder: "bookstore.api (from the project folder)" },
-    { key: "container", label: "Container name", placeholder: "bookstore-api" },
-    { key: "ports", label: "Ports (host:container)", placeholder: "8080:8080" },
-    { key: "env", label: "Environment", placeholder: "ASPNETCORE_ENVIRONMENT=Development" },
+    { key: "dockerfile", label: t("langs.dotnet.dockerfile"), kind: "path", required: true, placeholder: "src/Bookstore.Api/Dockerfile" },
+    { key: "context", label: t("langs.dotnet.buildContext"), placeholder: ". (the solution folder)" },
+    { key: "image", label: t("langs.dotnet.imageTag"), placeholder: "bookstore.api (from the project folder)" },
+    { key: "container", label: t("langs.dotnet.containerName"), placeholder: "bookstore-api" },
+    { key: "ports", label: t("langs.dotnet.portsHostContainer"), placeholder: "8080:8080" },
+    { key: "env", label: t("langs.dotnet.environment"), placeholder: t("langs.dotnet.aspnetcoreEnvironmentDevelopment") },
     { key: "buildArgs", label: "docker build options", placeholder: "--build-arg BUILD_CONFIGURATION=Debug" },
     { key: "runArgs", label: "docker run options", placeholder: "--network bookstore" },
   ],
@@ -117,14 +118,14 @@ function Dialog(props: { project: string }) {
           }
         }}
       >
-        <div class="dialog-title">Add Docker Support</div>
+        <div class="dialog-title">{t("langs.dotnet.addDockerSupport")}</div>
         <div class="dialog-body">
           <div class="dn-ef-form">
-            <label class="form-label">Project</label>
+            <label class="form-label">{t("common.project")}</label>
             <select value={project()} onChange={(e) => setProject(e.currentTarget.value)}>
               <For each={runnableProjects()}>{(p) => <option value={p.path}>{p.name}</option>}</For>
             </select>
-            <label class="form-label">Container port</label>
+            <label class="form-label">{t("langs.dotnet.containerPort")}</label>
             <input value={port()} inputMode="numeric" onInput={(e) => setPort(e.currentTarget.value.replace(/\D/g, ""))} />
           </div>
           <Show when={error()}>
@@ -135,7 +136,7 @@ function Dialog(props: { project: string }) {
               <>
                 <div class="muted dn-docker-path">
                   {g().dockerfilePath}
-                  <Show when={g().dockerfileExists}> · exists</Show> · build context: the solution folder · image <b>{g().image}</b>
+                  <Show when={g().dockerfileExists}> {t("langs.dotnet.exists")}</Show> {t("langs.dotnet.buildContextTheSolutionFolder")} <b>{g().image}</b>
                 </div>
                 <pre class="dn-docker-preview" data-testid="dockerfile-preview">
                   {g().dockerfile}
@@ -143,7 +144,7 @@ function Dialog(props: { project: string }) {
                 <Show when={g().dockerfileExists}>
                   <label class="dn-check">
                     <input type="checkbox" checked={overwrite()} onChange={(e) => setOverwrite(e.currentTarget.checked)} />
-                    Replace the existing Dockerfile
+                    {t("langs.dotnet.replaceTheExistingDockerfile")}
                   </label>
                 </Show>
               </>
@@ -152,10 +153,10 @@ function Dialog(props: { project: string }) {
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={busy() || !generated() || !!error() || (!!generated()?.dockerfileExists && !overwrite())} onClick={() => void create()}>
-            Add
+            {t("common.add")}
           </button>
         </div>
       </div>

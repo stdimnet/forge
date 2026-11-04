@@ -2,6 +2,7 @@
 import { Show, onCleanup } from "solid-js";
 import { X } from "lucide-solid";
 import { formatForKeymap, strokeOfEvent, suspendKeymap } from "@/keymap";
+import { t } from "@/i18n";
 
 export function ShortcutField(props: {
   value: string;
@@ -41,11 +42,11 @@ export function ShortcutField(props: {
         if (stroke) props.onChange(stroke);
       }}
     >
-      <span class="shortcut-field-text">{props.value ? formatForKeymap(props.value) : (props.placeholder ?? "Press keys…")}</span>
+      <span class="shortcut-field-text">{props.value ? formatForKeymap(props.value) : (props.placeholder ?? t("tools.keymapSettings.pressKeysEllipsis"))}</span>
       <Show when={props.value && !props.disabled}>
         <button
           class="icon-btn shortcut-field-clear"
-          title="Clear"
+          title={t("common.clear")}
           tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => props.onChange("")}

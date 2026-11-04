@@ -13,6 +13,7 @@ import { revealSymbol } from "@/features/php/editorViews";
 import { showResolvedMenu } from "@/features/contextMenu/state";
 import { openSettings } from "@/features/settings/dialogState";
 import { rubyActive, rubyBundle, rubyStatus } from "./state";
+import { t } from "@/i18n";
 import "./ruby.css";
 
 export const RUBY_LIBRARIES_ID = "ruby-libraries://";
@@ -68,7 +69,7 @@ function Row(props: { id: string; depth: number; dir: boolean; name: string; hin
   );
 }
 
-const sdkMenu = (e: MouseEvent) => showResolvedMenu([{ kind: "action", label: "Configure Ruby SDK…", run: () => openSettings("lang.ruby") }], e.clientX, e.clientY);
+const sdkMenu = (e: MouseEvent) => showResolvedMenu([{ kind: "action", label: t("langs.ruby.configureRubySdkEllipsis"), run: () => openSettings("lang.ruby") }], e.clientX, e.clientY);
 
 /** The Ruby part of "External Libraries". */
 export function RubyLibrariesNode() {
@@ -93,7 +94,7 @@ export function RubyLibrariesNode() {
                   depth={2}
                   dir={false}
                   name={g.name}
-                  hint={g.version ? `${g.version}${g.source !== "rubygems" ? ` (${g.source})` : ""}` : "not installed"}
+                  hint={g.version ? `${g.version}${g.source !== "rubygems" ? ` (${g.source})` : ""}` : t("common.notInstalled2")}
                   gem={g}
                   onActivate={() => g.line !== undefined && void revealSymbol("Gemfile", { line: g.line, name: g.name })}
                 />

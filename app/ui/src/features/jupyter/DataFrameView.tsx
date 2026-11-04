@@ -10,6 +10,7 @@ import type { Cell, SortKey } from "@/ipc/db";
 import { getSetting } from "@/state/settings";
 import { DataGrid } from "@/features/database/DataGrid";
 import type { GridColumn } from "@/features/database/grid";
+import { t } from "@/i18n";
 import "@/features/database/database.css";
 
 const ROW_H = 24;
@@ -74,11 +75,11 @@ export function DataFrameView(props: { frame: DataFrame; fill?: boolean; title?:
         </Show>
         <span class="nb-df-shape muted">{shape()}</span>
         <span class="spacer" />
-        <label class="nb-df-filter" title="Rows containing the text; `column: text` filters one column">
+        <label class="nb-df-filter" title={t("langs.jupyter.rowsContainingTheTextColumn")}>
           <Search size={12} />
           <input
             type="text"
-            placeholder="Filter"
+            placeholder={t("langs.jupyter.filter")}
             value={filter()}
             spellcheck={false}
             onInput={(e) => {
@@ -89,19 +90,19 @@ export function DataFrameView(props: { frame: DataFrame; fill?: boolean; title?:
         </label>
         <Show when={(r()?.pages ?? 1) > 1}>
           <span class="nb-df-pager">
-            <button class="icon-btn" title="First Page" disabled={page() === 0} onClick={() => setPage(0)}>
+            <button class="icon-btn" title={t("langs.jupyter.firstPage")} disabled={page() === 0} onClick={() => setPage(0)}>
               <ChevronsLeft size={13} />
             </button>
-            <button class="icon-btn" title="Previous Page" disabled={page() === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+            <button class="icon-btn" title={t("langs.jupyter.previousPage")} disabled={page() === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
               <ChevronLeft size={13} />
             </button>
             <span class="muted">
-              {(r()?.page ?? 0) * pageSize() + 1}–{Math.min(((r()?.page ?? 0) + 1) * pageSize(), r()?.matched ?? 0)} of {r()?.matched ?? 0}
+              {t("langs.jupyter.of", { value: (r()?.page ?? 0) * pageSize() + 1, value2: Math.min(((r()?.page ?? 0) + 1) * pageSize(), r()?.matched ?? 0), value3: r()?.matched ?? 0 })}
             </span>
-            <button class="icon-btn" title="Next Page" disabled={page() >= (r()?.pages ?? 1) - 1} onClick={() => setPage((p) => p + 1)}>
+            <button class="icon-btn" title={t("langs.jupyter.nextPage")} disabled={page() >= (r()?.pages ?? 1) - 1} onClick={() => setPage((p) => p + 1)}>
               <ChevronRight size={13} />
             </button>
-            <button class="icon-btn" title="Last Page" disabled={page() >= (r()?.pages ?? 1) - 1} onClick={() => setPage((r()?.pages ?? 1) - 1)}>
+            <button class="icon-btn" title={t("langs.jupyter.lastPage")} disabled={page() >= (r()?.pages ?? 1) - 1} onClick={() => setPage((r()?.pages ?? 1) - 1)}>
               <ChevronsRight size={13} />
             </button>
           </span>
@@ -115,7 +116,7 @@ export function DataFrameView(props: { frame: DataFrame; fill?: boolean; title?:
           sort={sortKeys()}
           onSort={onSort}
           nullText=""
-          emptyText={filter() ? "No rows match the filter" : "No rows"}
+          emptyText={filter() ? t("langs.jupyter.noRowsMatchTheFilter") : t("common.noRows")}
         />
       </div>
     </div>

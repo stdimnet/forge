@@ -10,6 +10,7 @@ import { clipboardApi, type ClipEntry, type ClipItem } from "@/ipc/clipboard";
 import { suspendKeymap } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { MAX_CONTENTS_KEY } from "./clipboard";
+import { t } from "@/i18n";
 
 export interface PasteRequest {
   /** Called with the chosen entry, or null when the popup was closed. */
@@ -127,10 +128,10 @@ function Popup(props: { req: PasteRequest }) {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && finish(null)}>
-      <div class="popup paste-history-popup" tabIndex={-1} ref={root} role="dialog" aria-label="Choose Content to Paste" onKeyDown={onKeyDown}>
+      <div class="popup paste-history-popup" tabIndex={-1} ref={root} role="dialog" aria-label={t("tools.clipboard.chooseContentToPaste")} onKeyDown={onKeyDown}>
         <div class="paste-history-header">
           <ClipboardList size={14} class="muted" />
-          <span class="paste-history-title">Choose Content to Paste</span>
+          <span class="paste-history-title">{t("tools.clipboard.chooseContentToPaste")}</span>
           <Show when={query()}>
             <span class="speed-search">
               <Search size={12} />
@@ -141,7 +142,7 @@ function Popup(props: { req: PasteRequest }) {
         <div class="paste-history-list" ref={list} role="listbox">
           <Show
             when={items().length}
-            fallback={<div class="se-empty">{loaded() ? (query() ? "Nothing found" : "Nothing was copied in this session") : ""}</div>}
+            fallback={<div class="se-empty">{loaded() ? (query() ? t("common.nothingFound") : t("tools.clipboard.nothingWasCopiedInThis")) : ""}</div>}
           >
             <For each={items()}>
               {(item, i) => (
@@ -165,8 +166,8 @@ function Popup(props: { req: PasteRequest }) {
             </For>
           </Show>
         </div>
-        <pre class="paste-history-preview" aria-label="Preview">{current()?.text ?? ""}</pre>
-        <div class="se-footer">Enter to paste · Delete to remove · type to filter</div>
+        <pre class="paste-history-preview" aria-label={t("tools.clipboard.preview")}>{current()?.text ?? ""}</pre>
+        <div class="se-footer">{t("tools.clipboard.enterToPasteDeleteTo")}</div>
       </div>
     </div>
   );

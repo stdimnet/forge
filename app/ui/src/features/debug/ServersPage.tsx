@@ -113,7 +113,7 @@ export function ServersPage() {
                 </div>
                 <label class="dbg-check dbg-form-check">
                   <input type="checkbox" checked={s().usePathMappings} onChange={(e) => edit((x) => (x.usePathMappings = e.currentTarget.checked))} />
-                  Use path mappings (select if the server is remote or symlinks are used)
+                  {t("tools.debug.usePathMappingsSelectIf")}
                 </label>
                 <MappingsTree
                   mappings={s().mappings}

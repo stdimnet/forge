@@ -28,6 +28,7 @@ import { launch } from "@/features/run/runStore";
 import { safeMode } from "@/features/trust/store";
 import { reloadFile } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
+import { t } from "@/i18n";
 
 export const VULNERABILITIES_TAB = "vulnerabilities";
 export const SOURCE = "vulnerabilities";
@@ -109,7 +110,7 @@ export interface CheckOptions {
 export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult | null> {
   if (running()) return null;
   if (safeMode()) {
-    if (!opts.quiet) showBalloon("Dependencies are not checked in Safe Mode", "The audit tools run the project's tooling. Trust the project to check them.", 6000, undefined, { type: "warning" });
+    if (!opts.quiet) showBalloon(t("tools.vulnerabilities.dependenciesAreNotCheckedIn"), t("tools.vulnerabilities.theAuditToolsRunThe"), 6000, undefined, { type: "warning" });
     return null;
   }
   setRunning(true);
@@ -123,7 +124,7 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult | n
     setEnabled(check.enabled);
     if (!check.enabled) {
       clearResults();
-      if (!opts.quiet) showBalloon("Vulnerable dependency check is turned off", "Turn it on in Settings | Tools | Package Checker.", 6000);
+      if (!opts.quiet) showBalloon(t("tools.vulnerabilities.vulnerableDependencyCheckIsTurned"), t("tools.vulnerabilities.turnItOnInSettings"), 6000);
       return check;
     }
     const before = new Set(results().flatMap(keys));
@@ -136,7 +137,7 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult | n
   } catch (e) {
     const message = String(e instanceof Error ? e.message : e).replace(/^Error: /, "");
     setError(message);
-    if (!opts.quiet) showBalloon("Checking for vulnerable dependencies failed", message, 8000, undefined, { type: "error" });
+    if (!opts.quiet) showBalloon(t("tools.vulnerabilities.checkingForVulnerableDependenciesFailed"), message, 8000, undefined, { type: "error" });
     return null;
   } finally {
     setRunning(false);
@@ -153,7 +154,7 @@ function report(list: TargetResult[], quiet: boolean): void {
   const reveal = { label: "Show Vulnerable Dependencies", run: () => (setProblemsTab(VULNERABILITIES_TAB), showToolWindow("problems")) };
   if (vulns.length) {
     showBalloon(
-      `Found ${plural(vulns.length, "vulnerability", "vulnerabilities")} in ${plural(packages, "package")}`,
+      t("tools.vulnerabilities.foundIn", { value: plural(vulns.length, "vulnerability", "vulnerabilities"), value2: plural(packages, "package") }),
       list.filter((r) => r.vulnerabilities.length).map((r) => TOOL_LABELS[r.tool]).join(", "),
       8000,
       [reveal],
@@ -164,11 +165,11 @@ function report(list: TargetResult[], quiet: boolean): void {
   if (quiet) return;
   const missing = list.filter((r) => r.status === "missing" || r.status === "failed");
   if (missing.length) {
-    showBalloon("Some dependencies could not be checked", missing.map((r) => r.message ?? TOOL_LABELS[r.tool]).join("\n"), 8000, [reveal], { type: "warning" });
+    showBalloon(t("tools.vulnerabilities.someDependenciesCouldNotBe"), missing.map((r) => r.message ?? TOOL_LABELS[r.tool]).join("\n"), 8000, [reveal], { type: "warning" });
   } else if (!list.length) {
-    showBalloon("No dependencies to check", "Forge found no composer.json, package.json, requirements file, pyproject.toml, Cargo.toml or go.mod in the project root.");
+    showBalloon(t("tools.vulnerabilities.noDependenciesToCheck"), t("tools.vulnerabilities.forgeFoundNoComposerJson"));
   } else {
-    showBalloon("No vulnerable dependencies found", list.map((r) => TOOL_LABELS[r.tool]).join(", "));
+    showBalloon(t("tools.vulnerabilities.noVulnerableDependenciesFound"), list.map((r) => TOOL_LABELS[r.tool]).join(", "));
   }
 }
 
@@ -192,13 +193,13 @@ export async function runInstall(r: TargetResult, upgrade?: Pick<Upgrade, "packa
     const cmd = await vulnerabilitiesApi.installCommand(r.tool, r.dir, upgrade?.package, upgrade?.fixed);
     const code = await runCommandLine(installLabel(cmd), cmd);
     if (code !== 0) {
-      if (code !== null) showBalloon(`${installLabel(cmd)} failed`, `Exit code ${code}. See the Run tool window.`, 6000, undefined, { type: "error" });
+      if (code !== null) showBalloon(`${installLabel(cmd)} failed`, t("tools.vulnerabilities.exitCodeSeeTheRun", { code }), 6000, undefined, { type: "error" });
       return;
     }
     await Promise.all(r.inputs.map((p) => reloadFile(p).catch(() => undefined)));
     await runCheck({ quiet: true });
   } catch (e) {
-    showBalloon("Cannot install", String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
+    showBalloon(t("tools.vulnerabilities.cannotInstall"), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
   }
 }
 
@@ -209,7 +210,7 @@ export async function installTool(r: TargetResult): Promise<void> {
     const code = await runCommandLine(installLabel(cmd), cmd);
     if (code === 0) await runCheck({ force: true, tools: [r.tool], reveal: true });
   } catch (e) {
-    showBalloon(`Cannot install ${TOOL_LABELS[r.tool]}`, String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
+    showBalloon(t("tools.vulnerabilities.cannotInstall2", { value: TOOL_LABELS[r.tool] }), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
   }
 }
 
@@ -222,15 +223,15 @@ export async function applyUpgrade(path: string, upgrade: Upgrade): Promise<void
     const text = view?.state.doc.toString() ?? (await workspaceApi.readFile(path));
     const next = await vulnerabilitiesApi.upgrade(path, text, upgrade.package, upgrade.fixed);
     if (next == null) {
-      showBalloon(`Cannot upgrade ${upgrade.package}`, `${fileName(path)} does not declare it with a version constraint.`, 5000, undefined, { type: "warning" });
+      showBalloon(t("tools.vulnerabilities.cannotUpgrade", { package: upgrade.package }), t("tools.vulnerabilities.doesNotDeclareItWith", { value: fileName(path) }), 5000, undefined, { type: "warning" });
       return;
     }
     if (view) replaceChangedPart(view, next, "input");
     else await workspaceApi.writeFile(path, next);
     const install = r ? [{ label: installTitle(r, upgrade), run: () => void runInstall(r, upgrade) }] : undefined;
-    showBalloon(`Upgraded ${upgrade.package} to ${upgrade.constraint} in ${fileName(path)}`, r ? "Install the new version to fix the vulnerability." : undefined, 10000, install);
+    showBalloon(t("tools.vulnerabilities.upgradedToIn", { package: upgrade.package, constraint: upgrade.constraint, value: fileName(path) }), r ? t("tools.vulnerabilities.installTheNewVersionTo") : undefined, 10000, install);
   } catch (e) {
-    showBalloon(`Cannot upgrade ${upgrade.package}`, String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
+    showBalloon(t("tools.vulnerabilities.cannotUpgrade", { package: upgrade.package }), String(e).replace(/^Error: /, ""), 6000, undefined, { type: "error" });
   }
 }
 

@@ -12,6 +12,7 @@ import { remoteApi } from "@/ipc/remote";
 import { showContextMenu, item } from "@/features/contextMenu/state";
 import { openSettings } from "@/features/settings/dialogState";
 import { refreshConfig } from "./store";
+import { t as tr } from "@/i18n";
 import "@/features/remote/remote.css";
 import "./deployment.css";
 
@@ -160,24 +161,24 @@ export function DeploymentPage() {
   return (
     <div class="ssh-settings deploy-settings">
       <p class="ssh-settings-intro muted">
-        Servers to deploy the project to. Passwords are stored in the system keychain; SFTP servers use an SSH configuration.
+        {tr("tools.deployment.serversToDeployTheProject")}
       </p>
       <div class="ssh-master-detail deploy-master-detail">
         <div class="ssh-list-pane">
           <div class="ssh-list-toolbar">
-            <button class="icon-btn" title="Add" onClick={addMenu} data-testid="deploy-add">
+            <button class="icon-btn" title={tr("common.add")} onClick={addMenu} data-testid="deploy-add">
               <Plus size={16} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={!current()} onClick={() => void remove()}>
+            <button class="icon-btn" title={tr("common.remove")} disabled={!current()} onClick={() => void remove()}>
               <Minus size={16} />
             </button>
-            <button class="icon-btn" title="Copy" disabled={!current()} onClick={duplicate}>
+            <button class="icon-btn" title={tr("common.copy")} disabled={!current()} onClick={duplicate}>
               <Copy size={14} />
             </button>
             <button
               class="icon-btn"
               classList={{ active: !!current() && isDefault(current()!.id) }}
-              title="Use as Default"
+              title={tr("tools.deployment.useAsDefault")}
               aria-pressed={!!current() && isDefault(current()!.id)}
               disabled={!current()}
               onClick={() => void useAsDefault()}
@@ -196,7 +197,7 @@ export function DeploymentPage() {
                     </span>
                     <span class="ssh-list-sub muted">
                       {KIND_LABELS[s.kind]}
-                      <Show when={isDefault(s.id)}> · default</Show>
+                      <Show when={isDefault(s.id)}> {tr("tools.deployment.default")}</Show>
                       <Show when={s.hasSecret}>
                         {" "}
                         <KeyRound size={11} />
@@ -210,23 +211,23 @@ export function DeploymentPage() {
               <div class="ssh-list-row selected">
                 <KindIcon kind={draft.kind} />
                 <span class="ssh-list-text">
-                  <span class="ssh-list-title">{draft.name || "New server"}</span>
-                  <span class="ssh-list-sub muted">Not saved yet</span>
+                  <span class="ssh-list-title">{draft.name || tr("tools.deployment.newServer")}</span>
+                  <span class="ssh-list-sub muted">{tr("common.notSavedYet")}</span>
                 </span>
               </div>
             </Show>
             <Show when={!data.loading && !servers().length && selected() !== NEW}>
-              <div class="ssh-empty muted">No deployment servers.</div>
+              <div class="ssh-empty muted">{tr("tools.deployment.noDeploymentServers")}</div>
             </Show>
           </div>
         </div>
         <div class="ssh-detail-pane">
-          <Show when={selected()} fallback={<div class="ssh-empty muted">Add a server (+) to deploy the project with SFTP, FTP or to a local folder.</div>}>
+          <Show when={selected()} fallback={<div class="ssh-empty muted">{tr("tools.deployment.addAServerToDeploy")}</div>}>
             <div class="ssh-name-row">
               <label class="ssh-label" for="deploy-name">
-                Name:
+                {tr("common.nameLabel")}
               </label>
-              <input id="deploy-name" class="ssh-input" value={draft.name} placeholder="e.g. production" onInput={(e) => update({ name: e.currentTarget.value })} />
+              <input id="deploy-name" class="ssh-input" value={draft.name} placeholder={tr("tools.deployment.eGProduction")} onInput={(e) => update({ name: e.currentTarget.value })} />
             </div>
             <div class="deploy-tabs" role="tablist">
               <For each={[["connection", "Connection"], ["mappings", "Mappings"], ["excluded", "Excluded Paths"]] as [Tab, string][]}>
@@ -241,7 +242,7 @@ export function DeploymentPage() {
               <Match when={tab() === "connection"}>
                 <div class="ssh-form">
                   <label class="ssh-label" for="deploy-kind">
-                    Type:
+                    {tr("common.typeLabel")}
                   </label>
                   <select id="deploy-kind" class="ssh-input" value={draft.kind} onChange={(e) => update({ kind: e.currentTarget.value as ServerKind })}>
                     <For each={Object.keys(KIND_LABELS) as ServerKind[]}>
@@ -255,11 +256,11 @@ export function DeploymentPage() {
                   <Switch>
                     <Match when={draft.kind === "sftp"}>
                       <label class="ssh-label" for="deploy-ssh">
-                        SSH configuration:
+                        {tr("common.sshConfigurationLabel")}
                       </label>
                       <div class="ssh-path">
                         <select id="deploy-ssh" class="ssh-input" value={draft.sshConfig} onChange={(e) => update({ sshConfig: e.currentTarget.value })}>
-                          <option value="">Select an SSH configuration</option>
+                          <option value="">{tr("tools.deployment.selectAnSshConfiguration")}</option>
                           <For each={sshConfigs() ?? []}>
                             {(c) => (
                               <option value={c.id} selected={c.id === draft.sshConfig}>
@@ -268,19 +269,19 @@ export function DeploymentPage() {
                             )}
                           </For>
                         </select>
-                        <button class="ssh-browse" title="SSH Configurations…" onClick={() => openSettings("tools.ssh")}>
+                        <button class="ssh-browse" title={tr("tools.deployment.sshConfigurationsEllipsis")} onClick={() => openSettings("tools.ssh")}>
                           …
                         </button>
                       </div>
                     </Match>
                     <Match when={draft.kind === "ftp" || draft.kind === "ftps"}>
                       <label class="ssh-label" for="deploy-host">
-                        Host:
+                        {tr("tools.deployment.hostLabel")}
                       </label>
                       <div class="ssh-host-row">
                         <input id="deploy-host" class="ssh-input" value={draft.host} placeholder="ftp.example.com" spellcheck={false} onInput={(e) => update({ host: e.currentTarget.value })} />
                         <label class="ssh-label inline" for="deploy-port">
-                          Port:
+                          {tr("tools.deployment.portLabel")}
                         </label>
                         <input
                           id="deploy-port"
@@ -294,23 +295,23 @@ export function DeploymentPage() {
                         />
                       </div>
                       <label class="ssh-label" for="deploy-user">
-                        Username:
+                        {tr("tools.deployment.usernameLabel")}
                       </label>
                       <div class="ssh-secret-row">
                         <input id="deploy-user" class="ssh-input" value={draft.user} disabled={draft.anonymous} spellcheck={false} onInput={(e) => update({ user: e.currentTarget.value })} />
                         <label class="ssh-check">
-                          <input type="checkbox" checked={draft.anonymous} onChange={(e) => update({ anonymous: e.currentTarget.checked })} /> Anonymous login
+                          <input type="checkbox" checked={draft.anonymous} onChange={(e) => update({ anonymous: e.currentTarget.checked })} /> {tr("tools.deployment.anonymousLogin")}
                         </label>
                       </div>
                       <label class="ssh-label" for="deploy-password">
-                        Password:
+                        {tr("tools.deployment.passwordLabel")}
                       </label>
                       <input
                         id="deploy-password"
                         class="ssh-input"
                         type="password"
                         disabled={draft.anonymous}
-                        placeholder={current()?.hasSecret ? "Stored in the keychain" : ""}
+                        placeholder={current()?.hasSecret ? tr("tools.deployment.storedInTheKeychain") : ""}
                         value={secret()}
                         onInput={(e) => {
                           setSecret(e.currentTarget.value);
@@ -320,36 +321,36 @@ export function DeploymentPage() {
                       />
                       <span />
                       <label class="ssh-check">
-                        <input type="checkbox" checked={draft.passive} onChange={(e) => update({ passive: e.currentTarget.checked })} /> Passive mode
+                        <input type="checkbox" checked={draft.passive} onChange={(e) => update({ passive: e.currentTarget.checked })} /> {tr("tools.deployment.passiveMode")}
                       </label>
                     </Match>
                   </Switch>
                   <label class="ssh-label" for="deploy-root">
-                    {draft.kind === "local" ? "Folder:" : "Root path:"}
+                    {draft.kind === "local" ? tr("tools.deployment.folderLabel") : tr("tools.deployment.rootPathLabel")}
                   </label>
                   <div class="ssh-path">
                     <input
                       id="deploy-root"
                       class="ssh-input mono"
                       value={draft.rootPath}
-                      placeholder={draft.kind === "local" ? "/srv/http/shop" : "Empty: the login folder"}
+                      placeholder={draft.kind === "local" ? "/srv/http/shop" : tr("tools.deployment.emptyTheLoginFolder")}
                       spellcheck={false}
                       onInput={(e) => update({ rootPath: e.currentTarget.value })}
                     />
                     <Show when={draft.kind !== "local"}>
                       <button class="btn-secondary deploy-autodetect" disabled={problems().length > 0 || test()?.running === true} onClick={() => void autodetect()}>
-                        Autodetect
+                        {tr("tools.deployment.autodetect")}
                       </button>
                     </Show>
                   </div>
                   <label class="ssh-label" for="deploy-url">
-                    Web server URL:
+                    {tr("tools.deployment.webServerUrlLabel")}
                   </label>
                   <input id="deploy-url" class="ssh-input mono" value={draft.webUrl} placeholder="https://example.com" spellcheck={false} onInput={(e) => update({ webUrl: e.currentTarget.value })} />
                 </div>
                 <div class="ssh-test-row deploy-test-row">
                   <button class="btn-secondary" disabled={problems().length > 0 || test()?.running === true} onClick={() => void runTest()} data-testid="deploy-test">
-                    Test Connection
+                    {tr("common.testConnection")}
                   </button>
                   <Show when={test()}>
                     {(t) => (
@@ -357,7 +358,7 @@ export function DeploymentPage() {
                         <Switch>
                           <Match when={t().running}>
                             <LoaderCircle size={14} class="ssh-spin" />
-                            <span class="muted">Connecting…</span>
+                            <span class="muted">{tr("tools.deployment.connectingEllipsis")}</span>
                           </Match>
                           <Match when={!t().running && (t() as TestResult)}>
                             {(r) => (
@@ -393,10 +394,10 @@ export function DeploymentPage() {
                 <span class="ssh-error-text">{saveError()}</span>
               </Show>
               <button class="btn-secondary" disabled={!dirty()} onClick={() => select(current() ?? null, draft.kind)}>
-                Reset
+                {tr("common.reset")}
               </button>
               <button class="btn-primary" disabled={!dirty() || problems().length > 0} onClick={() => void save()}>
-                Save
+                {tr("common.save")}
               </button>
             </div>
           </Show>
@@ -413,12 +414,12 @@ function MappingsTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
   return (
     <div class="deploy-table-wrap">
       <div class="deploy-table-toolbar">
-        <button class="icon-btn" title="Add Mapping" onClick={() => props.update({ mappings: [...props.draft.mappings, { local: "", deployment: "", web: "" }] })}>
+        <button class="icon-btn" title={tr("tools.deployment.addMapping")} onClick={() => props.update({ mappings: [...props.draft.mappings, { local: "", deployment: "", web: "" }] })}>
           <Plus size={15} />
         </button>
         <button
           class="icon-btn"
-          title="Remove Mapping"
+          title={tr("tools.deployment.removeMapping")}
           disabled={!props.draft.mappings.length}
           onClick={() => {
             props.update({ mappings: props.draft.mappings.filter((_, j) => j !== row()) });
@@ -431,9 +432,9 @@ function MappingsTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
       <table class="deploy-table">
         <thead>
           <tr>
-            <th>Local path</th>
-            <th>Deployment path</th>
-            <th>Web path</th>
+            <th>{tr("tools.deployment.localPath")}</th>
+            <th>{tr("tools.deployment.deploymentPath")}</th>
+            <th>{tr("tools.deployment.webPath")}</th>
           </tr>
         </thead>
         <tbody>
@@ -443,7 +444,7 @@ function MappingsTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
                 <td>
                   <div class="deploy-cell">
                     <FolderInput size={13} class="muted" />
-                    <input class="deploy-cell-input mono" value={m.local} placeholder="(project root)" spellcheck={false} onInput={(e) => set(i(), "local", e.currentTarget.value)} />
+                    <input class="deploy-cell-input mono" value={m.local} placeholder={tr("common.projectRoot")} spellcheck={false} onInput={(e) => set(i(), "local", e.currentTarget.value)} />
                   </div>
                 </td>
                 <td>
@@ -458,9 +459,9 @@ function MappingsTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
         </tbody>
       </table>
       <Show when={!props.draft.mappings.length}>
-        <p class="ssh-hint">No mappings: the project root is deployed to the root path.</p>
+        <p class="ssh-hint">{tr("tools.deployment.noMappingsTheProjectRoot")}</p>
       </Show>
-      <p class="ssh-hint">Deployment paths are relative to the root path; web paths to the web server URL. The longest matching local path wins.</p>
+      <p class="ssh-hint">{tr("tools.deployment.deploymentPathsAreRelativeTo")}</p>
     </div>
   );
 }
@@ -472,14 +473,14 @@ function ExcludedTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
     <div class="deploy-table-wrap">
       <div class="deploy-table-toolbar">
         <button class="btn-secondary deploy-small-btn" onClick={() => add("local")}>
-          <Plus size={13} /> Add Local Path
+          <Plus size={13} /> {tr("tools.deployment.addLocalPath")}
         </button>
         <button class="btn-secondary deploy-small-btn" onClick={() => add("deployment")}>
-          <Plus size={13} /> Add Deployment Path
+          <Plus size={13} /> {tr("tools.deployment.addDeploymentPath")}
         </button>
         <button
           class="icon-btn"
-          title="Remove"
+          title={tr("common.remove")}
           disabled={!props.draft.excluded.length}
           onClick={() => {
             props.update({ excluded: props.draft.excluded.filter((_, j) => j !== row()) });
@@ -492,15 +493,15 @@ function ExcludedTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
       <table class="deploy-table">
         <thead>
           <tr>
-            <th class="deploy-side-col">Type</th>
-            <th>Path</th>
+            <th class="deploy-side-col">{tr("tools.deployment.type")}</th>
+            <th>{tr("common.path")}</th>
           </tr>
         </thead>
         <tbody>
           <For each={props.draft.excluded}>
             {(e, i) => (
               <tr classList={{ selected: row() === i() }} onFocusIn={() => setRow(i())}>
-                <td class="deploy-side-col">{e.side === "local" ? "Local path" : "Deployment path"}</td>
+                <td class="deploy-side-col">{e.side === "local" ? tr("tools.deployment.localPath") : tr("tools.deployment.deploymentPath")}</td>
                 <td>
                   <input
                     class="deploy-cell-input mono"
@@ -516,7 +517,7 @@ function ExcludedTab(props: { draft: DeployServer; update: (p: Partial<DeploySer
         </tbody>
       </table>
       <Show when={!props.draft.excluded.length}>
-        <p class="ssh-hint">Nothing is excluded. Exclude items by name in Deployment | Options.</p>
+        <p class="ssh-hint">{tr("tools.deployment.nothingIsExcludedExcludeItems")}</p>
       </Show>
     </div>
   );

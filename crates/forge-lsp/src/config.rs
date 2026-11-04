@@ -103,6 +103,21 @@ impl LspServerConfig {
             .unwrap_or_else(|| self.id.clone())
     }
 
+    /// The LSP language id under which this server handles Forge file type `file_type`
+    /// (`php`, `shell` → `shellscript`, `tsx` → `typescriptreact`), if it does.
+    pub fn claims_language(&self, file_type: &str) -> Option<String> {
+        let alias = match file_type {
+            "shell" => "shellscript",
+            "jsx" => "javascriptreact",
+            "tsx" => "typescriptreact",
+            other => other,
+        };
+        self.language_ids
+            .iter()
+            .find(|l| l.eq_ignore_ascii_case(file_type) || l.eq_ignore_ascii_case(alias))
+            .cloned()
+    }
+
     /// Value for a `workspace/configuration` section (dot separated) from `settings`.
     pub fn setting(&self, section: Option<&str>) -> Value {
         setting_of(&self.settings, section)

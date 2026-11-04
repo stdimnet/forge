@@ -71,6 +71,32 @@ pub fn filetypes_list(request_json: &str) -> String {
     }
 }
 
+/// Mirrors the `filetypes_override_choices` IPC command.
+#[wasm_bindgen]
+pub fn filetypes_override_choices(request_json: &str) -> String {
+    match serde_json::from_str::<DetectRequest>(request_json) {
+        Ok(req) => REGISTRY.with(|r| {
+            let path = req.files.first().map_or("", |f| f.path.as_str());
+            to_json(&r.borrow().override_choices(
+                path,
+                &req.inactive_plugins,
+                &req.user_file_types(),
+                &req.overrides,
+            ))
+        }),
+        Err(e) => to_json(&serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+/// Mirrors the `filetypes_edit_overrides` IPC command.
+#[wasm_bindgen]
+pub fn filetypes_edit_overrides(request_json: &str) -> String {
+    match serde_json::from_str::<forge_filetypes::EditOverridesRequest>(request_json) {
+        Ok(req) => to_json(&forge_filetypes::edit_overrides(&req.overrides, &req.edit)),
+        Err(e) => to_json(&serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
 #[derive(Deserialize)]
 struct IgnoredRequest {
     names: Vec<String>,

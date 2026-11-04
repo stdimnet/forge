@@ -20,6 +20,7 @@ import { getSetting } from "@/state/settings";
 import { isPluginActive } from "@/state/project";
 import { registerCommand } from "@/state/commands";
 import { balloonsFor } from "@/keymap";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("GraphQL");
 const SOURCE = "graphql";
@@ -99,10 +100,10 @@ export async function introspectEndpoint(): Promise<void> {
   if (!url?.trim()) return;
   try {
     const file = await graphqlApi.introspect(url.trim(), endpoint?.url === url.trim() ? endpoint.headers : undefined, endpoint?.schemaFile ?? info?.schemaFiles[0]);
-    showBalloon("Schema saved", `The schema of ${url.trim()} was written to ${file}.`);
+    showBalloon(t("langs.webTooling.schemaSaved"), t("langs.webTooling.theSchemaOfWasWritten", { url: url.trim(), file }));
     await openFile(file);
   } catch (err) {
-    showBalloon("Introspection failed", String(err));
+    showBalloon(t("langs.webTooling.introspectionFailed"), String(err));
   }
 }
 

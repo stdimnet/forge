@@ -281,7 +281,7 @@ async function undoRefactoring(id: number, source: EditorView): Promise<void> {
     }
   }
   if (r.applied.length) refreshTree(r.backend);
-  if (skipped.length) showBalloon(`${r.label} was undone only partly`, `Changed since: ${skipped.join(", ")}`, 6000);
+  if (skipped.length) showBalloon(tr("tools.codeintel.wasUndoneOnlyPartly", { label: r.label }), tr("tools.codeintel.changedSince", { skipped: skipped.join(", ") }), 6000);
 }
 
 async function redoRefactoring(id: number, source: EditorView): Promise<void> {
@@ -307,7 +307,7 @@ async function redoRefactoring(id: number, source: EditorView): Promise<void> {
   for (const p of r.close) closeTab(p);
   await moveTabs(r.reopen);
   if (r.backend.changes.length) refreshTree(r.backend);
-  if (skipped.length) showBalloon(`${r.label} was redone only partly`, `Changed since: ${skipped.join(", ")}`, 6000);
+  if (skipped.length) showBalloon(tr("tools.codeintel.wasRedoneOnlyPartly", { label: r.label }), tr("tools.codeintel.changedSince", { skipped: skipped.join(", ") }), 6000);
 }
 
 /** Editor extension: refactoring entries in the undo history of every file editor. */

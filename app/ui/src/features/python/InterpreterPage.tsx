@@ -12,6 +12,7 @@ import { showToolWindow } from "@/state/layout";
 import { AddInterpreterDialog, type AddResult } from "./AddInterpreterDialog";
 import { newer } from "./PackagesView";
 import { currentInterpreter, fromSetting, KIND_LABELS, labelOf, packageListing, packagesLoading, toSetting } from "./state";
+import { t as tr } from "@/i18n";
 
 const norm = (n: string) => n.toLowerCase().replace(/[-_.]+/g, "-");
 
@@ -62,14 +63,14 @@ export function InterpreterPage() {
   return (
     <div class="set-page py-interp-page" data-testid="python-interpreter-page">
       <div class="py-interp-picker">
-        <label for="py-interp-select">Python Interpreter:</label>
+        <label for="py-interp-select">{tr("langs.python.pythonInterpreterLabel")}</label>
         <select id="py-interp-select" value={selected()} onChange={(e) => setDraft("python.interpreter", e.currentTarget.value)}>
-          <option value="">{automatic() ? `${currentInterpreter()!.label} (project environment)` : "<No interpreter>"}</option>
+          <option value="">{automatic() ? tr("langs.python.projectEnvironment", { label: currentInterpreter()!.label }) : tr("langs.python.noInterpreter")}</option>
           <Show when={!known()}>
             <option value={selected()}>{selected()}</option>
           </Show>
           <Show when={configured().length}>
-            <optgroup label="Configured">
+            <optgroup label={tr("langs.python.configured")}>
               <For each={configured()}>
                 {(i) => (
                   <option value={i.name}>
@@ -79,7 +80,7 @@ export function InterpreterPage() {
               </For>
             </optgroup>
           </Show>
-          <optgroup label="Detected">
+          <optgroup label={tr("common.detected")}>
             <For each={detected() ?? []}>
               {(d) => (
                 <option value={d.path}>
@@ -90,10 +91,10 @@ export function InterpreterPage() {
           </optgroup>
         </select>
         <button class="btn-secondary" onClick={() => setAdding(true)} data-testid="python-add-interpreter-button">
-          <Plus size={13} /> Add Interpreter…
+          <Plus size={13} /> {tr("langs.python.addInterpreterEllipsis")}
         </button>
         <Show when={isConfigured()}>
-          <button class="icon-btn" title="Remove Interpreter" onClick={removeSelected}>
+          <button class="icon-btn" title={tr("langs.python.removeInterpreter")} onClick={removeSelected}>
             <Trash2 size={14} />
           </button>
         </Show>
@@ -102,19 +103,19 @@ export function InterpreterPage() {
         {(cur) => (
           <div class="py-interp-path muted">
             {cur().interpreter.path}
-            <Show when={cur().interpreter.version}> · Python {cur().interpreter.version}</Show>
-            <Show when={packageListing()}> · packages managed with {packageListing()!.manager}</Show>
+            <Show when={cur().interpreter.version}> {tr("langs.python.python", { version: cur().interpreter.version })}</Show>
+            <Show when={packageListing()}> {tr("langs.python.packagesManagedWith", { manager: packageListing()!.manager })}</Show>
           </div>
         )}
       </Show>
       <div class="py-interp-table-head">
-        <span>Package</span>
-        <span>Version</span>
-        <span>Latest version</span>
+        <span>{tr("common.package")}</span>
+        <span>{tr("langs.python.version")}</span>
+        <span>{tr("langs.python.latestVersion")}</span>
       </div>
       <div class="py-interp-table">
-        <Show when={!packagesLoading()} fallback={<div class="muted py-interp-empty">Loading packages…</div>}>
-          <For each={packageListing()?.packages ?? []} fallback={<div class="muted py-interp-empty">No packages</div>}>
+        <Show when={!packagesLoading()} fallback={<div class="muted py-interp-empty">{tr("langs.python.loadingPackagesEllipsis")}</div>}>
+          <For each={packageListing()?.packages ?? []} fallback={<div class="muted py-interp-empty">{tr("langs.python.noPackages")}</div>}>
             {(p) => (
               <div class="py-interp-table-row">
                 <span>
@@ -133,11 +134,10 @@ export function InterpreterPage() {
         </Show>
       </div>
       <div class="py-interp-foot muted">
-        Install, upgrade and remove packages in the{" "}
+        {tr("langs.python.installUpgradeAndRemovePackages")}
         <button class="link-btn" onClick={() => showToolWindow("pythonPackages")}>
-          Python Packages
-        </button>{" "}
-        tool window.
+          {tr("langs.python.pythonPackages")}
+        </button>{tr("langs.python.toolWindow")}
       </div>
       <Show when={adding()}>
         <AddInterpreterDialog onDone={done} onClose={() => setAdding(false)} />

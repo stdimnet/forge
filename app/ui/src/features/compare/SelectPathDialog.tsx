@@ -9,6 +9,7 @@ import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
 import { FileIcon } from "@/shell/FileIcon";
 import { setSelectPathRequest, type SelectPathRequest } from "./state";
+import { t } from "@/i18n";
 
 const parentsOf = (path: string) => {
   const parts = path.split("/");
@@ -107,7 +108,7 @@ export function SelectPathDialog(props: { req: SelectPathRequest }) {
         </div>
         <footer class="git-dialog-actions">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!acceptable()} onClick={() => void ok()}>
             OK

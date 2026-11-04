@@ -7,6 +7,7 @@
 import { Show } from "solid-js";
 import type { DownloadProgress, UpdateAction, UpdateOffer } from "@/ipc/updates";
 import { downloadFraction, downloadLabel, formatSpeed, formatTransferred, signatureLabel } from "./format";
+import { t } from "@/i18n";
 import "./updates.css";
 
 export function UpdatePanel(props: {
@@ -31,7 +32,7 @@ export function UpdatePanel(props: {
       data-testid="update-panel"
     >
       <h2>
-        Update available: <em>{props.offer.version}</em>
+        {t("tools.updates.updateAvailableLabel")} <em>{props.offer.version}</em>
       </h2>
       <p>{props.offer.summary}</p>
       <Show
@@ -47,14 +48,14 @@ export function UpdatePanel(props: {
               }}
               onClick={() => props.onAction("download")}
             >
-              Download and restart
+              {t("tools.updates.downloadAndRestart")}
             </button>
             <button class="upd-btn" type="button" onClick={() => props.onAction("later")}>
-              Later
+              {t("tools.updates.later")}
             </button>
             <span class="grow" />
             <button class="upd-btn link" type="button" onClick={() => props.onAction("skip")}>
-              Skip this version
+              {t("tools.updates.skipThisVersion")}
             </button>
           </div>
         }

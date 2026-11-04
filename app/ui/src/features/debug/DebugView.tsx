@@ -322,8 +322,8 @@ function ConsolePane() {
             disabled={!activeSession()}
             placeholder={
               pausedSession()
-                ? `Evaluate ${activeSession()?.adapter ? "an expression or debugger command" : "a PHP expression"} in the current frame`
-                : "Expressions can be evaluated while the program is suspended"
+                ? tr("tools.debug.evaluateInTheCurrentFrame", { value: activeSession()?.adapter ? "an expression or debugger command" : "a PHP expression" })
+                : tr("tools.debug.expressionsCanBeEvaluatedWhile")
             }
           />
         </div>

@@ -254,7 +254,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
       data-testid={`dbo-node-${section}-${index}`}
     >
       {icon()}
-      <span class="dbo-node-label">{label() || "<unnamed>"}</span>
+      <span class="dbo-node-label">{label() || tr("tools.database.unnamed")}</span>
       <Show when={hint?.()}>
         <span class="dbo-node-hint">{hint!()}</span>
       </Show>
@@ -411,7 +411,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                   </div>
                   <Show when={c().original && c().original !== c().name}>
                     <span />
-                    <span class="dsd-hint muted">Renamed from {c().original}</span>
+                    <span class="dsd-hint muted">{tr("tools.database.renamedFrom", { original: c().original })}</span>
                   </Show>
                 </div>
               );
@@ -515,7 +515,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                   <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
                   <input class="dsd-input" value={spec.checks[i()].name} spellcheck={false} onInput={(e) => setSpec("checks", i(), "name", e.currentTarget.value)} />
                   <span class="db-form-label">{tr("database.objects.tableDialog.expression")}</span>
-                  <input class="dsd-input mono" value={spec.checks[i()].expression} placeholder={"price >= 0"} spellcheck={false} onInput={(e) => setSpec("checks", i(), "expression", e.currentTarget.value)} />
+                  <input class="dsd-input mono" value={spec.checks[i()].expression} placeholder={tr("tools.database.price0")} spellcheck={false} onInput={(e) => setSpec("checks", i(), "expression", e.currentTarget.value)} />
                 </div>
               );
             }}
@@ -533,8 +533,8 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
           </For>
         </div>
       </Show>
-      <div class="dbo-preview-label">{modify ? "ALTER script" : "SQL preview"}</div>
-      <SqlPreview sql={sqlText()} dialect={dialect} placeholder={modify && loaded() ? "-- No changes" : "-- Loading…"} testId="dbo-table-sql" />
+      <div class="dbo-preview-label">{modify ? tr("tools.database.alterScript") : tr("tools.database.sqlPreview")}</div>
+      <SqlPreview sql={sqlText()} dialect={dialect} placeholder={modify && loaded() ? tr("tools.database.noChanges") : tr("tools.database.loadingEllipsis")} testId="dbo-table-sql" />
       <Show when={addMenu()}>{(m) => <ContextMenu {...m()} items={addItems()} onClose={() => setAddMenu(null)} />}</Show>
     </ObjectModal>
   );

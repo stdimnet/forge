@@ -1,5 +1,6 @@
 import { createSignal, For, onCleanup, Show, type JSX } from "solid-js";
 import { Check, ChevronDown } from "lucide-solid";
+import { t } from "@/i18n";
 
 export interface DropdownItem<T extends string | number> {
   value: T;
@@ -51,7 +52,7 @@ export function Dropdown<T extends string | number>(props: {
           <Show when={props.header}>
             <div class="chat-popup-title">{props.header}</div>
           </Show>
-          <For each={props.items} fallback={<div class="chat-popup-empty">{props.empty ?? "Nothing here"}</div>}>
+          <For each={props.items} fallback={<div class="chat-popup-empty">{props.empty ?? t("tools.aiChat.nothingHere")}</div>}>
             {(item) => (
               <button
                 class="chat-popup-item"

@@ -9,6 +9,7 @@ import { spellApi, type ChangeToData, type ReplaceData, type SaveToData, type Sp
 import { item, separator, showContextMenu, type MenuEntry } from "@/features/contextMenu/state";
 import { settingsState } from "@/state/settings";
 import { dictionaryWords, inspectionsOn, saveWord, settingsFingerprint, spellOptions } from "./options";
+import { t } from "@/i18n";
 
 /** The problems of `text`, checked a moment after it stops changing. */
 export function createCommitMessageCheck(text: Accessor<string>): Accessor<SpellProblem[]> {
@@ -123,12 +124,12 @@ export function CommitSpellProblems(props: { text: string; problems: SpellProble
         <li
           class={`spell-problem ${p.kind}`}
           data-spell-problem={p.word ?? p.rule}
-          title={`${p.message}\nClick to show fixes`}
+          title={t("tools.spelling.clickToShowFixes", { message: p.message })}
           onClick={(e) => void showFixes(p, e.clientX, e.clientY, props.onReplace)}
         >
           {p.kind === "typo" ? <SpellCheck size={12} /> : <WholeWord size={12} />}
           <span>
-            Line {lineOf(props.text, p.from)}: {p.message}
+            {t("tools.spelling.line", { value: lineOf(props.text, p.from), message: p.message })}
           </span>
         </li>
       )}

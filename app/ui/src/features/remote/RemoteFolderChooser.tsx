@@ -7,6 +7,7 @@ import { createEffect, createMemo, createResource, createSignal, For, Show } fro
 import { ArrowUp, Eye, EyeOff, File, Folder, FolderCode, House, LoaderCircle, RefreshCw, X } from "lucide-solid";
 import { remoteApi, type BrowseEntry } from "@/ipc/remote";
 import { folderChooser, type FolderChooserRequest } from "./store";
+import { t } from "@/i18n";
 
 export function RemoteFolderChooser() {
   return <Show when={folderChooser()}>{(req) => <Chooser request={req()} />}</Show>;
@@ -46,35 +47,35 @@ function Chooser(props: { request: FolderChooserRequest }) {
       <div
         class="ssh-dialog ssh-chooser"
         role="dialog"
-        aria-label="Choose Project Directory"
+        aria-label={t("tools.remote.chooseProjectDirectory")}
         data-testid="remote-chooser"
         onKeyDown={(e) => e.key === "Escape" && props.request.pick(null)}
       >
         <div class="ssh-titlebar">
-          <span>Choose Project Directory on {props.request.label}</span>
-          <button class="icon-btn" title="Close" onClick={() => props.request.pick(null)}>
+          <span>{t("tools.remote.chooseProjectDirectoryOn", { label: props.request.label })}</span>
+          <button class="icon-btn" title={t("common.close")} onClick={() => props.request.pick(null)}>
             <X size={15} />
           </button>
         </div>
         <div class="ssh-chooser-toolbar">
-          <button class="icon-btn" title="Home Directory" onClick={() => go("~")}>
+          <button class="icon-btn" title={t("tools.remote.homeDirectory")} onClick={() => go("~")}>
             <House size={15} />
           </button>
           <button
             class="icon-btn"
-            title="Parent Directory"
+            title={t("tools.remote.parentDirectory")}
             disabled={!listing()?.parent}
             onClick={() => listing()?.parent && go(listing()!.parent!)}
           >
             <ArrowUp size={15} />
           </button>
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <button class="icon-btn" title={t("common.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={14} />
           </button>
           <button
             class="icon-btn"
             classList={{ active: hidden() }}
-            title={hidden() ? "Hide Hidden Files" : "Show Hidden Files"}
+            title={hidden() ? t("tools.remote.hideHiddenFiles") : t("tools.remote.showHiddenFiles")}
             onClick={() => setHidden((v) => !v)}
           >
             {hidden() ? <Eye size={15} /> : <EyeOff size={15} />}
@@ -91,14 +92,14 @@ function Chooser(props: { request: FolderChooserRequest }) {
         <div class="ssh-chooser-list" role="listbox">
           <Show when={listing.loading}>
             <div class="ssh-chooser-empty muted">
-              <LoaderCircle size={14} class="ssh-spin" /> Loading…
+              <LoaderCircle size={14} class="ssh-spin" /> {t("common.loadingEllipsis")}
             </div>
           </Show>
           <Show when={listing.error}>
             <div class="ssh-chooser-empty ssh-error-text">{String((listing.error as Error)?.message ?? listing.error)}</div>
           </Show>
           <Show when={!listing.loading && !listing.error}>
-            <For each={entries()} fallback={<div class="ssh-chooser-empty muted">Empty folder</div>}>
+            <For each={entries()} fallback={<div class="ssh-chooser-empty muted">{t("tools.remote.emptyFolder")}</div>}>
               {(e) => (
                 <div
                   class="ssh-chooser-row"
@@ -123,9 +124,9 @@ function Chooser(props: { request: FolderChooserRequest }) {
           </Show>
         </div>
         <div class="ssh-footer">
-          <span class="ssh-progress muted ssh-small">Double-click a folder to open it</span>
+          <span class="ssh-progress muted ssh-small">{t("tools.remote.doubleClickAFolderTo")}</span>
           <button class="btn-secondary" onClick={() => props.request.pick(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!listing()} onClick={choose} data-testid="remote-chooser-ok">
             OK

@@ -168,10 +168,10 @@ export function MoveClassDialog(props: { req: MoveClassRequest }) {
           autofocus
         />
         <Show when={!valid()}>
-          <div class="dialog-error">'{ns().trim()}' is not a valid namespace name</div>
+          <div class="dialog-error">{tr("tools.codeintel.isNotAValidNamespace", { ns: ns().trim() })}</div>
         </Show>
         <Show when={!t.sole}>
-          <div class="refactor-note">The file declares more than {t.name}: the class moves to a new file.</div>
+          <div class="refactor-note">{tr("tools.codeintel.theFileDeclaresMoreThan", { name: t.name })}</div>
         </Show>
         <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} onChange={setComments} />
       </div>
@@ -223,20 +223,20 @@ export function MoveMembersDialog(props: { req: MoveMembersRequest }) {
     <Frame title={tr("codeintel.moveDialogs.moveMembers")} class="move-members-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Move members from: <code>{t.classFqn}</code>
+          {tr("tools.codeintel.moveMembersFromLabel")} <code>{t.classFqn}</code>
         </div>
-        <label class="form-label">To (fully qualified name):</label>
+        <label class="form-label">{tr("tools.codeintel.toFullyQualifiedNameLabel")}</label>
         <input
           ref={focusSelect}
           class="move-input"
           value={target()}
-          placeholder={"App\\Support\\Helpers"}
+          placeholder={tr("tools.codeintel.appSupportHelpers")}
           spellcheck={false}
           aria-label={tr("codeintel.moveDialogs.targetClass")}
           onInput={(e) => setTarget(e.currentTarget.value)}
         />
         <fieldset class="refactor-group">
-          <legend>Members to be moved (static only)</legend>
+          <legend>{tr("tools.codeintel.membersToBeMovedStatic")}</legend>
           <div class="move-members-list" role="list">
             <For each={t.members}>
               {(m) => (
@@ -265,7 +265,7 @@ export function MoveFunctionDialog(props: { req: MoveFunctionRequest }) {
     <Frame title={tr("codeintel.moveDialogs.moveFunction")} class="move-class-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Move function <code>{t.fqn}()</code>
+          {tr("tools.codeintel.moveFunction")} <code>{t.fqn}()</code>
         </div>
         <label class="form-label">{tr("codeintel.moveDialogs.toFile")}</label>
         <input ref={focusSelect} class="move-input" value={file()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toFile2")} onInput={(e) => setFile(e.currentTarget.value)} />
@@ -284,7 +284,7 @@ export function MoveFilesDialog(props: { req: MoveFilesRequest }) {
   return (
     <Frame title={tr("codeintel.moveDialogs.move")} class="move-class-dialog" onKeyDown={keys(() => close(false), () => close(true))}>
       <div class="dialog-body">
-        <div class="refactor-note">Move {props.req.what}</div>
+        <div class="refactor-note">{tr("tools.codeintel.move", { what: props.req.what })}</div>
         <label class="form-label">{tr("codeintel.moveDialogs.toDirectory")}</label>
         <input ref={focusSelect} class="move-input" value={dir()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toDirectory2")} onInput={(e) => setDir(e.currentTarget.value)} />
         <Show when={props.req.php}>
@@ -306,7 +306,7 @@ export function CopyFilesDialog(props: { req: CopyFilesRequest }) {
   return (
     <Frame title={tr("codeintel.moveDialogs.copy")} class="move-class-dialog" onKeyDown={keys(() => close(false), run)}>
       <div class="dialog-body">
-        <div class="refactor-note">Copy {props.req.what}</div>
+        <div class="refactor-note">{tr("tools.codeintel.copy", { what: props.req.what })}</div>
         <label class="form-label">{tr("codeintel.moveDialogs.newName")}</label>
         <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.newName2")} onInput={(e) => setName(e.currentTarget.value)} />
         <label class="form-label">{tr("codeintel.moveDialogs.toDirectory")}</label>
@@ -323,7 +323,7 @@ export function SafeDeleteDialog(props: { req: SafeDeleteRequest }) {
   return (
     <Frame title={tr("codeintel.moveDialogs.safeDelete")} class="safe-delete-dialog" focus onKeyDown={keys(() => close(false), () => close(true))}>
       <div class="dialog-body">
-        <div>Delete {props.req.what}?</div>
+        <div>{tr("tools.codeintel.delete", { what: props.req.what })}</div>
         <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} onChange={setComments} />
       </div>
       <Buttons ok="OK" cancel={() => close(false)} run={() => close(true)} />
@@ -409,7 +409,7 @@ export function ChangeSignatureDialog(props: { req: ChangeSignatureRequest }) {
             </label>
           </Show>
           <label class="form-label">
-            Return type:
+            {tr("tools.codeintel.returnTypeLabel")}
             <input class="move-input mono" value={returnType()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.returnType")} onInput={(e) => setReturnType(e.currentTarget.value)} />
           </label>
           <label class="form-label">
@@ -480,7 +480,7 @@ export function ChangeSignatureDialog(props: { req: ChangeSignatureRequest }) {
             </div>
           </div>
         </fieldset>
-        <For each={removedUsed()}>{({ p }) => <div class="refactor-note warning">Parameter ${p.name} is used in the body and is removed.</div>}</For>
+        <For each={removedUsed()}>{({ p }) => <div class="refactor-note warning">{tr("tools.codeintel.parameterIsUsedInThe", { name: p.name })}</div>}</For>
         <div class="refactor-signature-label">{tr("codeintel.moveDialogs.signaturePreview")}</div>
         <pre class="refactor-signature">{preview()}</pre>
         <Show when={error()}>
@@ -512,9 +512,9 @@ export function MakeStaticDialog(props: { req: MakeStaticRequest }) {
     <Frame title={tr("codeintel.moveDialogs.makeMethodStatic")} class="move-class-dialog" focus onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div>
-          Make method <code>{`${info.className}::${info.name}()`}</code> static
+          {tr("tools.codeintel.makeMethod")} <code>{`${info.className}::${info.name}()`}</code> static
         </div>
-        <Show when={info.usesThis} fallback={<div class="refactor-note">The method does not use $this; its calls become {info.className}::{info.name}().</div>}>
+        <Show when={info.usesThis} fallback={<div class="refactor-note">{tr("tools.codeintel.theMethodDoesNotUse", { className: info.className, name: info.name })}</div>}>
           <div class="refactor-radios vertical" role="radiogroup">
             <label class="form-label check">
               <input type="radio" name="make-static" checked={mode() === "object"} onChange={() => setMode("object")} />
@@ -526,7 +526,7 @@ export function MakeStaticDialog(props: { req: MakeStaticRequest }) {
             </div>
             <label class="form-label check" title={info.needsObject ? tr("codeintel.moveDialogs.theMethodCallsMethodsOr") : undefined}>
               <input type="radio" name="make-static" checked={mode() === "fields"} disabled={info.needsObject || !info.fields.length} onChange={() => setMode("fields")} />
-              Add parameters for fields: {info.fields.map((f) => `$${f}`).join(", ") || "none"}
+              {tr("tools.codeintel.addParametersForFieldsLabel")} {info.fields.map((f) => `$${f}`).join(", ") || "none"}
             </label>
           </div>
         </Show>

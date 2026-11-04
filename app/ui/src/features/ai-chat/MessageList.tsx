@@ -7,6 +7,7 @@ import type { Block, Turn } from "./model";
 import { Markdown } from "./Markdown";
 import { ToolCard } from "./ToolCard";
 import { PermissionCard } from "./PermissionCard";
+import { t as tr } from "@/i18n";
 
 function Thinking(props: { block: Block & { kind: "thinking" } }) {
   const [open, setOpen] = createSignal(false);
@@ -64,7 +65,7 @@ function TurnFooter(props: { turn: Turn }) {
         <div class="chat-changed">
           <div class="chat-changed-title">
             <FileText size={13} />
-            {files().length} file{files().length === 1 ? "" : "s"} changed
+            {tr("common.filesChanged", { count: files().length })}
           </div>
           <For each={files()}>
             {(f) => (
@@ -79,7 +80,7 @@ function TurnFooter(props: { turn: Turn }) {
       </Show>
       <Show when={props.turn.status === "interrupted"}>
         <div class="chat-turn-note">
-          <CircleStop size={13} /> Interrupted
+          <CircleStop size={13} /> {tr("tools.aiChat.interrupted")}
         </div>
       </Show>
       <Show when={s()}>
@@ -146,7 +147,7 @@ export function MessageList() {
                     <i />
                     <i />
                   </span>
-                  Working…
+                  {tr("tools.aiChat.workingEllipsis")}
                 </div>
               </Show>
               <TurnFooter turn={turn} />

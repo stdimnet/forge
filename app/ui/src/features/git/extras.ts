@@ -152,7 +152,7 @@ export async function removeWorktree(w: Worktree): Promise<void> {
 export async function pruneWorktrees(): Promise<void> {
   const out = await runGit("Prune failed", () => extrasApi.pruneWorktrees());
   if (out === undefined) return;
-  notify("success", t("git.extras.worktreesPruned"), out || "Nothing to prune");
+  notify("success", t("git.extras.worktreesPruned"), out || t("tools.git.nothingToPrune"));
   await refreshWorktrees();
 }
 

@@ -7,6 +7,7 @@ import { createMemo, Show } from "solid-js";
 import { LoaderCircle, X } from "lucide-solid";
 import { progressFraction, progressText } from "./autoInstall";
 import { activeInstalls, cancelManaged } from "./managed";
+import { t } from "@/i18n";
 
 export function InstallStatus() {
   const current = createMemo(() => activeInstalls()[0]);
@@ -26,7 +27,7 @@ export function InstallStatus() {
             <Show when={more() > 0}>
               <span class="muted">+{more()}</span>
             </Show>
-            <button class="icon-btn ls-install-stop" title="Cancel" onClick={() => cancelManaged(a().id)}>
+            <button class="icon-btn ls-install-stop" title={t("common.cancel")} onClick={() => cancelManaged(a().id)}>
               <X size={12} />
             </button>
           </span>

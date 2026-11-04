@@ -44,6 +44,7 @@ import { openRecentFiles, recentOpen } from "./RecentFiles";
 import { openSettings } from "@/features/settings/dialogState";
 import { PopupHost } from "./PopupHost";
 import { focusToolWindowContent } from "@/features/accessibility/areas";
+import { t as tr } from "@/i18n";
 import "./navigation.css";
 
 function action(id: string, run: () => void | Promise<void>): void {
@@ -107,7 +108,7 @@ for (const [actionId, twId] of Object.entries(TOOL_WINDOW_ACTIONS)) {
   action(actionId, () => {
     const tw = findToolWindow(twId);
     if (!tw) {
-      showBalloon(`${actionById(actionId)?.title ?? twId} tool window is not available yet`);
+      showBalloon(tr("tools.navigation.toolWindowIsNotAvailable", { value: actionById(actionId)?.title ?? twId }));
       return;
     }
     // Like PHPStorm: a visible tool window is hidden, otherwise it is shown and focused.
@@ -203,7 +204,7 @@ async function copy(text: string, what: string): Promise<void> {
     await navigator.clipboard.writeText(text);
     showBalloon(`${what} copied`, text);
   } catch {
-    showBalloon(`Could not copy ${what.toLowerCase()}`);
+    showBalloon(tr("tools.navigation.couldNotCopy", { what: what.toLowerCase() }));
   }
 }
 action("CopyPaths", () => {

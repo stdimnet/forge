@@ -9,6 +9,7 @@ import { Plus } from "lucide-solid";
 import { suspendKeymap } from "@/keymap";
 import type { ContainerPort, ServiceDetails } from "@/ipc/services";
 import { forwardDialog, forwardPorts, setForwardDialog } from "./store";
+import { t } from "@/i18n";
 
 /** Privileged pod ports get a local port above 1024 (80 → 8080), like most guides use. */
 const localFor = (p: number) => (p < 1024 ? p + 8000 : p);
@@ -58,13 +59,13 @@ function Dialog(props: { d: ServiceDetails }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Forward Ports</div>
+        <div class="dialog-title">{t("tools.services.forwardPorts")}</div>
         <div class="dialog-body">
           <div class="svc-forward-pod">
-            Pod <b>{props.d.title}</b>
-            <span class="muted"> in namespace {props.d.target.namespace}</span>
+            {t("tools.services.pod")} <b>{props.d.title}</b>
+            <span class="muted"> {t("tools.services.inNamespace", { namespace: props.d.target.namespace })}</span>
           </div>
-          <label class="form-label">Local port : pod port</label>
+          <label class="form-label">{t("tools.services.localPortPodPort")}</label>
           <input
             ref={(el) => queueMicrotask(() => el.focus())}
             value={spec()}
@@ -76,10 +77,10 @@ function Dialog(props: { d: ServiceDetails }) {
               setError(null);
             }}
           />
-          <div class="svc-forward-hint muted">Separate several pairs with commas. A single port forwards the same port; ":80" picks a free local port.</div>
+          <div class="svc-forward-hint muted">{t("tools.services.separateSeveralPairsWithCommas")}</div>
           <Show when={ports().length}>
             <div class="svc-forward-suggest">
-              <span class="muted">Container ports:</span>
+              <span class="muted">{t("tools.services.containerPortsLabel")}</span>
               <For each={ports()}>
                 {(p) => (
                   <button class="svc-chip" title={`Add ${pairOf(p)}`} onClick={() => add(p)}>
@@ -100,10 +101,10 @@ function Dialog(props: { d: ServiceDetails }) {
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!spec().trim() || busy()} onClick={() => void ok()}>
-            Forward
+            {t("tools.services.forward")}
           </button>
         </div>
       </div>

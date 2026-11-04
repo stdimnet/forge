@@ -56,7 +56,7 @@ import {
   buildFirst,
   showCppBalloon,
 } from "./state";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -103,7 +103,7 @@ registerToolWindow({
 
 registerProblemsTab({
   id: BUILD_TAB,
-  title: "Build",
+  title: tr("langs.cpp.build2"),
   order: 5,
   count: () => buildProblems().filter((p) => p.severity === "error").length,
   visible: cppActive,
@@ -115,7 +115,7 @@ registerProblemsTab({
 registerRunConfigurationType({
   id: "cmake-app",
   name: "CMake Application",
-  description: "Build a CMake executable target and run or debug it (LLDB or GDB of the profile's toolchain).",
+  description: tr("langs.cpp.buildACmakeExecutableTarget"),
   icon: AppWindow,
   color: "var(--syn-function)",
   pluginId: PLUGIN,
@@ -126,19 +126,19 @@ registerRunConfigurationType({
   fields: [
     {
       key: "target",
-      label: "Target",
+      label: tr("common.target"),
       kind: "enum",
       required: true,
       options: () => executableTargets().map((t) => ({ value: t.name, label: t.name })),
     },
-    { key: "executable", label: "Executable", kind: "path", placeholder: "Empty: the target's executable" },
+    { key: "executable", label: tr("langs.cpp.executable"), kind: "path", placeholder: tr("langs.cpp.emptyTheTargetSExecutable") },
     {
       key: "debugger",
-      label: "Debugger",
+      label: tr("langs.cpp.debugger"),
       kind: "enum",
       default: "",
       options: [
-        { value: "", label: "Toolchain default" },
+        { value: "", label: tr("langs.cpp.toolchainDefault") },
         { value: "gdb", label: "GDB" },
         { value: "lldb", label: "LLDB" },
       ],
@@ -238,10 +238,10 @@ registerDebugLauncher({
 function buildTarget(): void {
   const targets = executableTargets().map((t) => t.name);
   setInputDialog({
-    title: "Build Target",
-    label: `CMake target${targets.length ? ` (${targets.join(", ")})` : ""}:`,
+    title: tr("langs.cpp.buildTarget"),
+    label: tr("langs.cpp.cmakeTargetLabel", { value: targets.length ? ` (${targets.join(", ")})` : "" }),
     value: targets[0] ?? "",
-    okLabel: "Build",
+    okLabel: tr("langs.cpp.build2"),
     onOk: (value) => void runBuild("build", [value.trim()]),
   });
 }

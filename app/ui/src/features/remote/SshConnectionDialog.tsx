@@ -22,6 +22,7 @@ import {
   type SshDialogRequest,
   type SshDialogResult,
 } from "./store";
+import { t } from "@/i18n";
 
 const NEW = "__new__";
 
@@ -103,7 +104,7 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
   const continueToProject = async () => {
     if (problems().length) return;
     setError(null);
-    setConnecting({ label: label(), message: `Connecting to ${label()}…` });
+    setConnecting({ label: label(), message: t("tools.remote.connectingToEllipsis", { label: label() }) });
     try {
       // Save new or changed connections so the project can reconnect later.
       const toSave = { ...config };
@@ -159,11 +160,11 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
     <div class="ssh-content" onKeyDown={onKey} data-testid="ssh-dialog">
       <div class="ssh-steps">
         <span class="ssh-step" classList={{ active: step() === 1, done: step() === 2 }}>
-          <span class="ssh-step-no">1</span> Connect to SSH
+          <span class="ssh-step-no">1</span> {t("tools.remote.connectToSsh")}
         </span>
         <ChevronRight size={14} class="muted" />
         <span class="ssh-step" classList={{ active: step() === 2 }}>
-          <span class="ssh-step-no">2</span> Choose Project
+          <span class="ssh-step-no">2</span> {t("tools.remote.chooseProject")}
         </span>
       </div>
 
@@ -171,7 +172,7 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
         <Show when={step() === 1}>
           <div class="ssh-config-row">
             <label class="ssh-label" for="ssh-config-select">
-              SSH configuration:
+              {t("common.sshConfigurationLabel")}
             </label>
             <select
               id="ssh-config-select"
@@ -180,7 +181,7 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
               onChange={(e) => pick(e.currentTarget.value)}
               disabled={busy()}
             >
-              <option value={NEW}>New connection</option>
+              <option value={NEW}>{t("tools.remote.newConnection2")}</option>
               <For each={saved() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
             </select>
           </div>
@@ -203,7 +204,7 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
               onClick={() => void test.run({ ...config }, secret())}
               data-testid="ssh-test"
             >
-              Test Connection
+              {t("common.testConnection")}
             </button>
             <TestResultLine state={test.state()} host={config.host.trim()} />
           </div>
@@ -215,14 +216,14 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
               <div class="ssh-connected">
                 <Server size={18} class="ssh-ok" />
                 <div>
-                  <div class="ssh-connected-title">Connected to {c().label}</div>
+                  <div class="ssh-connected-title">{t("tools.remote.connectedTo", { label: c().label })}</div>
                   <div class="muted ssh-connected-sub">
-                    {c().hostname} · {c().system} · Forge agent running
+                    {t("tools.remote.forgeAgentRunning", { hostname: c().hostname, system: c().system })}
                   </div>
                 </div>
               </div>
               <label class="ssh-label" for="ssh-project-path">
-                Project directory:
+                {t("tools.remote.projectDirectoryLabel")}
               </label>
               <div class="ssh-path">
                 <input
@@ -234,14 +235,12 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
                   onKeyDown={(e) => e.key === "Enter" && void open()}
                   data-testid="ssh-project-path"
                 />
-                <button class="ssh-browse" title="Browse…" onClick={() => void browse()} data-testid="ssh-browse">
+                <button class="ssh-browse" title={t("common.browseEllipsis")} onClick={() => void browse()} data-testid="ssh-browse">
                   <Folder size={14} />
                 </button>
               </div>
               <p class="ssh-hint">
-                Forge installs its agent in <code>~/.cache/forge-agent</code> on the host. Indexing, php-lsp and
-                other language servers, git, terminals and run configurations work on the host; files open in this
-                window.
+                {t("tools.remote.forgeInstallsItsAgentIn")} <code>~/.cache/forge-agent</code> {t("tools.remote.onTheHostIndexingPhp")}
               </p>
             </div>
           )}
@@ -268,16 +267,16 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
           </Show>
           <Show when={opening()}>
             <LoaderCircle size={14} class="ssh-spin" />
-            <span>Opening {path()}…</span>
+            <span>{t("tools.remote.openingEllipsis", { path: path() })}</span>
           </Show>
         </div>
         <Show when={step() === 2}>
           <button class="btn-secondary" disabled={busy()} onClick={() => setStep(1)}>
-            Back
+            {t("tools.remote.back")}
           </button>
         </Show>
         <button class="btn-secondary" disabled={busy()} onClick={close}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <Show
           when={step() === 2}
@@ -288,12 +287,12 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
               onClick={() => void continueToProject()}
               data-testid="ssh-continue"
             >
-              Check Connection and Continue
+              {t("tools.remote.checkConnectionAndContinue")}
             </button>
           }
         >
           <button class="btn-primary" disabled={busy() || !path().trim()} onClick={() => void open()} data-testid="ssh-open">
-            Open Project
+            {t("tools.remote.openProject")}
           </button>
         </Show>
       </div>

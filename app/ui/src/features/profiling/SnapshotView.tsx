@@ -14,6 +14,7 @@ import { openFileAt } from "@/editor/views";
 import { formatValue, hashColor, percent, ProfileBody, type FrameStyle } from "@/features/profiler/callTree";
 import { workspace } from "@/state/workspace";
 import { loadedSnapshot, profilerBusy, SOURCE_LABELS, switchMetric, type SourceId } from "./store";
+import { t as tr } from "@/i18n";
 import "./profiling.css";
 
 type Tab = "stats" | "tree" | "flame" | "summary" | "biggest";
@@ -115,7 +116,7 @@ function ExecutionStatistics(props: { snapshot: Snapshot }) {
         <table class="prof-top profiling-table">
           <thead>
             <tr>
-              <th>Callable</th>
+              <th>{tr("tools.profiling.callable")}</th>
               <th>{s().callsLabel}</th>
               <th>{noun(s())}</th>
               <th>%</th>
@@ -142,9 +143,9 @@ function ExecutionStatistics(props: { snapshot: Snapshot }) {
   return (
     <div class="profiling-stats" data-testid="profiler-statistics">
       <div class="profiling-filter">
-        <input class="input" placeholder="Filter callables" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
+        <input class="input" placeholder={tr("tools.profiling.filterCallables")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
         <span class="muted">
-          {rows().length.toLocaleString("en-US")} callables{rows().length > MAX_ROWS ? `, the first ${MAX_ROWS} shown` : ""}
+          {rows().length.toLocaleString("en-US")} callables{rows().length > MAX_ROWS ? tr("tools.profiling.theFirstShown", { MAX_ROWS }) : ""}
         </span>
       </div>
       <div class="profiling-scroll profiling-main">
@@ -154,7 +155,7 @@ function ExecutionStatistics(props: { snapshot: Snapshot }) {
               {head("name", "Callable")}
               {head("calls", s().callsLabel === "Calls" ? "Invocation Count" : s().callsLabel)}
               {head("own", `Own ${noun(s())}`)}
-              <th>Own %</th>
+              <th>{tr("tools.profiling.own")}</th>
               {head("total", noun(s()))}
               <th>%</th>
             </tr>
@@ -189,8 +190,8 @@ function ExecutionStatistics(props: { snapshot: Snapshot }) {
       </div>
       <Show when={selected() !== null}>
         <div class="profiling-split">
-          <EdgeList title="Callees" edges={callees().map((e) => ({ fn: e.callee, calls: e.calls, total: e.total }))} />
-          <EdgeList title="Callers" edges={callers().map((e) => ({ fn: e.caller, calls: e.calls, total: e.total }))} />
+          <EdgeList title={tr("tools.profiling.callees")} edges={callees().map((e) => ({ fn: e.callee, calls: e.calls, total: e.total }))} />
+          <EdgeList title={tr("tools.profiling.callers")} edges={callers().map((e) => ({ fn: e.caller, calls: e.calls, total: e.total }))} />
         </div>
       </Show>
     </div>
@@ -236,7 +237,7 @@ function ClassRow(props: { c: HeapClass; heap: HeapSummary }) {
         </For>
         <Show when={props.c.count > props.c.objects.length}>
           <tr class="profiling-object">
-            <td class="muted">{(props.c.count - props.c.objects.length).toLocaleString("en-US")} smaller objects</td>
+            <td class="muted">{tr("tools.profiling.smallerObjects", { value: (props.c.count - props.c.objects.length).toLocaleString("en-US") })}</td>
             <td />
             <td />
             <td />
@@ -258,11 +259,11 @@ function MemoryView(props: { heap: HeapSummary; tab: Tab }) {
           <table class="prof-top profiling-table">
             <thead>
               <tr>
-                <th>Constructor</th>
-                <th>Count</th>
-                <th>Shallow Size</th>
+                <th>{tr("tools.profiling.constructor")}</th>
+                <th>{tr("tools.profiling.count")}</th>
+                <th>{tr("tools.profiling.shallowSize")}</th>
                 <th>%</th>
-                <th>Retained Size</th>
+                <th>{tr("tools.profiling.retainedSize")}</th>
                 <th>%</th>
               </tr>
             </thead>
@@ -275,10 +276,10 @@ function MemoryView(props: { heap: HeapSummary; tab: Tab }) {
         <table class="prof-top profiling-table">
           <thead>
             <tr>
-              <th>Object</th>
-              <th>Constructor</th>
-              <th>Shallow Size</th>
-              <th>Retained Size</th>
+              <th>{tr("tools.profiling.object")}</th>
+              <th>{tr("tools.profiling.constructor")}</th>
+              <th>{tr("tools.profiling.shallowSize")}</th>
+              <th>{tr("tools.profiling.retainedSize")}</th>
               <th>%</th>
             </tr>
           </thead>
@@ -344,7 +345,7 @@ export function SnapshotView(props: { source: SourceId }) {
         when={l()}
         fallback={
           <div class="prof-empty muted">
-            <p>No {SOURCE_LABELS[props.source]} snapshot yet.</p>
+            <p>{tr("tools.profiling.noSnapshotYet", { value: SOURCE_LABELS[props.source] })}</p>
             <p>{EMPTY[props.source]}</p>
           </div>
         }
@@ -374,14 +375,14 @@ export function SnapshotView(props: { source: SourceId }) {
                     when={!s().heap}
                     fallback={
                       <>
-                        <TabButton source={props.source} tab="summary" current={tab()} label="Summary" icon={HardDrive} />
-                        <TabButton source={props.source} tab="biggest" current={tab()} label="Biggest Objects" icon={Rows3} />
+                        <TabButton source={props.source} tab="summary" current={tab()} label={tr("tools.profiling.summary")} icon={HardDrive} />
+                        <TabButton source={props.source} tab="biggest" current={tab()} label={tr("tools.profiling.biggestObjects")} icon={Rows3} />
                       </>
                     }
                   >
-                    <TabButton source={props.source} tab="stats" current={tab()} label="Execution Statistics" icon={Table2} />
-                    <TabButton source={props.source} tab="tree" current={tab()} label="Call Tree" icon={ListTree} />
-                    <TabButton source={props.source} tab="flame" current={tab()} label="Flame Graph" icon={Flame} />
+                    <TabButton source={props.source} tab="stats" current={tab()} label={tr("tools.profiling.executionStatistics")} icon={Table2} />
+                    <TabButton source={props.source} tab="tree" current={tab()} label={tr("common.callTree")} icon={ListTree} />
+                    <TabButton source={props.source} tab="flame" current={tab()} label={tr("tools.profiling.flameGraph")} icon={Flame} />
                   </Show>
                 </div>
               </div>

@@ -13,6 +13,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { showBalloon } from "@/keymap";
 import { INSPECTIONS_PAGE } from "./draft";
 import { profileOp, profiles, selectedProfile, setProfiles, suppressActions } from "./model";
+import { t } from "@/i18n";
 
 const before = (a: { line: number; character: number }, b: { line: number; character: number }) =>
   a.line < b.line || (a.line === b.line && a.character <= b.character);
@@ -64,8 +65,8 @@ registerContextActionHandler("inspections.disable", async (data) => {
   if ("error" in next) return;
   try {
     setProfiles(await inspectionsApi.save(next));
-    showBalloon(`Inspection disabled in profile '${profile.name}'`, "Settings | Editor | Inspections turns it on again.");
+    showBalloon(t("tools.inspections.inspectionDisabledInProfile", { name: profile.name }), t("tools.inspections.settingsEditorInspectionsTurnsIt"));
   } catch (e) {
-    showBalloon("Could not disable the inspection", e instanceof Error ? e.message : String(e));
+    showBalloon(t("tools.inspections.couldNotDisableTheInspection"), e instanceof Error ? e.message : String(e));
   }
 });

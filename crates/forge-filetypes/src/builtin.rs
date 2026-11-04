@@ -213,6 +213,48 @@ const TEMPLATES: &[&str] = &[
     "erb",
 ];
 
+/// Interpreters of `#!` lines per type (`php` also matches `php8.3`), for files without a
+/// recognised name: Laravel's `artisan`, Symfony's `bin/console`, `#!/usr/bin/env node`.
+const INTERPRETERS: &[(&str, &[&str])] = &[
+    ("php", &["php", "php-cgi", "hhvm"]),
+    ("javascript", &["node", "nodejs", "bun", "zx", "qjs", "gjs"]),
+    // Deno runs TypeScript as is, so its scripts are TypeScript.
+    ("typescript", &["ts-node", "ts-node-esm", "tsx", "deno"]),
+    (
+        "shell",
+        &[
+            "sh", "bash", "zsh", "ksh", "mksh", "dash", "ash", "busybox", "fish",
+        ],
+    ),
+    ("python", &["python", "pypy", "uv", "pythonw"]),
+    ("ruby", &["ruby", "jruby", "truffleruby", "macruby"]),
+    ("lua", &["lua", "luajit", "tarantool"]),
+    ("perl", &["perl"]),
+    ("groovy", &["groovy"]),
+    ("kotlin", &["kotlin", "kotlinc"]),
+    ("scala", &["scala", "scala-cli", "amm"]),
+    ("go", &["gorun"]),
+    ("rust", &["rust-script"]),
+    ("swift", &["swift"]),
+    ("dart", &["dart"]),
+    ("csharp", &["dotnet-script"]),
+    ("elixir", &["elixir"]),
+    ("erlang", &["escript"]),
+    ("haskell", &["runghc", "runhaskell", "stack"]),
+    ("ocaml", &["ocaml"]),
+    ("clojure", &["clojure", "clj", "bb"]),
+    ("lisp", &["sbcl", "clisp"]),
+    ("scheme", &["guile", "racket", "chicken", "csi"]),
+    ("crystal", &["crystal"]),
+    ("coffeescript", &["coffee"]),
+    ("r", &["rscript"]),
+    ("julia", &["julia"]),
+    ("tcl", &["tclsh", "wish", "expect"]),
+    ("powershell", &["pwsh", "powershell"]),
+    ("octave", &["octave"]),
+    ("makefile", &["make", "gmake"]),
+];
+
 /// The bundled file types, in registration order.
 pub fn builtin_file_types() -> Vec<FileTypeSpec> {
     let strings = |xs: &[&str]| xs.iter().map(|s| s.to_string()).collect();
@@ -223,6 +265,11 @@ pub fn builtin_file_types() -> Vec<FileTypeSpec> {
             extensions: strings(extensions),
             file_names: strings(file_names),
             template: TEMPLATES.contains(id),
+            interpreters: INTERPRETERS
+                .iter()
+                .find(|(t, _)| t == id)
+                .map(|(_, i)| strings(i))
+                .unwrap_or_default(),
             ..Default::default()
         })
         .collect()

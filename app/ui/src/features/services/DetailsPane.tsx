@@ -12,6 +12,7 @@ import { attachSession, disposeSession, fitSession } from "@/features/terminal/s
 import { servicesApi, logKey, runKey, type DetailsTab, type ServiceDetails } from "@/ipc/services";
 import { consoleFor, containerOf, pickContainer, setForwardDialog, setTab, stopForward, tab } from "./store";
 import { NodeIconView } from "./icons";
+import { t as tr } from "@/i18n";
 import "@xterm/xterm/css/xterm.css";
 import "@/features/run/run.css";
 
@@ -36,24 +37,24 @@ function PortForwards(props: { d: ServiceDetails }) {
   return (
     <section class="svc-section svc-forwards" data-section="Port Forwarding">
       <h4 class="svc-section-title">
-        Port Forwarding
+        {tr("tools.services.portForwarding")}
         <Show when={pod()}>
           <button class="svc-title-btn" data-testid="forward-ports" onClick={() => setForwardDialog(props.d)}>
-            <ArrowRightLeft size={12} /> Forward Ports…
+            <ArrowRightLeft size={12} /> {tr("tools.services.forwardPortsEllipsis")}
           </button>
         </Show>
       </h4>
-      <Show when={props.d.portForwards?.length} fallback={<div class="muted svc-forwards-empty">No forwarded ports.</div>}>
+      <Show when={props.d.portForwards?.length} fallback={<div class="muted svc-forwards-empty">{tr("tools.services.noForwardedPorts")}</div>}>
         <table class="svc-table svc-forward-table">
           <thead>
             <tr>
               <Show when={!pod()}>
-                <th>Pod</th>
+                <th>{tr("tools.services.pod")}</th>
               </Show>
-              <th>Local address</th>
-              <th>Pod port</th>
-              <th>Connections</th>
-              <th>Status</th>
+              <th>{tr("tools.services.localAddress")}</th>
+              <th>{tr("tools.services.podPort")}</th>
+              <th>{tr("tools.services.connections")}</th>
+              <th>{tr("common.status")}</th>
               <th />
             </tr>
           </thead>
@@ -68,17 +69,17 @@ function PortForwards(props: { d: ServiceDetails }) {
                   </Show>
                   <td>
                     <span class={`svc-dot ${f.error ? "error" : "running"}`} />
-                    <a class="svc-link" href={`http://localhost:${f.localPort}`} target="_blank" rel="noopener" title={`Open http://localhost:${f.localPort}`}>
+                    <a class="svc-link" href={`http://localhost:${f.localPort}`} target="_blank" rel="noopener" title={tr("tools.services.openHttpLocalhost", { localPort: f.localPort })}>
                       {f.address}:{f.localPort}
                     </a>
                   </td>
                   <td>{f.remotePort}</td>
                   <td>{f.connections}</td>
                   <td classList={{ "svc-forward-error": !!f.error }} title={f.error}>
-                    {f.error ?? (f.via ? `Forwarding via ${f.via}` : "Forwarding")}
+                    {f.error ?? (f.via ? tr("tools.services.forwardingVia", { via: f.via }) : tr("tools.services.forwarding"))}
                   </td>
                   <td class="svc-cell-actions">
-                    <button class="icon-btn svc-stop-forward" title="Stop Port Forwarding" data-testid="stop-forward" onClick={() => void stopForward(f.id)}>
+                    <button class="icon-btn svc-stop-forward" title={tr("tools.services.stopPortForwarding")} data-testid="stop-forward" onClick={() => void stopForward(f.id)}>
                       <Square size={11} stroke-width={0} fill="currentColor" />
                     </button>
                   </td>
@@ -96,14 +97,14 @@ function PortForwards(props: { d: ServiceDetails }) {
 function ContainerPicker(props: { d: ServiceDetails }) {
   const list = () => props.d.containers ?? [];
   return (
-    <label class="svc-container-picker" title="Container for Log, Exec and Attached Console">
-      Container:
+    <label class="svc-container-picker" title={tr("tools.services.containerForLogExecAnd")}>
+      {tr("tools.services.containerLabel")}
       <select data-testid="container-picker" value={containerOf(props.d) ?? ""} onChange={(e) => pickContainer(props.d.nodeId, e.currentTarget.value)}>
         <For each={list()}>
           {(c) => (
             <option value={c.name} disabled={c.init && tab() === "console"}>
               {c.name}
-              {c.init ? " (init)" : c.default && list().length > 1 ? " (default)" : ""}
+              {c.init ? tr("tools.services.init") : c.default && list().length > 1 ? tr("tools.services.default") : ""}
             </option>
           )}
         </For>
@@ -210,10 +211,10 @@ function LogTab(props: { d: ServiceDetails; container?: string }) {
   return (
     <div class="svc-log">
       <div class="svc-log-tools">
-        <button class="icon-btn" classList={{ active: wrap() }} title="Soft-Wrap" onClick={() => setWrap(!wrap())}>
+        <button class="icon-btn" classList={{ active: wrap() }} title={tr("tools.services.softWrap")} onClick={() => setWrap(!wrap())}>
           <WrapText size={14} />
         </button>
-        <button class="icon-btn" classList={{ active: follow() }} title="Scroll to the End" onClick={() => setFollow(!follow())}>
+        <button class="icon-btn" classList={{ active: follow() }} title={tr("common.scrollToTheEnd")} onClick={() => setFollow(!follow())}>
           <ArrowDownToLine size={14} />
         </button>
       </div>
@@ -224,10 +225,10 @@ function LogTab(props: { d: ServiceDetails; container?: string }) {
         scrollToEnd={follow()}
         emptyText={
           props.d.target.kind === "deployment"
-            ? "No log output from the deployment's pods yet."
+            ? tr("tools.services.noLogOutputFromThe")
             : followsLogs(props.d)
-              ? "No log output yet."
-              : "Output of Up, Down, builds and pulls appears here."
+              ? tr("tools.services.noLogOutputYet")
+              : tr("tools.services.outputOfUpDownBuilds")
         }
       />
     </div>
@@ -259,7 +260,7 @@ function Inspection(props: { d: ServiceDetails }) {
   );
   return (
     <pre class="svc-inspect" tabIndex={0}>
-      <Show when={text()} fallback={<span class="muted">Loading…</span>}>
+      <Show when={text()} fallback={<span class="muted">{tr("common.loadingEllipsis")}</span>}>
         {text()}
       </Show>
     </pre>

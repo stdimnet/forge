@@ -16,14 +16,14 @@ export function ExtractComponentDialog(props: { req: ExtractComponentRequest }) 
     <Frame title={t("codeintel.extractComponentDialog.extractComponent")} class="hierarchy-dialog extract-component-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Extract the selected {info.framework === "vue" ? "template elements into a Vue component" : "JSX into a React component"}
+          {t("tools.codeintel.extractTheSelected", { value: info.framework === "vue" ? t("tools.codeintel.templateElementsIntoAVue") : t("tools.codeintel.jsxIntoAReactComponent") })}
         </div>
         <label class="form-label">{t("codeintel.extractComponentDialog.componentName")}</label>
         <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label={t("codeintel.extractComponentDialog.componentName2")} onInput={(e) => setName(e.currentTarget.value)} />
         <label class="form-label">{t("codeintel.extractComponentDialog.directory")}</label>
         <input class="move-input" value={dir()} spellcheck={false} aria-label={t("codeintel.extractComponentDialog.directory2")} onInput={(e) => setDir(e.currentTarget.value)} />
         <div class="refactor-note">
-          New file: <code>{componentPath(dir(), name(), info.extension)}</code>
+          {t("tools.codeintel.newFileLabel")} <code>{componentPath(dir(), name(), info.extension)}</code>
         </div>
         <fieldset class="refactor-group">
           <legend>{t("codeintel.extractComponentDialog.props")}</legend>
@@ -35,7 +35,7 @@ export function ExtractComponentDialog(props: { req: ExtractComponentRequest }) 
             </div>
           </Show>
           <Show when={info.imports.length}>
-            <div class="refactor-note">Imported by the new component: {info.imports.join(", ")}</div>
+            <div class="refactor-note">{t("tools.codeintel.importedByTheNewComponent", { imports: info.imports.join(", ") })}</div>
           </Show>
         </fieldset>
         <Show when={error()}>

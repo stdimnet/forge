@@ -160,7 +160,7 @@ registerStatusItem({
       {(i) => (
         <span class="status-item ls-install-status" title={i().label}>
           <LoaderCircle size={13} class="lsp-spin" />
-          <span class="ls-install-status-name">{i().id === "jdk" ? "Downloading JDK:" : "Installing Eclipse JDT LS:"}</span>
+          <span class="ls-install-status-name">{i().id === "jdk" ? t("langs.java.downloadingJdkLabel") : t("langs.java.installingEclipseJdtLsLabel")}</span>
           <span class="ls-install-status-text">{i().total ? `${i().label} · ${Math.floor((i().done / i().total!) * 100)}%` : i().label}</span>
           <span class="ls-install-bar" classList={{ indeterminate: !i().total }}>
             <span style={{ width: `${Math.round((i().total ? i().done / i().total! : 0.35) * 100)}%` }} />
@@ -212,17 +212,17 @@ registerLineMarkerProvider({
     return mains.map((m) => ({
       line: m.line,
       icon: Play,
-      title: `Run '${m.name}.main()'`,
+      title: t("langs.java.runMain", { name: m.name }),
       className: "marker-run",
       onClick: (_view, e) =>
         openMenu({
           x: e.clientX,
           y: e.clientY + 6,
           items: [
-            { label: `Run '${m.name}.main()'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(mainConfiguration(m)) },
-            { label: `Debug '${m.name}.main()'`, icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(mainConfiguration(m)) },
+            { label: t("langs.java.runMain", { name: m.name }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(mainConfiguration(m)) },
+            { label: t("langs.java.debugMain", { name: m.name }), icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(mainConfiguration(m)) },
             { separator: true },
-            { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(mainConfiguration(m).name) },
+            { label: t("common.modifyRunConfigurationEllipsis"), icon: Settings2, run: () => openRunConfigurations(mainConfiguration(m).name) },
           ],
         }),
     }));

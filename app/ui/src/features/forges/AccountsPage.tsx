@@ -8,6 +8,7 @@ import { CircleCheck, CircleX, ExternalLink, KeyRound, LoaderCircle, Minus, Plug
 import { defaultServers, forgesApi, hostNames, type Account, type HostKind } from "@/ipc/forges";
 import { Avatar } from "./ui";
 import { errorText, refreshAll } from "./store";
+import { t } from "@/i18n";
 
 type Check = { running: true } | { running: false; ok: boolean; text: string };
 
@@ -100,10 +101,10 @@ export function AccountsPage(props: { kind: HostKind }) {
       <p class="muted fg-settings-intro">{intro[props.kind]}</p>
       <div class="fg-accounts">
         <div class="fg-accounts-toolbar">
-          <button class="icon-btn" title="Log In with Token…" onClick={openForm} data-action="add-account">
+          <button class="icon-btn" title={t("tools.forges.logInWithTokenEllipsis")} onClick={openForm} data-action="add-account">
             <Plus size={16} />
           </button>
-          <button class="icon-btn" title="Remove Account" disabled={!selected()} onClick={() => void remove()}>
+          <button class="icon-btn" title={t("tools.forges.removeAccount")} disabled={!selected()} onClick={() => void remove()}>
             <Minus size={16} />
           </button>
         </div>
@@ -112,10 +113,10 @@ export function AccountsPage(props: { kind: HostKind }) {
             each={mine()}
             fallback={
               <div class="fg-accounts-empty muted">
-                No {hostNames[props.kind]} accounts.
+                {t("tools.forges.noAccounts", { value: hostNames[props.kind] })}
                 <button class="btn-secondary" onClick={openForm}>
                   <KeyRound size={14} />
-                  Log In with Token…
+                  {t("tools.forges.logInWithTokenEllipsis")}
                 </button>
               </div>
             }
@@ -126,11 +127,11 @@ export function AccountsPage(props: { kind: HostKind }) {
                 <div class="fg-account" classList={{ selected: selected() === a.id }} onClick={() => setSelected(a.id)} data-account={a.id}>
                   <Avatar user={{ username: a.username ?? "?", name: null, avatarUrl: null }} size={28} />
                   <div class="fg-account-text">
-                    <div class="fg-account-name">{a.username ?? "Unknown user"}</div>
+                    <div class="fg-account-name">{a.username ?? t("tools.forges.unknownUser")}</div>
                     <div class="muted fg-small">{a.server.replace(/^https?:\/\//, "")}</div>
                   </div>
                   <span class="fg-token-source" classList={{ missing: a.tokenSource === "none" }}>
-                    {a.tokenSource === "keychain" ? "Token in keychain" : a.tokenSource === "env" ? "Token from environment" : "No token"}
+                    {a.tokenSource === "keychain" ? t("tools.forges.tokenInKeychain") : a.tokenSource === "env" ? t("tools.forges.tokenFromEnvironment") : t("tools.forges.noToken")}
                   </span>
                   <Show when={check()}>
                     {(c) => (
@@ -140,7 +141,7 @@ export function AccountsPage(props: { kind: HostKind }) {
                             <CircleCheck size={14} />
                           </Show>
                         </Show>
-                        <span class="fg-check-text">{c().running ? "Checking…" : (c() as { text: string }).text}</span>
+                        <span class="fg-check-text">{c().running ? t("tools.forges.checkingEllipsis") : (c() as { text: string }).text}</span>
                       </span>
                     )}
                   </Show>
@@ -152,7 +153,7 @@ export function AccountsPage(props: { kind: HostKind }) {
                     }}
                   >
                     <Plug size={13} />
-                    Test
+                    {t("common.test")}
                   </button>
                 </div>
               );
@@ -165,18 +166,18 @@ export function AccountsPage(props: { kind: HostKind }) {
         <div class="fg-login" data-login-form>
           <div class="fg-login-title">
             <KeyRound size={15} />
-            Log In with Token
+            {t("tools.forges.logInWithToken")}
           </div>
           <div class="fg-login-grid">
-            <label for="fg-server">Server:</label>
+            <label for="fg-server">{t("tools.forges.serverLabel")}</label>
             <input id="fg-server" class="mono" value={server()} spellcheck={false} onInput={(e) => setServer(e.currentTarget.value)} />
-            <label for="fg-token">Token:</label>
+            <label for="fg-token">{t("tools.forges.tokenLabel")}</label>
             <div>
               <input
                 id="fg-token"
                 type="password"
                 autocomplete="off"
-                placeholder={props.kind === "gitlab" ? "glpat-…" : props.kind === "github" ? "ghp_… or github_pat_…" : props.kind === "azure" ? "Personal access token" : "Access token"}
+                placeholder={props.kind === "gitlab" ? t("tools.forges.glpatEllipsis") : props.kind === "github" ? t("tools.forges.ghpOrGithubPatEllipsis") : props.kind === "azure" ? t("tools.forges.personalAccessToken") : t("tools.forges.accessToken")}
                 value={token()}
                 onInput={(e) => setToken(e.currentTarget.value)}
                 onKeyDown={(e) => e.key === "Enter" && token().trim() && void login()}
@@ -184,7 +185,7 @@ export function AccountsPage(props: { kind: HostKind }) {
               <div class="muted fg-small fg-login-hint">
                 {scopes[props.kind]} ·{" "}
                 <a class="fg-link" href={tokenUrl(props.kind, server())} target="_blank" rel="noreferrer">
-                  Generate…
+                  {t("tools.forges.generateEllipsis")}
                   <ExternalLink size={11} />
                 </a>
               </div>
@@ -197,16 +198,16 @@ export function AccountsPage(props: { kind: HostKind }) {
             </div>
           </Show>
           <div class="fg-login-actions">
-            <span class="muted fg-small">The token is verified and stored in the system keychain, never in settings files.</span>
+            <span class="muted fg-small">{t("tools.forges.theTokenIsVerifiedAnd")}</span>
             <span class="spacer" />
             <button class="btn-secondary" onClick={() => setForm(false)}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button class="btn-primary" disabled={busy() || !token().trim()} onClick={() => void login()} data-action="login">
               <Show when={busy()}>
                 <LoaderCircle size={13} class="spin" />
               </Show>
-              Log In
+              {t("tools.forges.logIn")}
             </button>
           </div>
         </div>

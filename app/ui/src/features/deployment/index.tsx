@@ -109,7 +109,7 @@ function openSyncTab(server: ServerView, path: string): void {
   openCustomTab({
     id: `forge:deploy-sync:${server.id}\u0000${path}`,
     title: `${name} ↔ ${server.name}`,
-    tooltip: `Sync ${path || "the project"} with ${server.name}`,
+    tooltip: t("tools.deployment.syncWith", { value: path || "the project", name: server.name }),
     icon: Columns2,
     component: () => <DirDiffView left={path} right={server.rootPath} source={source} />,
   });
@@ -123,7 +123,7 @@ function command(id: string, run: () => void | Promise<void>): void {
     category: "Deployment",
     run: () => {
       if (active()) return run();
-      showBalloon("Deployment is disabled", "Enable the Deployment plugin in Settings | Plugins.");
+      showBalloon(t("tools.deployment.deploymentIsDisabled"), t("tools.deployment.enableTheDeploymentPluginIn"));
     },
   });
 }
@@ -137,7 +137,7 @@ function compareTarget(): string | null {
   const [path] = targetPaths();
   const row = document.querySelector<HTMLElement>(`.project-tree .tree-row[data-path="${CSS.escape(path)}"]`);
   if (!path || row?.dataset.dir !== undefined) {
-    showBalloon("Select a file to compare with its deployed version", "Folders are compared with Sync with Deployed to….");
+    showBalloon(t("tools.deployment.selectAFileToCompare"), t("tools.deployment.foldersAreComparedWithSync"));
     return null;
   }
   return path;

@@ -20,6 +20,7 @@ import {
   refreshInterpreter,
   refreshPackages,
 } from "./state";
+import { t } from "@/i18n";
 
 const norm = (n: string) => n.toLowerCase().replace(/[-_.]+/g, "-");
 
@@ -115,7 +116,7 @@ export function PackagesView() {
             <Search size={13} />
             <input
               type="text"
-              placeholder="Search for more packages"
+              placeholder={t("langs.python.searchForMorePackages")}
               value={query()}
               onInput={(e) => setQuery(e.currentTarget.value)}
               data-testid="python-packages-search"
@@ -124,10 +125,10 @@ export function PackagesView() {
               <Loader size={13} class="spin" />
             </Show>
           </div>
-          <button class="icon-btn" title="Reload List of Packages" onClick={() => void refreshInterpreter()}>
+          <button class="icon-btn" title={t("langs.python.reloadListOfPackages")} onClick={() => void refreshInterpreter()}>
             <RefreshCw size={14} />
           </button>
-          <button class="icon-btn" title="Python Interpreter Settings" onClick={() => openSettings("project.python-interpreter")}>
+          <button class="icon-btn" title={t("langs.python.pythonInterpreterSettings")} onClick={() => openSettings("project.python-interpreter")}>
             <Settings2 size={14} />
           </button>
         </div>
@@ -136,15 +137,15 @@ export function PackagesView() {
             when={currentInterpreter()}
             fallback={
               <div class="py-packages-empty muted">
-                No Python interpreter is configured for the project.{" "}
+                {t("langs.python.noPythonInterpreterIsConfigured")}
                 <button class="link-btn" onClick={() => openSettings("project.python-interpreter")}>
-                  Configure Python interpreter
+                  {t("langs.python.configurePythonInterpreter")}
                 </button>
               </div>
             }
           >
             <div class="py-packages-group">
-              <span>Installed</span>
+              <span>{t("common.installed")}</span>
               <span class="muted">{currentInterpreter()!.label}</span>
               <Show when={packagesLoading()}>
                 <Loader size={12} class="spin" />
@@ -174,7 +175,7 @@ export function PackagesView() {
             </For>
             <Show when={query().trim().length >= 2}>
               <div class="py-packages-group">
-                <span>PyPI</span>
+                <span>{t("langs.python.pypi")}</span>
               </div>
               <Show when={searchError()}>
                 <div class="py-packages-error">{searchError()}</div>
@@ -198,7 +199,7 @@ export function PackagesView() {
         </div>
       </div>
       <div class="py-packages-detail">
-        <Show when={selected()} fallback={<div class="py-packages-placeholder muted">Select a package to view its documentation</div>}>
+        <Show when={selected()} fallback={<div class="py-packages-placeholder muted">{t("langs.python.selectAPackageToView")}</div>}>
           {(name) => (
             <>
               <div class="py-detail-head">
@@ -208,11 +209,11 @@ export function PackagesView() {
                     when={installedOf(name())}
                     fallback={
                       <>
-                        <select class="py-detail-versions" value={version()} onChange={(e) => setVersion(e.currentTarget.value)} title="Version">
+                        <select class="py-detail-versions" value={version()} onChange={(e) => setVersion(e.currentTarget.value)} title={t("langs.python.version")}>
                           <For each={details()?.versions.slice(0, 50) ?? []}>{(v) => <option value={v}>{v}</option>}</For>
                         </select>
                         <button class="btn-primary" disabled={busy()} onClick={() => install(name())} data-testid="python-package-install">
-                          Install with {managerLabel()}
+                          {t("langs.python.installWith", { managerLabel: managerLabel() })}
                         </button>
                       </>
                     }
@@ -222,11 +223,11 @@ export function PackagesView() {
                         <span class="muted">{p().version}</span>
                         <Show when={newer(details()?.version, p().version)}>
                           <button class="btn-primary" disabled={busy()} onClick={() => void packageAction("upgrade", [p().name])}>
-                            Upgrade to {details()?.version}
+                            {t("langs.python.upgradeTo", { version: details()?.version })}
                           </button>
                         </Show>
                         <button class="btn-secondary" disabled={busy()} onClick={() => void packageAction("uninstall", [p().name])}>
-                          Delete Package
+                          {t("langs.python.deletePackage")}
                         </button>
                       </>
                     )}
@@ -234,27 +235,27 @@ export function PackagesView() {
                 </div>
               </div>
               <Show when={details.loading}>
-                <div class="muted py-detail-loading">Loading package information…</div>
+                <div class="muted py-detail-loading">{t("langs.python.loadingPackageInformationEllipsis")}</div>
               </Show>
               <Show when={details()}>
                 {(d) => (
                   <div class="py-detail-body">
-                    <p class="py-detail-summary">{d().summary || "No description"}</p>
+                    <p class="py-detail-summary">{d().summary || t("langs.python.noDescription")}</p>
                     <dl class="py-detail-meta">
                       <Show when={d().version}>
-                        <dt>Latest version</dt>
+                        <dt>{t("langs.python.latestVersion")}</dt>
                         <dd>{d().version}</dd>
                       </Show>
                       <Show when={d().requiresPython}>
-                        <dt>Requires Python</dt>
+                        <dt>{t("langs.python.requiresPython")}</dt>
                         <dd>{d().requiresPython}</dd>
                       </Show>
                       <Show when={d().license}>
-                        <dt>License</dt>
+                        <dt>{t("langs.python.license")}</dt>
                         <dd>{d().license}</dd>
                       </Show>
                       <Show when={d().author}>
-                        <dt>Author</dt>
+                        <dt>{t("langs.python.author")}</dt>
                         <dd>{d().author}</dd>
                       </Show>
                     </dl>
@@ -277,7 +278,7 @@ export function PackagesView() {
 /** Header buttons of the tool window. */
 export function PackagesActions() {
   return (
-    <button class="icon-btn" title="Reload List of Packages" onClick={() => void refreshPackages()}>
+    <button class="icon-btn" title={t("langs.python.reloadListOfPackages")} onClick={() => void refreshPackages()}>
       <RefreshCw size={14} />
     </button>
   );
