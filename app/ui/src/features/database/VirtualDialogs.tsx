@@ -5,6 +5,7 @@
 import { createMemo, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
 import { suspendKeymap } from "@/keymap";
 import { addVirtualColumn, addVirtualForeignKey, states } from "./store";
+import { t as tr } from "@/i18n";
 
 export type VirtualDialog =
   | { kind: "fk"; ds: string; schema: string; table: string; column: string }
@@ -51,7 +52,7 @@ function Modal(props: { title: string; ok: string; okDisabled?: boolean; onOk: (
         <footer class="db-modal-actions">
           <span class="db-doc-spacer" />
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={props.okDisabled} onClick={() => props.onOk()}>
             {props.ok}
@@ -97,23 +98,23 @@ function ForeignKeyDialog(p: { ds: string; schema: string; table: string; column
     if (done) close();
   };
   return (
-    <Modal title="Add Virtual Foreign Key" ok="Add" okDisabled={!selected() || !refColumn()} onOk={() => void ok()} testId="db-virtual-fk-dialog">
+    <Modal title={tr("database.virtualDialogs.addVirtualForeignKey")} ok="Add" okDisabled={!selected() || !refColumn()} onOk={() => void ok()} testId="db-virtual-fk-dialog">
       <div class="db-form">
-        <span class="db-form-label">Column:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.column")}</span>
         <code class="db-form-value">
           {p.schema}.{p.table}.{p.column}
         </code>
-        <span class="db-form-label">References table:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.referencesTable")}</span>
         <select class="dsd-input" value={target()} onChange={(e) => pick(e.currentTarget.value)} data-testid="db-vfk-table">
           <For each={targets()}>{(t) => <option value={`${t.schema}.${t.table.name}`}>{`${t.schema}.${t.table.name}`}</option>}</For>
         </select>
-        <span class="db-form-label">Column:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.column")}</span>
         <select class="dsd-input" value={refColumn()} onChange={(e) => setRefColumn(e.currentTarget.value)} data-testid="db-vfk-column">
           <For each={selected()?.table.columns ?? []}>
             {(c) => <option value={c.name}>{`${c.name}  ${c.dataType}${selected()?.table.primaryKey.includes(c.name) ? "  (primary key)" : ""}`}</option>}
           </For>
         </select>
-        <span class="db-form-label">Name:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.name")}</span>
         <input class="dsd-input" placeholder={`vfk_${p.table}_${p.column}_${selected()?.table.name ?? ""}`} value={name()} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
       </div>
       <div class="dsd-hint muted">
@@ -132,17 +133,17 @@ function ColumnDialog(p: { ds: string; schema: string; table: string }) {
     if (done) close();
   };
   return (
-    <Modal title="Add Virtual Column" ok="Add" okDisabled={!name().trim() || !expression().trim()} onOk={() => void ok()} testId="db-virtual-column-dialog">
+    <Modal title={tr("database.virtualDialogs.addVirtualColumn")} ok="Add" okDisabled={!name().trim() || !expression().trim()} onOk={() => void ok()} testId="db-virtual-column-dialog">
       <div class="db-form">
-        <span class="db-form-label">Table:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.table")}</span>
         <code class="db-form-value">
           {p.schema}.{p.table}
         </code>
-        <span class="db-form-label">Name:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.name")}</span>
         <input class="dsd-input" value={name()} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
-        <span class="db-form-label">Expression:</span>
-        <input class="dsd-input" placeholder="price * quantity" value={expression()} spellcheck={false} onInput={(e) => setExpression(e.currentTarget.value)} />
-        <span class="db-form-label">Type:</span>
+        <span class="db-form-label">{tr("database.virtualDialogs.expression")}</span>
+        <input class="dsd-input" placeholder={"price * quantity"} value={expression()} spellcheck={false} onInput={(e) => setExpression(e.currentTarget.value)} />
+        <span class="db-form-label">{tr("database.virtualDialogs.type")}</span>
         <input class="dsd-input" placeholder="numeric" value={type()} spellcheck={false} onInput={(e) => setType(e.currentTarget.value)} />
       </div>
     </Modal>

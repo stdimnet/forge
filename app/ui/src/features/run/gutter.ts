@@ -19,6 +19,7 @@ import { useTemporary } from "./configStore";
 import { debugConfiguration, launch, runWithCoverage } from "./runStore";
 import { findType } from "./types";
 import { openRunConfigurations } from "./dialogState";
+import { t as tr } from "@/i18n";
 
 /** Last results by result key (`path`, `path::test`). */
 const results = new Map<string, TestStatus>();
@@ -76,7 +77,7 @@ class RunMarker extends GutterMarker {
     const el = document.createElement("span");
     const state = this.status === "failed" ? "failed" : this.status === "passed" ? "passed" : "play";
     el.className = `run-gutter-icon ${state}`;
-    el.title = isSingle(this.target) ? "Run Test" : "Run Tests";
+    el.title = isSingle(this.target) ? tr("run.gutter.runTest") : tr("run.gutter.runTests");
     el.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" stroke-linejoin="round">${SVG[state]}</svg>`;
     return el;
   }
@@ -98,7 +99,7 @@ function showMenu(target: TestTarget, x: number, y: number) {
       ...(findType(cfg.type)?.coverage
         ? [
             {
-              label: `Run '${target.label}' with Coverage`,
+              label: tr("run.gutter.runLabelWithCoverage", { label: target.label }),
               icon: ShieldCheck,
               iconColor: "var(--success)",
               run: () => void runWithCoverage(useTemporary(cfg)),
@@ -106,7 +107,7 @@ function showMenu(target: TestTarget, x: number, y: number) {
           ]
         : []),
       {
-        label: `Debug '${target.label}'`,
+        label: tr("run.gutter.debugLabel", { label: target.label }),
         icon: Bug,
         iconColor: "var(--success)",
         shortcut: shortcutLabel("DebugClass"),
@@ -114,7 +115,7 @@ function showMenu(target: TestTarget, x: number, y: number) {
       },
       { separator: true },
       {
-        label: "Modify Run Configuration…",
+        label: tr("run.gutter.modifyRunConfiguration"),
         icon: Settings2,
         run: () => openRunConfigurations(useTemporary(cfg).name),
       },

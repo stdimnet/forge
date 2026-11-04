@@ -8,12 +8,13 @@ import { FileIcon } from "@/shell/FileIcon";
 import { gitApi, type ConflictFile, type ConflictSet, type SideChange } from "./api";
 import { acceptSide, closeConflicts, openMerge } from "./conflicts";
 import { status } from "./store";
+import { t } from "@/i18n";
 
 const [grouped, setGrouped] = createSignal(false);
 
 const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
-const label = (c: SideChange) => (c === "modified" ? "Modified" : c === "added" ? "Added" : "Deleted");
+const label = (c: SideChange) => (c === "modified" ? t("git.conflictsDialog.modified") : c === "added" ? t("git.conflictsDialog.added") : t("git.conflictsDialog.deleted"));
 
 type Row = { kind: "dir"; dir: string } | { kind: "file"; file: ConflictFile };
 
@@ -97,7 +98,7 @@ export function ConflictsDialog() {
       <div
         class="git-dialog conflicts-dialog"
         role="dialog"
-        aria-label="Conflicts"
+        aria-label={t("git.conflictsDialog.conflicts")}
         onKeyDown={(e) => {
           if (e.key === "Escape") closeConflicts();
           else return;
@@ -105,7 +106,7 @@ export function ConflictsDialog() {
         }}
       >
         <header class="dialog-title">
-          <span>Conflicts</span>
+          <span>{t("git.conflictsDialog.conflicts")}</span>
         </header>
         <div class="conflicts-body">
           <div class="conflicts-description">{set()?.description ?? "Loading conflicts…"}</div>
@@ -124,9 +125,9 @@ export function ConflictsDialog() {
               }}
             >
               <div class="conflicts-row conflicts-head">
-                <span>Name</span>
-                <span>Yours{set() ? ` (${set()!.yoursName})` : ""}</span>
-                <span>Theirs{set() ? ` (${set()!.theirsName})` : ""}</span>
+                <span>{t("git.conflictsDialog.name")}</span>
+                <span>{set() ? t("git.conflictsDialog.yoursNamed", { name: set()!.yoursName }) : t("git.conflictsDialog.yours")}</span>
+                <span>{set() ? t("git.conflictsDialog.theirsNamed", { name: set()!.theirsName }) : t("git.conflictsDialog.theirs")}</span>
               </div>
               <For each={rows()}>
                 {(row) =>
@@ -166,18 +167,18 @@ export function ConflictsDialog() {
                 }
               </For>
               <Show when={set() && !files().length}>
-                <div class="conflicts-empty muted">No conflicts</div>
+                <div class="conflicts-empty muted">{t("git.conflictsDialog.noConflicts")}</div>
               </Show>
             </div>
             <div class="conflicts-buttons">
               <button class="btn-secondary" disabled={busy() || !selection().length} onClick={() => void accept("yours")}>
-                Accept Yours
+                {t("git.conflictsDialog.acceptYours")}
               </button>
               <button class="btn-secondary" disabled={busy() || !selection().length} onClick={() => void accept("theirs")}>
-                Accept Theirs
+                {t("git.conflictsDialog.acceptTheirs")}
               </button>
               <button class="btn-primary" disabled={busy() || selection().length !== 1} onClick={merge}>
-                Merge…
+                {t("git.conflictsDialog.merge")}
               </button>
             </div>
           </div>
@@ -185,11 +186,11 @@ export function ConflictsDialog() {
         <footer class="git-dialog-actions">
           <label class="git-dialog-check conflicts-group">
             <input type="checkbox" checked={grouped()} onChange={(e) => setGrouped(e.currentTarget.checked)} />
-            Group files by directory
+            {t("git.conflictsDialog.groupFilesByDirectory")}
           </label>
           <span class="spacer" />
           <button class="btn-secondary" onClick={closeConflicts}>
-            Close
+            {t("common.close")}
           </button>
         </footer>
       </div>

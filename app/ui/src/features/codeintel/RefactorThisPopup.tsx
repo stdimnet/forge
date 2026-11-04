@@ -4,6 +4,7 @@
  */
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { indexOfMnemonic, matches, mnemonic, type RefactorThisRequest } from "./refactorThis";
+import { t } from "@/i18n";
 
 export function RefactorThisPopup(props: { req: RefactorThisRequest }) {
   let el!: HTMLDivElement;
@@ -50,13 +51,13 @@ export function RefactorThisPopup(props: { req: RefactorThisRequest }) {
       ref={el}
       tabIndex={-1}
       role="dialog"
-      aria-label="Refactor This"
+      aria-label={t("codeintel.refactorThisPopup.refactorThis")}
       style={{ left: `${props.req.x}px`, top: `${props.req.y}px` }}
       onKeyDown={onKeyDown}
     >
-      <div class="refactor-chooser-title">Refactor This</div>
+      <div class="refactor-chooser-title">{t("codeintel.refactorThisPopup.refactorThis")}</div>
       <div class="intention-list" role="listbox">
-        <For each={rows()} fallback={<div class="refactor-this-empty">Nothing matches</div>}>
+        <For each={rows()} fallback={<div class="refactor-this-empty">{t("codeintel.refactorThisPopup.nothingMatches")}</div>}>
           {(row, k) => (
             <>
               <Show when={row.item.separator && !query()}>

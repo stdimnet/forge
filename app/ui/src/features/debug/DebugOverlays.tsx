@@ -40,6 +40,7 @@ import { AttachDialogs } from "./AttachDialogs";
 import { debugAdapters, findDebugAdapter } from "./adapters";
 
 import { DialogFrame, onEscape } from "./DialogFrame";
+import { t } from "@/i18n";
 
 // ---- Incoming connection ----------------------------------------------------------------
 
@@ -71,16 +72,16 @@ function IncomingDialog(props: { session: SessionInfo }) {
   const root = () => workspace()?.root ?? "";
   return (
     <DialogFrame
-      title="Incoming Connection From Xdebug"
+      title={t("debug.debugOverlays.incomingConnectionFromXdebug")}
       class="dbg-incoming"
       onClose={close}
       footer={
         <>
           <button class="btn-secondary" onClick={close}>
-            Ignore
+            {t("debug.debugOverlays.ignore")}
           </button>
           <button class="btn-primary" onClick={() => void accept()} disabled={!mapping()}>
-            Accept
+            {t("debug.debugOverlays.accept")}
           </button>
         </>
       }
@@ -88,24 +89,23 @@ function IncomingDialog(props: { session: SessionInfo }) {
       <div class="dbg-incoming-head">
         <Zap size={18} class="dbg-incoming-icon" />
         <p>
-          Xdebug from <b>{props.session.serverName}</b> wants to start a debug session, but no server with this name is configured
-          and the script is not part of the project.
+          {t("debug.debugOverlays.unknownServer", { server: props.session.serverName })}
         </p>
       </div>
       <dl class="dbg-kv">
-        <dt>Server name:</dt>
-        <dd>{props.session.serverName === "CLI" ? "CLI (no SERVER_NAME)" : props.session.host ?? props.session.serverName}</dd>
-        <dt>Server port:</dt>
+        <dt>{t("debug.debugOverlays.serverName")}</dt>
+        <dd>{props.session.serverName === "CLI" ? t("debug.debugOverlays.cliNoServerName") : props.session.host ?? props.session.serverName}</dd>
+        <dt>{t("debug.debugOverlays.serverPort")}</dt>
         <dd>{props.session.port ?? "—"}</dd>
-        <dt>File path on server:</dt>
+        <dt>{t("debug.debugOverlays.filePathOnServer")}</dt>
         <dd class="dbg-mono">{remote()}</dd>
-        <dt>IDE key:</dt>
+        <dt>{t("debug.debugOverlays.ideKey")}</dt>
         <dd>{props.session.ideKey || "—"}</dd>
       </dl>
-      <div class="dbg-section-title">Select a project file to map the server file to</div>
+      <div class="dbg-section-title">{t("debug.debugOverlays.selectAProjectFileTo")}</div>
       <div class="dbg-candidates" role="listbox">
-        <Show when={!candidates.loading} fallback={<div class="muted dbg-pad">Searching project files…</div>}>
-          <For each={candidates() ?? []} fallback={<div class="muted dbg-pad">No project file named {basename(remote())}</div>}>
+        <Show when={!candidates.loading} fallback={<div class="muted dbg-pad">{t("debug.debugOverlays.searchingProjectFiles")}</div>}>
+          <For each={candidates() ?? []} fallback={<div class="muted dbg-pad">{t("debug.debugOverlays.noProjectFileNamed", { name: basename(remote()) })}</div>}>
             {(p) => (
               <label class="dbg-candidate" classList={{ selected: choice() === p }}>
                 <input type="radio" name="dbg-map" checked={choice() === p} onChange={() => setChoice(p)} />
@@ -118,7 +118,7 @@ function IncomingDialog(props: { session: SessionInfo }) {
       <Show when={mapping()}>
         {(m) => (
           <div class="dbg-mapping-preview">
-            <span class="muted">Path mapping:</span>
+            <span class="muted">{t("debug.debugOverlays.pathMapping")}</span>
             <span class="dbg-mono">{m().remote}</span>
             <span class="muted">→</span>
             <span class="dbg-mono">{m().local ? `${root()}/${m().local}` : root() || "<project root>"}</span>
@@ -161,7 +161,7 @@ function EvaluateDialog(props: { expression: string }) {
   const close = () => setEvaluateRequest(null);
   return (
     <DialogFrame
-      title="Evaluate"
+      title={t("debug.debugOverlays.evaluate")}
       class="dbg-evaluate"
       onClose={close}
       footer={
@@ -174,16 +174,16 @@ function EvaluateDialog(props: { expression: string }) {
               close();
             }}
           >
-            Add to Watches
+            {t("debug.debugOverlays.addToWatches")}
           </button>
           <button class="btn-secondary" onClick={close}>
-            Close
+            {t("common.close")}
           </button>
         </>
       }
     >
       <label class="dbg-label" for="dbg-eval-expr">
-        Expression:
+        {t("debug.debugOverlays.expression")}
       </label>
       <div class="dbg-eval-line">
         <ExpressionInput
@@ -192,14 +192,14 @@ function EvaluateDialog(props: { expression: string }) {
           value={expr()}
           onInput={setExpr}
           onSubmit={() => void evaluate()}
-          placeholder={pausedSession()?.adapter ? "Expression, e.g. counter + origin.x" : "PHP expression, e.g. $order->total * 1.19"}
+          placeholder={pausedSession()?.adapter ? t("debug.debugOverlays.expressionEGCounterOrigin") : "PHP expression, e.g. $order->total * 1.19"}
           ref={(el) => (input = el)}
         />
         <button class="btn-primary" disabled={busy() || !pausedSession()} onClick={() => void evaluate()}>
-          Evaluate
+          {t("debug.debugOverlays.evaluate")}
         </button>
       </div>
-      <div class="dbg-label">Result:</div>
+      <div class="dbg-label">{t("debug.debugOverlays.result")}</div>
       <div class="dbg-eval-result dbg-tree">
         <Show when={error()}>
           <div class="tree-row dbg-row dbg-error">
@@ -211,7 +211,7 @@ function EvaluateDialog(props: { expression: string }) {
           {(r) => <VariableNode p={{ ...r, name: "result" }} depth={0} initiallyOpen={r.hasChildren} />}
         </Show>
         <Show when={!result() && !error()}>
-          <div class="muted dbg-pad">{busy() ? "Collecting data…" : "Press Enter to evaluate"}</div>
+          <div class="muted dbg-pad">{busy() ? t("debug.debugOverlays.collectingData") : t("debug.debugOverlays.pressEnterToEvaluate")}</div>
         </Show>
       </div>
     </DialogFrame>
@@ -236,9 +236,9 @@ function bpLabel(bp: Breakpoint): string {
 const isPhpFile = (file: string | undefined) => /\.(php|phtml|inc)$/i.test(file ?? "");
 
 const ACCESS_TYPES = [
-  { value: "write", label: "Write" },
-  { value: "read", label: "Read" },
-  { value: "readWrite", label: "Read and write" },
+  { value: "write", label: t("debug.debugOverlays.write") },
+  { value: "read", label: t("debug.debugOverlays.read") },
+  { value: "readWrite", label: t("debug.debugOverlays.readAndWrite") },
 ];
 
 /** A field saved when it loses focus or Enter is pressed. */
@@ -276,7 +276,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
         <div class="dbg-bp-props">
           <label class="dbg-check">
             <input type="checkbox" checked={props.bp.enabled} onChange={(e) => save({ enabled: e.currentTarget.checked })} />
-            Enabled
+            {t("debug.debugOverlays.enabled")}
           </label>
           <p class="muted dbg-hint">
             {findDebugAdapter(props.bp.adapter)?.label ?? props.bp.adapter} suspends the program on "{props.bp.description ?? props.bp.exception}" while
@@ -288,27 +288,27 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
     <div class="dbg-bp-props">
       <label class="dbg-check">
         <input type="checkbox" checked={props.bp.enabled} onChange={(e) => save({ enabled: e.currentTarget.checked })} />
-        Enabled
+        {t("debug.debugOverlays.enabled")}
       </label>
       <label class="dbg-check">
         <input type="checkbox" checked={props.bp.suspend !== false} onChange={(e) => save({ suspend: e.currentTarget.checked })} />
-        Suspend execution
+        {t("debug.debugOverlays.suspendExecution")}
       </label>
       <Show when={props.bp.kind === "exception" && !props.bp.adapter}>
         <label class="dbg-label" for={id("exc")}>
-          Exception class:
+          {t("debug.debugOverlays.exceptionClass")}
         </label>
-        <LazyInput id={id("exc")} value={props.bp.exception ?? ""} placeholder="\RuntimeException or * for any" onSave={(v) => save({ exception: v.trim() || "*" })} />
+        <LazyInput id={id("exc")} value={props.bp.exception ?? ""} placeholder={t("debug.debugOverlays.runtimeexceptionOrForAny")} onSave={(v) => save({ exception: v.trim() || "*" })} />
       </Show>
       <Show when={props.bp.kind === "function"}>
         <label class="dbg-label" for={id("fn")}>
-          Function:
+          {t("debug.debugOverlays.function")}
         </label>
-        <LazyInput id={id("fn")} value={props.bp.function ?? ""} placeholder="main, MyClass::method, std::vector<int>::push_back" onSave={(v) => v.trim() && save({ function: v.trim() })} />
+        <LazyInput id={id("fn")} value={props.bp.function ?? ""} placeholder={t("debug.debugOverlays.mainMyclassMethodStdVector")} onSave={(v) => v.trim() && save({ function: v.trim() })} />
       </Show>
       <Show when={props.bp.kind === "data"}>
         <div class="dbg-form-row">
-          <label for={id("access")}>Suspend on:</label>
+          <label for={id("access")}>{t("debug.debugOverlays.suspendOn")}</label>
           <select id={id("access")} class="dbg-input" value={props.bp.accessType ?? "write"} onChange={(e) => save({ accessType: e.currentTarget.value })}>
             {ACCESS_TYPES.map((a) => (
               <option value={a.value}>{a.label}</option>
@@ -318,7 +318,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
       </Show>
       <Show when={props.bp.kind !== "exception"}>
         <label class="dbg-label" for={id("cond")}>
-          Condition:
+          {t("debug.debugOverlays.condition")}
         </label>
         <LazyInput
           id={id("cond")}
@@ -328,16 +328,16 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
           onSave={(v) => save({ condition: text(v) })}
         />
       </Show>
-      <div class="dbg-bp-group-title">Log:</div>
+      <div class="dbg-bp-group-title">{t("debug.debugOverlays.log")}</div>
       <div class="dbg-bp-log">
         <label class="dbg-check">
           <input type="checkbox" checked={!!props.bp.logMessage} onChange={(e) => save({ logMessage: e.currentTarget.checked })} />
-          "Breakpoint hit" message
+          {t("debug.breakpoints.hitMessage")}
         </label>
         <Show when={!props.compact}>
           <label class="dbg-check">
             <input type="checkbox" checked={!!props.bp.logStack} onChange={(e) => save({ logStack: e.currentTarget.checked })} />
-            Stack trace
+            {t("debug.debugOverlays.stackTrace")}
           </label>
         </Show>
         <label class="dbg-check" for={id("log")}>
@@ -349,7 +349,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
               else document.getElementById(id("log"))?.focus();
             }}
           />
-          Evaluate and log:
+          {t("debug.debugOverlays.evaluateAndLog")}
         </label>
         <LazyInput
           id={id("log")}
@@ -361,10 +361,10 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
       <Show when={!props.compact}>
         <label class="dbg-check">
           <input type="checkbox" checked={!!props.bp.temporary} onChange={(e) => save({ temporary: e.currentTarget.checked })} />
-          Remove once hit
+          {t("debug.debugOverlays.removeOnceHit")}
         </label>
         <div class="dbg-form-row dbg-pass">
-          <label for={id("pass")}>Pass count:</label>
+          <label for={id("pass")}>{t("debug.debugOverlays.passCount")}</label>
           <input
             id={id("pass")}
             class="dbg-input dbg-port"
@@ -376,18 +376,18 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
               save({ passCount: n > 1 ? n : undefined });
             }}
           />
-          <span class="muted">Suspend from this hit on</span>
+          <span class="muted">{t("debug.debugOverlays.suspendFromThisHitOn")}</span>
         </div>
         <p class="muted dbg-hint">
           <Show
             when={props.bp.suspend === false}
             fallback={
               props.bp.kind === "line" && isPhpFile(props.bp.file)
-                ? "Conditions are evaluated by Xdebug; the script suspends only when they are true."
+                ? t("debug.debugOverlays.conditionsAreEvaluatedByXdebug")
                 : "Conditions and hit counts are evaluated by the debug adapter. In a logged expression, {expression} is replaced by its value."
             }
           >
-            The program does not stop here: it logs to the Console tab of the debug session and resumes.
+            {t("debug.debugOverlays.theProgramDoesNotStop")}
           </Show>
         </p>
       </Show>
@@ -399,11 +399,11 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
 function detailsTitle(bp: Breakpoint): string {
   switch (bp.kind) {
     case "exception":
-      return bp.adapter ? `${findDebugAdapter(bp.adapter)?.label ?? bp.adapter} Exception Breakpoint: ${bpLabel(bp)}` : `PHP Exception Breakpoint: ${bpLabel(bp)}`;
+      return bp.adapter ? `${findDebugAdapter(bp.adapter)?.label ?? bp.adapter} Exception Breakpoint: ${bpLabel(bp)}` : t("debug.debugOverlays.phpExceptionBreakpointBplabel", { bpLabel: bpLabel(bp) });
     case "function":
-      return `Function Breakpoint: ${bpLabel(bp)}`;
+      return t("debug.debugOverlays.functionBreakpointBplabel", { bpLabel: bpLabel(bp) });
     case "data":
-      return `Watchpoint: ${bpLabel(bp)}`;
+      return t("debug.debugOverlays.watchpointBplabel", { bpLabel: bpLabel(bp) });
     default:
       return `${bp.file}:${bp.line}`;
   }
@@ -508,17 +508,17 @@ function BreakpointsDialog(props: { select?: number }) {
   );
   return (
     <DialogFrame
-      title="Breakpoints"
+      title={t("debug.debugOverlays.breakpoints")}
       class="dbg-breakpoints"
       onClose={close}
       footer={
         <>
           <label class="dbg-check dbg-left">
             <input type="checkbox" checked={breakpointsMuted()} onChange={() => void toggleMuted()} />
-            Mute breakpoints
+            {t("debug.debugOverlays.muteBreakpoints")}
           </label>
           <button class="btn-primary" onClick={close}>
-            Done
+            {t("debug.debugOverlays.done")}
           </button>
         </>
       }
@@ -527,31 +527,31 @@ function BreakpointsDialog(props: { select?: number }) {
         <div class="dbg-bp-list">
           <div class="dbg-bp-toolbar">
             <div class="dbg-add-wrap">
-              <button class="icon-btn" title="Add" onClick={() => setAdding((v) => !v)}>
+              <button class="icon-btn" title={t("common.add")} onClick={() => setAdding((v) => !v)}>
                 <Plus size={14} />
               </button>
               <Show when={adding()}>
                 <div class="dbg-menu">
                   <Show when={debugAdapters().length > 0}>
-                    <button onClick={() => void addFunction()}>Function Breakpoint</button>
+                    <button onClick={() => void addFunction()}>{t("debug.debugOverlays.functionBreakpoint")}</button>
                   </Show>
-                  <button onClick={() => void addException()}>PHP Exception Breakpoint</button>
+                  <button onClick={() => void addException()}>{t("debug.debugOverlays.phpExceptionBreakpoint")}</button>
                 </div>
               </Show>
             </div>
-            <button class="icon-btn" title="Remove" disabled={selected() == null} onClick={remove}>
+            <button class="icon-btn" title={t("common.remove")} disabled={selected() == null} onClick={remove}>
               <Minus size={14} />
             </button>
           </div>
           <div class="dbg-bp-tree">
-            {group("line", "PHP Line Breakpoints", lines)}
-            <Show when={otherLines().length}>{group("lines", "Line Breakpoints", otherLines)}</Show>
-            <Show when={functions().length}>{group("function", "Function Breakpoints", functions)}</Show>
-            <Show when={watchpoints().length}>{group("data", "Watchpoints", watchpoints)}</Show>
-            {group("exception", "PHP Exception Breakpoints", exceptions)}
+            {group("line", t("debug.breakpoints.phpLine"), lines)}
+            <Show when={otherLines().length}>{group("lines", t("debug.breakpoints.line"), otherLines)}</Show>
+            <Show when={functions().length}>{group("function", t("debug.breakpoints.function"), functions)}</Show>
+            <Show when={watchpoints().length}>{group("data", t("debug.breakpoints.watchpoints"), watchpoints)}</Show>
+            {group("exception", t("debug.breakpoints.phpException"), exceptions)}
             <For each={filterAdapters()}>
               {(type) =>
-                group(`exc-${type}`, `${findDebugAdapter(type)?.label ?? type} Exception Breakpoints`, () =>
+                group(`exc-${type}`, t("debug.breakpoints.exception", { adapter: findDebugAdapter(type)?.label ?? type }), () =>
                   breakpoints().filter((b) => b.kind === "exception" && b.adapter === type),
                 )
               }
@@ -559,7 +559,7 @@ function BreakpointsDialog(props: { select?: number }) {
           </div>
         </div>
         <div class="dbg-bp-right">
-          <Show when={current()} keyed fallback={<div class="muted dbg-pad">Select a breakpoint to edit its properties.</div>}>
+          <Show when={current()} keyed fallback={<div class="muted dbg-pad">{t("debug.debugOverlays.selectABreakpointToEdit")}</div>}>
             {(bp) => <BreakpointDetails bp={bp} />}
           </Show>
         </div>
@@ -584,7 +584,7 @@ function BreakpointPopupView(props: { id: number; x: number; y: number }) {
     <div class="dbg-popup-layer" onMouseDown={(e) => e.target === e.currentTarget && close()} onKeyDown={onEscape(close)}>
       <Show when={bp()}>
         {(b) => (
-          <div class="dbg-bp-popup" style={style()} role="dialog" aria-label="Breakpoint properties">
+          <div class="dbg-bp-popup" style={style()} role="dialog" aria-label={t("debug.debugOverlays.breakpointProperties")}>
             <div class="dbg-bp-popup-title">
               {basename(b().file ?? "")}:{b().line}
               <Show when={b().temporary}>
@@ -603,7 +603,7 @@ function BreakpointPopupView(props: { id: number; x: number; y: number }) {
                 More ({formatForKeymap(shortcutLabel("ViewBreakpoints") || "Ctrl+Shift+F8")})
               </button>
               <button class="btn-primary" onClick={close}>
-                Done
+                {t("debug.debugOverlays.done")}
               </button>
             </div>
           </div>

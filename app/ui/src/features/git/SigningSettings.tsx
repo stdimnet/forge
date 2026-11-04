@@ -12,6 +12,7 @@ import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { Hl } from "@/features/settings/dialogSearch";
 import { extrasApi } from "./extrasApi";
 import "./extras.css";
+import { t } from "@/i18n";
 
 export const SIGN_KEY = "vcs.git.commit.gpgSign";
 export const SIGNING_KEY = "vcs.git.commit.signingKey";
@@ -19,13 +20,13 @@ export const SIGNING_KEY = "vcs.git.commit.signingKey";
 /** `openpgp:<id>` → `GPG key <id>`, `ssh:<path>` → `SSH key <path>`. */
 export function describeSigningKey(value: string): string {
   const v = value.trim();
-  if (!v) return "Key from git config (user.signingkey)";
+  if (!v) return t("git.signingSettings.keyFromGitConfig");
   const [prefix, ...rest] = v.split(":");
   const key = rest.join(":");
-  if (prefix === "ssh") return `SSH key ${key}`;
-  if (prefix === "openpgp") return `GPG key ${key}`;
-  if (prefix === "x509") return `X.509 key ${key}`;
-  return `GPG key ${v}`;
+  if (prefix === "ssh") return t("git.signingSettings.sshKeyKey", { key });
+  if (prefix === "openpgp") return t("git.signingSettings.gpgKeyKey", { key });
+  if (prefix === "x509") return t("git.signingSettings.x509KeyKey", { key });
+  return t("git.signingSettings.gpgKeyV", { v });
 }
 
 function ConfigureDialog(props: { value: string; onClose: (value: string | null) => void }) {
@@ -53,10 +54,10 @@ function ConfigureDialog(props: { value: string; onClose: (value: string | null)
   );
   return (
     <div class="signing-dialog" onMouseDown={(e) => e.target === e.currentTarget && props.onClose(null)}>
-      <div class="signing-box" role="dialog" aria-label="Configure GPG Key" onKeyDown={onKeyDown} tabIndex={-1} ref={(el) => queueMicrotask(() => el.focus())}>
-        <header>Configure GPG Key</header>
+      <div class="signing-box" role="dialog" aria-label={t("git.signingSettings.configureGpgKey")} onKeyDown={onKeyDown} tabIndex={-1} ref={(el) => queueMicrotask(() => el.focus())}>
+        <header>{t("git.signingSettings.configureGpgKey")}</header>
         <div class="signing-body">
-          <Show when={!info.loading} fallback={<span class="muted"><LoaderCircle size={13} class="spin" /> Looking for keys…</span>}>
+          <Show when={!info.loading} fallback={<span class="muted"><LoaderCircle size={13} class="spin" /> {t("git.signingSettings.lookingForKeys")}</span>}>
             <Show when={info()} fallback={<span class="gd-invalid">{String((info.error as Error)?.message ?? info.error ?? "")}</span>}>
               {(i) => (
                 <>
@@ -64,10 +65,10 @@ function ConfigureDialog(props: { value: string; onClose: (value: string | null)
                     Git config{i().remote ? " on the remote host" : ""} (read-only): user.signingkey = {i().config.signingKey ?? "not set"}, gpg.format ={" "}
                     {i().config.format ?? "openpgp"}, commit.gpgsign = {String(i().config.gpgSign)}
                   </div>
-                  <Option value="" title="Use the key from git config" sub={i().config.signingKey ?? "user.signingkey is not set: git uses the committer's default key"} />
-                  <div class="signing-group">GPG keys</div>
+                  <Option value="" title={t("git.signingSettings.useTheKeyFromGit")} sub={i().config.signingKey ?? "user.signingkey is not set: git uses the committer's default key"} />
+                  <div class="signing-group">{t("git.signingSettings.gpgKeys")}</div>
                   <Show when={!i().gpgError} fallback={<span class="gd-note">{i().gpgError}</span>}>
-                    <For each={i().gpgKeys} fallback={<span class="gd-note">No GPG secret keys</span>}>
+                    <For each={i().gpgKeys} fallback={<span class="gd-note">{t("git.signingSettings.noGpgSecretKeys")}</span>}>
                       {(k) => (
                         <Option
                           value={`openpgp:${k.id}`}
@@ -78,8 +79,8 @@ function ConfigureDialog(props: { value: string; onClose: (value: string | null)
                       )}
                     </For>
                   </Show>
-                  <div class="signing-group">SSH keys</div>
-                  <For each={i().sshKeys} fallback={<span class="gd-note">No public keys in ~/.ssh</span>}>
+                  <div class="signing-group">{t("git.signingSettings.sshKeys")}</div>
+                  <For each={i().sshKeys} fallback={<span class="gd-note">{t("git.signingSettings.noPublicKeysInSsh")}</span>}>
                     {(k) => <Option value={`ssh:${k.path}`} title={k.comment || k.path} sub={`${k.keyType} · ${k.path}`} />}
                   </For>
                 </>
@@ -89,7 +90,7 @@ function ConfigureDialog(props: { value: string; onClose: (value: string | null)
         </div>
         <footer>
           <button class="btn-secondary" onClick={() => props.onClose(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => props.onClose(choice())} data-testid="signing-ok">
             OK
@@ -114,7 +115,7 @@ export function SigningRow(props: { spec: SettingSpec }) {
           </span>
         </label>
         <button class="btn-secondary" onClick={() => setOpen(true)} data-testid="signing-configure">
-          <KeyRound size={13} /> Configure GPG Key…
+          <KeyRound size={13} /> {t("git.signingSettings.configureGpgKeyEllipsis")}
         </button>
       </div>
       <div class="set-indent">

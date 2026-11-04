@@ -265,7 +265,7 @@ registerCommand({
 
 registerDialog<DialogRequest>({
   id: DATA_SOURCES_DIALOG,
-  title: "Data Sources and Drivers",
+  title: t("database.main.dataSourcesAndDrivers"),
   width: 920,
   height: 760,
   minWidth: 680,

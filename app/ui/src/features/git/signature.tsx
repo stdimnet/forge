@@ -2,25 +2,26 @@
 import { Show } from "solid-js";
 import { ShieldAlert, ShieldCheck, ShieldQuestion, ShieldX } from "lucide-solid";
 import type { SignatureStatus } from "./api";
+import { t } from "@/i18n";
 
 export function signatureLabel(s: SignatureStatus): string {
   switch (s) {
     case "good":
-      return "Verified signature";
+      return t("git.signature.good");
     case "untrusted":
-      return "Signature of an untrusted key";
+      return t("git.signature.untrusted");
     case "expired":
-      return "Expired signature";
+      return t("git.signature.expired");
     case "expiredKey":
-      return "Signed with an expired key";
+      return t("git.signature.expiredKey");
     case "revoked":
-      return "Signed with a revoked key";
+      return t("git.signature.revoked");
     case "bad":
-      return "Bad signature";
+      return t("git.signature.bad");
     case "unverified":
-      return "Signature cannot be verified";
+      return t("git.signature.unverified");
     default:
-      return "Not signed";
+      return t("git.signature.none");
   }
 }
 

@@ -1,5 +1,6 @@
 /** Frame of the debugger dialogs (title, body, footer) on a backdrop. */
 import { X } from "lucide-solid";
+import { t } from "@/i18n";
 
 /** Escape closes the dialog it was pressed in (element-scoped, not a global shortcut). */
 export const onEscape = (close: () => void) => (e: KeyboardEvent) => {
@@ -15,7 +16,7 @@ export function DialogFrame(props: { title: string; class?: string; onClose: () 
       <div class={`dbg-dialog ${props.class ?? ""}`} role="dialog" aria-label={props.title}>
         <header class="dbg-dialog-title">
           <span>{props.title}</span>
-          <button class="icon-btn" title="Close" onClick={props.onClose}>
+          <button class="icon-btn" title={t("common.close")} onClick={props.onClose}>
             <X size={14} />
           </button>
         </header>

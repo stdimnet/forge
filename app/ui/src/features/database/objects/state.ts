@@ -8,6 +8,7 @@ import { askConfirm } from "@/features/contextMenu/dialogs";
 import { showBalloon } from "@/keymap";
 import { dbObjectsApi, type DdlObject, type DesignWarning, type DumpAction, type DumpTool } from "@/ipc/dbObjects";
 import { introspect, openConsole, refresh, states } from "../store";
+import { t as tr } from "@/i18n";
 
 export type ObjectDialog =
   | { kind: "table"; ds: string; schema: string; table?: string }
@@ -43,15 +44,15 @@ export async function runObjectScript(opts: { ds: string; schema?: string; sql: 
     const destructive = (opts.warnings ?? []).filter((w) => w.destructive);
     if (destructive.length) {
       const ok = await askConfirm({
-        title: "Destructive Changes",
+        title: tr("database.objects.state.destructiveChanges"),
         message: `${destructive.map((w) => w.message).join(".\n")}.\n\nExecute anyway?`,
-        confirm: "Execute",
+        confirm: tr("database.objects.state.execute"),
       });
       if (!ok) return false;
     }
     let confirmed = false;
     if (g.confirm) {
-      if (!(await askConfirm({ title: "Production Data Source", message: g.confirm, confirm: "Execute" }))) return false;
+      if (!(await askConfirm({ title: tr("database.objects.state.productionDataSource"), message: g.confirm, confirm: tr("database.objects.state.execute") }))) return false;
       confirmed = true;
     }
     const r = await dbObjectsApi.runScript(ds, sql, confirmed);

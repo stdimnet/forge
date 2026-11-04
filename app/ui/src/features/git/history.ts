@@ -14,6 +14,7 @@ import { checkout } from "./actions";
 import { notify, reloadOpenFiles, repositoryChanged } from "./store";
 import { setDiffRequest, toggleAnnotate } from "./overlays";
 import { revisionPath } from "./revisionFiles";
+import { t as tr } from "@/i18n";
 
 export const shortSha = (sha: string) => sha.slice(0, 8);
 const nameOf = (path: string) => path.split("/").pop() || path;
@@ -37,7 +38,7 @@ export { historyTabs, activeGitTab, setActiveGitTab };
 
 export function historyTabTitle(tab: HistoryTab, projectName = "Project"): string {
   const name = tab.path ? nameOf(tab.path) : projectName;
-  return tab.kind === "selection" ? `History for Selection: ${name}` : `History: ${name}`;
+  return tab.kind === "selection" ? tr("git.history.historyForSelectionName", { name }) : tr("git.history.historyName", { name });
 }
 
 function openTab(tab: HistoryTab): void {
@@ -91,7 +92,7 @@ export async function showRevisionChange(r: RevisionFile): Promise<void> {
   const from = beforePath(r);
   setDiffRequest({
     path: r.file.path,
-    left: { title: from && r.parent ? `${shortSha(r.parent)}${from !== r.file.path ? ` (${from})` : ""}` : "Empty (file added)", content: before },
+    left: { title: from && r.parent ? `${shortSha(r.parent)}${from !== r.file.path ? ` (${from})` : ""}` : tr("git.history.emptyFileAdded"), content: before },
     right: { title: r.file.status === "D" ? `${shortSha(r.sha)} (file deleted)` : shortSha(r.sha), content: after },
     editable: false,
   });
@@ -103,7 +104,7 @@ export async function compareRevisionWithLocal(r: RevisionFile, local: string): 
   setDiffRequest({
     path: local,
     left: { title: then === null ? `${shortSha(r.sha)} (file does not exist)` : `${shortSha(r.sha)} (Read-only)`, content: then ?? "" },
-    right: { title: now === null ? "Deleted" : "Your version", content: now ?? "" },
+    right: { title: now === null ? tr("git.history.deleted") : tr("git.history.yourVersion"), content: now ?? "" },
     editable: now !== null,
   });
 }
@@ -113,19 +114,19 @@ export async function getRevision(r: RevisionFile, local: string): Promise<void>
   const text = await gitApi.show(r.sha, r.file.path).catch(() => null);
   if (text === null) return notify("info", `${nameOf(local)} does not exist in revision ${shortSha(r.sha)}`);
   const ok = await askConfirm({
-    title: "Get Revision",
-    message: `Replace the content of ${local} with revision ${shortSha(r.sha)}? Local changes are overwritten.`,
-    confirm: "Get",
+    title: tr("git.history.getRevision"),
+    message: tr("git.history.replaceTheContentOfLocal", { local, sha: shortSha(r.sha) }),
+    confirm: tr("git.history.get"),
   });
   if (!ok) return;
   try {
     await workspaceApi.writeFile(local, text);
   } catch (e) {
-    return notify("error", "Get failed", String(e instanceof Error ? e.message : e));
+    return notify("error", tr("git.history.getFailed"), String(e instanceof Error ? e.message : e));
   }
   await reloadOpenFiles([local]);
   await repositoryChanged();
-  notify("success", `Got revision ${shortSha(r.sha)} of ${nameOf(local)}`);
+  notify("success", tr("git.history.gotRevisionShaOfName", { sha: shortSha(r.sha), name: nameOf(local) }));
 }
 
 /** Annotate Revision: the file as it was in the revision, read-only, with its blame. */
@@ -136,7 +137,7 @@ export async function annotateRevision(r: RevisionFile): Promise<void> {
   try {
     await openFile(path);
   } catch (e) {
-    return notify("error", "Annotate failed", String(e instanceof Error ? e.message : e));
+    return notify("error", tr("git.history.annotateFailed"), String(e instanceof Error ? e.message : e));
   }
   renameTab(path, `${nameOf(r.file.path)} (${shortSha(sha)})`);
 }
@@ -148,8 +149,8 @@ export const checkoutRevision = (sha: string) => checkout(sha);
 export async function copyRevisionNumber(sha: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(sha);
-    notify("info", `Copied ${shortSha(sha)}`);
+    notify("info", tr("git.history.copiedSha", { sha: shortSha(sha) }));
   } catch {
-    notify("error", "Clipboard is not available");
+    notify("error", tr("git.history.clipboardIsNotAvailable"));
   }
 }

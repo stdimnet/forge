@@ -18,6 +18,7 @@ import { COMPOUND, compoundMembers, debugLauncherFor, findType, validateConfigur
 import { allConfigurations, findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
 import { fileOf, publishTestResults } from "./testResults";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Run");
 
@@ -189,11 +190,11 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       break;
     case "coverage":
       if (e.suite) coverageListeners.forEach((l) => l(e.suite!));
-      else if (e.error) writeError(id, `Coverage: ${e.error}`);
+      else if (e.error) writeError(id, t("run.runStore.coverageError", { error: e.error }));
       break;
     case "profile":
       if (e.profile) profileListeners.forEach((l) => l(e.profile!));
-      else if (e.error) writeError(id, `Profiler: ${e.error}`);
+      else if (e.error) writeError(id, t("run.runStore.profilerError", { error: e.error }));
       break;
     case "sanitizer":
     case "valgrind":
@@ -209,7 +210,7 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       eventListeners.forEach((l) => l(s, e));
       break;
     case "profiler":
-      if (e.error) writeError(id, `Profiler: ${e.error}`);
+      if (e.error) writeError(id, t("run.runStore.profilerError", { error: e.error }));
       eventListeners.forEach((l) => l(s, e));
       break;
     case "exited": {
@@ -339,7 +340,7 @@ async function startProcess(id: string, extra?: SessionData["extra"]): Promise<R
     return { started, exited };
   } catch (err) {
     d.unlisten?.();
-    writeError(id, `Error running '${s.name}': ${String(err)}`);
+    writeError(id, t("run.runStore.errorRunningNameValue", { name: s.name, value: String(err) }));
     setState("sessions", (x) => x.id === id, { status: "failed", endedAt: Date.now() });
     d.exited?.(null);
     return null;
@@ -406,8 +407,8 @@ async function planFor(cfg: RunConfiguration): Promise<LaunchPlan | null> {
   try {
     return await runToolsApi.plan(list, cfg.name);
   } catch (err) {
-    showBalloon(`Error running '${cfg.name}'`, String(err), 5000, [
-      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    showBalloon(t("run.runStore.errorRunningName", { name: cfg.name }), String(err), 5000, [
+      { label: t("run.runStore.editConfiguration"), run: () => openRunConfigurations(cfg.name) },
     ]);
     return null;
   }
@@ -429,7 +430,7 @@ async function runTask(task: PlannedTask, owner: RunConfiguration): Promise<bool
   } else {
     const handler = taskHandlers.get(task.type);
     if (!handler) {
-      showBalloon("Before launch task failed", `${task.label}: this task is not available`);
+      showBalloon(t("run.runStore.beforeLaunchTaskFailed"), `${task.label}: this task is not available`);
       return false;
     }
     ok = await handler(task, owner).catch(() => false);
@@ -449,8 +450,8 @@ interface LaunchOptions {
 async function startConfiguration(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
   const problem = validateConfiguration(cfg);
   if (problem) {
-    showBalloon(`Error running '${cfg.name}'`, problem, 5000, [
-      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    showBalloon(t("run.runStore.errorRunningName", { name: cfg.name }), problem, 5000, [
+      { label: t("run.runStore.editConfiguration"), run: () => openRunConfigurations(cfg.name) },
     ]);
     return null;
   }
@@ -484,16 +485,16 @@ async function stopAndWait(s: RunSession): Promise<void> {
 export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
   if (remote) {
     if (opts.debug || opts.extra) {
-      showBalloon(`Cannot run '${cfg.name}'`, remote.unavailable);
+      showBalloon(t("run.runStore.cannotRunName", { name: cfg.name }), remote.unavailable);
       return null;
     }
-    await remote.start(cfg).catch((err) => showBalloon(`Error running '${cfg.name}'`, String((err as Error)?.message ?? err)));
+    await remote.start(cfg).catch((err) => showBalloon(t("run.runStore.errorRunningName", { name: cfg.name }), String((err as Error)?.message ?? err)));
     return null;
   }
   const problem = validateConfiguration(cfg);
   if (problem) {
-    showBalloon(`Error running '${cfg.name}'`, problem, 5000, [
-      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    showBalloon(t("run.runStore.errorRunningName", { name: cfg.name }), problem, 5000, [
+      { label: t("run.runStore.editConfiguration"), run: () => openRunConfigurations(cfg.name) },
     ]);
     return null;
   }
@@ -548,7 +549,7 @@ export async function runWithCoverage(cfg: RunConfiguration | undefined = select
     return;
   }
   if (!findType(cfg.type)?.coverage) {
-    showBalloon(`Cannot run '${cfg.name}' with coverage`, `${findType(cfg.type)?.name ?? cfg.type} configurations cannot measure coverage.`);
+    showBalloon(t("run.runStore.cannotRunNameWithCoverage", { name: cfg.name }), `${findType(cfg.type)?.name ?? cfg.type} configurations cannot measure coverage.`);
     return;
   }
   await launch(cfg, { extra: { coverage: true } });
@@ -571,9 +572,9 @@ export async function debugConfiguration(cfg: RunConfiguration | undefined = sel
   const launcher = debugLauncherFor(cfg);
   if (!launcher) {
     showBalloon(
-      `Cannot debug '${cfg.name}'`,
+      t("run.runStore.cannotDebugName", { name: cfg.name }),
       findType(cfg.type)?.debuggable
-        ? "No debugger is available. Enable a debugger plugin such as Xdebug."
+        ? t("run.runStore.noDebuggerIsAvailableEnable")
         : `${findType(cfg.type)?.name ?? cfg.type} configurations cannot be debugged.`,
     );
     return;
@@ -624,7 +625,7 @@ export async function stopSession(id: string | undefined = state.active ?? undef
     }
     await runApi.stop(s.runId);
   } catch (err) {
-    showBalloon(`Cannot stop '${s.name}'`, String(err));
+    showBalloon(t("run.runStore.cannotStopName", { name: s.name }), String(err));
   }
 }
 
@@ -687,7 +688,7 @@ export async function rerunFailedTests(id: string | undefined = state.active ?? 
   if (!failed.length) return;
   const base = findConfiguration(s.name) ?? s.config;
   const cfg = await testFrameworksApi.rerunFailed(base, failed).catch((err) => {
-    showBalloon("Cannot rerun the failed tests", String(err));
+    showBalloon(t("run.runStore.cannotRerunTheFailedTests"), String(err));
     return null;
   });
   if (cfg) await launch(cfg);
@@ -702,7 +703,7 @@ export function openHistoryRun(run: StoredRun): void {
   d.tests = tree;
   d.lines = [
     {
-      segments: [{ text: `Test results of ${new Date(run.entry.at).toLocaleString()} from the Test History`, style: { fg: "var(--fg-muted)" } }],
+      segments: [{ text: t("run.runStore.testResultsOfNewdateFrom", { newDate: new Date(run.entry.at).toLocaleString() }), style: { fg: "var(--fg-muted)" } }],
     },
   ];
   setState("sessions", (x) => x.id === id, {
@@ -819,5 +820,5 @@ export async function sendInput(id: string, text: string): Promise<void> {
   if (!s?.runId || !isRunning(s)) return;
   // The backend echoes the input in the console.
   const sent = s.shared !== undefined ? remote?.input(s.shared, text) : runApi.write(s.runId, text);
-  await sent?.catch((err) => showBalloon("Cannot send input", String(err)));
+  await sent?.catch((err) => showBalloon(t("run.runStore.cannotSendInput"), String(err)));
 }

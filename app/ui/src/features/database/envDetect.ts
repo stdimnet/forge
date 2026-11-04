@@ -57,6 +57,6 @@ export async function addFromEnv(): Promise<void> {
     setSelectedNode(`ds:${ds.id}`);
     if (await connect(ds.id)) revealSource(ds.id);
   } catch (e) {
-    showBalloon("Cannot add the data source", e instanceof Error ? e.message : String(e));
+    showBalloon(t("database.envDetect.cannotAddTheDataSource"), e instanceof Error ? e.message : String(e));
   }
 }

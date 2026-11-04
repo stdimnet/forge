@@ -9,6 +9,7 @@ import { KeyRound, Link2, Upload, Undo2, X } from "lucide-solid";
 import type { Cell } from "@/ipc/db";
 import { dataEditApi, type Aggregate, type Aggregates, type ChangePreview, type ColumnFilter } from "@/ipc/dataedit";
 import { cellText, renderCell, typeLabel, type GridColumn } from "./grid";
+import { t } from "@/i18n";
 
 // ---- filter row -----------------------------------------------------------------------
 
@@ -154,9 +155,9 @@ export function FilterChips(props: { filters: ColumnFilter[]; onRemove: (index: 
       <div class="db-chips" data-testid="db-filter-chips">
         <For each={props.filters}>
           {(f, i) => (
-            <span class="db-filter-chip" title="Filter by value">
+            <span class="db-filter-chip" title={t("database.dataTools.filterByValue")}>
               {filterLabel(f)}
-              <button class="db-chip-x" title="Remove Filter" onClick={() => props.onRemove(i())}>
+              <button class="db-chip-x" title={t("database.dataTools.removeFilter")} onClick={() => props.onRemove(i())}>
                 <X size={11} />
               </button>
             </span>
@@ -164,7 +165,7 @@ export function FilterChips(props: { filters: ColumnFilter[]; onRemove: (index: 
         </For>
         <Show when={props.filters.length > 1}>
           <button class="link-btn db-chips-clear" onClick={props.onClear}>
-            Clear all
+            {t("database.dataTools.clearAll")}
           </button>
         </Show>
       </div>
@@ -177,15 +178,15 @@ export function filterByValueItems(column: string, value: Cell | undefined, add:
   if (value === undefined) return [];
   if (value === null)
     return [
-      { label: `Filter by ${column} IS NULL`, run: () => add({ column, op: "isNull" }) },
-      { label: `Filter by ${column} IS NOT NULL`, run: () => add({ column, op: "isNotNull" }) },
+      { label: t("database.dataTools.filterByColumnIsNull", { column }), run: () => add({ column, op: "isNull" }) },
+      { label: t("database.dataTools.filterByColumnIsNot", { column }), run: () => add({ column, op: "isNotNull" }) },
     ];
   const shown = cellText(value);
   const short = shown.length > 24 ? `${shown.slice(0, 24)}…` : shown;
   return [
-    { label: `Filter by ${column} = ${short}`, run: () => add({ column, op: "eq", value }) },
-    { label: `Filter by ${column} <> ${short}`, run: () => add({ column, op: "ne", value }) },
-    { label: `Filter by ${column} IS NULL`, run: () => add({ column, op: "isNull" }) },
+    { label: t("database.dataTools.filterByColumnShort", { column, short }), run: () => add({ column, op: "eq", value }) },
+    { label: t("database.dataTools.filterByColumnShort2", { column, short }), run: () => add({ column, op: "ne", value }) },
+    { label: t("database.dataTools.filterByColumnIsNull", { column }), run: () => add({ column, op: "isNull" }) },
   ];
 }
 
@@ -233,7 +234,7 @@ export function AggregateStatus(props: { aggregate: Aggregate | null | undefined
   });
   return (
     <Show when={parts().length}>
-      <button class="db-aggbar" title="Aggregate View" data-testid="db-aggbar" onClick={() => props.onOpen?.()}>
+      <button class="db-aggbar" title={t("database.dataTools.aggregateView")} data-testid="db-aggbar" onClick={() => props.onOpen?.()}>
         <For each={parts()}>
           {([k, v]) => (
             <span class="db-agg">
@@ -251,13 +252,13 @@ export function AggregatePanel(props: { aggregates: Aggregates | null; onClose: 
   return (
     <div class="db-side" data-testid="db-aggregate-view">
       <div class="db-side-head">
-        <span class="db-side-title">Aggregate View</span>
+        <span class="db-side-title">{t("database.dataTools.aggregateView")}</span>
         <span class="db-spacer" />
-        <button class="icon-btn" title="Close" onClick={props.onClose}>
+        <button class="icon-btn" title={t("common.close")} onClick={props.onClose}>
           <X size={14} />
         </button>
       </div>
-      <Show when={props.aggregates} fallback={<div class="db-side-empty muted">Select cells to aggregate them</div>}>
+      <Show when={props.aggregates} fallback={<div class="db-side-empty muted">{t("database.dataTools.selectCellsToAggregateThem")}</div>}>
         {(a) => (
           <div class="db-side-body">
             <For each={a().columns}>
@@ -267,33 +268,33 @@ export function AggregatePanel(props: { aggregates: Aggregates | null; onClose: 
                   <table class="db-agg-table">
                     <tbody>
                       <tr>
-                        <td>Count</td>
+                        <td>{t("database.dataTools.count")}</td>
                         <td>{c.count}</td>
                       </tr>
                       <Show when={c.numeric}>
                         <tr>
-                          <td>Sum</td>
+                          <td>{t("database.dataTools.sum")}</td>
                           <td>{c.sum}</td>
                         </tr>
                         <tr>
-                          <td>Avg</td>
+                          <td>{t("database.dataTools.avg")}</td>
                           <td>{c.avg}</td>
                         </tr>
                       </Show>
                       <tr>
-                        <td>Min</td>
+                        <td>{t("database.dataTools.min")}</td>
                         <td>{valueText(c.min)}</td>
                       </tr>
                       <tr>
-                        <td>Max</td>
+                        <td>{t("database.dataTools.max")}</td>
                         <td>{valueText(c.max)}</td>
                       </tr>
                       <tr>
-                        <td>Distinct</td>
+                        <td>{t("database.dataTools.distinct")}</td>
                         <td>{c.distinct}</td>
                       </tr>
                       <tr>
-                        <td>Nulls</td>
+                        <td>{t("database.dataTools.nulls")}</td>
                         <td>{c.nulls}</td>
                       </tr>
                     </tbody>
@@ -407,12 +408,12 @@ export function PendingPanel(props: {
         </Show>
         <span class="db-spacer" />
         <button class="db-btn" disabled={!props.count} onClick={props.onRevert}>
-          <Undo2 size={13} /> Revert
+          <Undo2 size={13} /> {t("database.dataTools.revert")}
         </button>
         <button class="db-btn primary" disabled={!props.count || !!props.error || !!props.preview?.blocked || props.loading} onClick={props.onSubmit}>
-          <Upload size={13} /> Submit
+          <Upload size={13} /> {t("database.dataTools.submit")}
         </button>
-        <button class="icon-btn" title="Close" onClick={props.onClose}>
+        <button class="icon-btn" title={t("common.close")} onClick={props.onClose}>
           <X size={14} />
         </button>
       </div>
@@ -420,7 +421,7 @@ export function PendingPanel(props: {
         <div class="db-pending-note danger">{props.preview!.blocked}</div>
       </Show>
       <Show when={props.preview?.confirm}>
-        <div class="db-pending-note warning">Production data source: Submit asks for confirmation.</div>
+        <div class="db-pending-note warning">{t("database.dataTools.productionDataSourceSubmitAsks")}</div>
       </Show>
       <Show when={props.error}>
         <div class="db-pending-note danger">{props.error}</div>

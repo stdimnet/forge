@@ -16,6 +16,7 @@ import { sourceById, visibleSchemas } from "../store";
 import { ExecutionMode, ObjectModal } from "./Modal";
 import { SqlPreview } from "./SqlPreview";
 import { closeObjectDialog, loadedTables, runObjectScript, scriptToConsole } from "./state";
+import { t as tr } from "@/i18n";
 
 type Section = "table" | "columns" | "keys" | "fks" | "indexes" | "checks";
 interface Sel {
@@ -54,7 +55,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
         setLoaded(true);
       })
       .catch((e) => {
-        showBalloon("Cannot modify table", e instanceof Error ? e.message : String(e));
+        showBalloon(tr("database.objects.tableDialog.cannotModifyTable"), e instanceof Error ? e.message : String(e));
         closeObjectDialog();
       });
   } else {
@@ -219,17 +220,17 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
   const addItems = (): MenuItem[] => {
     const i = info();
     return [
-      { label: "Column", icon: <Columns3 size={13} />, run: () => add("columns") },
-      { label: spec.primaryKey ? "Unique Key" : "Primary Key", icon: <KeyRound size={13} />, disabled: !i?.indexes, run: () => add("keys") },
-      { label: "Foreign Key", icon: <Link2 size={13} />, disabled: !i?.foreignKeys, run: () => add("fks") },
-      { label: "Index", icon: <ListTree size={13} />, disabled: !i?.indexes, run: () => add("indexes") },
-      { label: "Check", icon: <ShieldCheck size={13} />, disabled: !i?.checks, run: () => add("checks") },
+      { label: tr("database.objects.tableDialog.column"), icon: <Columns3 size={13} />, run: () => add("columns") },
+      { label: spec.primaryKey ? tr("database.objects.tableDialog.uniqueKey") : tr("database.objects.tableDialog.primaryKey"), icon: <KeyRound size={13} />, disabled: !i?.indexes, run: () => add("keys") },
+      { label: tr("database.objects.tableDialog.foreignKey"), icon: <Link2 size={13} />, disabled: !i?.foreignKeys, run: () => add("fks") },
+      { label: tr("database.objects.tableDialog.index"), icon: <ListTree size={13} />, disabled: !i?.indexes, run: () => add("indexes") },
+      { label: tr("database.objects.tableDialog.check"), icon: <ShieldCheck size={13} />, disabled: !i?.checks, run: () => add("checks") },
     ];
   };
 
   const sqlText = () => preview()?.sql ?? "";
   const nothing = () => modify && loaded() && preview() !== null && !preview()!.statements.length;
-  const title = modify ? `Modify Table ${p.table}` : "Create Table";
+  const title = modify ? tr("database.objects.tableDialog.modifyTableTable", { table: p.table }) : tr("database.objects.tableDialog.createTable");
 
   const ok = async () => {
     const sql = sqlText();
@@ -240,7 +241,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
       return;
     }
     setBusy(true);
-    const done = await runObjectScript({ ds: p.ds, schema: spec.schema, sql, title: modify ? `Modify table ${spec.name}` : `Create table ${spec.name}`, warnings: preview()?.warnings });
+    const done = await runObjectScript({ ds: p.ds, schema: spec.schema, sql, title: modify ? tr("database.objects.tableDialog.modifyTableName", { name: spec.name }) : tr("database.objects.tableDialog.createTableName", { name: spec.name }), warnings: preview()?.warnings });
     setBusy(false);
     if (done) closeObjectDialog();
   };
@@ -277,10 +278,10 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={busy() || !spec.name.trim() || !spec.columns.length || nothing()} onClick={() => void ok()} data-testid="dbo-table-ok">
-            {mode() === "console" ? "Open in Console" : "OK"}
+            {mode() === "console" ? tr("database.objects.tableDialog.openInConsole") : "OK"}
           </button>
         </>
       }
@@ -288,16 +289,16 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
       <div class="dbo-table">
         <div class="dbo-tree-pane">
           <div class="dbo-toolbar">
-            <button class="icon-btn" title="Add" onClick={(e) => setAddMenu({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom + 2 })} data-testid="dbo-add">
+            <button class="icon-btn" title={tr("common.add")} onClick={(e) => setAddMenu({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom + 2 })} data-testid="dbo-add">
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={sel().section === "table"} onClick={remove}>
+            <button class="icon-btn" title={tr("common.remove")} disabled={sel().section === "table"} onClick={remove}>
               <Minus size={14} />
             </button>
-            <button class="icon-btn" title="Move Up" disabled={sel().section !== "columns" || sel().index === 0} onClick={() => move(-1)}>
+            <button class="icon-btn" title={tr("common.moveUp")} disabled={sel().section !== "columns" || sel().index === 0} onClick={() => move(-1)}>
               <ArrowUp size={14} />
             </button>
-            <button class="icon-btn" title="Move Down" disabled={sel().section !== "columns" || sel().index >= spec.columns.length - 1} onClick={() => move(1)}>
+            <button class="icon-btn" title={tr("common.moveDown")} disabled={sel().section !== "columns" || sel().index >= spec.columns.length - 1} onClick={() => move(1)}>
               <ArrowDown size={14} />
             </button>
           </div>
@@ -338,15 +339,15 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
           <Show when={sel().section === "table"}>
             <div class="db-form">
               <Show when={!modify}>
-                <span class="db-form-label">Schema:</span>
+                <span class="db-form-label">{tr("database.objects.tableDialog.schema")}</span>
                 <select class="dsd-input" value={spec.schema} onChange={(e) => setSpec("schema", e.currentTarget.value)}>
                   <For each={visibleSchemas(p.ds)}>{(s) => <option value={s.name}>{s.name}</option>}</For>
                 </select>
               </Show>
-              <span class="db-form-label">Name:</span>
+              <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
               <input class="dsd-input" value={spec.name} spellcheck={false} data-autofocus onInput={(e) => setSpec("name", e.currentTarget.value)} data-testid="dbo-table-name" />
               <Show when={info()?.comments}>
-                <span class="db-form-label">Comment:</span>
+                <span class="db-form-label">{tr("database.objects.tableDialog.comment")}</span>
                 <input class="dsd-input" value={spec.comment} onInput={(e) => setSpec("comment", e.currentTarget.value)} />
               </Show>
               <For each={info()?.options ?? []}>
@@ -379,32 +380,32 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
               const set = <K extends keyof ColumnSpec>(k: K, v: ColumnSpec[K]) => setSpec("columns", i(), k, v);
               return (
                 <div class="db-form">
-                  <span class="db-form-label">Name:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
                   <input class="dsd-input" value={c().name} spellcheck={false} onInput={(e) => renameColumn(i(), e.currentTarget.value)} data-testid="dbo-col-name" />
-                  <span class="db-form-label">Type:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.type")}</span>
                   <input class="dsd-input mono" list="dbo-types" value={c().dataType} spellcheck={false} onInput={(e) => set("dataType", e.currentTarget.value)} data-testid="dbo-col-type" />
-                  <span class="db-form-label">Default:</span>
-                  <input class="dsd-input mono" value={c().default ?? ""} placeholder="no default" spellcheck={false} onInput={(e) => set("default", e.currentTarget.value || null)} />
+                  <span class="db-form-label">{tr("database.objects.tableDialog.default")}</span>
+                  <input class="dsd-input mono" value={c().default ?? ""} placeholder={tr("database.objects.tableDialog.noDefault")} spellcheck={false} onInput={(e) => set("default", e.currentTarget.value || null)} />
                   <Show when={info()?.comments}>
-                    <span class="db-form-label">Comment:</span>
+                    <span class="db-form-label">{tr("database.objects.tableDialog.comment")}</span>
                     <input class="dsd-input" value={c().comment} onInput={(e) => set("comment", e.currentTarget.value)} />
                   </Show>
                   <span />
                   <div class="dbo-checks">
                     <label class="dbo-check">
                       <input type="checkbox" checked={!c().nullable} onChange={(e) => set("nullable", !e.currentTarget.checked)} />
-                      Not null
+                      {tr("database.objects.tableDialog.notNull")}
                     </label>
                     <Show when={info()?.autoIncrement}>
                       <label class="dbo-check">
                         <input type="checkbox" checked={c().autoIncrement} onChange={(e) => set("autoIncrement", e.currentTarget.checked)} />
-                        Auto increment
+                        {tr("database.objects.tableDialog.autoIncrement")}
                       </label>
                     </Show>
                     <Show when={info()?.indexes}>
                       <label class="dbo-check">
                         <input type="checkbox" checked={isPk(c().name)} onChange={(e) => togglePk(c().name, e.currentTarget.checked)} />
-                        Primary key
+                        {tr("database.objects.tableDialog.primaryKey2")}
                       </label>
                     </Show>
                   </div>
@@ -424,11 +425,11 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
               const setCols = (v: string[]) => (primary() ? setSpec("primaryKey", "columns", v) : setSpec("uniqueKeys", ui(), "columns", v));
               return (
                 <div class="db-form">
-                  <span class="db-form-label">Kind:</span>
-                  <span>{primary() ? "Primary key" : "Unique key"}</span>
-                  <span class="db-form-label">Name:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.kind")}</span>
+                  <span>{primary() ? tr("database.objects.tableDialog.primaryKey2") : tr("database.objects.tableDialog.uniqueKey2")}</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
                   <input class="dsd-input" value={k().name} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
-                  <span class="db-form-label">Columns:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.columns")}</span>
                   <ColumnPicker all={columnNames()} value={k().columns} onChange={setCols} />
                 </div>
               );
@@ -442,11 +443,11 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
               const target = () => targets().find((t) => t.schema === f().refSchema && t.name === f().refTable);
               return (
                 <div class="db-form">
-                  <span class="db-form-label">Name:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
                   <input class="dsd-input" value={f().name} spellcheck={false} onInput={(e) => setSpec("foreignKeys", i(), "name", e.currentTarget.value)} />
-                  <span class="db-form-label">Columns:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.columns")}</span>
                   <ColumnPicker all={columnNames()} value={f().columns} onChange={(v) => setSpec("foreignKeys", i(), "columns", v)} />
-                  <span class="db-form-label">Target table:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.targetTable")}</span>
                   <select
                     class="dsd-input"
                     value={`${f().refSchema}.${f().refTable}`}
@@ -466,13 +467,13 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                   >
                     <For each={targets()}>{(t) => <option value={`${t.schema}.${t.name}`}>{`${t.schema}.${t.name}`}</option>}</For>
                   </select>
-                  <span class="db-form-label">Target columns:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.targetColumns")}</span>
                   <ColumnPicker all={target()?.columns ?? []} value={f().refColumns} onChange={(v) => setSpec("foreignKeys", i(), "refColumns", v)} />
-                  <span class="db-form-label">On update:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.onUpdate")}</span>
                   <select class="dsd-input" value={f().onUpdate || "NO ACTION"} onChange={(e) => setSpec("foreignKeys", i(), "onUpdate", e.currentTarget.value)}>
                     <For each={info()?.fkActions ?? []}>{(a) => <option>{a}</option>}</For>
                   </select>
-                  <span class="db-form-label">On delete:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.onDelete")}</span>
                   <select class="dsd-input" value={f().onDelete || "NO ACTION"} onChange={(e) => setSpec("foreignKeys", i(), "onDelete", e.currentTarget.value)}>
                     <For each={info()?.fkActions ?? []}>{(a) => <option>{a}</option>}</For>
                   </select>
@@ -486,12 +487,12 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
               const x = () => spec.indexes[i()];
               return (
                 <div class="db-form">
-                  <span class="db-form-label">Name:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
                   <input class="dsd-input" value={x().name} spellcheck={false} onInput={(e) => setSpec("indexes", i(), "name", e.currentTarget.value)} />
-                  <span class="db-form-label">Columns:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.columns")}</span>
                   <ColumnPicker all={columnNames()} value={x().columns} onChange={(v) => setSpec("indexes", i(), "columns", v)} />
                   <Show when={info()?.indexMethods.length}>
-                    <span class="db-form-label">Method:</span>
+                    <span class="db-form-label">{tr("database.objects.tableDialog.method")}</span>
                     <select class="dsd-input" value={x().method} onChange={(e) => setSpec("indexes", i(), "method", e.currentTarget.value)}>
                       <option value="">default</option>
                       <For each={info()?.indexMethods ?? []}>{(m) => <option>{m}</option>}</For>
@@ -500,7 +501,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                   <span />
                   <label class="dbo-check">
                     <input type="checkbox" checked={x().unique} onChange={(e) => setSpec("indexes", i(), "unique", e.currentTarget.checked)} />
-                    Unique
+                    {tr("database.objects.tableDialog.unique")}
                   </label>
                 </div>
               );
@@ -511,10 +512,10 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
               const i = () => sel().index;
               return (
                 <div class="db-form">
-                  <span class="db-form-label">Name:</span>
+                  <span class="db-form-label">{tr("database.objects.tableDialog.name")}</span>
                   <input class="dsd-input" value={spec.checks[i()].name} spellcheck={false} onInput={(e) => setSpec("checks", i(), "name", e.currentTarget.value)} />
-                  <span class="db-form-label">Expression:</span>
-                  <input class="dsd-input mono" value={spec.checks[i()].expression} placeholder="price >= 0" spellcheck={false} onInput={(e) => setSpec("checks", i(), "expression", e.currentTarget.value)} />
+                  <span class="db-form-label">{tr("database.objects.tableDialog.expression")}</span>
+                  <input class="dsd-input mono" value={spec.checks[i()].expression} placeholder={"price >= 0"} spellcheck={false} onInput={(e) => setSpec("checks", i(), "expression", e.currentTarget.value)} />
                 </div>
               );
             }}
@@ -543,7 +544,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
 function ColumnPicker(props: { all: string[]; value: string[]; onChange: (v: string[]) => void }) {
   return (
     <div class="dbo-picker">
-      <For each={props.all} fallback={<span class="muted">No columns</span>}>
+      <For each={props.all} fallback={<span class="muted">{tr("database.objects.tableDialog.noColumns")}</span>}>
         {(c) => (
           <label class="dbo-check">
             <input

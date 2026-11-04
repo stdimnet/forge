@@ -6,6 +6,7 @@
 import { isTauri } from "@/ipc";
 import { dbSchemaApi } from "@/ipc/dbSchema";
 import { balloonsFor } from "@/keymap";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Database");
 
@@ -81,7 +82,7 @@ export async function exportDiagram(svg: SVGSVGElement, size: { width: number; h
       const path = await save({ defaultPath: name, filters: [{ name: format.toUpperCase(), extensions: [format] }] });
       if (!path) return;
       await dbSchemaApi.saveExport(path, png ? { base64: png.slice(png.indexOf(",") + 1) } : { text });
-      showBalloon("Diagram exported", path);
+      showBalloon(t("database.schema.exportImage.diagramExported"), path);
       return;
     }
     if (png) download(png, name);
@@ -90,8 +91,8 @@ export async function exportDiagram(svg: SVGSVGElement, size: { width: number; h
       download(url, name);
       URL.revokeObjectURL(url);
     }
-    showBalloon("Diagram exported", name);
+    showBalloon(t("database.schema.exportImage.diagramExported"), name);
   } catch (e) {
-    showBalloon("Export failed", e instanceof Error ? e.message : String(e));
+    showBalloon(t("database.schema.exportImage.exportFailed"), e instanceof Error ? e.message : String(e));
   }
 }

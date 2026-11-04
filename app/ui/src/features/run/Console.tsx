@@ -6,6 +6,7 @@ import { createEffect, createSignal, For, on, Show, type JSX } from "solid-js";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
 import type { AnsiStyle, ConsoleLine, SpanLink } from "@/ipc/run";
+import { t } from "@/i18n";
 
 export async function openFileLink(link: SpanLink): Promise<void> {
   if (link.url) {
@@ -16,7 +17,7 @@ export async function openFileLink(link: SpanLink): Promise<void> {
     line: Math.max(0, (link.line ?? 1) - 1),
     character: Math.max(0, (link.column ?? 1) - 1),
   });
-  if (!ok) showBalloon(`Cannot open ${link.target}`);
+  if (!ok) showBalloon(t("run.console.cannotOpenTarget", { target: link.target }));
 }
 
 export function styleOf(s: AnsiStyle): JSX.CSSProperties | undefined {
@@ -90,7 +91,7 @@ export function Console(props: ConsoleProps) {
                     class="run-link"
                     style={styleOf(p.style)}
                     onClick={() => void openFileLink(p.link!)}
-                    title={p.link!.url ? "Open in browser" : "Open in editor"}
+                    title={p.link!.url ? t("run.console.openInBrowser") : t("run.console.openInEditor")}
                   >
                     {p.text}
                   </a>

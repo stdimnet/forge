@@ -1,6 +1,7 @@
 /** The frame of the object dialogs: title, body, footer; Escape closes, the keymap pauses. */
 import { onCleanup, onMount, Show, type JSX } from "solid-js";
 import { suspendKeymap } from "@/keymap";
+import { t } from "@/i18n";
 
 export function ObjectModal(props: {
   title: string;
@@ -49,14 +50,14 @@ export function ObjectModal(props: {
 /** "Execute in database" / "Open in console" of the DataGrip dialogs. */
 export function ExecutionMode(props: { value: "execute" | "console"; onChange: (v: "execute" | "console") => void; disabled?: boolean }) {
   return (
-    <div class="dbo-mode" role="radiogroup" aria-label="Execution">
+    <div class="dbo-mode" role="radiogroup" aria-label={t("database.objects.modal.execution")}>
       <label>
         <input type="radio" name="dbo-mode" checked={props.value === "execute"} disabled={props.disabled} onChange={() => props.onChange("execute")} />
-        Execute in database
+        {t("database.objects.modal.executeInDatabase")}
       </label>
       <label>
         <input type="radio" name="dbo-mode" checked={props.value === "console"} onChange={() => props.onChange("console")} />
-        Open in console
+        {t("database.objects.modal.openInConsole")}
       </label>
     </div>
   );

@@ -43,6 +43,7 @@ import { fromLsp, toLsp } from "@/features/lsp/util";
 import { applyWorkspaceEdit, type FileOp } from "./refactoring";
 import { renameSessionOf, showRefactoringPreview, startLocalSession } from "./rename";
 import { runContextAction } from "./intentions";
+import { t as tr } from "@/i18n";
 
 const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !/\.blade\.php$/i.test(path);
 
@@ -306,8 +307,8 @@ async function pickExpression(kind: IntroduceKind, path: string, view: EditorVie
 async function askReplaceAll(view: EditorView, info: IntroduceInfo): Promise<boolean | null> {
   if (info.occurrences < 2) return false;
   const i = await choose(view, "Multiple occurrences found", [
-    { label: "Replace this occurrence only", range: info.range },
-    { label: `Replace all ${info.occurrences} occurrences` },
+    { label: tr("codeintel.extract.replaceThisOccurrenceOnly"), range: info.range },
+    { label: tr("codeintel.extract.replaceAllOccurrencesOccurrences", { occurrences: info.occurrences }) },
   ]);
   return i == null ? null : i === 1;
 }
@@ -363,7 +364,7 @@ async function introduceVariable(path: string, view: EditorView, info: Introduce
   }));
   startLocalSession(path, view, changes, ranges, {
     suggestions: info.names,
-    hint: "Choose a name with Up / Down or type one, then press Enter",
+    hint: tr("codeintel.extract.chooseANameWithUp"),
     finish: async (typed, revert) => {
       let answer: RefactorAnswer;
       try {

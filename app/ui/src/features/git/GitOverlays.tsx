@@ -10,6 +10,7 @@ import { Chooser } from "./Chooser";
 import { blameCard, branchesOpen, chooserDialog, diffRequest, inputDialog, setDiffRequest, setInputDialog, type InputDialog } from "./overlays";
 import { dismissNotice, notices } from "./store";
 import { fullDate, timeAgo } from "./format";
+import { t } from "@/i18n";
 
 function Dialog(props: { d: InputDialog }) {
   const [value, setValue] = createSignal(props.d.value);
@@ -55,7 +56,7 @@ function Dialog(props: { d: InputDialog }) {
         </div>
         <footer class="git-dialog-actions">
           <button class="btn-secondary" onClick={() => setInputDialog(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" ref={okBtn} onClick={() => void ok()} disabled={!props.d.noInput && !props.d.optional && !value().trim()}>
             {props.d.okLabel}
@@ -115,7 +116,7 @@ export function GitOverlays() {
                   <div class="balloon-body">{n.body}</div>
                 </Show>
               </div>
-              <button class="icon-btn" title="Close" onClick={() => dismissNotice(n.id)}>
+              <button class="icon-btn" title={t("common.close")} onClick={() => dismissNotice(n.id)}>
                 <X size={13} />
               </button>
             </div>

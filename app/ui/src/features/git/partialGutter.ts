@@ -10,6 +10,7 @@ import { EditorView, GutterMarker, ViewPlugin, gutter, type ViewUpdate } from "@
 import { changesApi, type ChangeHunk } from "./changesApi";
 import { excludedHunks, includedFiles, isHunkIncluded, setHunkIncluded } from "./changelists";
 import { revision } from "./store";
+import { t as tr } from "@/i18n";
 
 const setHunksEffect = StateEffect.define<ChangeHunk[]>();
 /** Inclusion changed: redraw the checkboxes. */
@@ -42,7 +43,7 @@ class HunkCheckbox extends GutterMarker {
     box.className = "cm-git-hunk-check";
     box.checked = this.included;
     box.dataset.hunk = this.id;
-    box.title = this.included ? "Included in commit (click to exclude)" : "Excluded from commit (click to include)";
+    box.title = this.included ? tr("git.partialGutter.includedInCommitClickTo") : tr("git.partialGutter.excludedFromCommitClickTo");
     box.tabIndex = -1;
     return box;
   }

@@ -11,6 +11,7 @@ import { dataEditApi, type DataDiff, type DataSet, type DiffRow, type RowStatus 
 import { openViewTab, type EditorTab } from "@/state/editor";
 import { renderCell, kindOf, cellText } from "./grid";
 import { sourceById, states } from "./store";
+import { t as tr } from "@/i18n";
 
 export const COMPARE_VIEW = "db-compare";
 
@@ -110,19 +111,19 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
       <div class="db-dialog" data-testid="db-compare-dialog" role="dialog">
         <div class="db-side-head">
           <GitCompare size={14} />
-          <span class="db-side-title">Compare Data</span>
+          <span class="db-side-title">{tr("database.compareView.compareData")}</span>
           <span class="db-spacer" />
-          <button class="icon-btn" title="Close" onClick={props.onClose}>
+          <button class="icon-btn" title={tr("common.close")} onClick={props.onClose}>
             <X size={14} />
           </button>
         </div>
         <div class="db-dialog-body">
           <label class="db-dialog-row">
-            <span class="muted">Left</span>
+            <span class="muted">{tr("database.compareView.left")}</span>
             <span class="db-dialog-value">{props.left.label}</span>
           </label>
           <label class="db-dialog-row">
-            <span class="muted">Right</span>
+            <span class="muted">{tr("database.compareView.right")}</span>
             <select value={picked()?.key ?? ""} onChange={(e) => {
               setRight(e.currentTarget.value);
               setKey(null);
@@ -131,7 +132,7 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
             </select>
           </label>
           <div class="db-dialog-row">
-            <span class="muted">Key</span>
+            <span class="muted">{tr("database.compareView.key")}</span>
             <div class="db-chart-ys">
               <For each={common()}>
                 {(c) => (
@@ -141,7 +142,7 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
                 )}
               </For>
               <Show when={!effectiveKey().length}>
-                <span class="muted">No key: whole rows are matched</span>
+                <span class="muted">{tr("database.compareView.noKeyWholeRowsAre")}</span>
               </Show>
             </div>
           </div>
@@ -149,7 +150,7 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
         <div class="db-side-foot">
           <span class="db-spacer" />
           <button class="db-btn" onClick={props.onClose}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button
             class="db-btn primary"
@@ -159,7 +160,7 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
               props.onClose();
             }}
           >
-            Compare
+            {tr("database.compareView.compare")}
           </button>
         </div>
       </div>
@@ -252,7 +253,7 @@ export function CompareView(props: { tab: EditorTab }) {
         <div class="db-error">{(diff() as { error: string }).error}</div>
       </Show>
       <Show when={diff.loading}>
-        <div class="db-side-empty muted">Comparing…</div>
+        <div class="db-side-empty muted">{tr("database.compareView.comparing")}</div>
       </Show>
       <div class="dc-scroll">
         <Show when={d()}>
@@ -278,7 +279,7 @@ export function CompareView(props: { tab: EditorTab }) {
           )}
         </Show>
         <Show when={d() && !rows().length}>
-          <div class="db-side-empty muted">No differences shown</div>
+          <div class="db-side-empty muted">{tr("database.compareView.noDifferencesShown")}</div>
         </Show>
       </div>
     </div>

@@ -21,6 +21,7 @@ import {
 } from "./changesDialogs";
 import { closeGitDialog } from "./gitDialogs";
 import { Check, Frame, Row } from "./DialogFrame";
+import { t as tr } from "@/i18n";
 
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
@@ -35,9 +36,9 @@ export function ChangelistDialog(props: { edit: ChangelistView | null; movePaths
   const taken = () => changelists().some((l) => l.id !== props.edit?.id && l.name.trim().toLowerCase() === name().trim().toLowerCase());
   return (
     <Frame
-      title={props.edit ? "Edit Changelist" : "New Changelist"}
+      title={props.edit ? tr("git.changesDialogViews.editChangelist") : tr("git.changesDialogViews.newChangelist")}
       class="gd-wide"
-      okLabel={props.edit ? "OK" : "Create"}
+      okLabel={props.edit ? "OK" : tr("git.changesDialogViews.create")}
       okDisabled={!name().trim() || taken()}
       onOk={async () => {
         const ok = await saveChangelist(props.edit, name(), comment(), active(), props.movePaths);
@@ -45,16 +46,16 @@ export function ChangelistDialog(props: { edit: ChangelistView | null; movePaths
       }}
     >
       <div class="gd-grid">
-        <Row label="Name:">
+        <Row label={tr("git.changesDialogViews.name")}>
           <input class="gd-input" classList={{ "gd-invalid": taken() }} data-autofocus value={name()} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
         </Row>
       </div>
       <Show when={taken()}>
-        <span class="gd-note gd-error">A changelist with this name already exists</span>
+        <span class="gd-note gd-error">{tr("git.changesDialogViews.aChangelistWithThisName")}</span>
       </Show>
-      <label class="git-dialog-label">Comment:</label>
+      <label class="git-dialog-label">{tr("git.changesDialogViews.comment")}</label>
       <textarea class="gd-textarea" value={comment()} spellcheck={false} onInput={(e) => setComment(e.currentTarget.value)} />
-      <Check label="Set active" checked={active()} disabled={!!props.edit?.active} onChange={setActive} />
+      <Check label={tr("git.changesDialogViews.setActive")} checked={active()} disabled={!!props.edit?.active} onChange={setActive} />
     </Frame>
   );
 }
@@ -70,7 +71,7 @@ export function MoveChangelistDialog(props: { paths: string[]; hunks: string[] |
   const what = () => (props.hunks ? plural(props.hunks.length, "change") + ` of ${nameOf(props.paths[0])}` : props.paths.length === 1 ? nameOf(props.paths[0]) : plural(props.paths.length, "file"));
   return (
     <Frame
-      title="Move to Another Changelist"
+      title={tr("git.changesDialogViews.moveToAnotherChangelist")}
       class="gd-wide gd-move-changelist"
       okLabel="OK"
       okDisabled={mode() === "existing" ? !target() : !name().trim() || taken()}
@@ -79,23 +80,23 @@ export function MoveChangelistDialog(props: { paths: string[]; hunks: string[] |
         if (ok) closeGitDialog();
       }}
     >
-      <span class="gd-note">Move {what()} to:</span>
+      <span class="gd-note">{tr("git.changesDialogViews.moveTo", { what: what() })}</span>
       <div class="gd-radios gd-changelist-choice" role="radiogroup">
         <label class="gd-radio-row">
           <input type="radio" name="cl-mode" checked={mode() === "existing"} disabled={!others().length} onChange={() => setMode("existing")} />
-          Existing changelist:
+          {tr("git.changesDialogViews.existingChangelist")}
           <select class="gd-select" value={target()} disabled={mode() !== "existing"} onChange={(e) => setTarget(e.currentTarget.value)}>
-            <For each={others()}>{(l) => <option value={l.id}>{l.name + (l.active ? " (active)" : "")}</option>}</For>
+            <For each={others()}>{(l) => <option value={l.id}>{l.name + (l.active ? tr("git.changesDialogViews.activeSuffix") : "")}</option>}</For>
           </select>
         </label>
         <label class="gd-radio-row">
           <input type="radio" name="cl-mode" checked={mode() === "new"} onChange={() => setMode("new")} />
-          New changelist:
+          {tr("git.changesDialogViews.newChangelistLabel")}
           <input
             class="gd-input"
             classList={{ "gd-invalid": mode() === "new" && taken() }}
             value={name()}
-            placeholder="Name"
+            placeholder={tr("git.changesDialogViews.name2")}
             spellcheck={false}
             data-autofocus={mode() === "new" ? "" : undefined}
             onFocus={() => setMode("new")}
@@ -103,7 +104,7 @@ export function MoveChangelistDialog(props: { paths: string[]; hunks: string[] |
           />
         </label>
       </div>
-      <Check label="Set active" checked={active()} disabled={mode() !== "new"} onChange={setActive} />
+      <Check label={tr("git.changesDialogViews.setActive")} checked={active()} disabled={mode() !== "new"} onChange={setActive} />
     </Frame>
   );
 }
@@ -117,26 +118,26 @@ export function CreatePatchDialog(props: { paths: string[]; shas: string[]; name
   const source = () => (props.shas.length ? plural(props.shas.length, "commit") : plural(props.paths.length, "file"));
   return (
     <Frame
-      title="Create Patch"
+      title={tr("git.changesDialogViews.createPatch")}
       class="gd-wide"
-      okLabel="Create"
+      okLabel={tr("git.changesDialogViews.create")}
       okDisabled={!toClipboard() && !file().trim()}
       onOk={async () => {
         const ok = await createPatch({ paths: props.paths, shas: props.shas, file: toClipboard() ? null : file().trim(), reverse: reverse() });
         if (ok) closeGitDialog();
       }}
     >
-      <span class="gd-note">Changes: {source()}</span>
+      <span class="gd-note">{tr("git.changesDialogViews.changesSource", { source: source() })}</span>
       <div class="gd-radios" role="radiogroup">
         <label class="gd-radio-row">
           <input type="radio" name="patch-target" checked={!toClipboard()} onChange={() => setToClipboard(false)} />
-          Save to file:
+          {tr("git.changesDialogViews.saveToFile")}
           <span class="gd-inline gd-grow">
             <input class="gd-input" data-autofocus value={file()} disabled={toClipboard()} spellcheck={false} onInput={(e) => setFile(e.currentTarget.value)} />
             <Show when={isTauri()}>
               <button
                 class="icon-btn"
-                title="Browse…"
+                title={tr("git.changesDialogViews.browse")}
                 disabled={toClipboard()}
                 onClick={async () => {
                   const p = await chooseSavePath(file());
@@ -150,12 +151,12 @@ export function CreatePatchDialog(props: { paths: string[]; shas: string[]; name
         </label>
         <label class="gd-radio-row">
           <input type="radio" name="patch-target" checked={toClipboard()} onChange={() => setToClipboard(true)} />
-          Copy patch to clipboard
+          {tr("git.changesDialogViews.copyPatchToClipboard")}
         </label>
       </div>
       <span class="gd-note">Paths are relative to the project root; a relative file name is saved in the project.</span>
       <Show when={!props.shas.length}>
-        <Check label="Reverse patch" checked={reverse()} onChange={setReverse} />
+        <Check label={tr("git.changesDialogViews.reversePatch")} checked={reverse()} onChange={setReverse} />
       </Show>
     </Frame>
   );
@@ -181,7 +182,7 @@ export function ApplyPatchDialog(props: { patch: string; name: string; files: Pa
   const failing = createMemo(() => files().filter((f) => !f.applies).length);
   return (
     <Frame
-      title="Apply Patch"
+      title={tr("git.changesDialogViews.applyPatch")}
       class="gd-wide gd-apply-patch"
       okLabel="OK"
       okDisabled={!checked().size}
@@ -194,16 +195,16 @@ export function ApplyPatchDialog(props: { patch: string; name: string; files: Pa
       }}
     >
       <div class="gd-grid">
-        <Row label="Patch:">
+        <Row label={tr("git.changesDialogViews.patch")}>
           <span class="gd-static">{props.name}</span>
         </Row>
-        <Row label="Base directory:">
-          <input class="gd-input" value={base()} placeholder="Project root" spellcheck={false} onInput={(e) => rebase(e.currentTarget.value)} />
+        <Row label={tr("git.changesDialogViews.baseDirectory")}>
+          <input class="gd-input" value={base()} placeholder={tr("git.changesDialogViews.projectRoot")} spellcheck={false} onInput={(e) => rebase(e.currentTarget.value)} />
         </Row>
-        <Row label="Changelist:">
+        <Row label={tr("git.changesDialogViews.changelist")}>
           <select class="gd-select" value={target()} onChange={(e) => setTarget(e.currentTarget.value)}>
-            <option value="__new">New: {props.name}</option>
-            <For each={changelists()}>{(l) => <option value={l.id}>{l.name + (l.active ? " (active)" : "")}</option>}</For>
+            <option value="__new">{tr("git.changesDialogViews.newNamed", { name: props.name })}</option>
+            <For each={changelists()}>{(l) => <option value={l.id}>{l.name + (l.active ? tr("git.changesDialogViews.activeSuffix") : "")}</option>}</For>
           </select>
         </Row>
       </div>
@@ -244,7 +245,7 @@ export function ApplyPatchDialog(props: { patch: string; name: string; files: Pa
                   <TriangleAlert size={13} />
                 </span>
               </Show>
-              <button class="icon-btn gd-file-diff" title="Show Diff" onClick={(e) => (e.preventDefault(), showPatchFileDiff(f))}>
+              <button class="icon-btn gd-file-diff" title={tr("git.changesDialogViews.showDiff")} onClick={(e) => (e.preventDefault(), showPatchFileDiff(f))}>
                 <FileDiff size={14} />
               </button>
             </label>

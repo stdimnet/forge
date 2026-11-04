@@ -25,6 +25,7 @@ import { setChooserDialog } from "./overlays";
 import { revisionPath } from "./revisionFiles";
 import { openBranchChanges } from "./BranchChanges";
 import { setCommitMessage } from "./CommitPanel";
+import { t } from "@/i18n";
 
 /** What the Log tab offers to the actions: its commits (log order) and the selection. */
 export interface LogView {
@@ -52,7 +53,7 @@ const subjectOf = (sha: string) => view?.commits().find((c) => c.sha === sha)?.s
 /** Ask before rewriting commits that are already pushed (not to a protected branch). */
 async function confirmPushed(state: ActionState, title: string): Promise<boolean> {
   if (!state.warning) return true;
-  return askConfirm({ title, message: `${state.warning} Continue?`, confirm: "Continue" });
+  return askConfirm({ title, message: t("git.logActions.warningContinue", { warning: state.warning }), confirm: t("git.logActions.continue") });
 }
 
 /** Finish a rewrite: reload buffers and offer Undo, or explain the stop at an `edit` step. */
@@ -61,11 +62,11 @@ async function afterRewrite(res: RewriteResult | undefined, title: string, body?
   if (!res) return;
   await reloadOpenFiles();
   if (res.stopped) {
-    notify("info", "Rebase stopped for editing", "Make your changes and amend the commit, then use Git | Continue Rebase.", 10000);
+    notify("info", t("git.logActions.rebaseStoppedForEditing"), "Make your changes and amend the commit, then use Git | Continue Rebase.", 10000);
     return;
   }
   const newHead = res.newHead;
-  showBalloon(title, body, 8000, newHead ? [{ label: "Undo", run: () => void undoRewrite(res.oldHead, newHead, title) }] : undefined, {
+  showBalloon(title, body, 8000, newHead ? [{ label: t("git.logActions.undo"), run: () => void undoRewrite(res.oldHead, newHead, title) }] : undefined, {
     group: VCS_GROUP,
   });
 }
@@ -74,7 +75,7 @@ async function undoRewrite(oldHead: string, newHead: string, title: string): Pro
   const ok = await runGit("Undo failed", () => logApi.undoRewrite(oldHead, newHead).then(() => true));
   if (!ok) return;
   await reloadOpenFiles();
-  notify("info", `Undone: ${title}`);
+  notify("info", t("git.logActions.undoneTitle", { title }));
 }
 
 // ---- actions ---------------------------------------------------------------------------------
@@ -97,14 +98,14 @@ export async function revertCommits(shas: string[]): Promise<void> {
   await refreshOperation();
   if (out === undefined) return;
   await reloadOpenFiles();
-  notify("success", shas.length === 1 ? `Reverted ${shortSha(shas[0])}` : `Reverted ${plural(shas.length, "commit")}`, shas.length === 1 ? subjectOf(shas[0]) : undefined);
+  notify("success", shas.length === 1 ? t("git.logActions.revertedSha", { sha: shortSha(shas[0]) }) : `Reverted ${plural(shas.length, "commit")}`, shas.length === 1 ? subjectOf(shas[0]) : undefined);
 }
 
 /** Undo Commit…: the changes go back to the Commit tool window, the message to its editor. */
 export async function undoCommit(sha: string): Promise<void> {
   const ok = await askConfirm({
-    title: "Undo Commit",
-    message: `The changes of "${subjectOf(sha)}" will be moved to the "Changes" changelist and its message to the commit message.`,
+    title: t("git.logActions.undoCommit"),
+    message: t("git.logActions.theChangesOfSubjectofWill", { subjectOf: subjectOf(sha) }),
     confirm: "OK",
   });
   if (!ok) return;
@@ -112,7 +113,7 @@ export async function undoCommit(sha: string): Promise<void> {
   if (!undone) return;
   setCommitMessage(undone.message);
   showToolWindow("commit");
-  notify("success", "Commit undone", `${shortSha(sha)} ${subjectOf(sha)}`);
+  notify("success", t("git.logActions.commitUndone"), `${shortSha(sha)} ${subjectOf(sha)}`);
 }
 
 /** Edit Commit Message…: the dialog starts with the full message. */
@@ -180,15 +181,15 @@ export async function showRepositoryAt(sha: string): Promise<void> {
   const files = await runGit("Cannot list the files", () => logApi.treeFiles(sha));
   if (!files) return;
   setChooserDialog({
-    title: `Repository at ${shortSha(sha)}`,
+    title: t("git.logActions.repositoryAtSha", { sha: shortSha(sha) }),
     items: files.map((p) => ({ id: p, label: p.split("/").pop() || p, detail: p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "" })),
     empty: "No files",
-    okLabel: "Open",
+    okLabel: t("git.logActions.open"),
     onOk: async (it) => {
       try {
         await openFile(revisionPath(sha, it.id));
       } catch (e) {
-        notify("error", `Cannot open ${it.label}`, errorText(e));
+        notify("error", t("git.logActions.cannotOpenLabel", { label: it.label }), errorText(e));
       }
     },
   });
@@ -200,44 +201,44 @@ export function goToRelative(sha: string, parent: boolean): void {
   const commits = view.commits();
   const target = parent ? commits.find((c) => c.sha === sha)?.parents[0] : commits.find((c) => c.parents.includes(sha))?.sha;
   if (target && commits.some((c) => c.sha === target)) view.select(target);
-  else notify("info", parent ? "The parent commit is not loaded in the log" : "The commit has no child in the log");
+  else notify("info", parent ? t("git.logActions.theParentCommitIsNot") : t("git.logActions.theCommitHasNoChild"));
 }
 
 // ---- the menu and the keymap actions ----------------------------------------------------------
 
-const off = (s: ActionState | undefined): ItemOptions => ({ disabled: !s?.enabled, hint: s?.enabled ? (s.warning ?? undefined) : (s?.reason ?? "Not available") });
+const off = (s: ActionState | undefined): ItemOptions => ({ disabled: !s?.enabled, hint: s?.enabled ? (s.warning ?? undefined) : (s?.reason ?? t("git.logActions.notAvailable")) });
 
 /** The Log context menu for the selection (log order) and its action states. */
 export function logMenuEntries(shas: string[], states: LogActionStates | null): MenuEntry[] {
   const one = shas.length === 1;
-  const single: ItemOptions = one ? {} : { disabled: true, hint: "Select a single commit" };
+  const single: ItemOptions = one ? {} : { disabled: true, hint: t("git.logActions.selectASingleCommit") };
   const [sha] = shas;
   const s = states;
   return [
-    item("Copy Revision Number", () => void copyRevisionNumber(shas.join(" ")), "Vcs.CopyRevisionNumberAction"),
-    item("Create Patch…", () => void createPatch(shas), "Vcs.Log.CreatePatch"),
-    item(shas.length > 1 ? `Cherry-Pick ${shas.length} Commits` : "Cherry-Pick", () => void cherryPick(shas), "Vcs.CherryPick", off(s?.cherryPick)),
+    item(t("git.logActions.copyRevisionNumber"), () => void copyRevisionNumber(shas.join(" ")), "Vcs.CopyRevisionNumberAction"),
+    item(t("git.logActions.createPatch"), () => void createPatch(shas), "Vcs.Log.CreatePatch"),
+    item(shas.length > 1 ? t("git.logActions.cherryPickCountCommits", { count: shas.length }) : "Cherry-Pick", () => void cherryPick(shas), "Vcs.CherryPick", off(s?.cherryPick)),
     separator,
-    item("Checkout Revision", () => void checkoutRevision(sha), "Git.CheckoutRevision", single),
-    item("Show Repository at Revision", () => void showRepositoryAt(sha), "Git.BrowseRepoAtRevision", single),
-    item("Compare with Local", () => openBranchChanges(sha, "", shortSha(sha)), "Vcs.Log.CompareWithLocal", single),
+    item(t("git.logActions.checkoutRevision"), () => void checkoutRevision(sha), "Git.CheckoutRevision", single),
+    item(t("git.logActions.showRepositoryAtRevision"), () => void showRepositoryAt(sha), "Git.BrowseRepoAtRevision", single),
+    item(t("git.logActions.compareWithLocal"), () => openBranchChanges(sha, "", shortSha(sha)), "Vcs.Log.CompareWithLocal", single),
     separator,
-    item("Reset Current Branch to Here…", () => resetDialog(sha), "Git.Reset.In.Log", single),
-    item("Revert Commit", () => void revertCommits(shas), "Git.Revert.In.Log", off(s?.revert)),
-    item("Undo Commit…", () => void undoCommit(sha), "Git.Uncommit", off(s?.undoCommit)),
+    item(t("git.logActions.resetCurrentBranchToHere"), () => resetDialog(sha), "Git.Reset.In.Log", single),
+    item(t("git.logActions.revertCommit"), () => void revertCommits(shas), "Git.Revert.In.Log", off(s?.revert)),
+    item(t("git.logActions.undoCommit2"), () => void undoCommit(sha), "Git.Uncommit", off(s?.undoCommit)),
     separator,
-    item("Edit Commit Message…", () => void editMessage(sha, s!.editMessage), "Git.Reword.Commit", off(s?.editMessage)),
-    item("Fixup…", () => fixupInto(sha, "fixup"), "Git.Fixup.To.Commit", off(s?.fixup)),
-    item("Squash Into…", () => fixupInto(sha, "squash"), "Git.Squash.Into.Commit", off(s?.squashInto)),
-    ...(shas.length > 1 ? [item("Squash Commits…", () => void squashDialog(shas, s!.squashCommits), "Git.Squash.Commits", off(s?.squashCommits))] : []),
-    item("Drop Commits", () => void dropCommits(shas, s!.dropCommits), "Git.Drop.Commits", off(s?.dropCommits)),
-    item("Interactively Rebase from Here…", () => void interactiveRebase(sha, s!.interactiveRebase), "Git.Interactive.Rebase", off(s?.interactiveRebase)),
+    item(t("git.logActions.editCommitMessage"), () => void editMessage(sha, s!.editMessage), "Git.Reword.Commit", off(s?.editMessage)),
+    item(t("git.logActions.fixup"), () => fixupInto(sha, "fixup"), "Git.Fixup.To.Commit", off(s?.fixup)),
+    item(t("git.logActions.squashInto"), () => fixupInto(sha, "squash"), "Git.Squash.Into.Commit", off(s?.squashInto)),
+    ...(shas.length > 1 ? [item(t("git.logActions.squashCommits"), () => void squashDialog(shas, s!.squashCommits), "Git.Squash.Commits", off(s?.squashCommits))] : []),
+    item(t("git.logActions.dropCommits"), () => void dropCommits(shas, s!.dropCommits), "Git.Drop.Commits", off(s?.dropCommits)),
+    item(t("git.logActions.interactivelyRebaseFromHere"), () => void interactiveRebase(sha, s!.interactiveRebase), "Git.Interactive.Rebase", off(s?.interactiveRebase)),
     separator,
-    item("New Branch…", () => newBranchDialog(sha), "Git.CreateNewBranch", single),
-    item("New Tag…", () => newTagDialog(sha), "Git.CreateNewTag", single),
+    item(t("git.logActions.newBranch"), () => newBranchDialog(sha), "Git.CreateNewBranch", single),
+    item(t("git.logActions.newTag"), () => newTagDialog(sha), "Git.CreateNewTag", single),
     separator,
-    item("Go to Child Commit", () => goToRelative(sha, false), "Vcs.Log.GoToChild", single),
-    item("Go to Parent Commit", () => goToRelative(sha, true), "Vcs.Log.GoToParent", single),
+    item(t("git.logActions.goToChildCommit"), () => goToRelative(sha, false), "Vcs.Log.GoToChild", single),
+    item(t("git.logActions.goToParentCommit"), () => goToRelative(sha, true), "Vcs.Log.GoToParent", single),
   ];
 }
 
@@ -255,7 +256,7 @@ export async function openLogMenu(x: number, y: number): Promise<void> {
  */
 export async function runLogAction(key: keyof LogActionStates | null, run: (shas: string[], state: ActionState) => void | Promise<void>): Promise<void> {
   const { shas } = selection();
-  if (!shas.length) return notify("info", "Select a commit in the Git log first");
+  if (!shas.length) return notify("info", t("git.logActions.selectACommitInThe"));
   let state: ActionState = { enabled: true, reason: null, warning: null };
   if (key) {
     const states = await logApi.actions(shas).catch((e) => {

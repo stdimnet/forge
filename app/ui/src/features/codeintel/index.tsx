@@ -80,9 +80,9 @@ import "./refactoring.css";
 import { t } from "@/i18n";
 
 const NAV_TITLES: Record<NavKind, { title: string; none: string }> = {
-  implementation: { title: "Choose Implementation", none: "No implementations found" },
-  superMethod: { title: "Choose Super Method", none: "No super method found" },
-  typeDeclaration: { title: "Choose Type Declaration", none: "Cannot find type declaration to go to" },
+  implementation: { title: t("codeintel.main.chooseImplementation"), none: "No implementations found" },
+  superMethod: { title: t("codeintel.main.chooseSuperMethod"), none: "No super method found" },
+  typeDeclaration: { title: t("codeintel.main.chooseTypeDeclaration"), none: "Cannot find type declaration to go to" },
 };
 
 /** Go to Implementation / Super Method / Type Declaration at `pos`. */
@@ -126,10 +126,10 @@ action(
 );
 // Ctrl+Alt+Down / Up: the next or previous result of the Find tool window's active tab.
 action("NextOccurence", "Next Occurrence", "Navigate", () => {
-  if (!gotoFindOccurrence(1, findGroupByType())) showBalloon("There are no occurrences", "Search with Find Usages (Alt+F7) or Find in Files first.");
+  if (!gotoFindOccurrence(1, findGroupByType())) showBalloon(t("codeintel.main.thereAreNoOccurrences"), "Search with Find Usages (Alt+F7) or Find in Files first.");
 });
 action("PreviousOccurence", "Previous Occurrence", "Navigate", () => {
-  if (!gotoFindOccurrence(-1, findGroupByType())) showBalloon("There are no occurrences", "Search with Find Usages (Alt+F7) or Find in Files first.");
+  if (!gotoFindOccurrence(-1, findGroupByType())) showBalloon(t("codeintel.main.thereAreNoOccurrences"), "Search with Find Usages (Alt+F7) or Find in Files first.");
 });
 registerMainMenuEntries("Navigate", [menuAction("NextOccurence"), menuAction("PreviousOccurence")], {
   after: "GotoPreviousError",

@@ -49,6 +49,7 @@ import {
   type ResultChunk,
   type Side,
 } from "./mergeState";
+import { t as tr } from "@/i18n";
 
 const paneTheme = EditorView.theme({
   "&": { height: "100%" },
@@ -170,9 +171,9 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
     const c = counts();
     if (c.changes + c.conflicts > 0) {
       const ok = await askConfirm({
-        title: "Unresolved Changes",
-        message: "There are unresolved changes. Apply the result and mark the file as resolved anyway?",
-        confirm: "Apply",
+        title: tr("git.mergeWindow.unresolvedChanges"),
+        message: tr("git.mergeWindow.thereAreUnresolvedChangesApply"),
+        confirm: tr("common.apply"),
       });
       if (!ok) return;
     }
@@ -180,7 +181,7 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
   };
   const cancel = async () => {
     if (modified()) {
-      const ok = await askConfirm({ title: "Cancel Merge", message: "Discard the changes made in the result?", confirm: "Discard" });
+      const ok = await askConfirm({ title: tr("git.mergeWindow.cancelMerge"), message: tr("git.mergeWindow.discardTheChangesMadeIn"), confirm: tr("git.mergeWindow.discard") });
       if (!ok) return;
     }
     props.onClose();
@@ -196,10 +197,10 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
       setDiffRequest({ path: file.path, left, right, editable: false });
     showContextMenu(
       [
-        item("Compare Left and Base", () => show({ title: file.yoursTitle, content: texts.left }, { title: "Base", content: base })),
-        item("Compare Base and Right", () => show({ title: "Base", content: base }, { title: file.theirsTitle, content: texts.right })),
-        item("Compare Left and Right", () => show({ title: file.yoursTitle, content: texts.left }, { title: file.theirsTitle, content: texts.right })),
-        item("Compare Base and Result", () => show({ title: "Base", content: base }, { title: "Result", content: resultText() })),
+        item(tr("git.mergeWindow.compareLeftAndBase"), () => show({ title: file.yoursTitle, content: texts.left }, { title: tr("git.mergeWindow.base"), content: base })),
+        item(tr("git.mergeWindow.compareBaseAndRight"), () => show({ title: tr("git.mergeWindow.base"), content: base }, { title: file.theirsTitle, content: texts.right })),
+        item(tr("git.mergeWindow.compareLeftAndRight"), () => show({ title: file.yoursTitle, content: texts.left }, { title: file.theirsTitle, content: texts.right })),
+        item(tr("git.mergeWindow.compareBaseAndResult"), () => show({ title: tr("git.mergeWindow.base"), content: base }, { title: tr("git.mergeWindow.result"), content: resultText() })),
       ],
       r.left,
       r.bottom + 2,
@@ -314,19 +315,19 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
         {(s) => (
           <div class="merge-chunk-actions" classList={{ right: p.side === "right" }} style={{ top: `${Math.max(0, s.sideTop)}px` }}>
             <Show when={p.side === "right"}>
-              <button class="merge-chunk-btn" title="Ignore" onClick={() => ignore(s.index, "right")}>
+              <button class="merge-chunk-btn" title={tr("git.mergeWindow.ignore")} onClick={() => ignore(s.index, "right")}>
                 <X size={12} />
               </button>
             </Show>
             <button
               class="merge-chunk-btn apply"
-              title={s.append ? (p.side === "left" ? "Append Left" : "Append Right") : p.side === "left" ? "Accept Left" : "Accept Right"}
+              title={s.append ? (p.side === "left" ? tr("git.mergeWindow.appendLeft") : tr("git.mergeWindow.appendRight")) : p.side === "left" ? tr("git.mergeWindow.acceptLeft") : tr("git.mergeWindow.acceptRight")}
               onClick={() => apply(s.index, p.side)}
             >
               {p.side === "left" ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
             </button>
             <Show when={p.side === "left"}>
-              <button class="merge-chunk-btn" title="Ignore" onClick={() => ignore(s.index, "left")}>
+              <button class="merge-chunk-btn" title={tr("git.mergeWindow.ignore")} onClick={() => ignore(s.index, "left")}>
                 <X size={12} />
               </button>
             </Show>
@@ -393,7 +394,7 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
       <div
         class="diff-viewer merge-window"
         role="dialog"
-        aria-label={`Merge Revisions for ${file.path}`}
+        aria-label={tr("git.mergeWindow.mergeRevisionsForPath", { path: file.path })}
         data-focus-context="diff"
         tabIndex={-1}
         ref={root}
@@ -406,39 +407,39 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
       >
         <header class="dialog-title">
           <FileIcon name={name} size={14} />
-          <span>Merge Revisions for {file.path}</span>
+          <span>{tr("git.mergeWindow.mergeRevisionsForPath", { path: file.path })}</span>
           <span class="spacer" />
-          <button class="icon-btn" title="Cancel (Escape)" onClick={() => void cancel()}>
+          <button class="icon-btn" title={tr("git.mergeWindow.cancel", { shortcut: "Escape" })} onClick={() => void cancel()}>
             <X size={15} />
           </button>
         </header>
         <div class="panel-toolbar diff-toolbar">
-          <button class="icon-btn" title="Previous Difference (Shift+F7)" onClick={() => step(false)}>
+          <button class="icon-btn" title={tr("git.mergeWindow.previousDifference", { shortcut: "Shift+F7" })} onClick={() => step(false)}>
             <ArrowUp size={15} />
           </button>
-          <button class="icon-btn" title="Next Difference (F7)" onClick={() => step(true)}>
+          <button class="icon-btn" title={tr("git.mergeWindow.nextDifference", { shortcut: "F7" })} onClick={() => step(true)}>
             <ArrowDown size={15} />
           </button>
           <div class="toolbar-sep" />
-          <button class="icon-btn" title="Apply Non-Conflicting Changes from the Left Side" disabled={!counts().left} onClick={() => applyAll("left")}>
+          <button class="icon-btn" title={tr("git.mergeWindow.applyNonConflictingChangesFrom")} disabled={!counts().left} onClick={() => applyAll("left")}>
             <ArrowRightToLine size={15} />
           </button>
           <button
             class="icon-btn"
-            title="Apply All Non-Conflicting Changes"
+            title={tr("git.mergeWindow.applyAllNonConflictingChanges")}
             disabled={!counts().left && !counts().right}
             onClick={() => applyAll("all")}
           >
             <ArrowLeftRight size={15} />
           </button>
-          <button class="icon-btn" title="Apply Non-Conflicting Changes from the Right Side" disabled={!counts().right} onClick={() => applyAll("right")}>
+          <button class="icon-btn" title={tr("git.mergeWindow.applyNonConflictingChangesFrom2")} disabled={!counts().right} onClick={() => applyAll("right")}>
             <ArrowLeftToLine size={15} />
           </button>
-          <button class="icon-btn" title="Resolve Simple Conflicts" disabled={!counts().simple} onClick={magic}>
+          <button class="icon-btn" title={tr("git.mergeWindow.resolveSimpleConflicts")} disabled={!counts().simple} onClick={magic}>
             <WandSparkles size={15} />
           </button>
           <div class="toolbar-sep" />
-          <button class="icon-btn" title="Compare Contents" onClick={compare}>
+          <button class="icon-btn" title={tr("git.mergeWindow.compareContents")} onClick={compare}>
             <Columns3 size={15} />
           </button>
           <span class="spacer" />
@@ -447,7 +448,7 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
             <Show when={counts().changes + counts().conflicts === 0}>
               {" "}
               <button class="link-btn" onClick={() => void finish()}>
-                Save changes and finish merging
+                {tr("git.mergeWindow.saveChangesAndFinishMerging")}
               </button>
             </Show>
           </span>
@@ -456,7 +457,7 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
           <div class="diff-header" title={file.yoursTitle}>
             {file.yoursTitle}
           </div>
-          <div class="diff-header merge-header-result">Result</div>
+          <div class="diff-header merge-header-result">{tr("git.mergeWindow.result")}</div>
           <div class="diff-header" title={file.theirsTitle}>
             {file.theirsTitle}
           </div>
@@ -470,17 +471,17 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
         </div>
         <footer class="merge-footer">
           <button class="btn-secondary" onClick={() => void acceptWhole("yours")}>
-            Accept Left
+            {tr("git.mergeWindow.acceptLeft")}
           </button>
           <button class="btn-secondary" onClick={() => void acceptWhole("theirs")}>
-            Accept Right
+            {tr("git.mergeWindow.acceptRight")}
           </button>
           <span class="spacer" />
           <button class="btn-secondary" onClick={() => void cancel()}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => void finish()}>
-            Apply
+            {tr("common.apply")}
           </button>
         </footer>
       </div>

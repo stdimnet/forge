@@ -6,14 +6,15 @@
  */
 import { For, Show } from "solid-js";
 import type { RunConfiguration, RunTarget, RunTargetKind } from "@/ipc/run";
+import { t as tr } from "@/i18n";
 
 export const TARGET_KINDS: { value: RunTargetKind; label: string }[] = [
-  { value: "local", label: "Local machine" },
-  { value: "dockerImage", label: "Docker image" },
-  { value: "composeService", label: "Docker Compose service" },
+  { value: "local", label: tr("run.runOn.localMachine") },
+  { value: "dockerImage", label: tr("run.runOn.dockerImage") },
+  { value: "composeService", label: tr("run.runOn.dockerComposeService") },
   { value: "ssh", label: "SSH" },
   { value: "wsl", label: "WSL" },
-  { value: "devContainer", label: "Dev Container" },
+  { value: "devContainer", label: tr("run.runOn.devContainer") },
 ];
 
 interface TargetField {
@@ -23,34 +24,34 @@ interface TargetField {
   kind?: "number" | "list" | "lifecycle";
 }
 
-const PROJECT_PATH: TargetField = { key: "projectPath", label: "Project path on target", placeholder: "/opt/project" };
+const PROJECT_PATH: TargetField = { key: "projectPath", label: tr("run.runOn.projectPathOnTarget"), placeholder: "/opt/project" };
 
 const FIELDS: Record<RunTargetKind, TargetField[]> = {
   local: [],
   dockerImage: [
-    { key: "image", label: "Image", placeholder: "node:22" },
-    { key: "runOptions", label: "Docker run options", placeholder: "--network host" },
+    { key: "image", label: tr("run.runOn.image"), placeholder: "node:22" },
+    { key: "runOptions", label: tr("run.runOn.dockerRunOptions"), placeholder: "--network host" },
     PROJECT_PATH,
   ],
   composeService: [
-    { key: "composeFiles", label: "Compose files", placeholder: "compose.yaml", kind: "list" },
-    { key: "service", label: "Service", placeholder: "app" },
-    { key: "lifecycle", label: "Lifecycle", kind: "lifecycle" },
+    { key: "composeFiles", label: tr("run.runOn.composeFiles"), placeholder: "compose.yaml", kind: "list" },
+    { key: "service", label: tr("run.runOn.service"), placeholder: "app" },
+    { key: "lifecycle", label: tr("run.runOn.lifecycle"), kind: "lifecycle" },
   ],
   ssh: [
-    { key: "host", label: "Host", placeholder: "ci.example.com" },
-    { key: "port", label: "Port", placeholder: "22", kind: "number" },
-    { key: "user", label: "User name", placeholder: "deploy" },
-    { key: "keyFile", label: "Private key file", placeholder: "~/.ssh/id_ed25519" },
+    { key: "host", label: tr("run.runOn.host"), placeholder: "ci.example.com" },
+    { key: "port", label: tr("run.runOn.port"), placeholder: "22", kind: "number" },
+    { key: "user", label: tr("run.runOn.userName"), placeholder: "deploy" },
+    { key: "keyFile", label: tr("run.runOn.privateKeyFile"), placeholder: "~/.ssh/id_ed25519" },
     { ...PROJECT_PATH, placeholder: "/srv/shop" },
   ],
   wsl: [
-    { key: "distribution", label: "Distribution", placeholder: "Ubuntu" },
-    { key: "user", label: "User name", placeholder: "Default user" },
+    { key: "distribution", label: tr("run.runOn.distribution"), placeholder: "Ubuntu" },
+    { key: "user", label: tr("run.runOn.userName"), placeholder: tr("run.runOn.defaultUser") },
   ],
   devContainer: [
-    { key: "container", label: "Container", placeholder: "shop-dev" },
-    { key: "user", label: "User name", placeholder: "vscode" },
+    { key: "container", label: tr("run.runOn.container"), placeholder: "shop-dev" },
+    { key: "user", label: tr("run.runOn.userName"), placeholder: "vscode" },
     { ...PROJECT_PATH, placeholder: "/workspaces/shop" },
   ],
 };
@@ -102,7 +103,7 @@ export function RunOnRow(props: {
   return (
     <>
       <label class="rc-row">
-        <span class="rc-label">Run on:</span>
+        <span class="rc-label">{tr("run.runOn.runOn")}</span>
         <select
           class="rc-select"
           data-testid="rc-run-on"
@@ -122,11 +123,11 @@ export function RunOnRow(props: {
                   <div class="rc-radios" role="radiogroup">
                     <label class="rc-radio">
                       <input type="radio" name="runOnLifecycle" checked={(target().lifecycle ?? "run") === "run"} onChange={() => set({ lifecycle: "run" })} />
-                      <span>Always start a new container</span>
+                      <span>{tr("run.runOn.alwaysStartANewContainer")}</span>
                     </label>
                     <label class="rc-radio">
                       <input type="radio" name="runOnLifecycle" checked={target().lifecycle === "exec"} onChange={() => set({ lifecycle: "exec" })} />
-                      <span>Connect to existing container</span>
+                      <span>{tr("run.runOn.connectToExistingContainer")}</span>
                     </label>
                   </div>
                 </div>
@@ -145,18 +146,18 @@ export function RunOnRow(props: {
             }
           </For>
           <label class="rc-row">
-            <span class="rc-label">Path mappings:</span>
+            <span class="rc-label">{tr("run.runOn.pathMappings")}</span>
             <input
               class="rc-input"
               name="runOn.mappings"
               value={mappingsText(target())}
-              placeholder="Automatic; or <project folder>=<path on target>; …"
+              placeholder={tr("run.runOn.automaticOrProjectFolderPath")}
               onChange={(e) => set({ mappings: parseMappings(e.currentTarget.value) })}
             />
           </label>
           <div class="rc-target-note muted">
-            Runs, tests and debug runs execute there; paths in arguments, output, test results, coverage and breakpoints are mapped.
-            <Show when={props.php}> A remote PHP CLI interpreter of the configuration takes precedence.</Show>
+            {tr("run.runOn.targetNote")}
+            <Show when={props.php}> {tr("run.runOn.aRemotePhpCliInterpreter")}</Show>
           </div>
         </div>
       </Show>

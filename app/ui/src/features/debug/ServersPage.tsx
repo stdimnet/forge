@@ -5,6 +5,7 @@ import { Copy, Minus, Plus, Server } from "lucide-solid";
 import { debugApi, type ServerConfig } from "./api";
 import { slug } from "./mapping";
 import { MappingsTree } from "./MappingsTree";
+import { t } from "@/i18n";
 
 export function ServersPage() {
   const [servers, setServers] = createStore<ServerConfig[]>([]);
@@ -61,18 +62,18 @@ export function ServersPage() {
       <Show when={loaded()}>
         <div class="dbg-servers-list">
           <div class="dbg-bp-toolbar">
-            <button class="icon-btn" title="Add" onClick={() => add()}>
+            <button class="icon-btn" title={t("common.add")} onClick={() => add()}>
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={!current()} onClick={remove}>
+            <button class="icon-btn" title={t("common.remove")} disabled={!current()} onClick={remove}>
               <Minus size={14} />
             </button>
-            <button class="icon-btn" title="Copy" disabled={!current()} onClick={() => current() && add(current())}>
+            <button class="icon-btn" title={t("debug.serversPage.copy")} disabled={!current()} onClick={() => current() && add(current())}>
               <Copy size={13} />
             </button>
           </div>
           <div class="dbg-servers-items">
-            <For each={servers} fallback={<div class="muted dbg-pad dbg-center">No servers configured</div>}>
+            <For each={servers} fallback={<div class="muted dbg-pad dbg-center">{t("debug.serversPage.noServersConfigured")}</div>}>
               {(s) => (
                 <div class="tree-row dbg-server-row" classList={{ selected: s.id === selected() }} onClick={() => setSelected(s.id)} data-server={s.id}>
                   <Server size={13} class="muted" />
@@ -83,17 +84,17 @@ export function ServersPage() {
           </div>
         </div>
         <div class="dbg-server-form">
-          <Show when={current()} fallback={<div class="muted dbg-pad">Add a server to map paths of a remote or containerized PHP to the project.</div>}>
+          <Show when={current()} fallback={<div class="muted dbg-pad">{t("debug.serversPage.addAServerToMap")}</div>}>
             {(s) => (
               <>
                 <div class="dbg-form-row">
-                  <label for="dbg-srv-name">Name:</label>
+                  <label for="dbg-srv-name">{t("debug.serversPage.name")}</label>
                   <input id="dbg-srv-name" class="dbg-input" value={s().name} onChange={(e) => edit((x) => (x.name = e.currentTarget.value.trim() || x.name))} />
                 </div>
                 <div class="dbg-form-row dbg-form-host">
-                  <label for="dbg-srv-host">Host:</label>
+                  <label for="dbg-srv-host">{t("debug.serversPage.host")}</label>
                   <input id="dbg-srv-host" class="dbg-input" value={s().host} onChange={(e) => edit((x) => (x.host = e.currentTarget.value.trim()))} />
-                  <label for="dbg-srv-port">Port:</label>
+                  <label for="dbg-srv-port">{t("debug.serversPage.port")}</label>
                   <input
                     id="dbg-srv-port"
                     class="dbg-input dbg-port"
@@ -105,7 +106,7 @@ export function ServersPage() {
                   />
                 </div>
                 <div class="dbg-form-row">
-                  <label for="dbg-srv-dbg">Debugger:</label>
+                  <label for="dbg-srv-dbg">{t("debug.serversPage.debugger")}</label>
                   <select id="dbg-srv-dbg" class="dbg-input" value={s().debugger} onChange={(e) => edit((x) => (x.debugger = e.currentTarget.value))}>
                     <option value="Xdebug">Xdebug</option>
                   </select>
@@ -128,7 +129,7 @@ export function ServersPage() {
                   }
                 />
                 <p class="muted dbg-hint">
-                  Requests are matched by <code>PHP_IDE_CONFIG=serverName={s().name}</code>, otherwise by <code>$_SERVER['SERVER_NAME']</code> and port.
+                  {t("debug.serversPage.matchHint", { config: `PHP_IDE_CONFIG=serverName=${s().name}` })}
                 </p>
               </>
             )}

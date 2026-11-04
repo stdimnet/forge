@@ -30,6 +30,7 @@ import { sourceById, visibleSchemas } from "../store";
 import { ObjectModal } from "./Modal";
 import { SqlPreview } from "./SqlPreview";
 import { afterChange, closeObjectDialog, loadedTables } from "./state";
+import { t as tr } from "@/i18n";
 
 const text = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -199,7 +200,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
       setResult(summary);
       const where = `${schema()}.${plan().table}`;
       showBalloon(
-        summary.cancelled ? "Import cancelled" : summary.aborted ? "Import aborted" : "Import finished",
+        summary.cancelled ? tr("database.objects.importDialog.importCancelled") : summary.aborted ? tr("database.objects.importDialog.importAborted") : tr("database.objects.importDialog.importFinished"),
         `${summary.inserted} row${summary.inserted === 1 ? "" : "s"} into ${where}${summary.skipped ? `, ${summary.skipped} skipped` : ""}`,
       );
       await afterChange(p.ds, schema());
@@ -207,10 +208,10 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
       const msg = text(e);
       if (!confirmed && /production data source/.test(msg)) {
         setRunning(null);
-        if (await askConfirm({ title: "Production Data Source", message: msg, confirm: "Import" })) return run(true);
+        if (await askConfirm({ title: tr("database.objects.importDialog.productionDataSource"), message: msg, confirm: tr("database.objects.importDialog.import") })) return run(true);
         return;
       }
-      showBalloon("Import failed", msg);
+      showBalloon(tr("database.objects.importDialog.importFailed"), msg);
     } finally {
       setRunning(null);
       unlisten?.();
@@ -257,7 +258,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
                 {r().done} / {r().total}
               </span>
               <button class="btn-secondary" onClick={() => void dbObjectsApi.importCancel(r().id)}>
-                Cancel
+                {tr("common.cancel")}
               </button>
             </div>
           )}
@@ -266,10 +267,10 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Close
+            {tr("common.close")}
           </button>
           <button class="btn-primary" disabled={!ready()} onClick={() => void run()} data-testid="dbo-import-ok">
-            Import
+            {tr("database.objects.importDialog.import")}
           </button>
         </>
       }
@@ -277,43 +278,43 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
       <input type="file" ref={fileInput} hidden accept=".csv,.tsv,.txt,.xlsx,.xls,.ods,.json,.ndjson,.jsonl" data-testid="dbo-import-file" onChange={(e) => void onFile(e.currentTarget.files?.[0])} />
       <div class="dbo-import">
         <section class="dbo-import-side">
-          <div class="dbo-section-title">Source</div>
+          <div class="dbo-section-title">{tr("database.objects.importDialog.source")}</div>
           <div class="db-form">
-            <span class="db-form-label">File:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.file")}</span>
             <div class="dbo-row">
               <span class="dbo-file" title={file()?.source.path ?? file()?.name}>
                 {file()?.name ?? "No file chosen"}
               </span>
               <button class="btn-secondary" onClick={() => void pick()} data-autofocus>
-                <FileUp size={14} /> Choose…
+                <FileUp size={14} /> {tr("database.objects.importDialog.choose")}
               </button>
             </div>
-            <span class="db-form-label">Format:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.format")}</span>
             <select class="dsd-input" value={opts.format} onChange={(e) => setOpts("format", e.currentTarget.value as ReadOptions["format"])}>
-              <option value="csv">CSV</option>
-              <option value="tsv">TSV</option>
-              <option value="excel">Excel</option>
-              <option value="json">JSON / NDJSON</option>
+              <option value="csv">{tr("database.objects.importDialog.csv")}</option>
+              <option value="tsv">{tr("database.objects.importDialog.tsv")}</option>
+              <option value="excel">{tr("database.objects.importDialog.excel")}</option>
+              <option value="json">{tr("database.objects.importDialog.jsonNdjson")}</option>
             </select>
             <Show when={opts.format === "csv" || opts.format === "tsv"}>
-              <span class="db-form-label">Delimiter:</span>
+              <span class="db-form-label">{tr("database.objects.importDialog.delimiter")}</span>
               <select class="dsd-input" value={opts.delimiter ?? ""} onChange={(e) => setOpts("delimiter", e.currentTarget.value || null)}>
                 <For each={DELIMITERS}>{([v, l]) => <option value={v}>{v === "" && preview()?.table.delimiter ? `${l} (${preview()!.table.delimiter === "\t" ? "tab" : preview()!.table.delimiter})` : l}</option>}</For>
               </select>
-              <span class="db-form-label">Quote:</span>
+              <span class="db-form-label">{tr("database.objects.importDialog.quote")}</span>
               <select class="dsd-input" value={opts.quote} onChange={(e) => setOpts("quote", e.currentTarget.value)}>
                 <option value={'"'}>Double quote "</option>
-                <option value="'">Single quote '</option>
+                <option value="'">{tr("database.objects.importDialog.singleQuote")}</option>
               </select>
             </Show>
             <Show when={opts.format !== "excel"}>
-              <span class="db-form-label">Encoding:</span>
+              <span class="db-form-label">{tr("database.objects.importDialog.encoding")}</span>
               <select class="dsd-input" value={opts.encoding} onChange={(e) => setOpts("encoding", e.currentTarget.value)}>
                 <For each={ENCODINGS}>{(enc) => <option value={enc}>{enc || `Detect${preview()?.table.encoding ? ` (${preview()!.table.encoding})` : ""}`}</option>}</For>
               </select>
             </Show>
             <Show when={opts.format === "excel" && preview()?.table.sheets?.length}>
-              <span class="db-form-label">Sheet:</span>
+              <span class="db-form-label">{tr("database.objects.importDialog.sheet")}</span>
               <select class="dsd-input" value={opts.sheet || preview()!.table.sheets![0]} onChange={(e) => setOpts("sheet", e.currentTarget.value)}>
                 <For each={preview()!.table.sheets!}>{(s) => <option>{s}</option>}</For>
               </select>
@@ -322,31 +323,31 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             <div class="dbo-checks">
               <label class="dbo-check">
                 <input type="checkbox" checked={opts.header} onChange={(e) => setOpts("header", e.currentTarget.checked)} />
-                First row is header
+                {tr("database.objects.importDialog.firstRowIsHeader")}
               </label>
               <label class="dbo-check">
                 <input type="checkbox" checked={opts.trim} onChange={(e) => setOpts("trim", e.currentTarget.checked)} />
-                Trim whitespace
+                {tr("database.objects.importDialog.trimWhitespace")}
               </label>
             </div>
-            <span class="db-form-label">Skip rows:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.skipRows")}</span>
             <input class="dsd-input dbo-num" type="number" min="0" value={opts.skipRows} onInput={(e) => setOpts("skipRows", Math.max(0, Number(e.currentTarget.value) || 0))} />
           </div>
-          <div class="dbo-section-title">Target</div>
+          <div class="dbo-section-title">{tr("database.objects.importDialog.target")}</div>
           <div class="db-form">
-            <span class="db-form-label">Schema:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.schema")}</span>
             <select class="dsd-input" value={schema()} onChange={(e) => setSchema(e.currentTarget.value)}>
               <For each={visibleSchemas(p.ds)}>{(s) => <option value={s.name}>{s.name}</option>}</For>
             </select>
-            <span class="db-form-label">Table:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.table")}</span>
             <div class="dbo-row">
               <label class="dbo-check">
                 <input type="radio" name="dbo-target" checked={target() === "existing"} onChange={() => setTarget("existing")} />
-                Existing
+                {tr("database.objects.importDialog.existing")}
               </label>
               <label class="dbo-check">
                 <input type="radio" name="dbo-target" checked={target() === "new"} onChange={() => setTarget("new")} data-testid="dbo-import-new" />
-                New
+                {tr("database.objects.importDialog.new")}
               </label>
             </div>
             <span />
@@ -355,19 +356,19 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
               fallback={<input class="dsd-input" value={newName()} placeholder="new_table" spellcheck={false} onInput={(e) => setNewName(e.currentTarget.value)} data-testid="dbo-import-table" />}
             >
               <select class="dsd-input" value={table()} onChange={(e) => setTable(e.currentTarget.value)}>
-                <option value="">Choose a table…</option>
+                <option value="">{tr("database.objects.importDialog.chooseATable")}</option>
                 <For each={existing()}>{(t) => <option value={t.name}>{t.name}</option>}</For>
               </select>
             </Show>
           </div>
-          <div class="dbo-section-title">Options</div>
+          <div class="dbo-section-title">{tr("database.objects.importDialog.options")}</div>
           <div class="db-form">
-            <span class="db-form-label">On error:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.onError")}</span>
             <select class="dsd-input" value={onError()} onChange={(e) => setOnError(e.currentTarget.value as "skip" | "abort")}>
-              <option value="skip">Skip the row and continue</option>
+              <option value="skip">{tr("database.objects.importDialog.skipTheRowAndContinue")}</option>
               <option value="abort">Abort (roll back)</option>
             </select>
-            <span class="db-form-label">Batch size:</span>
+            <span class="db-form-label">{tr("database.objects.importDialog.batchSize")}</span>
             <input class="dsd-input dbo-num" type="number" min="1" value={batchSize()} onInput={(e) => setBatchSize(Math.max(1, Number(e.currentTarget.value) || 1))} />
             <span />
             <label class="dbo-check">
@@ -395,17 +396,17 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
               </For>
             </div>
           </Show>
-          <div class="dbo-section-title">Columns</div>
+          <div class="dbo-section-title">{tr("database.objects.importDialog.columns")}</div>
           <div class="dbo-grid-wrap dbo-mapping">
             <table class="dbo-grid" data-testid="dbo-import-mapping">
               <thead>
                 <tr>
                   <th />
-                  <th>Source column</th>
-                  <th>Detected</th>
-                  <th>Target column</th>
+                  <th>{tr("database.objects.importDialog.sourceColumn")}</th>
+                  <th>{tr("database.objects.importDialog.detected")}</th>
+                  <th>{tr("database.objects.importDialog.targetColumn")}</th>
                   <Show when={target() === "new"}>
-                    <th>Type</th>
+                    <th>{tr("database.objects.importDialog.type")}</th>
                   </Show>
                 </tr>
               </thead>
@@ -445,7 +446,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             </table>
           </div>
           <div class="dbo-section-title">
-            Preview
+            {tr("database.objects.importDialog.preview")}
             <span class="muted">
               {preview() ? ` first ${Math.min(rowsShown(), preview()!.totalRows)} of ${preview()!.totalRows} rows` : ""}
             </span>
@@ -472,7 +473,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             </table>
           </div>
           <Show when={target() === "new" && createSql()}>
-            <div class="dbo-section-title">New table</div>
+            <div class="dbo-section-title">{tr("database.objects.importDialog.newTable")}</div>
             <SqlPreview sql={createSql()} dialect={dialect} testId="dbo-import-create" />
           </Show>
         </section>

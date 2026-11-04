@@ -13,6 +13,7 @@ import { sourceById, states } from "../store";
 import { ExecutionMode, ObjectModal } from "./Modal";
 import { SqlPreview } from "./SqlPreview";
 import { closeObjectDialog, runObjectScript, scriptToConsole } from "./state";
+import { t as tr } from "@/i18n";
 
 const text = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -56,14 +57,14 @@ export function DropDialog(p: { ds: string; schema: string; objects: { kind: str
       ds: p.ds,
       schema: p.schema,
       sql: sql(),
-      title: `Drop ${what}`,
+      title: tr("database.objects.scriptDialogs.dropWhat", { what }),
       warnings: [{ message: `Dropping ${what} deletes ${p.objects.some((o) => o.kind === "table") ? "its data" : "it"} for good`, destructive: true }],
     });
     if (done) closeObjectDialog();
   };
   return (
     <ObjectModal
-      title={`Drop ${what}`}
+      title={tr("database.objects.scriptDialogs.dropWhat", { what })}
       testId="dbo-drop-dialog"
       width={620}
       onClose={closeObjectDialog}
@@ -71,10 +72,10 @@ export function DropDialog(p: { ds: string; schema: string; objects: { kind: str
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary danger" disabled={!sql()} onClick={() => void ok()} data-testid="dbo-drop-ok">
-            {mode() === "console" ? "Open in Console" : "Drop"}
+            {mode() === "console" ? tr("database.objects.scriptDialogs.openInConsole") : tr("database.objects.scriptDialogs.drop")}
           </button>
         </>
       }
@@ -112,17 +113,17 @@ export function RenameDialog(p: { ds: string; schema: string; table: string; col
   };
   return (
     <ObjectModal
-      title={`Rename ${p.column ? "Column" : "Table"}`}
+      title={`Rename ${p.column ? tr("database.objects.scriptDialogs.column") : tr("database.objects.scriptDialogs.table")}`}
       testId="dbo-rename-dialog"
       width={560}
       onClose={closeObjectDialog}
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!sql()} onClick={() => void ok()}>
-            Rename
+            {tr("database.objects.scriptDialogs.rename")}
           </button>
         </>
       }
@@ -140,7 +141,7 @@ export function RenameDialog(p: { ds: string; schema: string; table: string; col
           }}
         />
       </div>
-      <SqlPreview sql={sql()} dialect={dialect} placeholder="-- Type the new name" />
+      <SqlPreview sql={sql()} dialect={dialect} placeholder={tr("database.objects.scriptDialogs.typeTheNewName")} />
     </ObjectModal>
   );
 }
@@ -160,7 +161,7 @@ export async function generateDdlTo(target: "clipboard" | "console" | "file", ds
         const path = await save({ defaultPath: name, filters: [{ name: "SQL", extensions: ["sql"] }] });
         if (!path) return;
         await dbObjectsApi.generateDdl(ds, objects, lastOptions, path);
-        showBalloon("DDL saved", path);
+        showBalloon(tr("database.objects.scriptDialogs.ddlSaved"), path);
         return;
       }
       const sql = await dbObjectsApi.generateDdl(ds, objects, lastOptions);
@@ -170,17 +171,17 @@ export async function generateDdlTo(target: "clipboard" | "console" | "file", ds
       a.download = name;
       a.click();
       URL.revokeObjectURL(url);
-      showBalloon("DDL saved", name);
+      showBalloon(tr("database.objects.scriptDialogs.ddlSaved"), name);
       return;
     }
     const sql = await dbObjectsApi.generateDdl(ds, objects, lastOptions);
     if (target === "console") scriptToConsole(ds, sql);
     else {
       await navigator.clipboard?.writeText(sql);
-      showBalloon("DDL copied", `${objects.length} object${objects.length === 1 ? "" : "s"}`);
+      showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), `${objects.length} object${objects.length === 1 ? "" : "s"}`);
     }
   } catch (e) {
-    showBalloon("Generate DDL failed", text(e));
+    showBalloon(tr("database.objects.scriptDialogs.generateDdlFailed"), text(e));
   }
 }
 
@@ -234,7 +235,7 @@ export function GenerateDdlDialog(p: { ds: string; objects: DdlObject[] }) {
   );
   return (
     <ObjectModal
-      title="SQL Generator: Generate DDL"
+      title={tr("database.objects.scriptDialogs.sqlGeneratorGenerateDdl")}
       testId="dbo-ddl-dialog"
       width={1000}
       height={640}
@@ -248,11 +249,11 @@ export function GenerateDdlDialog(p: { ds: string; objects: DdlObject[] }) {
       }
       footer={
         <>
-          <button class="btn-secondary" disabled={!sql()} onClick={() => void generateDdlTo("file", p.ds, selected())} title="Save to File…">
-            <FileDown size={14} /> File…
+          <button class="btn-secondary" disabled={!sql()} onClick={() => void generateDdlTo("file", p.ds, selected())} title={tr("database.objects.scriptDialogs.saveToFile")}>
+            <FileDown size={14} /> {tr("database.objects.scriptDialogs.file")}
           </button>
-          <button class="btn-secondary" disabled={!sql()} onClick={() => void navigator.clipboard?.writeText(sql()).then(() => showBalloon("DDL copied", `${selected().length} objects`))}>
-            <Copy size={14} /> Copy
+          <button class="btn-secondary" disabled={!sql()} onClick={() => void navigator.clipboard?.writeText(sql()).then(() => showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), `${selected().length} objects`))}>
+            <Copy size={14} /> {tr("database.objects.scriptDialogs.copy")}
           </button>
           <button
             class="btn-primary"
@@ -262,7 +263,7 @@ export function GenerateDdlDialog(p: { ds: string; objects: DdlObject[] }) {
               closeObjectDialog();
             }}
           >
-            <SquareTerminal size={14} /> Open in Console
+            <SquareTerminal size={14} /> {tr("database.objects.scriptDialogs.openInConsole")}
           </button>
         </>
       }
@@ -281,10 +282,10 @@ export function GenerateDdlDialog(p: { ds: string; objects: DdlObject[] }) {
             )}
           </For>
         </div>
-        <SqlPreview sql={sql()} dialect={dialect} placeholder="-- Select objects" testId="dbo-ddl-sql" />
+        <SqlPreview sql={sql()} dialect={dialect} placeholder={tr("database.objects.scriptDialogs.selectObjects")} testId="dbo-ddl-sql" />
       </div>
       <Show when={!all().length}>
-        <div class="dsd-hint muted dbo-pad">Expand the schema in the Database tool window to load its objects.</div>
+        <div class="dsd-hint muted dbo-pad">{tr("database.objects.scriptDialogs.expandTheSchemaInThe")}</div>
       </Show>
     </ObjectModal>
   );

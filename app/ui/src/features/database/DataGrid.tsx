@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, KeyRound, Link2 } from "lucide-solid";
 import type { Cell, SortKey } from "@/ipc/db";
 import { editText, measureWidth, parseInput, rangeText, renderCell, typeLabel, type GridColumn } from "./grid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { t } from "@/i18n";
 
 const ROW_H = 24;
 const HEAD_H = 28;
@@ -263,15 +264,15 @@ export function DataGrid(props: DataGridProps) {
   const menuItems = (): MenuItem[] => {
     const s = sel();
     const base: MenuItem[] = [
-      { label: "Copy", hint: "Ctrl+C", run: () => copySelection(false), disabled: !s },
-      { label: "Copy with Header", run: () => copySelection(true), disabled: !s },
+      { label: t("database.dataGrid.copy"), hint: "Ctrl+C", run: () => copySelection(false), disabled: !s },
+      { label: t("database.dataGrid.copyWithHeader"), run: () => copySelection(true), disabled: !s },
     ];
     if (props.editable && s && canEdit(s.row)) {
       base.push(
         { separator: true, label: "" },
-        { label: "Edit", hint: "F2", run: () => startEdit() },
+        { label: t("database.dataGrid.edit"), hint: "F2", run: () => startEdit() },
         {
-          label: "Set NULL",
+          label: t("database.dataGrid.setNull"),
           run: () => {
             const n = norm();
             if (!n) return;

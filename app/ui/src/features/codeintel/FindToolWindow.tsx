@@ -27,6 +27,7 @@ import {
   usageKey,
   type FindTab,
 } from "./usages";
+import { t as tr } from "@/i18n";
 
 const fileName = (path: string) => path.split("/").pop() ?? path;
 const dirName = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -46,7 +47,7 @@ async function runAction(tab: FindTab, run: (tab: FindTab) => void | Promise<voi
   try {
     await run(tab);
   } catch (e) {
-    showBalloon("Action failed", String(e instanceof Error ? e.message : e));
+    showBalloon(tr("codeintel.findToolWindow.actionFailed"), String(e instanceof Error ? e.message : e));
   } finally {
     setActing(false);
   }
@@ -88,7 +89,7 @@ async function rerun(tab: FindTab): Promise<void> {
   try {
     updateFindTab(tab.id, await tab.rerun());
   } catch (e) {
-    showBalloon("Search failed", String(e instanceof Error ? e.message : e));
+    showBalloon(tr("codeintel.findToolWindow.searchFailed"), String(e instanceof Error ? e.message : e));
   } finally {
     setRerunning(false);
   }
@@ -105,10 +106,10 @@ export function FindTabs() {
           onClick={() => setActiveFindTab(SEARCH_TAB)}
           onMouseDown={(e) => e.button === 1 && (e.preventDefault(), closeFindTab(SEARCH_TAB))}
         >
-          <span class="run-tab-title">Find in Files</span>
+          <span class="run-tab-title">{tr("codeintel.findToolWindow.findInFiles")}</span>
           <button
             class="run-tab-close"
-            title="Close Tab"
+            title={tr("codeintel.findToolWindow.closeTab")}
             onClick={(e) => {
               e.stopPropagation();
               closeFindTab(SEARCH_TAB);
@@ -130,7 +131,7 @@ export function FindTabs() {
             <span class="run-tab-title">{t.title}</span>
             <button
               class="run-tab-close"
-              title="Close Tab"
+              title={tr("codeintel.findToolWindow.closeTab")}
               onClick={(e) => {
                 e.stopPropagation();
                 closeFindTab(t.id);
@@ -239,7 +240,7 @@ function ResultTab() {
           <>
             <div class="find-toolbar" role="toolbar">
               <Show when={t().rerun}>
-                <button class="find-tool" title="Rerun" disabled={rerunning()} onClick={() => void rerun(t())}>
+                <button class="find-tool" title={tr("codeintel.findToolWindow.rerun")} disabled={rerunning()} onClick={() => void rerun(t())}>
                   <RotateCw size={15} />
                 </button>
               </Show>
@@ -247,28 +248,28 @@ function ResultTab() {
                 <button
                   class="find-tool"
                   classList={{ on: groupByType() }}
-                  title="Group by Usage Type"
+                  title={tr("codeintel.findToolWindow.groupByUsageType")}
                   aria-pressed={groupByType()}
                   onClick={() => setGroupByType(!groupByType())}
                 >
                   <ListTree size={15} />
                 </button>
               </Show>
-              <button class="find-tool" title="Expand All" onClick={() => setAll(t(), false)}>
+              <button class="find-tool" title={tr("codeintel.findToolWindow.expandAll")} onClick={() => setAll(t(), false)}>
                 <ChevronsUpDown size={15} />
               </button>
-              <button class="find-tool" title="Collapse All" onClick={() => setAll(t(), true)}>
+              <button class="find-tool" title={tr("codeintel.findToolWindow.collapseAll")} onClick={() => setAll(t(), true)}>
                 <ChevronsDownUp size={15} />
               </button>
               <Show when={t().kind === "usages" && t().origin}>
-                <button class="find-tool" title="Settings… (Ctrl+Alt+Shift+F7)" aria-label="Find Usages Settings" onClick={() => findUsagesSettingsFor(t())}>
+                <button class="find-tool" title={tr("codeintel.findToolWindow.settings", { shortcut: "Ctrl+Alt+Shift+F7" })} aria-label={tr("codeintel.findToolWindow.findUsagesSettings")} onClick={() => findUsagesSettingsFor(t())}>
                   <Settings size={15} />
                 </button>
               </Show>
-              <button class="find-tool" title="Previous Occurrence" onClick={() => gotoFindOccurrence(-1, groupByType())}>
+              <button class="find-tool" title={tr("codeintel.findToolWindow.previousOccurrence")} onClick={() => gotoFindOccurrence(-1, groupByType())}>
                 <ArrowUp size={15} />
               </button>
-              <button class="find-tool" title="Next Occurrence" onClick={() => gotoFindOccurrence(1, groupByType())}>
+              <button class="find-tool" title={tr("codeintel.findToolWindow.nextOccurrence")} onClick={() => gotoFindOccurrence(1, groupByType())}>
                 <ArrowDown size={15} />
               </button>
             </div>
@@ -287,7 +288,7 @@ function ResultTab() {
                 <div class="find-actions">
                   <label class="form-label check">
                     <input type="checkbox" checked={previewReplacement()} onChange={(e) => setPreviewReplacement(e.currentTarget.checked)} />
-                    Preview Replacement
+                    {tr("codeintel.findToolWindow.previewReplacement")}
                   </label>
                   <span class="find-actions-gap" />
                   <For each={t().actions}>

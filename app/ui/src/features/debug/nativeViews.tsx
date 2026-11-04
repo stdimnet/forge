@@ -22,6 +22,7 @@ import {
   variables,
 } from "./store";
 import { VariableNode } from "./VariablesTree";
+import { t as tr } from "@/i18n";
 
 /** The built-in tabs, or the id of a registered one (`registerDebugTab`). */
 export type DebugTab = "frames" | "console" | "memory" | "disassembly" | "registers" | (string & {});
@@ -62,7 +63,7 @@ export function ThreadSelector() {
       <div class="dbg-threads">
         <select
           class="dbg-thread-select"
-          aria-label="Thread"
+          aria-label={tr("debug.nativeViews.thread")}
           value={String(threadId() ?? "")}
           disabled={!pausedSession()}
           onChange={(e) => void selectThread(Number(e.currentTarget.value))}
@@ -140,13 +141,13 @@ export function MemoryPane() {
     <div class="dbg-native">
       <div class="dbg-native-tools">
         <label class="muted" for="dbg-mem-addr">
-          Address:
+          {tr("debug.nativeViews.address")}
         </label>
         <input
           id="dbg-mem-addr"
           class="dbg-input dbg-mono dbg-mem-addr"
           value={input()}
-          placeholder="0x7ffe0000 or &variable"
+          placeholder={tr("debug.nativeViews.n0x7ffe0000OrVariable")}
           spellcheck={false}
           onInput={(e) => setInput(e.currentTarget.value)}
           onKeyDown={(e) => {
@@ -156,20 +157,20 @@ export function MemoryPane() {
             }
           }}
         />
-        <button class="icon-btn" title="Previous Page" disabled={!block()} onClick={() => setMemoryOffset((o) => o - PAGE)}>
+        <button class="icon-btn" title={tr("debug.nativeViews.previousPage")} disabled={!block()} onClick={() => setMemoryOffset((o) => o - PAGE)}>
           <ChevronLeft size={14} />
         </button>
-        <button class="icon-btn" title="Next Page" disabled={!block()} onClick={() => setMemoryOffset((o) => o + PAGE)}>
+        <button class="icon-btn" title={tr("debug.nativeViews.nextPage")} disabled={!block()} onClick={() => setMemoryOffset((o) => o + PAGE)}>
           <ChevronRight size={14} />
         </button>
-        <button class="icon-btn" title="Refresh" disabled={!pausedSession()} onClick={() => void load()}>
+        <button class="icon-btn" title={tr("debug.nativeViews.refresh")} disabled={!pausedSession()} onClick={() => void load()}>
           <RefreshCw size={13} />
         </button>
         <Show when={block()?.unreadable}>
           <span class="muted dbg-native-note">{block()!.unreadable} bytes not readable</span>
         </Show>
       </div>
-      <div class="dbg-memory dbg-mono" role="grid" aria-label="Memory">
+      <div class="dbg-memory dbg-mono" role="grid" aria-label={tr("debug.nativeViews.memory")}>
         <Show when={error()}>
           <div class="dbg-error dbg-pad">{error()}</div>
         </Show>
@@ -178,7 +179,7 @@ export function MemoryPane() {
           fallback={
             <Show when={!error()}>
               <div class="dbg-empty muted">
-                {pausedSession() ? "Enter an address, or choose View Memory on a variable." : "Memory is available while the program is suspended."}
+                {pausedSession() ? tr("debug.nativeViews.enterAnAddressOrChoose") : tr("debug.nativeViews.memoryIsAvailableWhileThe")}
               </div>
             </Show>
           }
@@ -197,7 +198,7 @@ export function MemoryPane() {
                             <span
                               class="dbg-mem-byte"
                               classList={{ unreadable: byte === "??", zero: byte === "00", gap: c() > 0 && c() % 8 === 0 }}
-                              title={canWrite() ? "Double-click to change" : undefined}
+                              title={canWrite() ? tr("debug.nativeViews.doubleClickToChange") : undefined}
                               onDblClick={() => canWrite() && byte !== "??" && setEditing({ row: r(), col: c() })}
                             >
                               {byte}
@@ -241,7 +242,7 @@ export function DisassemblyPane() {
     const ip = selectedFrame()?.address;
     if (!s || !ip) {
       setCode([]);
-      setError(s ? "The selected frame has no instruction pointer." : null);
+      setError(s ? tr("debug.nativeViews.theSelectedFrameHasNo") : null);
       return;
     }
     try {
@@ -270,12 +271,12 @@ export function DisassemblyPane() {
         </button>
         <span class="muted dbg-native-note">{selectedFrame() ? `${selectedFrame()!.where} @ ${selectedFrame()!.address ?? "?"}` : ""}</span>
       </div>
-      <div class="dbg-asm dbg-mono" ref={list} role="list" aria-label="Disassembly">
+      <div class="dbg-asm dbg-mono" ref={list} role="list" aria-label={tr("debug.nativeViews.disassembly")}>
         <Show when={error()}>
           <div class="dbg-error dbg-pad">{error()}</div>
         </Show>
         <Show when={!pausedSession()}>
-          <div class="dbg-empty muted">Disassembly is available while the program is suspended.</div>
+          <div class="dbg-empty muted">{tr("debug.nativeViews.disassemblyIsAvailableWhileThe")}</div>
         </Show>
         <For each={code()}>
           {(i, n) => (
@@ -316,7 +317,7 @@ export function RegistersPane() {
   createEffect(on(reloadKey("variables"), () => void load()));
   return (
     <div class="dbg-native">
-      <div class="dbg-tree dbg-registers" role="tree" aria-label="Registers">
+      <div class="dbg-tree dbg-registers" role="tree" aria-label={tr("debug.nativeViews.registers")}>
         <Show when={error()}>
           <div class="dbg-error dbg-pad">{error()}</div>
         </Show>
@@ -324,7 +325,7 @@ export function RegistersPane() {
           each={regs()}
           fallback={
             <Show when={!error()}>
-              <div class="dbg-empty muted">{pausedSession() ? "The debug adapter reports no registers for this frame." : "Registers are available while the program is suspended."}</div>
+              <div class="dbg-empty muted">{pausedSession() ? tr("debug.nativeViews.theDebugAdapterReportsNo") : tr("debug.nativeViews.registersAreAvailableWhileThe")}</div>
             </Show>
           }
         >

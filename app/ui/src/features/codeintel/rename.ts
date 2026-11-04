@@ -33,6 +33,7 @@ import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
 import { fromLsp, h, toLsp } from "@/features/lsp/util";
 import { applyWorkspaceEdit } from "./refactoring";
+import { t as tr } from "@/i18n";
 
 export const NOT_RENAMEABLE = "Cannot perform refactoring. Caret should be positioned at the symbol to be renamed";
 
@@ -179,10 +180,10 @@ function renameTooltip(s: RenameSession): Tooltip {
           const cur = view.state.field(renameField, false);
           if (cur) cur.renameFile = box.checked;
         });
-        dom.append(h("label", "cm-rename-hint-option", box, `Rename file '${fileName(s.answer.classFile)}'`));
+        dom.append(h("label", "cm-rename-hint-option", box, tr("codeintel.rename.renameFileFilename", { fileName: fileName(s.answer.classFile) })));
       }
       const key = shortcutLabel("RenameElement") || "Shift+F6";
-      dom.append(h("div", "cm-rename-hint-text", `Press ${key} to show dialog with more options`));
+      dom.append(h("div", "cm-rename-hint-text", tr("codeintel.rename.pressKeyToShowDialog", { key })));
       return { dom };
     },
   };
@@ -399,7 +400,7 @@ function openRenameDialog(view: EditorView): void {
   const s = renameSessionOf(view);
   if (!s) return;
   setRenameDialog({
-    label: s.answer.label ?? `Rename '${s.original}' and its usages to:`,
+    label: s.answer.label ?? tr("codeintel.rename.renameOriginalAndItsUsages", { original: s.original }),
     name: currentName(view),
     classFile: s.answer.classFile,
     renameFile: s.renameFile,
@@ -458,14 +459,14 @@ export async function commitRename(view: EditorView, opts: { name?: string; prev
       return;
     }
     if (answer.conflicts.length || opts.preview) {
-      const ok = await showRefactoringPreview(`Rename ${s.original} to ${typed}`, answer);
+      const ok = await showRefactoringPreview(tr("codeintel.rename.renameOriginalToTyped", { original: s.original, typed }), answer);
       if (!ok) {
         cancelRename(view);
         return;
       }
     }
     if (!renameSessionOf(view)) return;
-    const label = `Rename ${s.original} to ${typed}`;
+    const label = tr("codeintel.rename.renameOriginalToTyped", { original: s.original, typed });
     try {
       await applyWorkspaceEdit(answer.edit, {
         label,

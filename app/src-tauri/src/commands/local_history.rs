@@ -114,7 +114,7 @@ impl LocalHistoryState {
             .expect("local history lock")
             .as_ref()
             .map(|p| (p.store.clone(), p.tx.clone()))
-            .ok_or_else(|| ForgeError::Other("no project is open".into()))
+            .ok_or_else(ForgeError::no_project)
     }
 
     /// The store, once everything sent before is recorded.

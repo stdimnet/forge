@@ -1,4 +1,10 @@
 {
+  "errors.collab.noSession": "No session is running.",
+  "errors.io": "io error at {path}: {error}",
+  "errors.noDeclaration": "Cannot find declaration to go to",
+  "errors.noProject": "no project is open",
+  "errors.notFound": "not found: {path}",
+  "errors.outsideWorkspace": "path is outside of the workspace: {path}",
   "errors.safeMode.action.agent-tasks": "Agent tasks",
   "errors.safeMode.action.applying-agent-tasks": "Applying agent tasks",
   "errors.safeMode.action.applying-kubernetes-manifests": "Applying Kubernetes manifests",

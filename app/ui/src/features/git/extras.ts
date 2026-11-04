@@ -14,6 +14,7 @@ export { joinDir, suggestWorktreePath };
 import { extrasApi, type CloneProgress, type NewWorktree, type Worktree } from "./extrasApi";
 import { notify, repositoryChanged, runGit } from "./store";
 import { setCommitMessage } from "./CommitPanel";
+import { t } from "@/i18n";
 
 // ---- Get from VCS --------------------------------------------------------------------------
 
@@ -48,15 +49,15 @@ export async function openCloneDialog(url?: string): Promise<void> {
 
 /** Run the clone; resolves with the new working copy, or null when it failed / was cancelled. */
 export async function runClone(url: string, directory: string, accountId: string | null, target: CloneTarget): Promise<string | null> {
-  setCloneProgress({ phase: "Cloning", percent: null, fraction: 0, text: `Cloning ${url}…` });
+  setCloneProgress({ phase: "Cloning", percent: null, fraction: 0, text: t("git.extras.cloningUrl", { url }) });
   const off = await extrasApi.onCloneProgress((p) => setCloneProgress(p));
   try {
     const { path } = await extrasApi.clone(url, directory, accountId, target.connectionId);
     return path;
   } catch (e) {
     const message = String((e as Error)?.message ?? e);
-    if (/cancel/i.test(message)) notify("info", "Clone was cancelled");
-    else notify("error", "Clone failed", message, 12000);
+    if (/cancel/i.test(message)) notify("info", t("git.extras.cloneWasCancelled"));
+    else notify("error", t("git.extras.cloneFailed"), message, 12000);
     return null;
   } finally {
     off();
@@ -74,11 +75,11 @@ export async function offerToOpen(path: string, connectionId: string | null, wha
   if (workspace() && connectionId) {
     const name = path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? path;
     const choice = await askChoice({
-      title: "Open Project",
-      message: `Would you like to open ${what} ${name} in this window?`,
+      title: t("git.extras.openProject"),
+      message: t("git.extras.wouldYouLikeToOpen", { what: what === "the worktree" ? "worktree" : "project", name }),
       choices: [
-        { id: "new", label: "New Window", disabled: true, hint: "Remote projects open in this window" },
-        { id: "this", label: "This Window" },
+        { id: "new", label: t("git.extras.newWindow"), disabled: true, hint: t("git.extras.remoteProjectsOpenInThis") },
+        { id: "this", label: t("git.extras.thisWindow") },
       ],
     });
     if (choice !== "this") return;
@@ -87,7 +88,7 @@ export async function offerToOpen(path: string, connectionId: string | null, wha
     if (connectionId) await openRemoteProject(connectionId, path);
     else await openProject(path, what);
   } catch (e) {
-    notify("error", "Cannot open the project", String((e as Error)?.message ?? e));
+    notify("error", t("git.extras.cannotOpenTheProject"), String((e as Error)?.message ?? e));
   }
 }
 
@@ -111,7 +112,7 @@ export async function createWorktree(options: NewWorktree, open: boolean): Promi
   if (out === undefined) return false;
   await refreshWorktrees();
   await repositoryChanged();
-  notify("success", "Worktree created", options.path);
+  notify("success", t("git.extras.worktreeCreated"), options.path);
   if (open) await openWorktree(options.path);
   return true;
 }
@@ -123,22 +124,22 @@ export async function openWorktree(path: string): Promise<void> {
 }
 
 export async function removeWorktree(w: Worktree): Promise<void> {
-  if (w.main || w.current) return notify("info", w.main ? "The main worktree cannot be removed" : "The worktree of this project cannot be removed");
+  if (w.main || w.current) return notify("info", w.main ? t("git.extras.theMainWorktreeCannotBe") : t("git.extras.theWorktreeOfThisProject"));
   const ok = await askConfirm({
-    title: "Remove Worktree",
+    title: t("git.extras.removeWorktree"),
     message: `Remove the worktree ${w.path}${w.branch ? ` (${w.branch})` : ""}? Its directory is deleted; the branch is kept.`,
-    confirm: "Remove",
+    confirm: t("common.remove"),
   });
   if (!ok) return;
   try {
     await extrasApi.removeWorktree(w.path, false);
   } catch (e) {
     const message = String((e as Error)?.message ?? e);
-    if (!/modified or untracked|locked|--force/i.test(message)) return notify("error", "Cannot remove the worktree", message);
+    if (!/modified or untracked|locked|--force/i.test(message)) return notify("error", t("git.extras.cannotRemoveTheWorktree"), message);
     const force = await askConfirm({
-      title: "Remove Worktree",
+      title: t("git.extras.removeWorktree"),
       message: `${message}\n\nRemove it anyway and discard its local changes?`,
-      confirm: "Force Remove",
+      confirm: t("git.extras.forceRemove"),
     });
     if (!force) return;
     const done = await runGit("Cannot remove the worktree", () => extrasApi.removeWorktree(w.path, true));
@@ -151,7 +152,7 @@ export async function removeWorktree(w: Worktree): Promise<void> {
 export async function pruneWorktrees(): Promise<void> {
   const out = await runGit("Prune failed", () => extrasApi.pruneWorktrees());
   if (out === undefined) return;
-  notify("success", "Worktrees pruned", out || "Nothing to prune");
+  notify("success", t("git.extras.worktreesPruned"), out || "Nothing to prune");
   await refreshWorktrees();
 }
 
@@ -160,10 +161,10 @@ export async function toggleWorktreeLock(w: Worktree): Promise<void> {
     await runGit("Cannot unlock the worktree", () => extrasApi.unlockWorktree(w.path));
   } else {
     setInputDialog({
-      title: "Lock Worktree",
-      label: "Reason (optional):",
+      title: t("git.extras.lockWorktree"),
+      label: t("git.extras.reasonOptional"),
       value: "",
-      okLabel: "Lock",
+      okLabel: t("git.extras.lock"),
       optional: true,
       onOk: async (reason) => {
         await runGit("Cannot lock the worktree", () => extrasApi.lockWorktree(w.path, reason.trim() || null));

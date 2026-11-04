@@ -2930,6 +2930,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-find",
  "forge-fuzzy",
+ "forge-i18n",
  "forge-scopes",
  "ignore",
  "notify",

@@ -10,6 +10,7 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Braces, History, Variable } from "lucide-solid";
 import type { Completion } from "./api";
 import { completeExpression, expressionHistory, isDapSession } from "./store";
+import { t } from "@/i18n";
 
 export interface ExpressionInputProps {
   value: string;
@@ -133,7 +134,7 @@ export function ExpressionInput(props: ExpressionInputProps) {
       />
       <button
         class="icon-btn dbg-expr-history"
-        title="History"
+        title={t("debug.expressionInput.history")}
         disabled={!expressionHistory().length}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setHistoryOpen((o) => !o)}

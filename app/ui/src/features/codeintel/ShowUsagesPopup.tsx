@@ -9,6 +9,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import { toLsp } from "@/features/lsp/util";
 import type { UsageRow } from "@/ipc/codeintel";
 import { closeUsagesPopup, countLabel, openInFindWindow, openUsage, showUsagesSettings, type UsageItem, type UsagesPopupState } from "./usages";
+import { t as tr } from "@/i18n";
 
 type Line = { kind: "group"; label: string; count: number } | ({ kind: "usage"; index: number } & UsageItem);
 
@@ -97,7 +98,7 @@ export function ShowUsagesPopup(props: { popup: UsagesPopupState }) {
       ref={el}
       tabIndex={-1}
       role="dialog"
-      aria-label={`Usages of ${props.popup.answer.title}`}
+      aria-label={tr("codeintel.showUsagesPopup.usagesOfTitle", { title: props.popup.answer.title })}
       style={{ left: `${props.popup.x}px`, top: `${props.popup.y}px` }}
       onKeyDown={onKey}
     >
@@ -109,8 +110,8 @@ export function ShowUsagesPopup(props: { popup: UsagesPopupState }) {
         <Show when={props.popup.origin}>
           <button
             class="usages-popup-pin"
-            title="Settings… (Ctrl+Alt+Shift+F7)"
-            aria-label="Find Usages Settings"
+            title={tr("codeintel.showUsagesPopup.settings", { shortcut: "Ctrl+Alt+Shift+F7" })}
+            aria-label={tr("codeintel.showUsagesPopup.findUsagesSettings")}
             onClick={() => showUsagesSettings(props.popup)}
           >
             <Settings size={14} />
@@ -118,8 +119,8 @@ export function ShowUsagesPopup(props: { popup: UsagesPopupState }) {
         </Show>
         <button
           class="usages-popup-pin"
-          title="Open in Find Window"
-          aria-label="Open in Find Window"
+          title={tr("codeintel.showUsagesPopup.openInFindWindow")}
+          aria-label={tr("codeintel.showUsagesPopup.openInFindWindow")}
           onClick={() => openInFindWindow(props.popup.answer, { origin: popupOrigin(props.popup) })}
         >
           <Pin size={14} />

@@ -7,6 +7,7 @@ import type { RunConfiguration } from "@/ipc/run";
 import { CompoundForm } from "./CompoundForm";
 import { baseName, COMPOUND, compoundMembers, registerRunConfigurationType } from "./types";
 import { phpCoverageFields } from "./phpCoverage";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const shortClass = (fqcn: string) => fqcn.split("\\").pop() ?? fqcn;
@@ -14,14 +15,14 @@ const shortClass = (fqcn: string) => fqcn.split("\\").pop() ?? fqcn;
 registerRunConfigurationType({
   id: "php-script",
   name: "PHP Script",
-  description: "Run a PHP file with the CLI interpreter.",
+  description: t("run.builtinTypes.runAPhpFileWith"),
   icon: FileCode,
   color: "var(--syn-variable)",
   pluginId: "forge.php",
   interpreter: "php",
   argumentsLabel: "Arguments",
   debuggable: true,
-  fields: [{ key: "file", label: "File", kind: "path", required: true, placeholder: "bin/console.php" }],
+  fields: [{ key: "file", label: t("run.builtinTypes.file"), kind: "path", required: true, placeholder: "bin/console.php" }],
   suggestName: (cfg) => baseName(opt(cfg, "file")),
 });
 
@@ -35,7 +36,7 @@ export function builtinServerUrl(cfg: RunConfiguration): string {
 registerRunConfigurationType({
   id: "php-builtin-server",
   name: "PHP Built-in Web Server",
-  description: "Serve a document root with php -S; Debug debugs every request.",
+  description: t("run.builtinTypes.serveADocumentRootWith"),
   icon: Globe,
   color: "var(--info)",
   pluginId: "forge.php",
@@ -43,19 +44,19 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   fields: [
-    { key: "host", label: "Host", default: "localhost", placeholder: "localhost" },
-    { key: "port", label: "Port", default: "8080", placeholder: "8080" },
-    { key: "documentRoot", label: "Document root", kind: "path", directory: true, placeholder: "public (empty: the project root)" },
-    { key: "useRouter", label: "Use router script", kind: "bool" },
+    { key: "host", label: t("run.builtinTypes.host"), default: "localhost", placeholder: "localhost" },
+    { key: "port", label: t("run.builtinTypes.port"), default: "8080", placeholder: "8080" },
+    { key: "documentRoot", label: t("run.builtinTypes.documentRoot"), kind: "path", directory: true, placeholder: "public (empty: the project root)" },
+    { key: "useRouter", label: t("run.builtinTypes.useRouterScript"), kind: "bool" },
     {
       key: "routerScript",
-      label: "Router script",
+      label: t("run.builtinTypes.routerScript"),
       kind: "path",
       required: true,
       placeholder: "public/router.php",
       visible: (c) => opt(c, "useRouter") === "true",
     },
-    { key: "openBrowser", label: "Open in browser after launch", kind: "bool", default: "true" },
+    { key: "openBrowser", label: t("run.builtinTypes.openInBrowserAfterLaunch"), kind: "bool", default: "true" },
   ],
   suggestName: (cfg) => `${opt(cfg, "host") || "localhost"}:${opt(cfg, "port") || "8080"}`,
   afterStart: (cfg, handle) => {
@@ -72,7 +73,7 @@ const scope = (cfg: RunConfiguration) => opt(cfg, "scope") || "config";
 registerRunConfigurationType({
   id: "phpunit",
   name: "PHPUnit",
-  description: "Run a test class, method, directory or phpunit.xml configuration.",
+  description: t("run.builtinTypes.runATestClassMethod"),
   icon: FlaskConical,
   color: "var(--success)",
   pluginId: "forge.phpunit",
@@ -85,20 +86,20 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test scope",
+      label: t("run.builtinTypes.testScope"),
       kind: "segmented",
       default: "config",
       options: [
-        { value: "directory", label: "Directory" },
-        { value: "file", label: "File" },
-        { value: "class", label: "Class" },
-        { value: "method", label: "Method" },
-        { value: "config", label: "Defined in the configuration file" },
+        { value: "directory", label: t("run.builtinTypes.directory") },
+        { value: "file", label: t("run.builtinTypes.file") },
+        { value: "class", label: t("run.builtinTypes.class") },
+        { value: "method", label: t("run.builtinTypes.method") },
+        { value: "config", label: t("run.builtinTypes.definedInTheConfigurationFile") },
       ],
     },
     {
       key: "directory",
-      label: "Directory",
+      label: t("run.builtinTypes.directory"),
       kind: "path",
       directory: true,
       required: true,
@@ -107,28 +108,28 @@ registerRunConfigurationType({
     },
     {
       key: "class",
-      label: "Class",
+      label: t("run.builtinTypes.class"),
       required: true,
       placeholder: "Tests\\Unit\\UserTest",
       visible: (c) => scope(c) === "class" || scope(c) === "method",
     },
     {
       key: "method",
-      label: "Method",
+      label: t("run.builtinTypes.method"),
       required: true,
       placeholder: "test_full_name",
       visible: (c) => scope(c) === "method",
     },
     {
       key: "file",
-      label: "File",
+      label: t("run.builtinTypes.file"),
       kind: "path",
       required: true,
       placeholder: "tests/Unit/UserTest.php",
       visible: (c) => ["file", "class", "method"].includes(scope(c)),
     },
-    { key: "configFile", label: "Configuration file", kind: "path", placeholder: "phpunit.xml (detected)" },
-    { key: "testRunnerOptions", label: "Test runner options", placeholder: "--stop-on-failure" },
+    { key: "configFile", label: t("run.builtinTypes.configurationFile"), kind: "path", placeholder: "phpunit.xml (detected)" },
+    { key: "testRunnerOptions", label: t("run.builtinTypes.testRunnerOptions"), placeholder: "--stop-on-failure" },
   ],
   suggestName: (cfg) => {
     switch (scope(cfg)) {
@@ -149,33 +150,33 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: "artisan",
   name: "Artisan",
-  description: "Run an artisan command of a Laravel application.",
+  description: t("run.builtinTypes.runAnArtisanCommandOf"),
   icon: Feather,
   color: "var(--danger)",
   pluginId: "forge.laravel",
   interpreter: "php",
   argumentsLabel: "Arguments",
   debuggable: true,
-  fields: [{ key: "command", label: "Command", required: true, placeholder: "migrate --seed" }],
+  fields: [{ key: "command", label: t("run.builtinTypes.command"), required: true, placeholder: "migrate --seed" }],
   suggestName: (cfg) => (opt(cfg, "command") ? `artisan ${opt(cfg, "command")}` : undefined),
 });
 
 registerRunConfigurationType({
   id: "composer",
   name: "Composer Script",
-  description: "Run a script from composer.json.",
+  description: t("run.builtinTypes.runAScriptFromComposer"),
   icon: Package,
   color: "var(--syn-function)",
   pluginId: "forge.composer",
   argumentsLabel: "Arguments",
-  fields: [{ key: "script", label: "Script", required: true, placeholder: "test" }],
+  fields: [{ key: "script", label: t("run.builtinTypes.script"), required: true, placeholder: "test" }],
   suggestName: (cfg) => opt(cfg, "script") || undefined,
 });
 
 registerRunConfigurationType({
   id: "shell",
   name: "Shell Script",
-  description: "Run a script file or a script text with a shell.",
+  description: t("run.builtinTypes.runAScriptFileOr"),
   icon: SquareTerminal,
   color: "var(--fg-muted)",
   pluginId: "forge.run",
@@ -184,17 +185,17 @@ registerRunConfigurationType({
   fields: [
     {
       key: "mode",
-      label: "Execute",
+      label: t("run.builtinTypes.execute"),
       kind: "segmented",
       default: "file",
       options: [
-        { value: "file", label: "Script file" },
-        { value: "text", label: "Script text" },
+        { value: "file", label: t("run.builtinTypes.scriptFile") },
+        { value: "text", label: t("run.builtinTypes.scriptText") },
       ],
     },
     {
       key: "scriptPath",
-      label: "Script path",
+      label: t("run.builtinTypes.scriptPath"),
       kind: "path",
       required: true,
       placeholder: "scripts/deploy.sh",
@@ -202,7 +203,7 @@ registerRunConfigurationType({
     },
     {
       key: "scriptText",
-      label: "Script text",
+      label: t("run.builtinTypes.scriptText"),
       kind: "text",
       required: true,
       placeholder: "php artisan optimize:clear",
@@ -215,7 +216,7 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: "npm",
   name: "npm",
-  description: "Run a package.json script.",
+  description: t("run.builtinTypes.runAPackageJsonScript"),
   icon: Hexagon,
   color: "var(--danger)",
   pluginId: "forge.web",
@@ -225,21 +226,21 @@ registerRunConfigurationType({
     { key: "packageJson", label: "package.json", kind: "path", default: "package.json" },
     {
       key: "command",
-      label: "Command",
+      label: t("run.builtinTypes.command"),
       kind: "enum",
       default: "run",
       options: ["run", "install", "ci", "test", "start"].map((v) => ({ value: v, label: v })),
     },
     {
       key: "script",
-      label: "Scripts",
+      label: t("run.builtinTypes.scripts"),
       required: true,
       placeholder: "dev",
       visible: (c) => (opt(c, "command") || "run") === "run",
     },
     {
       key: "packageManager",
-      label: "Package manager",
+      label: t("run.builtinTypes.packageManager"),
       kind: "enum",
       default: "npm",
       options: ["npm", "pnpm", "yarn", "bun"].map((v) => ({ value: v, label: v })),
@@ -251,12 +252,12 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: COMPOUND,
   name: "Compound",
-  description: "Start several configurations together, each in its own Run tab.",
+  description: t("run.builtinTypes.startSeveralConfigurationsTogetherEach"),
   icon: Layers,
   color: "var(--accent)",
   argumentsLabel: false,
   debuggable: true,
   fields: [],
   form: CompoundForm,
-  validate: (cfg) => (compoundMembers(cfg).length ? null : "No configurations to run"),
+  validate: (cfg) => (compoundMembers(cfg).length ? null : t("run.builtinTypes.noConfigurationsToRun")),
 });

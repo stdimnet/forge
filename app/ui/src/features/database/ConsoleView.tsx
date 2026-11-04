@@ -58,6 +58,7 @@ import { consoleDialect } from "@/features/sqlEditor/language";
 import { openHistory } from "@/features/sqlEditor/SqlDialogs";
 import { dbSchemaApi, type ExplainResult } from "@/ipc/dbSchema";
 import { PlanView } from "./schema/PlanView";
+import { t } from "@/i18n";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -125,10 +126,10 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
   return (
     <div class="db-result">
       <div class="db-toolbar small">
-        <button class="icon-btn db-tool" title="First Page" disabled={props.result.offset === 0} onClick={() => props.onPage(0)}>
+        <button class="icon-btn db-tool" title={t("database.consoleView.firstPage")} disabled={props.result.offset === 0} onClick={() => props.onPage(0)}>
           <ChevronFirst size={15} />
         </button>
-        <button class="icon-btn db-tool" title="Previous Page" disabled={props.result.offset === 0} onClick={() => props.onPage(Math.max(0, props.result.offset - props.pageSize))}>
+        <button class="icon-btn db-tool" title={t("database.consoleView.previousPage")} disabled={props.result.offset === 0} onClick={() => props.onPage(Math.max(0, props.result.offset - props.pageSize))}>
           <ChevronLeft size={15} />
         </button>
         <span class="db-paging">
@@ -137,13 +138,13 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
             <span class="muted"> of {props.result.rows.length}</span>
           </Show>
         </span>
-        <button class="icon-btn db-tool" title="Next Page" disabled={!props.result.hasMore} onClick={() => props.onPage(props.result.offset + props.pageSize)}>
+        <button class="icon-btn db-tool" title={t("database.consoleView.nextPage")} disabled={!props.result.hasMore} onClick={() => props.onPage(props.result.offset + props.pageSize)}>
           <ChevronRight size={15} />
         </button>
         <span class="db-sep" />
         <button
           class="icon-btn db-tool"
-          title="Export Data"
+          title={t("database.consoleView.exportData")}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             setMenu({
@@ -161,8 +162,8 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
           <Download size={14} />
         </button>
         <Show when={props.result.documents?.length}>
-          <button class="db-chip-btn" classList={{ open: json() }} title="Show the documents as JSON" data-testid="db-json-toggle" onClick={() => setJson(!json())}>
-            <Braces size={12} /> {json() ? "Table" : "JSON"}
+          <button class="db-chip-btn" classList={{ open: json() }} title={t("database.consoleView.showTheDocumentsAsJson")} data-testid="db-json-toggle" onClick={() => setJson(!json())}>
+            <Braces size={12} /> {json() ? t("database.consoleView.table") : "JSON"}
           </button>
         </Show>
         <Show when={tools() && !json()}>
@@ -278,11 +279,11 @@ export function ConsoleView(props: { tab: EditorTab }) {
     if (g.blocked) {
       append("error", g.blocked);
       setActive("output");
-      showBalloon("Read-only data source", g.blocked);
+      showBalloon(t("database.consoleView.readOnlyDataSource"), g.blocked);
       return { ok: false, confirmed: false };
     }
     if (g.confirm) {
-      const ok = await askConfirm({ title: "Production Data Source", message: g.confirm, confirm: "Execute" });
+      const ok = await askConfirm({ title: t("database.consoleView.productionDataSource"), message: g.confirm, confirm: t("database.consoleView.execute") });
       if (!ok) {
         append("info", "Execution cancelled");
         return { ok: false, confirmed: false };
@@ -334,7 +335,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
           const table = sourceTable(r.sql);
           tabs.push({
             key: ++resultSeq,
-            title: table ?? `Result ${tabs.length + 1}`,
+            title: table ?? t("database.consoleView.resultLength1", { length1: tabs.length + 1 }),
             sql: r.sql,
             columns: r.columns,
             rows: r.rows,
@@ -398,10 +399,10 @@ export function ConsoleView(props: { tab: EditorTab }) {
         r = await dbSchemaApi.explain(s.id, st.text, raw, true);
       }
       append("sql", r.sql);
-      append("info", raw ? `${rowsText(r.rows.length)} of the plan retrieved in ${r.elapsedMs} ms` : r.plan ? `Plan built in ${r.elapsedMs} ms` : (r.error ?? "No plan"));
+      append("info", raw ? `${rowsText(r.rows.length)} of the plan retrieved in ${r.elapsedMs} ms` : r.plan ? t("database.consoleView.planBuiltInElapsedmsMs", { elapsedMs: r.elapsedMs }) : (r.error ?? t("database.consoleView.noPlan")));
       const tab: ResultTab = raw
         ? { key: ++resultSeq, title: "Plan (Raw)", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs }
-        : { key: ++resultSeq, title: "Plan", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs, explain: r };
+        : { key: ++resultSeq, title: t("database.consoleView.plan"), sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs, explain: r };
       setResults((list) => [...list.filter((x) => x.title !== tab.title), tab]);
       setActive(results().length - 1);
     } catch (e) {
@@ -421,7 +422,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
     try {
       const s = await ensureSession();
       setSession(await dbApi.setAutoCommit(s.id, auto));
-      append("info", auto ? "Switched to auto-commit mode" : "Switched to manual commit mode");
+      append("info", auto ? t("database.consoleView.switchedToAutoCommitMode") : t("database.consoleView.switchedToManualCommitMode"));
     } catch (e) {
       append("error", errorText(e));
     }
@@ -546,8 +547,8 @@ export function ConsoleView(props: { tab: EditorTab }) {
       x: r.left,
       y: r.bottom + 2,
       items: [
-        { label: "New session (own connection)", icon: !shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(false) },
-        { label: "Shared session", icon: shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(true) },
+        { label: t("database.consoleView.newSessionOwnConnection"), icon: !shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(false) },
+        { label: t("database.consoleView.sharedSession"), icon: shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(true) },
       ],
     });
   };
@@ -558,8 +559,8 @@ export function ConsoleView(props: { tab: EditorTab }) {
       x: r.left,
       y: r.bottom + 2,
       items: [
-        { label: "Auto", icon: autoCommit() ? <Check size={13} /> : undefined, run: () => void setMode(true) },
-        { label: "Manual", icon: !autoCommit() ? <Check size={13} /> : undefined, run: () => void setMode(false) },
+        { label: t("database.consoleView.auto"), icon: autoCommit() ? <Check size={13} /> : undefined, run: () => void setMode(true) },
+        { label: t("database.consoleView.manual"), icon: !autoCommit() ? <Check size={13} /> : undefined, run: () => void setMode(false) },
       ],
     });
   };
@@ -580,7 +581,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
         >
           <Play size={15} />
         </button>
-        <button class="icon-btn db-tool db-stop" title="Cancel Running Statements" disabled={!running()} onClick={cancel}>
+        <button class="icon-btn db-tool db-stop" title={t("database.consoleView.cancelRunningStatements")} disabled={!running()} onClick={cancel}>
           <Square size={13} />
         </button>
         <button class="icon-btn db-tool" title={`Browse Query History (${shortcutLabel("Console.History.Browse")})`} data-testid="db-history" onClick={showHistory}>
@@ -589,7 +590,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
         <Show when={consoleDialect(dialect())}>
           <button
             class="icon-btn db-tool"
-            title="Explain Plan"
+            title={t("database.consoleView.explainPlan")}
             data-testid="db-explain"
             disabled={running()}
             onClick={(e) => {
@@ -598,8 +599,8 @@ export function ConsoleView(props: { tab: EditorTab }) {
                 x: r.left,
                 y: r.bottom + 2,
                 items: [
-                  { label: "Explain Plan", hint: shortcutLabel("Console.Jdbc.ExplainPlan"), icon: <ListTree size={13} />, run: () => void explain(false) },
-                  { label: "Explain Plan (Raw)", hint: shortcutLabel("Console.Jdbc.ExplainPlan.Raw"), run: () => void explain(true) },
+                  { label: t("database.consoleView.explainPlan"), hint: shortcutLabel("Console.Jdbc.ExplainPlan"), icon: <ListTree size={13} />, run: () => void explain(false) },
+                  { label: t("database.consoleView.explainPlanRaw"), hint: shortcutLabel("Console.Jdbc.ExplainPlan.Raw"), run: () => void explain(true) },
                 ],
               });
             }}
@@ -608,34 +609,34 @@ export function ConsoleView(props: { tab: EditorTab }) {
           </button>
         </Show>
         <span class="db-sep" />
-        <button class="db-chip-btn" classList={{ open: shared() }} title="Session" data-testid="db-session-mode" onClick={sessionMenu}>
-          {shared() ? "Shared session" : "New session"}
+        <button class="db-chip-btn" classList={{ open: shared() }} title={t("database.consoleView.session")} data-testid="db-session-mode" onClick={sessionMenu}>
+          {shared() ? t("database.consoleView.sharedSession") : t("database.consoleView.newSession")}
           <ChevronDown size={12} />
         </button>
         <button
           class="db-chip-btn"
           classList={{ manual: !autoCommit(), open: txOpen() }}
-          title={transactional() ? "Transaction Mode" : `${ds()?.driver ?? ""} consoles run every statement on its own`}
+          title={transactional() ? t("database.consoleView.transactionMode") : `${ds()?.driver ?? ""} consoles run every statement on its own`}
           disabled={!transactional()}
           onClick={txMenu}
         >
-          Tx: {autoCommit() ? "Auto" : "Manual"}
+          Tx: {autoCommit() ? t("database.consoleView.auto") : t("database.consoleView.manual")}
           <ChevronDown size={12} />
         </button>
-        <button class="icon-btn db-tool db-commit" title="Commit" disabled={autoCommit() || !txOpen()} onClick={() => void endTx(true)}>
+        <button class="icon-btn db-tool db-commit" title={t("database.consoleView.commit")} disabled={autoCommit() || !txOpen()} onClick={() => void endTx(true)}>
           <Check size={15} />
         </button>
-        <button class="icon-btn db-tool" title="Rollback" disabled={autoCommit() || !txOpen()} onClick={() => void endTx(false)}>
+        <button class="icon-btn db-tool" title={t("database.consoleView.rollback")} disabled={autoCommit() || !txOpen()} onClick={() => void endTx(false)}>
           <Undo2 size={15} />
         </button>
         <Show when={running()}>
           <span class="db-running">
-            <span class="db-spinner" /> Executing…
+            <span class="db-spinner" /> {t("database.consoleView.executing")}
           </span>
         </Show>
         <span class="db-spacer" />
         <Show when={ds()?.options.readOnly}>
-          <span class="db-badge" title="Read-only data source: changes are refused">
+          <span class="db-badge" title={t("database.consoleView.readOnlyDataSourceChanges")}>
             <Lock size={11} /> read-only
           </span>
         </Show>
@@ -646,7 +647,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
             </span>
           )}
         </Show>
-        <button class="db-target" title="Data source properties" onClick={() => openDataSources({ select: loc.id })}>
+        <button class="db-target" title={t("database.consoleView.dataSourceProperties")} onClick={() => openDataSources({ select: loc.id })}>
           <Database size={13} />
           <span>{ds()?.name ?? loc.id}</span>
           <Show when={schemaName()}>
@@ -665,7 +666,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
             <div class="db-result-tabs" role="tablist">
               <button class="db-result-tab" classList={{ active: active() === "output" }} onClick={() => setActive("output")}>
                 <ScrollText size={13} />
-                Output
+                {t("database.consoleView.output")}
               </button>
               <For each={results()}>
                 {(r, i) => (

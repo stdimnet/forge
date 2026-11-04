@@ -12,6 +12,7 @@ import { decodeInterpreters, GLOBAL_KEY, PROJECT_KEY, SELECTED_KEY } from "@/fea
 import { debugApi, type CheckStatus, type ValidationReport } from "./api";
 import { setValidationDialog } from "./overlays";
 import { port } from "./store";
+import { t } from "@/i18n";
 
 const ROOT_KEY = "php.debug.validation.documentRoot";
 const URL_KEY = "php.debug.validation.url";
@@ -23,13 +24,13 @@ function StatusIcon(props: { status: CheckStatus }) {
         <CircleCheck size={15} class="dbg-status-ok" aria-label="OK" />
       </Match>
       <Match when={props.status === "warning"}>
-        <TriangleAlert size={15} class="dbg-status-warning" aria-label="Warning" />
+        <TriangleAlert size={15} class="dbg-status-warning" aria-label={t("debug.validationDialog.warning")} />
       </Match>
       <Match when={props.status === "error"}>
-        <CircleX size={15} class="dbg-status-error" aria-label="Error" />
+        <CircleX size={15} class="dbg-status-error" aria-label={t("debug.validationDialog.error")} />
       </Match>
       <Match when={props.status === "info"}>
-        <Info size={15} class="dbg-status-info" aria-label="Information" />
+        <Info size={15} class="dbg-status-info" aria-label={t("debug.validationDialog.information")} />
       </Match>
     </Switch>
   );
@@ -67,10 +68,10 @@ export function ValidationDialog() {
 
   return (
     <div class="dbg-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()} onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), close())}>
-      <div class="dbg-dialog dbg-validate" role="dialog" aria-label="Validate Debugger Configuration">
+      <div class="dbg-dialog dbg-validate" role="dialog" aria-label={t("debug.validationDialog.validateDebuggerConfiguration")}>
         <header class="dbg-dialog-title">
-          <span>Validate Debugger Configuration</span>
-          <button class="icon-btn" title="Close" onClick={close}>
+          <span>{t("debug.validationDialog.validateDebuggerConfiguration")}</span>
+          <button class="icon-btn" title={t("common.close")} onClick={close}>
             <X size={14} />
           </button>
         </header>
@@ -78,18 +79,18 @@ export function ValidationDialog() {
           <div class="dbg-validate-mode" role="radiogroup">
             <label class="dbg-check">
               <input type="radio" name="dbg-validate-mode" checked={mode() === "web"} onChange={() => setMode("web")} />
-              Local Web Server or Shared Folder
+              {t("debug.validationDialog.localWebServerOrShared")}
             </label>
             <label class="dbg-check">
               <input type="radio" name="dbg-validate-mode" checked={mode() === "cli"} onChange={() => setMode("cli")} />
-              CLI Interpreter
+              {t("debug.validationDialog.cliInterpreter")}
             </label>
           </div>
           <Show
             when={mode() === "web"}
             fallback={
               <div class="dbg-validate-form">
-                <label for="dbg-validate-interp">Interpreter:</label>
+                <label for="dbg-validate-interp">{t("debug.validationDialog.interpreter")}</label>
                 <select id="dbg-validate-interp" class="dbg-input" value={interpreter()} onChange={(e) => setInterpreter(e.currentTarget.value)}>
                   <option value="">{getSetting<string>(SELECTED_KEY, "php") || "php"} — project default</option>
                   <For each={interpreters()}>{(i) => <option value={i.name}>{i.name}</option>}</For>
@@ -98,14 +99,13 @@ export function ValidationDialog() {
             }
           >
             <div class="dbg-validate-form">
-              <label for="dbg-validate-root">Path to create validation script:</label>
+              <label for="dbg-validate-root">{t("debug.validationDialog.pathToCreateValidationScript")}</label>
               <input id="dbg-validate-root" class="dbg-input dbg-mono" value={root()} placeholder="public" onInput={(e) => setRoot(e.currentTarget.value)} />
-              <label for="dbg-validate-url">URL to validation script:</label>
+              <label for="dbg-validate-url">{t("debug.validationDialog.urlToValidationScript")}</label>
               <input id="dbg-validate-url" class="dbg-input dbg-mono" value={url()} placeholder="http://localhost:8080" onInput={(e) => setUrl(e.currentTarget.value)} />
             </div>
             <p class="muted dbg-hint">
-              Validate creates a temporary file <code>forge_xdebug_validator_*.php</code> in this project folder, requests it from the
-              web server and deletes it right after the check.
+              {t("debug.validationDialog.validateHint", { file: "forge_xdebug_validator_*.php" })}
             </p>
           </Show>
           <Show when={error()}>
@@ -135,7 +135,7 @@ export function ValidationDialog() {
                 </div>
                 <p class="muted dbg-hint">
                   {r().ok
-                    ? `Xdebug can connect to Forge on port ${port()}.`
+                    ? t("debug.validationDialog.xdebugCanConnectToForge", { port: port() })
                     : "Fix the problems marked above, restart the web server or PHP-FPM, and validate again."}
                 </p>
               </>
@@ -144,13 +144,13 @@ export function ValidationDialog() {
         </div>
         <footer class="dbg-dialog-actions">
           <button class="dbg-link dbg-left" onClick={() => (close(), openSettings("lang.php.debug"))}>
-            Debug settings…
+            {t("debug.validationDialog.debugSettings")}
           </button>
           <button class="btn-secondary" onClick={close}>
-            Close
+            {t("common.close")}
           </button>
           <button class="btn-primary" disabled={busy() || (mode() === "web" && !url().trim())} onClick={() => void validate()}>
-            {busy() ? "Validating…" : "Validate"}
+            {busy() ? t("debug.validationDialog.validating") : t("debug.validationDialog.validate")}
           </button>
         </footer>
       </div>

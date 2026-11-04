@@ -12,6 +12,7 @@ import type { EditorTab } from "@/state/editor";
 import { openViewTab } from "@/state/editor";
 import { renderCell, kindOf } from "./grid";
 import { connect, ensureSchema, openTable, sourceById, sources, states, visibleSchemas } from "./store";
+import { t as tr } from "@/i18n";
 
 export const SEARCH_VIEW = "db-search";
 
@@ -147,7 +148,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
           <Search size={15} class="muted" />
           <input
             class="dsd-input fts-text"
-            placeholder="Text to find in the data"
+            placeholder={tr("database.fullTextSearch.textToFindInThe")}
             value={text()}
             spellcheck={false}
             data-testid="fts-text"
@@ -157,43 +158,43 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
             }}
           />
           <select class="dsd-input fts-mode" value={mode()} onChange={(e) => setMode(e.currentTarget.value as SearchMode)}>
-            <option value="contains">Contains</option>
-            <option value="exact">Exact match</option>
-            <option value="regex">Regular expression</option>
+            <option value="contains">{tr("database.fullTextSearch.contains")}</option>
+            <option value="exact">{tr("database.fullTextSearch.exactMatch")}</option>
+            <option value="regex">{tr("database.fullTextSearch.regularExpression")}</option>
           </select>
           <Show
             when={running()}
             fallback={
               <button class="btn-primary" disabled={!text() || !Object.keys(scope.sources).length} onClick={() => void run()} data-testid="fts-run">
-                Search
+                {tr("database.fullTextSearch.search")}
               </button>
             }
           >
             <button class="btn-secondary" onClick={cancel} data-testid="fts-cancel">
-              <Square size={12} /> Cancel
+              <Square size={12} /> {tr("common.cancel")}
             </button>
           </Show>
         </div>
         <div class="fts-row fts-options">
           <label class="dsd-check">
             <input type="checkbox" checked={caseSensitive()} onChange={(e) => setCaseSensitive(e.currentTarget.checked)} />
-            Match case
+            {tr("database.fullTextSearch.matchCase")}
           </label>
-          <label class="dsd-check" title="Also search numbers, dates and other non-text columns">
+          <label class="dsd-check" title={tr("database.fullTextSearch.alsoSearchNumbersDatesAnd")}>
             <input type="checkbox" checked={allColumns()} onChange={(e) => setAllColumns(e.currentTarget.checked)} />
-            All column types
+            {tr("database.fullTextSearch.allColumnTypes")}
           </label>
           <label class="dsd-check">
-            Rows per table
+            {tr("database.fullTextSearch.rowsPerTable")}
             <input class="dsd-input dsd-port" value={limit()} inputMode="numeric" onInput={(e) => setLimit(Math.max(1, Number(e.currentTarget.value) || 100))} />
           </label>
           <label class="dsd-check fts-tables">
-            Tables
-            <input class="dsd-input" placeholder="all (or users, order_*, !audit_*)" value={scope.tables} spellcheck={false} onInput={(e) => setScope("tables", e.currentTarget.value)} />
+            {tr("database.fullTextSearch.tables")}
+            <input class="dsd-input" placeholder={tr("database.fullTextSearch.allOrUsersOrderAudit")} value={scope.tables} spellcheck={false} onInput={(e) => setScope("tables", e.currentTarget.value)} />
           </label>
         </div>
         <div class="fts-scope">
-          <For each={searchable()} fallback={<span class="muted">No SQL data sources to search.</span>}>
+          <For each={searchable()} fallback={<span class="muted">{tr("database.fullTextSearch.noSqlDataSourcesTo")}</span>}>
             {(ds) => {
               const on = () => scope.sources[ds.id] !== undefined;
               return (
@@ -214,7 +215,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
                       )}
                     </For>
                     <Show when={!(scope.sources[ds.id] ?? []).length}>
-                      <span class="muted fts-all">all shown schemas</span>
+                      <span class="muted fts-all">{tr("database.fullTextSearch.allShownSchemas")}</span>
                     </Show>
                   </Show>
                 </div>
@@ -264,7 +265,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
             const kinds = () => r.columns.map((c) => kindOf(table()?.columns.find((x) => x.name === c)?.dataType ?? "text"));
             return (
               <div class="fts-table">
-                <div class="fts-table-head" onClick={toggle} onDblClick={() => openTable(r.dataSource, r.schema, r.table)} title="Double-click to open the table">
+                <div class="fts-table-head" onClick={toggle} onDblClick={() => openTable(r.dataSource, r.schema, r.table)} title={tr("database.fullTextSearch.doubleClickToOpenThe")}>
                   {open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   <Table2 size={14} class="db-ic-table" />
                   <b>{r.table}</b>

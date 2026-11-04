@@ -53,12 +53,13 @@ import {
 } from "./extras";
 import { revision } from "./store";
 import "./extras.css";
+import { t as tr } from "@/i18n";
 
 const HOSTS: { kind: HostKind; title: string; page: string }[] = [
   { kind: "github", title: "GitHub", page: "vcs.github" },
   { kind: "gitlab", title: "GitLab", page: "vcs.gitlab" },
-  { kind: "forgejo", title: "Forgejo / Gitea", page: "vcs.forgejo" },
-  { kind: "azure", title: "Azure DevOps", page: "vcs.azure" },
+  { kind: "forgejo", title: tr("git.extrasDialogs.forgejoGitea"), page: "vcs.forgejo" },
+  { kind: "azure", title: tr("git.extrasDialogs.azureDevops"), page: "vcs.azure" },
 ];
 
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);
@@ -75,7 +76,7 @@ function TargetRow(props: { target: CloneTarget; onChange: (t: CloneTarget) => v
     if (v.startsWith("cfg:")) {
       const cfg = configs()?.find((c) => c.id === v.slice(4));
       if (!cfg) return;
-      setConnecting(`Connecting to ${cfg.label}…`);
+      setConnecting(tr("git.extrasDialogs.connectingToLabel", { label: cfg.label }));
       try {
         const { label: _l, hasSecret: _h, ...config } = cfg;
         const r = await connectWithConfirmation(config);
@@ -86,15 +87,15 @@ function TargetRow(props: { target: CloneTarget; onChange: (t: CloneTarget) => v
         setConnecting(null);
         props.onChange({ connectionId: r.connectionId, label: r.label });
       } catch (e) {
-        setConnecting(`Cannot connect to ${cfg.label}: ${errorText(e)}`);
+        setConnecting(tr("git.extrasDialogs.cannotConnectToLabelError", { label: cfg.label, error: errorText(e) }));
       }
     }
   };
   return (
-    <Row label="Clone to:">
+    <Row label={tr("git.extrasDialogs.cloneTo")}>
       <div class="gd-line">
         <select class="gd-select" value={value()} disabled={props.disabled} onChange={(e) => void pick(e.currentTarget.value)} data-testid="clone-target">
-          <option value="local">This computer</option>
+          <option value="local">{tr("git.extrasDialogs.thisComputer")}</option>
           <Show when={props.target.connectionId}>
             <option value={`conn:${props.target.connectionId}`}>{props.target.label} (SSH)</option>
           </Show>
@@ -119,11 +120,11 @@ function DirectoryRow(props: { value: string; onInput: (v: string) => void; targ
     }
     if (!isTauri()) return;
     const { open } = await import("@tauri-apps/plugin-dialog");
-    const dir = await open({ directory: true, multiple: false, title: "Destination Directory" });
+    const dir = await open({ directory: true, multiple: false, title: tr("git.extrasDialogs.destinationDirectory") });
     if (typeof dir === "string") props.onInput(dir);
   };
   return (
-    <Row label="Directory:">
+    <Row label={tr("git.extrasDialogs.directory")}>
       <div class="gd-line">
         <input
           class="gd-input"
@@ -133,7 +134,7 @@ function DirectoryRow(props: { value: string; onInput: (v: string) => void; targ
           onInput={(e) => props.onInput(e.currentTarget.value)}
           data-testid="clone-directory"
         />
-        <button class="icon-btn" title="Browse…" disabled={props.disabled} onClick={() => void browse()}>
+        <button class="icon-btn" title={tr("git.extrasDialogs.browse")} disabled={props.disabled} onClick={() => void browse()}>
           <FolderOpen size={15} />
         </button>
       </div>
@@ -165,7 +166,7 @@ function RepositoryList(props: { account: Account; selected: string | null; onSe
       <label class="clone-search">
         <Search size={14} class="muted" />
         <input
-          placeholder="Search repositories"
+          placeholder={tr("git.extrasDialogs.searchRepositories")}
           value={query()}
           onInput={(e) => setQuery(e.currentTarget.value)}
           onKeyDown={(e) => {
@@ -179,9 +180,9 @@ function RepositoryList(props: { account: Account; selected: string | null; onSe
         />
       </label>
       <div class="clone-repo-list" role="listbox">
-        <Show when={!repos.loading} fallback={<div class="clone-empty"><LoaderCircle size={14} class="spin" /> Loading repositories…</div>}>
+        <Show when={!repos.loading} fallback={<div class="clone-empty"><LoaderCircle size={14} class="spin" /> {tr("git.extrasDialogs.loadingRepositories")}</div>}>
           <Show when={!repos.error} fallback={<div class="clone-empty gd-invalid">{errorText(repos.error)}</div>}>
-            <For each={shown()} fallback={<div class="clone-empty">No repositories</div>}>
+            <For each={shown()} fallback={<div class="clone-empty">{tr("git.extrasDialogs.noRepositories")}</div>}>
               {(r) => (
                 <div
                   class="clone-repo"
@@ -246,7 +247,7 @@ export function CloneDialog(props: { request: CloneRequest }) {
     setTest({ busy: true });
     try {
       const refs = await extrasApi.testUrl(url().trim(), accountId(), target().connectionId);
-      setTest({ busy: false, ok: true, message: `Connection successful${refs.length ? ` (${refs.length} branch${refs.length === 1 ? "" : "es"})` : ""}` });
+      setTest({ busy: false, ok: true, message: refs.length ? tr("git.extrasDialogs.connectionSuccessfulBranches", { count: refs.length }) : tr("git.extrasDialogs.connectionSuccessful") });
     } catch (e) {
       setTest({ busy: false, ok: false, message: errorText(e) });
     }
@@ -276,14 +277,14 @@ export function CloneDialog(props: { request: CloneRequest }) {
 
   return (
     <div class="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !busy() && closeGitDialog()}>
-      <div ref={root} class="git-dialog gd clone-dialog" role="dialog" aria-label="Get from Version Control" onKeyDown={onKeyDown}>
+      <div ref={root} class="git-dialog gd clone-dialog" role="dialog" aria-label={tr("git.extrasDialogs.getFromVersionControl")} onKeyDown={onKeyDown}>
         <header class="dialog-title">
-          <span>Get from Version Control</span>
+          <span>{tr("git.extrasDialogs.getFromVersionControl")}</span>
         </header>
         <div class="clone-body">
           <nav class="clone-nav">
             <button class="clone-nav-item" classList={{ active: tab() === "url" }} onClick={() => setTab("url")} data-clone-tab="url">
-              <Link size={14} /> Repository URL
+              <Link size={14} /> {tr("git.extrasDialogs.repositoryUrl")}
             </button>
             <For each={HOSTS}>
               {(h) => (
@@ -298,12 +299,12 @@ export function CloneDialog(props: { request: CloneRequest }) {
               when={tab() !== "url" ? HOSTS.find((h) => h.kind === tab()) : undefined}
               fallback={
                 <div class="gd-grid">
-                  <Row label="Version control:">
+                  <Row label={tr("git.extrasDialogs.versionControl")}>
                     <select class="gd-select" disabled>
                       <option>Git</option>
                     </select>
                   </Row>
-                  <Row label="URL:">
+                  <Row label={tr("git.extrasDialogs.url")}>
                     <div class="gd-line">
                       <input
                         class="gd-input"
@@ -319,7 +320,7 @@ export function CloneDialog(props: { request: CloneRequest }) {
                         data-testid="clone-url"
                       />
                       <button class="btn-secondary" disabled={!url().trim() || busy() || test()?.busy} onClick={() => void runTest()}>
-                        Test
+                        {tr("git.extrasDialogs.test")}
                       </button>
                     </div>
                   </Row>
@@ -331,7 +332,7 @@ export function CloneDialog(props: { request: CloneRequest }) {
                           <Show when={t().busy} fallback={<Show when={t().ok}><CircleCheck size={12} /> </Show>}>
                             <LoaderCircle size={12} class="spin" />{" "}
                           </Show>
-                          {t().busy ? "Testing…" : t().message}
+                          {t().busy ? tr("git.extrasDialogs.testing") : t().message}
                         </div>
                       </>
                     )}
@@ -354,10 +355,10 @@ export function CloneDialog(props: { request: CloneRequest }) {
                   when={accountFor(host().kind)}
                   fallback={
                     <div class="clone-login">
-                      <p>No {host().title} account.</p>
-                      <p class="muted">Log in with a token to list your repositories; HTTPS clones then use it too.</p>
+                      <p>{tr("git.extrasDialogs.noAccount", { host: host().title })}</p>
+                      <p class="muted">{tr("git.extrasDialogs.loginHint")}</p>
                       <button class="btn-primary" onClick={() => openSettings(host().page)}>
-                        Log In…
+                        {tr("git.extrasDialogs.logIn")}
                       </button>
                     </div>
                   }
@@ -434,10 +435,10 @@ export function CloneDialog(props: { request: CloneRequest }) {
             <span class="spacer" />
           </Show>
           <button class="btn-secondary" onClick={cancel}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!canClone()} onClick={() => void clone()} data-testid="clone-ok">
-            Clone
+            {tr("git.extrasDialogs.clone")}
           </button>
         </footer>
       </div>
@@ -478,38 +479,38 @@ export function NewWorktreeDialog(props: { branch: string | null }) {
     }
   };
   return (
-    <Frame title="New Worktree" okLabel="Create" okDisabled={!path().trim() || !branchName()} onOk={ok} class="gd-wide">
+    <Frame title={tr("git.extrasDialogs.newWorktree")} okLabel={tr("git.extrasDialogs.create")} okDisabled={!path().trim() || !branchName()} onOk={ok} class="gd-wide">
       <div class="gd-grid">
-        <Row label="Branch:">
+        <Row label={tr("git.extrasDialogs.branch")}>
           <div class="gd-inline">
             <label class="git-dialog-check">
-              <input type="radio" checked={mode() === "new"} onChange={() => setMode("new")} /> New branch
+              <input type="radio" checked={mode() === "new"} onChange={() => setMode("new")} /> {tr("git.extrasDialogs.newBranchOption")}
             </label>
             <label class="git-dialog-check">
-              <input type="radio" checked={mode() === "existing"} onChange={() => setMode("existing")} /> Existing branch
+              <input type="radio" checked={mode() === "existing"} onChange={() => setMode("existing")} /> {tr("git.extrasDialogs.existingBranchOption")}
             </label>
           </div>
         </Row>
         <Show
           when={mode() === "new"}
           fallback={
-            <Row label="Existing branch:">
+            <Row label={tr("git.extrasDialogs.existingBranch")}>
               <select class="gd-select" value={existing()} onChange={(e) => setExisting(e.currentTarget.value)}>
                 <For each={free()}>{(b) => <option value={b.name}>{b.name}</option>}</For>
               </select>
             </Row>
           }
         >
-          <Row label="New branch:">
+          <Row label={tr("git.extrasDialogs.newBranch")}>
             <input class="gd-input" data-autofocus value={newName()} spellcheck={false} onInput={(e) => setNewName(e.currentTarget.value)} data-testid="worktree-branch" />
           </Row>
-          <Row label="Based on:">
+          <Row label={tr("git.extrasDialogs.basedOn")}>
             <select class="gd-select" value={base()} onChange={(e) => setBase(e.currentTarget.value)}>
               <For each={[...(branches()?.local ?? []), ...(branches()?.remote ?? [])]}>{(b) => <option value={b.name}>{b.name}</option>}</For>
             </select>
           </Row>
         </Show>
-        <Row label="Directory:">
+        <Row label={tr("git.extrasDialogs.directory")}>
           <input
             class="gd-input"
             value={path()}
@@ -522,7 +523,7 @@ export function NewWorktreeDialog(props: { branch: string | null }) {
           />
         </Row>
         <span />
-        <Check label="Open the worktree after creating it" checked={open()} onChange={setOpen} />
+        <Check label={tr("git.extrasDialogs.openTheWorktreeAfterCreating")} checked={open()} onChange={setOpen} />
       </div>
     </Frame>
   );
@@ -538,35 +539,35 @@ export function WorktreesPanel() {
   return (
     <div class="worktrees-panel" data-testid="worktrees">
       <div class="panel-toolbar">
-        <button class="icon-btn" title="New Worktree…" onClick={() => void newWorktreeDialog()}>
+        <button class="icon-btn" title={tr("git.extrasDialogs.newWorktree2")} onClick={() => void newWorktreeDialog()}>
           <Plus size={15} />
         </button>
-        <button class="icon-btn" title="Open" disabled={!current() || current()!.current || current()!.bare} onClick={() => void openWorktree(current()!.path)}>
+        <button class="icon-btn" title={tr("git.extrasDialogs.open")} disabled={!current() || current()!.current || current()!.bare} onClick={() => void openWorktree(current()!.path)}>
           <FolderOpen size={15} />
         </button>
-        <button class="icon-btn" title={current()?.locked ? "Unlock" : "Lock…"} disabled={!current() || current()!.main} onClick={() => void toggleWorktreeLock(current()!)}>
+        <button class="icon-btn" title={current()?.locked ? tr("git.extrasDialogs.unlock") : tr("git.extrasDialogs.lock")} disabled={!current() || current()!.main} onClick={() => void toggleWorktreeLock(current()!)}>
           <Show when={current()?.locked} fallback={<Lock size={15} />}>
             <LockOpen size={15} />
           </Show>
         </button>
-        <button class="icon-btn" title="Remove…" disabled={!current() || current()!.main || current()!.current} onClick={() => void removeWorktree(current()!)}>
+        <button class="icon-btn" title={tr("git.extrasDialogs.remove")} disabled={!current() || current()!.main || current()!.current} onClick={() => void removeWorktree(current()!)}>
           <Trash2 size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Prune Worktrees" disabled={!worktrees().some((w) => w.prunable)} onClick={() => void pruneWorktrees()}>
+        <button class="icon-btn" title={tr("git.extrasDialogs.pruneWorktrees")} disabled={!worktrees().some((w) => w.prunable)} onClick={() => void pruneWorktrees()}>
           <Eraser size={15} />
         </button>
-        <button class="icon-btn" title="Refresh" onClick={() => void refreshWorktrees()}>
+        <button class="icon-btn" title={tr("git.extrasDialogs.refresh")} onClick={() => void refreshWorktrees()}>
           <RefreshCw size={15} />
         </button>
       </div>
       <div class="worktrees-table" role="grid">
         <div class="worktrees-row worktrees-head">
-          <span>Path</span>
-          <span>Branch</span>
-          <span>Revision</span>
+          <span>{tr("git.extrasDialogs.path")}</span>
+          <span>{tr("git.extrasDialogs.branch2")}</span>
+          <span>{tr("git.extrasDialogs.revision")}</span>
         </div>
-        <For each={worktrees()} fallback={<div class="commit-empty">No worktrees</div>}>
+        <For each={worktrees()} fallback={<div class="commit-empty">{tr("git.extrasDialogs.noWorktrees")}</div>}>
           {(w: Worktree) => (
             <div
               class="worktrees-row"
@@ -575,7 +576,7 @@ export function WorktreesPanel() {
               data-path={w.path}
               onClick={() => setSelected(w.path)}
               onDblClick={() => !w.current && !w.bare && void openWorktree(w.path)}
-              title={w.lockReason ? `Locked: ${w.lockReason}` : w.prunable ? "The directory is gone; Prune removes this worktree" : w.path}
+              title={w.lockReason ? tr("git.extrasDialogs.lockedLockreason", { lockReason: w.lockReason }) : w.prunable ? tr("git.extrasDialogs.theDirectoryIsGonePrune") : w.path}
             >
               <span class="worktrees-path">
                 <FolderOpen size={14} class="muted" />
@@ -645,14 +646,14 @@ export function MessageHistoryPopup(props: { messages: string[] }) {
   };
   return (
     <div class="message-history-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div class="message-history" style={style()} role="dialog" aria-label="Commit Message History" onKeyDown={onKeyDown} data-testid="message-history">
-        <div class="message-history-title">Commit Message History</div>
+      <div class="message-history" style={style()} role="dialog" aria-label={tr("git.extrasDialogs.commitMessageHistory")} onKeyDown={onKeyDown} data-testid="message-history">
+        <div class="message-history-title">{tr("git.extrasDialogs.commitMessageHistory")}</div>
         <label class="clone-search">
           <Search size={14} class="muted" />
           <input
             ref={input}
             value={query()}
-            placeholder="Type to search"
+            placeholder={tr("git.extrasDialogs.typeToSearch")}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
               setIndex(0);
@@ -660,7 +661,7 @@ export function MessageHistoryPopup(props: { messages: string[] }) {
           />
         </label>
         <div class="message-history-list" role="listbox">
-          <For each={shown()} fallback={<div class="clone-empty">{props.messages.length ? "Nothing found" : "No commit messages yet"}</div>}>
+          <For each={shown()} fallback={<div class="clone-empty">{props.messages.length ? tr("common.nothingFound") : tr("git.extrasDialogs.noCommitMessagesYet")}</div>}>
             {(m, i) => (
               <div
                 class="message-history-item"

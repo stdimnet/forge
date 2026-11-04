@@ -8,15 +8,16 @@ import { AreaChart, BarChart3, ChartScatter, LineChart, PieChart } from "lucide-
 import type { Cell } from "@/ipc/db";
 import { dataEditApi, type ChartAgg, type ChartData, type ChartKind, type ChartSpec } from "@/ipc/dataedit";
 import type { GridColumn } from "./grid";
+import { t as tr } from "@/i18n";
 
 const color = (i: number) => `var(--graph-${i % 7})`;
 
 const KINDS: { kind: ChartKind; title: string; icon: typeof BarChart3 }[] = [
-  { kind: "bar", title: "Bar", icon: BarChart3 },
-  { kind: "line", title: "Line", icon: LineChart },
-  { kind: "area", title: "Area", icon: AreaChart },
-  { kind: "pie", title: "Pie", icon: PieChart },
-  { kind: "scatter", title: "Scatter", icon: ChartScatter },
+  { kind: "bar", title: tr("database.chartView.bar"), icon: BarChart3 },
+  { kind: "line", title: tr("database.chartView.line"), icon: LineChart },
+  { kind: "area", title: tr("database.chartView.area"), icon: AreaChart },
+  { kind: "pie", title: tr("database.chartView.pie"), icon: PieChart },
+  { kind: "scatter", title: tr("database.chartView.scatter"), icon: ChartScatter },
 ];
 
 /** 4-6 round tick values covering [lo, hi]. */
@@ -109,14 +110,14 @@ export function ChartView(props: { columns: GridColumn[]; rows: Cell[][] }) {
           </For>
         </div>
         <label class="db-chart-field">
-          <span class="muted">Group by</span>
+          <span class="muted">{tr("database.chartView.groupBy")}</span>
           <select value={spec().group ?? ""} onChange={(e) => update({ group: e.currentTarget.value || null })}>
             <option value="">(none)</option>
             <For each={props.columns.filter((c) => c.name !== spec().x)}>{(c) => <option value={c.name}>{c.name}</option>}</For>
           </select>
         </label>
         <label class="db-chart-field">
-          <span class="muted">Aggregate</span>
+          <span class="muted">{tr("database.chartView.aggregate")}</span>
           <select value={spec().agg} onChange={(e) => update({ agg: e.currentTarget.value as ChartAgg })}>
             <For each={["sum", "avg", "min", "max", "count"] as ChartAgg[]}>{(a) => <option value={a}>{a.toUpperCase()}</option>}</For>
           </select>

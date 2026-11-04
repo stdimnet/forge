@@ -18,6 +18,7 @@ import { CompareView } from "./CompareView";
 import { DiagramView } from "./DiagramView";
 import { COMPARE_VIEW, DIAGRAM_VIEW, openCompare, openDiagram, parseDiagramPath } from "./model";
 import "./schema.css";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Database");
 
@@ -70,7 +71,7 @@ registerCommand({
   category: "Diagrams",
   run: () => {
     if ((inDbTree() && diagramOfSelection()) || diagramOfActiveTab() || diagramOfSelection()) return;
-    showBalloon("Show Diagram", "Select a schema or table in the Database tool window, or open a console of a data source.");
+    showBalloon(t("database.schema.main.showDiagram"), "Select a schema or table in the Database tool window, or open a console of a data source.");
   },
 });
 
@@ -80,7 +81,7 @@ registerCommand({ id: "database.compareStructure", title: "Compare Structure…"
 const explain = (raw: boolean) => {
   const c = activeConsole();
   if (c?.explain) return c.explain(raw);
-  showBalloon("Explain Plan", "Put the caret on a statement in a SQL console.");
+  showBalloon(t("database.schema.main.explainPlan"), "Put the caret on a statement in a SQL console.");
 };
 registerCommand({ id: "Console.Jdbc.ExplainPlan", title: "Explain Plan", category: "Database", run: () => explain(false) });
 registerCommand({ id: "Console.Jdbc.ExplainPlan.Raw", title: "Explain Plan (Raw)", category: "Database", run: () => explain(true) });

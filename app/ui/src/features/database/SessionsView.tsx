@@ -8,6 +8,7 @@ import { Check, Database, Square, Undo2, Unplug, Users } from "lucide-solid";
 import { dbApi, type SessionInfo } from "@/ipc/db";
 import { showBalloon } from "@/keymap";
 import { loadSessions, sessionList, sourceById, sourceColor } from "./store";
+import { t as tr } from "@/i18n";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -30,31 +31,31 @@ function SessionRow(props: { s: SessionInfo; now: number }) {
   return (
     <div class="db-session" classList={{ running: props.s.running, tx: props.s.txOpen }} data-testid="db-session" style={{ "--db-accent": color()?.accent }}>
       <div class="db-session-head">
-        <span class="db-session-state" title={props.s.running ? "Running" : "Idle"} />
+        <span class="db-session-state" title={props.s.running ? tr("database.sessionsView.running") : tr("database.sessionsView.idle")} />
         <Database size={13} class="db-session-ds" />
         <span class="db-session-name">{ds()?.name ?? props.s.dataSourceId}</span>
         <span class="db-session-kind">{props.s.shared ? "shared session" : "console session"}</span>
         <Show when={(props.s.consoles ?? 1) > 1}>
-          <span class="db-session-badge" title="Consoles using this session">
+          <span class="db-session-badge" title={tr("database.sessionsView.consolesUsingThisSession")}>
             <Users size={11} /> {props.s.consoles}
           </span>
         </Show>
         <span class="db-spacer" />
-        <button class="icon-btn db-tool" title="Commit" disabled={!props.s.txOpen} onClick={act("Commit", () => dbApi.commit(props.s.id))}>
+        <button class="icon-btn db-tool" title={tr("database.sessionsView.commit")} disabled={!props.s.txOpen} onClick={act("Commit", () => dbApi.commit(props.s.id))}>
           <Check size={14} />
         </button>
-        <button class="icon-btn db-tool" title="Rollback" disabled={!props.s.txOpen} onClick={act("Rollback", () => dbApi.rollback(props.s.id))}>
+        <button class="icon-btn db-tool" title={tr("database.sessionsView.rollback")} disabled={!props.s.txOpen} onClick={act("Rollback", () => dbApi.rollback(props.s.id))}>
           <Undo2 size={14} />
         </button>
-        <button class="icon-btn db-tool" title="Cancel Running Statement" disabled={!props.s.running} onClick={act("Cancel", () => dbApi.cancel(props.s.id))}>
+        <button class="icon-btn db-tool" title={tr("database.sessionsView.cancelRunningStatement")} disabled={!props.s.running} onClick={act("Cancel", () => dbApi.cancel(props.s.id))}>
           <Square size={12} />
         </button>
-        <button class="icon-btn db-tool" title="Close Session" onClick={act("Close", () => dbApi.terminateSession(props.s.id))}>
+        <button class="icon-btn db-tool" title={tr("database.sessionsView.closeSession")} onClick={act("Close", () => dbApi.terminateSession(props.s.id))}>
           <Unplug size={13} />
         </button>
       </div>
       <div class="db-session-meta">
-        <span>{props.s.transactions === false ? "Tx: none" : props.s.autoCommit ? "Tx: Auto" : "Tx: Manual"}</span>
+        <span>{props.s.transactions === false ? tr("database.sessionsView.txNone") : props.s.autoCommit ? tr("database.sessionsView.txAuto") : tr("database.sessionsView.txManual")}</span>
         <Show
           when={props.s.txOpen}
           fallback={<span class="muted">{props.s.running ? "running" : "idle"} · open {since(props.s.openedAt, props.now)}</span>}
@@ -82,14 +83,14 @@ export function SessionsView() {
   });
   return (
     <div class="db-sessions" data-testid="db-sessions">
-      <div class="db-sessions-title">Sessions</div>
+      <div class="db-sessions-title">{tr("database.sessionsView.sessions")}</div>
       <For
         each={sessionList()}
         fallback={
           <div class="db-empty">
             <Unplug size={26} class="db-empty-icon" />
-            <div>No open sessions</div>
-            <div class="muted">Consoles open a session when they connect.</div>
+            <div>{tr("database.sessionsView.noOpenSessions")}</div>
+            <div class="muted">{tr("database.sessionsView.consolesOpenASessionWhen")}</div>
           </div>
         }
       >

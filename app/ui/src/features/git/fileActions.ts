@@ -16,6 +16,7 @@ import { logDate } from "./format";
 import { notify, runGit, status } from "./store";
 import { setChooserDialog, toggleAnnotate } from "./overlays";
 import { confirmRollback, openCommitWindow, showDiff, showRevisionDiff } from "./actions";
+import { t as tr } from "@/i18n";
 
 const stateOf = (targets: VcsTarget[]) => targetState(targets, status()?.entries ?? []);
 
@@ -30,16 +31,16 @@ export function commitTargets(): void {
 /** Add (Git.Add, Ctrl+Alt+A): stage the unversioned files below the targets. */
 export async function addTargets(): Promise<void> {
   const { unversioned } = stateOf(vcsTargets());
-  if (!unversioned.length) return notify("info", "No unversioned files to add");
+  if (!unversioned.length) return notify("info", tr("git.fileActions.noUnversionedFilesToAdd"));
   await runGit("Adding files to Git failed", () => gitApi.stage(unversioned));
 }
 
 /** Add to .gitignore (Git.Ignore.File): unversioned files and folders only. */
 export async function ignoreTargets(): Promise<void> {
   const targets = vcsTargets();
-  if (!stateOf(targets).allUnversioned) return notify("info", "Only unversioned files can be added to .gitignore");
+  if (!stateOf(targets).allUnversioned) return notify("info", tr("git.fileActions.onlyUnversionedFilesCanBe"));
   const patterns = await runGit("Adding to .gitignore failed", () => gitApi.addToGitignore(targets.map((t) => t.path)));
-  if (patterns) notify("success", "Added to .gitignore", patterns.join("\n"));
+  if (patterns) notify("success", tr("git.fileActions.addedToGitignore"), patterns.join("\n"));
 }
 
 /** Annotate with Git Blame: one tracked file, opened in the editor. */
@@ -54,7 +55,7 @@ export async function annotateTarget(): Promise<void> {
 export async function showTargetsDiff(): Promise<void> {
   const s = stateOf(vcsTargets());
   const files = [...s.changed, ...s.unversioned];
-  if (!files.length) return notify("info", "No changes to show");
+  if (!files.length) return notify("info", tr("git.fileActions.noChangesToShow"));
   await showDiff(files[0], diffSiblings(files));
 }
 
@@ -67,7 +68,7 @@ export async function compareWithRevision(): Promise<void> {
   setChooserDialog({
     title: `Compare ${file.split("/").pop()} with Revision`,
     empty: "No revisions of this file",
-    okLabel: "Compare",
+    okLabel: tr("git.fileActions.compare"),
     items: revs.map((c) => ({ id: c.sha, label: c.subject, detail: `${c.sha.slice(0, 8)} · ${c.author} · ${logDate(c.time)}` })),
     onOk: (item) => showRevisionDiff(file, item.id, item.id.slice(0, 8), pathAt.get(item.id)),
   });
@@ -86,14 +87,14 @@ export async function compareWithBranch(): Promise<void> {
   const branches = await runGit("Could not load branches", () => gitApi.branches());
   if (!branches) return;
   const items = [
-    ...branches.local.filter((b) => !b.current).map((b) => ({ id: b.name, label: b.name, detail: "Local" })),
-    ...branches.remote.map((b) => ({ id: b.name, label: b.name, detail: "Remote" })),
-    ...branches.tags.map((b) => ({ id: b.name, label: b.name, detail: "Tag" })),
+    ...branches.local.filter((b) => !b.current).map((b) => ({ id: b.name, label: b.name, detail: tr("git.fileActions.local") })),
+    ...branches.remote.map((b) => ({ id: b.name, label: b.name, detail: tr("git.fileActions.remote") })),
+    ...branches.tags.map((b) => ({ id: b.name, label: b.name, detail: tr("git.fileActions.tag") })),
   ];
   setChooserDialog({
-    title: `Compare ${name} with Branch`,
+    title: tr("git.fileActions.compareNameWithBranch", { name }),
     empty: "No other branches",
-    okLabel: "Compare",
+    okLabel: tr("git.fileActions.compare"),
     items,
     onOk: (item) => (folder === null ? showRevisionDiff(file!, item.id, item.label) : openBranchChanges(item.id, folder)),
   });
@@ -104,7 +105,7 @@ export function showTargetHistory(): void {
   const [target] = vcsTargets();
   if (!target || target.ignored) return;
   const { fileTracked } = stateOf([target]);
-  if (!target.dir && !fileTracked) return notify("info", "The file is not under version control");
+  if (!target.dir && !fileTracked) return notify("info", tr("git.fileActions.theFileIsNotUnder"));
   openFileHistory(target.path, target.dir);
 }
 
@@ -113,7 +114,7 @@ export function showSelectionHistory(): void {
   const tab = activeTab();
   const view = activeView();
   if (!tab || !view || tab.view || tab.path.includes("://")) return;
-  if (!stateOf([{ path: tab.path, dir: false }]).fileTracked) return notify("info", "The file is not under version control");
+  if (!stateOf([{ path: tab.path, dir: false }]).fileTracked) return notify("info", tr("git.fileActions.theFileIsNotUnder"));
   const sel = view.state.selection.main;
   const first = view.state.doc.lineAt(sel.from).number;
   // A selection ending at the start of a line does not include that line.
@@ -125,7 +126,7 @@ export function showSelectionHistory(): void {
 /** Rollback… (ChangesView.Rollback, Ctrl+Alt+Z): discard the tracked changes below the targets. */
 export function rollbackTargets(): void {
   const { changed } = stateOf(vcsTargets());
-  if (!changed.length) return notify("info", "No changes to roll back");
+  if (!changed.length) return notify("info", tr("git.fileActions.noChangesToRollBack"));
   confirmRollback(changed);
 }
 

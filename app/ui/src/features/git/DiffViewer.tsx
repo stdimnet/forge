@@ -18,6 +18,7 @@ import type { DiffRequest } from "./overlays";
 import { lineDiffConfig } from "./lineDiff";
 import { partialCommitGutter } from "./partialGutter";
 import { diffRendererFor } from "./diffRenderers";
+import { t } from "@/i18n";
 
 const diffTheme = EditorView.theme({
   "&": { height: "auto" },
@@ -138,33 +139,33 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
   const name = req.path.split("/").pop() ?? req.path;
   return (
     <div class="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && void close()}>
-      <div class="diff-viewer" role="dialog" aria-label={`Diff for ${req.path}`}>
+      <div class="diff-viewer" role="dialog" aria-label={t("git.diffViewer.diffForPath", { path: req.path })}>
         <header class="dialog-title">
           <FileIcon name={name} size={14} />
           <span>{req.path}</span>
           <span class="spacer" />
-          <button class="icon-btn" title="Close (Escape)" onClick={() => void close()}>
+          <button class="icon-btn" title={t("git.diffViewer.close", { shortcut: "Escape" })} onClick={() => void close()}>
             <X size={15} />
           </button>
         </header>
         <div class="panel-toolbar diff-toolbar">
-          <button class="icon-btn" title="Previous Difference (Shift+F7)" onClick={() => nav(-1)}>
+          <button class="icon-btn" title={t("git.diffViewer.previousDifference", { shortcut: "Shift+F7" })} onClick={() => nav(-1)}>
             <ArrowUp size={15} />
           </button>
-          <button class="icon-btn" title="Next Difference (F7)" onClick={() => nav(1)}>
+          <button class="icon-btn" title={t("git.diffViewer.nextDifference", { shortcut: "F7" })} onClick={() => nav(1)}>
             <ArrowDown size={15} />
           </button>
           <Show when={files.length > 1}>
-            <button class="icon-btn" title="Compare Previous File (Alt+Left)" disabled={fileIdx <= 0} onClick={() => stepFile(-1)}>
+            <button class="icon-btn" title={t("git.diffViewer.comparePreviousFile", { shortcut: "Alt+Left" })} disabled={fileIdx <= 0} onClick={() => stepFile(-1)}>
               <ArrowLeft size={15} />
             </button>
-            <button class="icon-btn" title="Compare Next File (Alt+Right)" disabled={fileIdx >= files.length - 1} onClick={() => stepFile(1)}>
+            <button class="icon-btn" title={t("git.diffViewer.compareNextFile", { shortcut: "Alt+Right" })} disabled={fileIdx >= files.length - 1} onClick={() => stepFile(1)}>
               <ArrowRight size={15} />
             </button>
           </Show>
           <button
             class="icon-btn"
-            title="Jump to Source (F4)"
+            title={t("git.diffViewer.jumpToSource", { shortcut: "F4" })}
             onClick={() => {
               void close();
               void openFileReported(req.path);
@@ -175,30 +176,30 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
           <div class="toolbar-sep" />
           <Show when={renderer}>
             {(r) => (
-              <div class="diff-mode" role="tablist" aria-label="Diff view">
+              <div class="diff-mode" role="tablist" aria-label={t("git.diffViewer.diffView")}>
                 <button class="pill-btn diff-select" classList={{ active: special() }} role="tab" aria-selected={special()} onClick={() => setSpecial(true)}>
                   {r().title}
                 </button>
                 <button class="pill-btn diff-select" classList={{ active: !special() }} role="tab" aria-selected={!special()} onClick={() => setSpecial(false)}>
-                  Text
+                  {t("git.diffViewer.text")}
                 </button>
               </div>
             )}
           </Show>
           <Show when={!special()}>
-            <button class="pill-btn diff-select" title="Viewer">
-              Side-by-side viewer
+            <button class="pill-btn diff-select" title={t("git.diffViewer.viewer")}>
+              {t("git.diffViewer.sideBySideViewer")}
             </button>
-            <button class="pill-btn diff-select" title="Whitespace">
-              Do not ignore
+            <button class="pill-btn diff-select" title={t("git.diffViewer.whitespace")}>
+              {t("git.diffViewer.doNotIgnore")}
             </button>
-            <button class="pill-btn diff-select" title="Highlighting">
-              Highlight words
+            <button class="pill-btn diff-select" title={t("git.diffViewer.highlighting")}>
+              {t("git.diffViewer.highlightWords")}
             </button>
             <button
               class="icon-btn"
               classList={{ active: collapse() }}
-              title="Collapse Unchanged Fragments"
+              title={t("git.diffViewer.collapseUnchangedFragments")}
               onClick={() => {
                 setCollapse(!collapse());
                 build();
@@ -209,7 +210,7 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
           </Show>
           <span class="spacer" />
           <Show when={!special()}>
-            <span class="diff-count">{count() === 0 ? "No differences" : `${count()} difference${count() === 1 ? "" : "s"}`}</span>
+            <span class="diff-count">{count() === 0 ? t("git.diffViewer.noDifferences") : `${count()} difference${count() === 1 ? "" : "s"}`}</span>
           </Show>
         </div>
         <div class="diff-headers">

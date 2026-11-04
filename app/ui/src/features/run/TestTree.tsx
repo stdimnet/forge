@@ -6,6 +6,7 @@ import { workspaceApi } from "@/ipc/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
 import type { TestNode, TestStatus } from "./tests";
+import { t } from "@/i18n";
 
 export interface TreeView {
   showPassed: boolean;
@@ -172,7 +173,7 @@ export function TestTree(props: {
               </Show>
             </span>
             <StatusIcon status={statusOf(row.node)} />
-            <span class="test-name">{row.node.kind === "root" ? "Test Results" : row.node.name}</span>
+            <span class="test-name">{row.node.kind === "root" ? t("run.testTree.testResults") : row.node.name}</span>
             <span class="test-duration">{row.node.durationText}</span>
           </div>
         )}

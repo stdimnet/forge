@@ -17,7 +17,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 
 | Module | Summary |
 | --- | --- |
-| `error.rs` |  |
+| `error.rs` | `ForgeError`: English `Display` for logs, serialized to the UI in the IDE language (`errors.*` keys of forge-i18n); `ForgeError::no_project()`. |
 | `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. |

@@ -24,15 +24,16 @@ import { isPluginActive } from "@/state/project";
 import { getSetting } from "@/state/settings";
 import { changesApi } from "./changesApi";
 import { reloadOpenFiles, notify } from "./store";
+import { t as tr } from "@/i18n";
 
 /** The checks and their settings keys, in the order PHPStorm runs them. */
 export const COMMIT_CHECKS = [
-  { key: "vcs.commit.reformat", label: "Reformat code" },
-  { key: "vcs.commit.rearrange", label: "Rearrange code" },
-  { key: "vcs.commit.optimizeImports", label: "Optimize imports" },
-  { key: "vcs.commit.analyze", label: "Analyze code" },
-  { key: "vcs.commit.checkTodo", label: "Check TODO" },
-  { key: "vcs.commit.cleanup", label: "Cleanup" },
+  { key: "vcs.commit.reformat", label: tr("git.commitChecks.reformatCode") },
+  { key: "vcs.commit.rearrange", label: tr("git.commitChecks.rearrangeCode") },
+  { key: "vcs.commit.optimizeImports", label: tr("git.commitChecks.optimizeImports") },
+  { key: "vcs.commit.analyze", label: tr("git.commitChecks.analyzeCode") },
+  { key: "vcs.commit.checkTodo", label: tr("git.commitChecks.checkTodo") },
+  { key: "vcs.commit.cleanup", label: tr("git.commitChecks.cleanup") },
 ] as const;
 
 const on = (key: string) => getSetting<boolean>(key, false);
@@ -163,18 +164,18 @@ export async function runCommitChecks(paths: string[], onProgress: (text: string
   if (on("vcs.commit.reformat") || on("vcs.commit.optimizeImports") || on("vcs.commit.rearrange") || on("vcs.commit.cleanup")) {
     onProgress("Running code modifications…");
     const n = await modifyCode(files);
-    if (n) notify("info", "Commit checks", `${plural(n, "file")} changed by the code modifications`);
+    if (n) notify("info", tr("git.commitChecks.commitChecks"), `${plural(n, "file")} changed by the code modifications`);
   }
   if (on("vcs.commit.analyze")) {
     onProgress("Analyzing code…");
     const p = await collectProblems(files);
     if (p.errors || p.warnings) {
       const choice = await askChoice({
-        title: "Code Analysis",
+        title: tr("git.commitChecks.codeAnalysis"),
         message: `${plural(p.errors, "error")} and ${plural(p.warnings, "warning")} found in ${plural(p.files.length, "file")}.`,
         choices: [
-          { id: "review", label: "Review" },
-          { id: "commit", label: "Commit Anyway" },
+          { id: "review", label: tr("git.commitChecks.review") },
+          { id: "commit", label: tr("git.commitChecks.commitAnyway") },
         ],
       });
       if (choice !== "commit") {
@@ -191,8 +192,8 @@ export async function runCommitChecks(paths: string[], onProgress: (text: string
         title: "TODO",
         message: `${plural(n, "TODO item")} found in the changed code.`,
         choices: [
-          { id: "review", label: "Review" },
-          { id: "commit", label: "Commit Anyway" },
+          { id: "review", label: tr("git.commitChecks.review") },
+          { id: "commit", label: tr("git.commitChecks.commitAnyway") },
         ],
       });
       if (choice !== "commit") {
@@ -205,19 +206,19 @@ export async function runCommitChecks(paths: string[], onProgress: (text: string
     const name = getSetting<string>("vcs.commit.testConfiguration", "");
     const cfg = findConfiguration(name);
     if (!cfg) {
-      notify("error", "Run Tests", name ? `Run configuration "${name}" not found` : "Choose a run configuration in the Commit Options");
+      notify("error", tr("git.commitChecks.runTests"), name ? tr("git.commitChecks.runConfigurationNameNotFound", { name }) : tr("git.commitChecks.chooseARunConfigurationIn"));
       return false;
     }
-    onProgress(`Running ${cfg.name}…`);
+    onProgress(tr("git.commitChecks.runningName", { name: cfg.name }));
     const handle = await launch(cfg);
     const code = handle ? await handle.exited : null;
     if (code !== 0) {
       const choice = await askChoice({
-        title: "Tests Failed",
+        title: tr("git.commitChecks.testsFailed"),
         message: handle ? `${cfg.name} finished with exit code ${code ?? "?"}.` : `${cfg.name} could not be started.`,
         choices: [
-          { id: "review", label: "Review" },
-          { id: "commit", label: "Commit Anyway" },
+          { id: "review", label: tr("git.commitChecks.review") },
+          { id: "commit", label: tr("git.commitChecks.commitAnyway") },
         ],
       });
       if (choice !== "commit") {

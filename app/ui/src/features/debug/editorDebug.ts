@@ -13,6 +13,7 @@ import { inlineValues, inlineValuesGeneric } from "./format";
 import { isDebuggableFile } from "./adapters";
 import { addLogpoint, breakpoints, breakpointsMuted, frameIndex, frames, pausedSession, toggleLineBreakpoint, variables } from "./store";
 import { openBreakpointPopup } from "./overlays";
+import { t } from "@/i18n";
 
 export interface EditorDebugState {
   bps: Breakpoint[];
@@ -115,7 +116,7 @@ function build(view: { doc: { lines: number; line: (n: number) => { from: number
     const bp = byLine.get(l);
     const look = bp ? breakpointLook(bp, st.muted) : null;
     const exec = st.exec === l;
-    const title = bp && look ? bpTitle(bp, look) : "Execution point";
+    const title = bp && look ? bpTitle(bp, look) : t("debug.editorDebug.executionPoint");
     const from = doc.line(l).from;
     markers.push(new BreakpointMarker(look, exec, title, !!bp?.temporary).range(from));
     if (exec) decos.push(Decoration.line({ class: "cm-exec-line" }).range(from));

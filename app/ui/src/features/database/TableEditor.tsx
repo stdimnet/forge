@@ -44,6 +44,7 @@ import { AggregatePanel, AggregateStatus, FilterChips, filterByValueItems, Pendi
 import { ValueEditor } from "./ValueEditor";
 import { ChartView } from "./ChartView";
 import { CompareDialog, registerCompareSource, tableSource } from "./CompareView";
+import { t as tr } from "@/i18n";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -219,7 +220,7 @@ export function TableEditor(props: { tab: EditorTab }) {
       if (p.blocked) throw new Error(p.blocked);
       let confirmed = false;
       if (p.confirm) {
-        confirmed = await askConfirm({ title: "Production Data Source", message: `${p.confirm}\n\n${p.statements.join(";\n")};`, confirm: "Submit" });
+        confirmed = await askConfirm({ title: tr("database.tableEditor.productionDataSource"), message: `${p.confirm}\n\n${p.statements.join(";\n")};`, confirm: tr("database.tableEditor.submit") });
         if (!confirmed) return;
       }
       const res = await dbApi.applyChanges(loc.id, loc.schema, loc.table, list, confirmed);
@@ -227,7 +228,7 @@ export function TableEditor(props: { tab: EditorTab }) {
       setShowPending(false);
       setStatus(`${res.statements.length} change${res.statements.length === 1 ? "" : "s"} submitted`);
     } catch (e) {
-      showBalloon(`Cannot submit changes to ${loc.table}`, errorText(e), 9000);
+      showBalloon(tr("database.tableEditor.cannotSubmitChangesToTable", { table: loc.table }), errorText(e), 9000);
     }
   }
 
@@ -304,7 +305,7 @@ export function TableEditor(props: { tab: EditorTab }) {
       });
       openTable(loc.id, nav.schema, nav.table, { filter: nav.filter });
     } catch (e) {
-      showBalloon("Cannot navigate", errorText(e));
+      showBalloon(tr("database.tableEditor.cannotNavigate"), errorText(e));
     }
   };
 
@@ -339,7 +340,7 @@ export function TableEditor(props: { tab: EditorTab }) {
 
   const gotoReferenced = () => {
     const items = referencedItems();
-    if (!items.length) return showBalloon("No foreign key", "The column of this cell is not part of a foreign key.");
+    if (!items.length) return showBalloon(tr("database.tableEditor.noForeignKey"), "The column of this cell is not part of a foreign key.");
     if (items.length === 1) return items[0].run?.();
     setMenu({ ...cellPoint(), items });
   };
@@ -347,9 +348,9 @@ export function TableEditor(props: { tab: EditorTab }) {
   const findReferencing = async () => {
     if (!cursor()) return;
     const items = await referencingItems();
-    if (!items.length) return showBalloon("No referencing tables", `No foreign key references ${loc.table}.`);
+    if (!items.length) return showBalloon(tr("database.tableEditor.noReferencingTables"), tr("database.tableEditor.noForeignKeyReferencesTable", { table: loc.table }));
     if (items.length === 1) return items[0].run?.();
-    setMenu({ ...cellPoint(), items: [{ label: "Find Referencing Rows In", disabled: true }, ...items] });
+    setMenu({ ...cellPoint(), items: [{ label: tr("database.tableEditor.findReferencingRowsIn"), disabled: true }, ...items] });
   };
 
   // ---- side panels and modes ------------------------------------------------------------
@@ -406,7 +407,7 @@ export function TableEditor(props: { tab: EditorTab }) {
       const ddl = await dbApi.tableDdl(loc.id, loc.schema, loc.table);
       openConsole(loc.id, ddl);
     } catch (e) {
-      showBalloon(`No DDL for ${loc.table}`, errorText(e));
+      showBalloon(tr("database.tableEditor.noDdlForTable", { table: loc.table }), errorText(e));
     }
   };
 
@@ -422,63 +423,63 @@ export function TableEditor(props: { tab: EditorTab }) {
     const items: MenuItem[] = [];
     if (c) {
       const col = columns()[c.col];
-      items.push({ label: "Edit Value…", hint: shortcutLabel("Database.Properties"), run: editValue });
+      items.push({ label: tr("database.tableEditor.editValue"), hint: shortcutLabel("Database.Properties"), run: editValue });
       if (editable() && (col?.defaultValue != null || col?.autoIncrement) && c.row < total())
-        items.push({ label: "Set DEFAULT", run: () => edit(c.row, c.col, { $default: true }) });
+        items.push({ label: tr("database.tableEditor.setDefault"), run: () => edit(c.row, c.col, { $default: true }) });
       items.push({ separator: true, label: "" });
       if (col && c.row < loaded()) items.push(...filterByValueItems(col.name, page()!.rows[c.row][c.col], addFilter));
       const refs = referencedItems();
       if (refs.length) items.push({ separator: true, label: "" }, ...refs);
-      items.push({ label: "Find Referencing Rows…", hint: shortcutLabel("FindUsages"), run: () => void findReferencing() });
+      items.push({ label: tr("database.tableEditor.findReferencingRows"), hint: shortcutLabel("FindUsages"), run: () => void findReferencing() });
       items.push({ separator: true, label: "" });
     }
     if (editable())
       items.push(
-        { label: "Add Row", hint: shortcutLabel("Console.TableResult.AddRow"), run: addRow },
-        { label: "Delete Rows", hint: shortcutLabel("Console.TableResult.DeleteRows"), run: deleteRows, danger: true },
+        { label: tr("database.tableEditor.addRow"), hint: shortcutLabel("Console.TableResult.AddRow"), run: addRow },
+        { label: tr("database.tableEditor.deleteRows"), hint: shortcutLabel("Console.TableResult.DeleteRows"), run: deleteRows, danger: true },
         { separator: true, label: "" },
       );
-    items.push({ label: "Compare With…", run: () => setComparing(true) });
+    items.push({ label: tr("database.tableEditor.compareWith"), run: () => setComparing(true) });
     return items;
   };
 
   const headerMenu = (column: { name: string }): MenuItem[] => [
-    { label: "Sort Ascending", run: () => applySort([{ column: column.name, desc: false }]) },
-    { label: "Sort Descending", run: () => applySort([{ column: column.name, desc: true }]) },
-    { label: "Add to Sort", hint: "Ctrl+Click", run: () => applySort([...sort().filter((k) => k.column !== column.name), { column: column.name, desc: false }]) },
-    { label: "Clear Sort", disabled: !sort().length, run: () => applySort([]) },
+    { label: tr("database.tableEditor.sortAscending"), run: () => applySort([{ column: column.name, desc: false }]) },
+    { label: tr("database.tableEditor.sortDescending"), run: () => applySort([{ column: column.name, desc: true }]) },
+    { label: tr("database.tableEditor.addToSort"), hint: "Ctrl+Click", run: () => applySort([...sort().filter((k) => k.column !== column.name), { column: column.name, desc: false }]) },
+    { label: tr("database.tableEditor.clearSort"), disabled: !sort().length, run: () => applySort([]) },
     { separator: true, label: "" },
-    { label: `Filter by ${column.name} IS NULL`, run: () => addFilter({ column: column.name, op: "isNull" }) },
-    { label: `Filter by ${column.name} IS NOT NULL`, run: () => addFilter({ column: column.name, op: "isNotNull" }) },
+    { label: tr("database.tableEditor.filterByNameIsNull", { name: column.name }), run: () => addFilter({ column: column.name, op: "isNull" }) },
+    { label: tr("database.tableEditor.filterByNameIsNot", { name: column.name }), run: () => addFilter({ column: column.name, op: "isNotNull" }) },
   ];
 
   return (
     <div class="db-editor" data-db-path={props.tab.path}>
       <div class="db-toolbar">
-        <Tool title="First Page" disabled={offset() === 0 || loading()} onClick={() => void load(0)}>
+        <Tool title={tr("database.tableEditor.firstPage")} disabled={offset() === 0 || loading()} onClick={() => void load(0)}>
           <ChevronFirst size={16} />
         </Tool>
-        <Tool title="Previous Page" disabled={offset() === 0 || loading()} onClick={() => void load(Math.max(0, offset() - pageSize()))}>
+        <Tool title={tr("database.tableEditor.previousPage")} disabled={offset() === 0 || loading()} onClick={() => void load(Math.max(0, offset() - pageSize()))}>
           <ChevronLeft size={16} />
         </Tool>
-        <span class="db-paging" title={`Page size: ${pageSize()}`}>
+        <span class="db-paging" title={tr("database.tableEditor.pageSizePagesize", { pageSize: pageSize() })}>
           {first()}-{last()}
           <Show when={totalRows() !== undefined}>
             <span class="muted"> of {totalRows()}</span>
           </Show>
         </span>
-        <Tool title="Next Page" disabled={!page()?.hasMore || loading()} onClick={() => void load(offset() + pageSize())}>
+        <Tool title={tr("database.tableEditor.nextPage")} disabled={!page()?.hasMore || loading()} onClick={() => void load(offset() + pageSize())}>
           <ChevronRight size={16} />
         </Tool>
         <Tool
-          title="Last Page"
+          title={tr("database.tableEditor.lastPage")}
           disabled={!page()?.hasMore || totalRows() === undefined || loading()}
           onClick={() => void load(Math.max(0, Math.floor(((totalRows() ?? 1) - 1) / pageSize()) * pageSize()))}
         >
           <ChevronLast size={16} />
         </Tool>
         <span class="db-sep" />
-        <Tool title="Reload Page" class={loading() ? "spinning" : ""} onClick={() => void load()}>
+        <Tool title={tr("database.tableEditor.reloadPage")} class={loading() ? "spinning" : ""} onClick={() => void load()}>
           <RefreshCw size={15} />
         </Tool>
         <span class="db-sep" />
@@ -492,7 +493,7 @@ export function TableEditor(props: { tab: EditorTab }) {
         <Tool title={`Revert (${shortcutLabel("Console.TableResult.Revert")})`} disabled={!changes()} onClick={revert}>
           <Undo2 size={15} />
         </Tool>
-        <Tool title="Preview Pending Changes" disabled={!changes()} active={showPending()} onClick={() => setShowPending((v) => !v)}>
+        <Tool title={tr("database.tableEditor.previewPendingChanges")} disabled={!changes()} active={showPending()} onClick={() => setShowPending((v) => !v)}>
           <ScrollText size={15} />
         </Tool>
         <button
@@ -503,33 +504,33 @@ export function TableEditor(props: { tab: EditorTab }) {
           onClick={() => void submit()}
         >
           <Upload size={14} />
-          Submit
+          {tr("database.tableEditor.submit")}
           <Show when={changes() > 0}>
             <span class="db-badge">{changes()}</span>
           </Show>
         </button>
         <span class="db-sep" />
-        <Tool title="Transpose" active={transposed()} onClick={toggleTransposed}>
+        <Tool title={tr("database.tableEditor.transpose")} active={transposed()} onClick={toggleTransposed}>
           <ArrowRightLeft size={15} />
         </Tool>
         <Tool title={`Value Editor (${shortcutLabel("Database.Properties")})`} active={side() === "value"} onClick={editValue}>
           <PanelRight size={15} />
         </Tool>
-        <Tool title="Aggregate View" active={side() === "aggregate"} onClick={() => setSide((s) => (s === "aggregate" ? null : "aggregate"))}>
+        <Tool title={tr("database.tableEditor.aggregateView")} active={side() === "aggregate"} onClick={() => setSide((s) => (s === "aggregate" ? null : "aggregate"))}>
           <Sigma size={15} />
         </Tool>
-        <Tool title="Show Chart" active={chart()} onClick={() => setChart((c) => !c)}>
+        <Tool title={tr("database.tableEditor.showChart")} active={chart()} onClick={() => setChart((c) => !c)}>
           <ChartColumn size={15} />
         </Tool>
-        <Tool title="Compare With…" onClick={() => setComparing(true)}>
+        <Tool title={tr("database.tableEditor.compareWith")} onClick={() => setComparing(true)}>
           <GitCompare size={15} />
         </Tool>
         <span class="db-sep" />
-        <Tool title="Go to DDL" onClick={() => void openDdl()}>
+        <Tool title={tr("database.tableEditor.goToDdl")} onClick={() => void openDdl()}>
           <FileCode size={15} />
         </Tool>
         <Tool
-          title="Export Data"
+          title={tr("database.tableEditor.exportData")}
           onClick={(e) => {
             const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
             setMenu({ x: r.left, y: r.bottom + 2, items: exportMenu(exportSource) });
@@ -539,33 +540,33 @@ export function TableEditor(props: { tab: EditorTab }) {
         </Tool>
         <span class="db-spacer" />
         <Show when={info() && !info()!.primaryKey.length && info()!.kind === "table"}>
-          <span class="db-chip warning" title="Without a primary key, rows are identified by a NOT NULL unique key if there is one">
-            No primary key
+          <span class="db-chip warning" title={tr("database.tableEditor.withoutAPrimaryKeyRows")}>
+            {tr("database.tableEditor.noPrimaryKey")}
           </span>
         </Show>
         <Show when={ds()?.options.readOnly}>
-          <span class="db-chip">Read-only</span>
+          <span class="db-chip">{tr("database.tableEditor.readOnly")}</span>
         </Show>
         <span class="db-status muted">{status()}</span>
       </div>
       <div class="db-filter">
         <label class="db-filter-field">
           <Filter size={13} class="muted" />
-          <span class="db-filter-kw">WHERE</span>
+          <span class="db-filter-kw">{"WHERE"}</span>
           <WhereInput
             value={where()}
             columns={columns().map((c) => c.name)}
-            placeholder="condition, e.g. status = 'paid' AND total > 100"
+            placeholder={tr("database.tableEditor.conditionEGStatusPaid")}
             onInput={setWhere}
             onSubmit={() => void load(0)}
           />
         </label>
         <label class="db-filter-field">
           <ArrowDownUp size={13} class="muted" />
-          <span class="db-filter-kw">ORDER BY</span>
+          <span class="db-filter-kw">{"ORDER BY"}</span>
           <input
             class="db-filter-input"
-            placeholder="column [DESC], …"
+            placeholder={tr("database.tableEditor.columnDesc")}
             spellcheck={false}
             value={orderText()}
             onInput={(e) => setOrderText(e.currentTarget.value)}
@@ -626,7 +627,7 @@ export function TableEditor(props: { tab: EditorTab }) {
               sort={sort()}
               onSort={onHeaderSort}
               nullText={nullText()}
-              emptyText={loading() ? "Loading…" : error() ? "" : "No rows"}
+              emptyText={loading() ? tr("database.tableEditor.loading") : error() ? "" : tr("database.tableEditor.noRows")}
               ref={(api) => (grid = api)}
               onSelect={onSelect}
               headerMenu={headerMenu}

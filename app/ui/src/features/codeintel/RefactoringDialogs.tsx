@@ -152,7 +152,7 @@ export function conflictsAnswer(title: string, conflicts: RenameConflict[]): Usa
     })),
   }));
   const count = files.reduce((n, f) => n + f.usages.length, 0);
-  const tree = { total: count, fileCount: files.length, groups: [{ label: "Conflicts", count, files }] };
+  const tree = { total: count, fileCount: files.length, groups: [{ label: t("codeintel.refactoringDialogs.conflicts"), count, files }] };
   return { title, source: "none", byType: tree, byFile: tree };
 }
 
@@ -165,7 +165,7 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
       <div
         class="dialog refactoring-preview"
         role="dialog"
-        aria-label="Refactoring Preview"
+        aria-label={t("codeintel.refactoringDialogs.refactoringPreview")}
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}
         onKeyDown={(e) => {
@@ -176,7 +176,7 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">{a().conflicts.length ? "Problems Detected" : "Refactoring Preview"}</div>
+        <div class="dialog-title">{a().conflicts.length ? t("codeintel.refactoringDialogs.problemsDetected") : t("codeintel.refactoringDialogs.refactoringPreview")}</div>
         <div class="dialog-body">
           <Show when={a().conflicts.length}>
             <div class="preview-conflicts">
@@ -210,25 +210,25 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
           <Show when={a().conflicts.some((c) => c.path)}>
             <button
               class="btn-secondary"
-              title="Cancel the refactoring and list the conflicts in the Find tool window"
+              title={t("codeintel.refactoringDialogs.cancelTheRefactoringAndList")}
               onClick={() => {
                 openInFindWindow(conflictsAnswer(props.req.title, a().conflicts), {
                   kind: "text",
-                  title: `Conflicts: ${props.req.title}`,
-                  header: `Conflicts of ${props.req.title}`,
+                  title: t("codeintel.refactoringDialogs.conflictsTitle", { title: props.req.title }),
+                  header: t("codeintel.refactoringDialogs.conflictsOfTitle", { title: props.req.title }),
                 });
                 props.req.done(false);
               }}
             >
-              Show in View
+              {t("codeintel.refactoringDialogs.showInView")}
             </button>
             <span class="dialog-buttons-gap" />
           </Show>
           <button class="btn-secondary" onClick={() => props.req.done(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => props.req.done(true)}>
-            {a().conflicts.length ? "Continue" : "Do Refactor"}
+            {a().conflicts.length ? t("codeintel.refactoringDialogs.continue") : t("codeintel.refactoringDialogs.doRefactor")}
           </button>
         </div>
       </div>

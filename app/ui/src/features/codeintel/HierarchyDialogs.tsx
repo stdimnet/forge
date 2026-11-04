@@ -22,6 +22,7 @@ import {
   type PushDownRequest,
   type TableMode,
 } from "./hierarchyRefactorings";
+import { t as tr } from "@/i18n";
 
 const KIND_LETTER: Record<ClassMember["kind"], string> = { method: "m", property: "f", constant: "c" };
 
@@ -52,12 +53,12 @@ function MemberTable(props: {
       <div class="hierarchy-members" classList={{ "with-abstract": withAbstract() }} role="grid" aria-label={props.legend}>
         <div class="hierarchy-member head" role="row">
           <span />
-          <span>Member</span>
+          <span>{tr("codeintel.hierarchyDialogs.member")}</span>
           <Show when={withAbstract()}>
             <span class="hierarchy-abstract-head">{props.abstractLabel}</span>
           </Show>
         </div>
-        <For each={members()} fallback={<div class="refactor-note hierarchy-empty">No members</div>}>
+        <For each={members()} fallback={<div class="refactor-note hierarchy-empty">{tr("codeintel.hierarchyDialogs.noMembers")}</div>}>
           {(m) => {
             const box = () => abstractBox(m, props.mode, props.info.kind);
             return (
@@ -65,7 +66,7 @@ function MemberTable(props: {
                 class="hierarchy-member"
                 role="row"
                 classList={{ dependency: deps().has(m.id) }}
-                title={deps().has(m.id) ? "Used by the selected members" : undefined}
+                title={deps().has(m.id) ? tr("codeintel.hierarchyDialogs.usedByTheSelectedMembers") : undefined}
               >
                 <input
                   type="checkbox"
@@ -100,7 +101,7 @@ function MemberTable(props: {
       </div>
       <Show when={deps().size}>
         <div class="refactor-note hierarchy-legend">
-          <span class="hierarchy-legend-swatch" /> Used by the selected members
+          <span class="hierarchy-legend-swatch" /> {tr("codeintel.hierarchyDialogs.usedByTheSelectedMembers")}
         </div>
       </Show>
     </fieldset>
@@ -125,13 +126,13 @@ function NewTypeFields(props: {
   return (
     <>
       <label class="form-label">{props.label}</label>
-      <input ref={focusSelect} class="move-input" value={props.name} spellcheck={false} aria-label="Name" onInput={(e) => props.setName(e.currentTarget.value)} />
+      <input ref={focusSelect} class="move-input" value={props.name} spellcheck={false} aria-label={tr("codeintel.hierarchyDialogs.name")} onInput={(e) => props.setName(e.currentTarget.value)} />
       <NamespaceFields
         namespace={props.namespace}
         setNamespace={props.setNamespace}
         directory={props.directory}
         setDirectory={props.setDirectory}
-        label="Namespace:"
+        label={tr("codeintel.hierarchyDialogs.namespace")}
       />
     </>
   );
@@ -160,27 +161,27 @@ export function ExtractInterfaceDialog(props: { req: ExtractInterfaceRequest }) 
     );
   const run = () => !error() && close(false);
   return (
-    <Frame title="Extract Interface" class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.hierarchyDialogs.extractInterface")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
           Extract interface from: <code>{info.fqn}</code>
         </div>
-        <NewTypeFields label="Interface name:" name={name()} setName={setName} namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} />
+        <NewTypeFields label={tr("codeintel.hierarchyDialogs.interfaceName")} name={name()} setName={setName} namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} />
         <MemberTable
           info={info}
           mode="interface"
-          legend="Members to Form Interface"
+          legend={tr("codeintel.hierarchyDialogs.membersToFormInterface")}
           chosen={chosen()}
           abstract={new Set()}
           onChosen={setChosen}
           onAbstract={() => undefined}
         />
-        <Check label="Replace class references with interface where possible" checked={replace()} onChange={setReplace} />
+        <Check label={tr("codeintel.hierarchyDialogs.replaceClassReferencesWithInterface")} checked={replace()} onChange={setReplace} />
         <Show when={error()}>
           <div class="dialog-error">{error()}</div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -207,17 +208,17 @@ export function ExtractSuperclassDialog(props: { req: ExtractSuperclassRequest }
     );
   const run = () => !error() && close(false);
   return (
-    <Frame title="Extract Superclass" class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.hierarchyDialogs.extractSuperclass")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
           Extract superclass from: <code>{info.fqn}</code>
           <Show when={info.parent}> (between it and {info.parent})</Show>
         </div>
-        <NewTypeFields label="Superclass name:" name={name()} setName={setName} namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} />
+        <NewTypeFields label={tr("codeintel.hierarchyDialogs.superclassName")} name={name()} setName={setName} namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} />
         <MemberTable
           info={info}
           mode="superclass"
-          legend="Members to Form Superclass"
+          legend={tr("codeintel.hierarchyDialogs.membersToFormSuperclass")}
           abstractLabel="Make abstract"
           chosen={chosen()}
           abstract={abstract()}
@@ -228,7 +229,7 @@ export function ExtractSuperclassDialog(props: { req: ExtractSuperclassRequest }
           <div class="dialog-error">{error()}</div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -244,12 +245,12 @@ export function PullUpDialog(props: { req: PullUpRequest }) {
   const close = (preview: boolean | null) => props.req.done(preview === null ? null : { target: target(), members: picked(), preview });
   const run = () => valid() && close(false);
   return (
-    <Frame title="Pull Members Up" class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.hierarchyDialogs.pullMembersUp")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <label class="form-label">
           Pull up members of <code>{info.fqn}</code> to:
         </label>
-        <select class="move-input" value={target()} aria-label="Target class" onChange={(e) => setTarget(e.currentTarget.value)}>
+        <select class="move-input" value={target()} aria-label={tr("codeintel.hierarchyDialogs.targetClass")} onChange={(e) => setTarget(e.currentTarget.value)}>
           <For each={info.targets}>
             {(t) => (
               <option value={t.fqn}>
@@ -261,7 +262,7 @@ export function PullUpDialog(props: { req: PullUpRequest }) {
         <MemberTable
           info={info}
           mode={mode()}
-          legend="Members to be pulled up"
+          legend={tr("codeintel.hierarchyDialogs.membersToBePulledUp")}
           abstractLabel="Make abstract"
           chosen={chosen()}
           abstract={abstract()}
@@ -269,7 +270,7 @@ export function PullUpDialog(props: { req: PullUpRequest }) {
           onAbstract={setAbstract}
         />
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -283,7 +284,7 @@ export function PushDownDialog(props: { req: PushDownRequest }) {
   const close = (preview: boolean | null) => props.req.done(preview === null ? null : { members: picked(), preview });
   const run = () => valid() && close(false);
   return (
-    <Frame title="Push Members Down" class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
+    <Frame title={tr("codeintel.hierarchyDialogs.pushMembersDown")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
           Push members from <code>{info.fqn}</code> down to: {info.targets.map((t) => t.name).join(", ")}
@@ -291,7 +292,7 @@ export function PushDownDialog(props: { req: PushDownRequest }) {
         <MemberTable
           info={info}
           mode="pushDown"
-          legend="Members to be pushed down"
+          legend={tr("codeintel.hierarchyDialogs.membersToBePushedDown")}
           abstractLabel="Keep abstract"
           chosen={chosen()}
           abstract={abstract()}
@@ -299,7 +300,7 @@ export function PushDownDialog(props: { req: PushDownRequest }) {
           onAbstract={setAbstract}
         />
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }

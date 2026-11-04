@@ -9,6 +9,7 @@ import { AlignLeft, Check, Minimize2, X } from "lucide-solid";
 import { isBinary, type Cell } from "@/ipc/db";
 import { DEFAULT_MARKER, dataEditApi, type EditorKind, type ValueError } from "@/ipc/dataedit";
 import { cellText, isDefault, parseInput, type GridColumn } from "./grid";
+import { t as tr } from "@/i18n";
 
 const base64OfHex = (hex: string) => {
   let bin = "";
@@ -141,16 +142,16 @@ export function ValueEditor(props: {
         </span>
         <span class="db-spacer" />
         <Show when={k() === "json" || k() === "xml"}>
-          <button class="icon-btn" title="Reformat" onClick={() => void reformat(2)}>
+          <button class="icon-btn" title={tr("database.valueEditor.reformat")} onClick={() => void reformat(2)}>
             <AlignLeft size={14} />
           </button>
           <Show when={k() === "json"}>
-            <button class="icon-btn" title="Minify" onClick={() => void reformat(0)}>
+            <button class="icon-btn" title={tr("database.valueEditor.minify")} onClick={() => void reformat(0)}>
               <Minimize2 size={14} />
             </button>
           </Show>
         </Show>
-        <button class="icon-btn" title="Close" onClick={props.onClose}>
+        <button class="icon-btn" title={tr("common.close")} onClick={props.onClose}>
           <X size={14} />
         </button>
       </div>
@@ -159,7 +160,7 @@ export function ValueEditor(props: {
           <div class="db-pending-note">Set to DEFAULT ({props.column.defaultValue ?? "generated"})</div>
         </Show>
         <Show when={props.value === null}>
-          <div class="db-pending-note muted">The value is NULL</div>
+          <div class="db-pending-note muted">{tr("database.valueEditor.theValueIsNull")}</div>
         </Show>
         <Show when={k() === "binary"}>
           <Show when={binary()}>
@@ -170,7 +171,7 @@ export function ValueEditor(props: {
                 </div>
                 <Show when={b().mime && props.value && isBinary(props.value)}>
                   <div class="db-value-image">
-                    <img alt="Image preview" src={`data:${b().mime};base64,${base64OfHex((props.value as { $hex: string }).$hex)}`} />
+                    <img alt={tr("database.valueEditor.imagePreview")} src={`data:${b().mime};base64,${base64OfHex((props.value as { $hex: string }).$hex)}`} />
                   </div>
                 </Show>
                 <div class="db-hex" data-testid="db-hex">
@@ -260,7 +261,7 @@ export function ValueEditor(props: {
         <Show when={error()}>
           {(e) => (
             <div class="db-value-error" data-testid="db-value-error">
-              {k() === "json" ? "Invalid JSON" : "Invalid XML"}: {e().message} (line {e().line}, column {e().column})
+              {k() === "json" ? tr("database.valueEditor.invalidJson") : tr("database.valueEditor.invalidXml")}: {e().message} (line {e().line}, column {e().column})
             </div>
           )}
         </Show>
@@ -288,7 +289,7 @@ export function ValueEditor(props: {
           <span class="db-spacer" />
           <Show when={k() !== "binary"}>
             <button class="db-btn primary" disabled={!dirty()} onClick={() => void apply()}>
-              Apply
+              {tr("common.apply")}
             </button>
           </Show>
         </div>

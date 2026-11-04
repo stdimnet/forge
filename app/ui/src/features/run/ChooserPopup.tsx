@@ -9,6 +9,7 @@ import { allConfigurations, selectConfiguration } from "./configStore";
 import { closeChooser, configurationChooser, openRunConfigurations } from "./dialogState";
 import { debugConfiguration, runConfiguration } from "./runStore";
 import { ConfigIcon } from "./RunWidget";
+import { t } from "@/i18n";
 
 export function ChooserPopup() {
   return (
@@ -55,7 +56,7 @@ function Chooser(props: { mode: "run" | "debug" }) {
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeChooser()}>
       <div ref={el} class="popup run-chooser" tabIndex={-1} role="listbox" onKeyDown={onKeyDown}>
         <div class="run-chooser-title">
-          <span>{props.mode === "debug" ? "Debug" : "Run"}</span>
+          <span>{props.mode === "debug" ? t("run.chooserPopup.debug") : t("run.chooserPopup.run")}</span>
           <Show when={query()}>
             <span class="run-chooser-query">{query()}</span>
           </Show>
@@ -65,7 +66,7 @@ function Chooser(props: { mode: "run" | "debug" }) {
           <span class="run-config-type-icon muted">
             <Settings2 size={14} />
           </span>
-          <span class="run-dd-name">Edit Configurations…</span>
+          <span class="run-dd-name">{t("run.chooserPopup.editConfigurations")}</span>
         </div>
         <For each={items()}>
           {(cfg, i) => (
@@ -81,7 +82,7 @@ function Chooser(props: { mode: "run" | "debug" }) {
             </div>
           )}
         </For>
-        <div class="run-chooser-hint muted">{props.mode === "run" ? "Hold Shift to debug" : "Enter to debug"}</div>
+        <div class="run-chooser-hint muted">{props.mode === "run" ? t("run.chooserPopup.holdShiftToDebug") : t("run.chooserPopup.enterToDebug")}</div>
       </div>
     </div>
   );
