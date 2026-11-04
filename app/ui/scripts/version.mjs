@@ -5,8 +5,11 @@
  *   pnpm version:check                         fail when the files disagree
  *   pnpm version:bump proud|default|shame      write the next version everywhere
  *   pnpm version:bump default --pre beta.1     … as a pre-release (beta channel)
+ *   pnpm version:bump pre                      next pre-release of the same version (beta.1 → beta.2)
+ *   pnpm version:bump pre --pre rc.1           same version with a later label
+ *   pnpm version:bump release                  drop the label (rc.1 → final)
  *
- * It never commits, tags or publishes; it prints the tag for the GitHub release.
+ * It never commits, tags or publishes; it prints the tag to push for the release.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -39,9 +42,9 @@ try {
     for (const f of VERSION_FILES) writeFileSync(resolve(root, f), writeVersion(f, read(f), to));
     // Cargo.lock records the workspace crates' versions.
     execFileSync("cargo", ["update", "--workspace", "--offline"], { cwd: root, stdio: "inherit" });
-    console.log(`${from} → ${to}\nCommit the change, then publish a GitHub release tagged v${to}.`);
+    console.log(`${from} → ${to}\nCommit the change, then push the tag v${to} to release it.`);
   } else {
-    throw new Error("usage: version.mjs check | bump proud|default|shame [--pre <label>]");
+    throw new Error("usage: version.mjs check | bump proud|default|shame|pre|release [--pre <label>]");
   }
 } catch (e) {
   console.error(`error: ${e instanceof Error ? e.message : e}`);
