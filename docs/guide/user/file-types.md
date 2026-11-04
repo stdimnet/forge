@@ -11,12 +11,42 @@ tags: [file types, syntax highlighting, templates, twig, smarty, data languages]
 
 Like PHPStorm's Settings | Editor | File Types, Forge decides a file's type from, in this order:
 
-1. **file names and path patterns**, e.g. `Dockerfile`, `.env.local`, `composer.lock`,
+1. a **manual override** (File | File Properties | **Override File Type**, below);
+2. **file names and path patterns**, e.g. `Dockerfile`, `.env.local`, `composer.lock`,
    `config/services.yaml` (in Symfony projects);
-2. the **longest matching extension**, so `user.blade.php` is Blade, not PHP, and
+3. the **longest matching extension**, so `user.blade.php` is Blade, not PHP, and
    `page.html.twig` is Twig;
-3. the **interpreter of a `#!` line** for files without an extension (`#!/usr/bin/env bash`,
-   `#!/usr/bin/env python3`, `#!/usr/bin/env lua`).
+4. the **interpreter of a `#!` line** for files without a known name or extension;
+5. a **Vim or Emacs modeline** on the first line: `# vim: set ft=php:`, `// vi: filetype=javascript`,
+   `# -*- mode: python -*-`, `;; -*- lisp -*-`.
+
+### Scripts with a `#!` line
+
+Laravel's `artisan`, Symfony's `bin/console`, Composer's `bin/*` scripts and other files without
+an extension open in their language when their first line names an interpreter:
+
+| Language | Interpreters |
+| --- | --- |
+| PHP | `php` (also `php8.3`), `php-cgi`, `hhvm` |
+| JavaScript | `node`, `nodejs`, `bun`, `zx` |
+| TypeScript | `ts-node`, `tsx`, `deno` |
+| Shell Script | `sh`, `bash`, `zsh`, `ksh`, `dash`, `ash`, `fish` |
+| Python, Ruby, Lua, Perl | `python3`, `pypy`, `uv`; `ruby`, `jruby`; `lua`, `luajit`; `perl` |
+| others | `groovy`, `kotlin`, `scala`, `gorun`, `rust-script`, `swift`, `dart`, `elixir`, `escript`, `runghc`, `Rscript`, `julia`, `tclsh`, `pwsh`, `make -f`, … |
+
+The [file types reference](../reference/file-types.md#shebang-interpreters) lists all of them.
+Every common form works: `#!/usr/bin/php`, `#!/usr/local/bin/php -q`,
+`#!/opt/homebrew/bin/php`, `#!/usr/bin/env php`, `#!/usr/bin/env -S php -d memory_limit=-1`,
+`#!/usr/bin/env -i php` and `#!/usr/bin/env APP_ENV=dev php`. Version suffixes match
+(`php8.3`, `python3.12`). A known file name or extension still wins: `deploy.sh` stays a shell
+script whatever its `#!` line says.
+
+The type follows the first line while you type: typing or pasting `#!/usr/bin/env php` into a
+new extensionless file switches it from Plain text to PHP right away, with highlighting, the
+PHP language server (php-lsp or Intelephense) and PHP's editor features. Language servers
+receive such files under their detected type, not only by extension.
+
+![artisan opens as PHP](../../screenshots/file-type-shebang.png)
 
 Files that match nothing are "Plain text". The type is shown in the status bar and decides the
 highlighting, the indentation (2 or 4 spaces), the language server and the file icon.
@@ -26,6 +56,33 @@ Plugins add types or replace bundled ones while they are active: in a Symfony pr
 
 The complete list of types, extensions and file names is in the
 [file types reference](../reference/file-types.md).
+
+## Override File Type
+
+When a file's type is detected wrongly, or not at all, choose it by hand like in PHPStorm:
+**File | File Properties | Override File Type**, the same entry in the editor tab and Project
+view context menus, Find Action (`Ctrl+Shift+A`, "Override File Type") or a click on the file
+type in the status bar. A searchable list of all file types opens; picking one re-highlights the
+file at once and switches its language support (language server, inspections, structure,
+formatter). **Plain text** turns all of that off for the file.
+
+![Override File Type](../../screenshots/file-type-override.png)
+
+![An overridden file and the tab menu](../../screenshots/file-type-override-applied.png)
+
+- **Revert File Type Override** (shown for overridden files only) goes back to the detected type.
+- **Associate with File Type…** (offered for files without a type) adds the file's pattern
+  (`*.ext`, or its name when it has no extension) to a file type in Settings | Editor | File
+  Types, for every file like it.
+- The status bar shows the effective type; for an overridden file its tooltip, and the tab's,
+  say "(overridden)".
+- Overrides are kept per project in the `fileTypes.overrides` setting (`.forge/settings.toml`),
+  never in your files, so they survive restarts. They follow the file when it is renamed or
+  moved, also with its folder, and disappear when it is deleted.
+- A type whose plugin is off for the project (for example Symfony Services outside a Symfony
+  project) is marked "*plugin* off" in the list. Picking it still works: the file gets that
+  type's highlighting and language server, while the plugin's other features stay off until you
+  enable it in Settings | Plugins.
 
 ## Changing file types
 

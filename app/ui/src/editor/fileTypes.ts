@@ -2,7 +2,7 @@
  * File types of open files, resolved by Rust (`crates/forge-filetypes`): language id, status
  * bar label, indentation, template data language and delimiters, and soft wrapping.
  *
- * Results are cached per path (and `#!` line), so the editor can ask synchronously when it
+ * Results are cached per path (and `#!` or modeline first line), so the editor can ask synchronously when it
  * is created. The desktop app resolves through IPC: call `preloadFileTypes` (or await
  * `ensureFileType`) before building an editor; a cache miss answers "plain text" and
  * resolves in the background, after which reactive readers update. Browser mode resolves
@@ -15,6 +15,7 @@ import { getSetting, settingsState } from "@/state/settings";
 import { isPluginActive } from "@/state/project";
 
 export type { FileTypeInfo } from "@/ipc/filetypes";
+export { PLAIN_TEXT_ID } from "@/ipc/filetypes";
 
 export const PLAIN_TEXT: FileTypeInfo = { id: null, label: "Plain text", indent: "    ", dataLanguage: null, softWrap: false, delimiters: null };
 
@@ -45,6 +46,7 @@ function config(): Omit<DetectRequest, "files"> {
     templateDelimiters: getSetting<SettingObject[]>("templates.delimiters", []),
     associations: getSetting<SettingObject[]>("fileTypes.associations", []),
     customTypes: getSetting<SettingObject[]>("fileTypes.custom", []),
+    overrides: getSetting<SettingObject[]>("fileTypes.overrides", []),
   };
 }
 
@@ -57,10 +59,41 @@ createRoot(() => createEffect(on(() => JSON.stringify(config()), invalidate, { d
 
 const firstLineOf = (content?: string) => content?.slice(0, content.search(/\r?\n|$/));
 
-/** Only a `#!` line can change the answer, so other first lines share one cache entry. */
+/**
+ * Only a `#!` line or a Vim/Emacs modeline can change the answer (Rust decides what it
+ * means), so other first lines share one cache entry.
+ */
+const isTypeLine = (line: string) => line.startsWith("#!") || line.includes("-*-") || /(^|[\s#/;*"!%-])(vim?|ex):/i.test(line);
+
+const typeLineOf = (content?: string): string | undefined => {
+  const line = firstLineOf(content);
+  return line !== undefined && isTypeLine(line) ? line : undefined;
+};
+
+/**
+ * The type line of each open file's current text, so readers that only know the path
+ * (`languageIdFor(path)`: editor features, structure, LSP) see what the editor sees.
+ */
+const [typeLines, setTypeLines] = createSignal<ReadonlyMap<string, string>>(new Map());
+
+/**
+ * Tell file type detection the current text of an open file. Changes of its first line that
+ * matter (a `#!` line typed or pasted into an extensionless file) re-detect its type.
+ */
+export function noteContent(path: string, content: string): void {
+  const line = typeLineOf(content);
+  if (typeLines().get(path) === line) return;
+  setTypeLines((prev) => {
+    const next = new Map(prev);
+    if (line === undefined) next.delete(path);
+    else next.set(path, line);
+    return next;
+  });
+}
+
 function fileRef(path: string, content?: string): FileRef {
-  const firstLine = firstLineOf(content);
-  return firstLine?.startsWith("#!") ? { path, firstLine } : { path };
+  const firstLine = content === undefined ? typeLines().get(path) : typeLineOf(content);
+  return firstLine !== undefined ? { path, firstLine } : { path };
 }
 
 const keyOf = (ref: FileRef) => `${ref.path}\n${ref.firstLine ?? ""}`;

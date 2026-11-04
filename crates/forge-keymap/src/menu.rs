@@ -597,6 +597,7 @@ fn file_menu() -> MenuEntry {
                     l("ChangeFileEncodingAction", "File _Encoding"),
                     l("RemoveBom", "Remove _BOM"),
                     l("AssociateWithFileType", "Associate with File _Type..."),
+                    l("OverrideFileTypeAction", "_Override File Type"),
                     g(
                         "_Line Separators",
                         vec![

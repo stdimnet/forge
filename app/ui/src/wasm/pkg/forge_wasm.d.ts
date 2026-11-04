@@ -985,6 +985,11 @@ export function file_watchers_validate(request_json: string): string;
 export function filetypes_detect(request_json: string): string;
 
 /**
+ * Mirrors the `filetypes_edit_overrides` IPC command.
+ */
+export function filetypes_edit_overrides(request_json: string): string;
+
+/**
  * `{ names, patterns }` → for each name whether "Ignored Files and Folders" hides it (the
  * filter of `fs_list_dir`).
  */
@@ -1000,6 +1005,11 @@ export function filetypes_list(request_json: string): string;
  * Returns the number of known file types.
  */
 export function filetypes_load(plugins_json: string): string;
+
+/**
+ * Mirrors the `filetypes_override_choices` IPC command.
+ */
+export function filetypes_override_choices(request_json: string): string;
 
 /**
  * Mirrors the `filetypes_template_delimiters` IPC command.
@@ -2929,9 +2939,11 @@ export interface InitOutput {
     readonly file_watchers_templates: (a: number, b: number, c: number) => void;
     readonly file_watchers_validate: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
+    readonly filetypes_edit_overrides: (a: number, b: number, c: number) => void;
     readonly filetypes_ignored: (a: number, b: number, c: number) => void;
     readonly filetypes_list: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
+    readonly filetypes_override_choices: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
     readonly find_page: (a: number, b: number, c: number) => void;
