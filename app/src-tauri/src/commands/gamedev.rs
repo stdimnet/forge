@@ -472,12 +472,12 @@ fn find_godot(state: &AppState, csharp: bool) -> Option<executable::GodotExecuta
     let env = executable::GodotEnv {
         os: os().into(),
         home: dirs::home_dir().unwrap_or_default(),
-        path_dirs: std::env::var_os("PATH")
+        path_dirs: forge_process::host::sandbox_path_var()
             .map(|p| std::env::split_paths(&p).collect())
             .unwrap_or_default(),
         env_vars: ["GODOT4", "GODOT"]
             .iter()
-            .filter_map(|v| std::env::var(v).ok())
+            .filter_map(|v| forge_process::host::env_var(v))
             .collect(),
     };
     let custom = setting(state, "godot.path");

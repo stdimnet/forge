@@ -170,9 +170,11 @@ pub(crate) fn status(state: &AppState, refresh: bool) -> RubyStatus {
     s
 }
 
-/// The PATH of this process (the base of Ruby commands' PATH).
+/// The PATH of this process (the base of Ruby commands' PATH); in Flatpak the host's.
 fn base_path() -> String {
-    std::env::var("PATH").unwrap_or_default()
+    forge_process::host::path_var()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 /// `KEY=VALUE` entries of `ruby.environment`.

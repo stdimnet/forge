@@ -289,14 +289,15 @@ pub async fn scala_metals_install(app: AppHandle) -> Result<String> {
             metals::METALS_VERSION,
             &out.display().to_string(),
         ))
-        .current_dir(&dir)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
+        .current_dir(&dir);
         if let Some(h) = project_java_home(&state) {
             cmd.env("JAVA_HOME", h);
         }
-        let mut child = cmd
+        // In Flatpak Coursier runs on the host.
+        let mut child = forge_process::host::host_command(cmd)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
             .map_err(|e| other(format!("cannot run {}: {e}", cs.display())))?;
         let err_emit = handle.clone();

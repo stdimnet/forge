@@ -207,8 +207,10 @@ pub async fn android_status(app: AppHandle) -> Result<AndroidStatus> {
 
 /// Run a tool and collect its stdout (killed after `timeout`).
 fn run_tool(program: &Path, args: &[&str], timeout: Duration) -> Result<String> {
-    let mut child = Command::new(program)
-        .args(args)
+    let mut cmd = Command::new(program);
+    cmd.args(args);
+    // In Flatpak the SDK tools run on the host.
+    let mut child = forge_process::host::host_command(cmd)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -333,14 +335,15 @@ pub async fn android_emulator_start(avd: String, app: AppHandle) -> Result<()> {
             other("The Android Emulator was not found in the SDK (emulator/emulator)")
         })?;
         let mut cmd = Command::new(&emulator);
-        cmd.args(["-avd", avd.trim()])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
+        cmd.args(["-avd", avd.trim()]);
         if let Some(s) = &sdk {
             cmd.env("ANDROID_HOME", &s.path);
         }
-        cmd.spawn()
+        forge_process::host::host_command(cmd)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
             .map_err(|e| other(format!("cannot start the emulator: {e}")))?;
         Ok(())
     })
@@ -428,8 +431,9 @@ pub async fn android_logcat_start(
         .map(|o| adb::parse_ps(&o))
         .unwrap_or_default();
         buffer.set_processes(&ps);
-        let mut child = Command::new(&adb_path)
-            .args(logcat::stream_args(&serial, tail))
+        let mut cmd = Command::new(&adb_path);
+        cmd.args(logcat::stream_args(&serial, tail));
+        let mut child = forge_process::host::host_command(cmd)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())

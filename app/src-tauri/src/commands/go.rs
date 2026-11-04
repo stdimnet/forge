@@ -263,7 +263,7 @@ pub async fn go_status(refresh: Option<bool>, state: State<'_, AppState>) -> Res
     let user = |t: GoTool| setting(&state, t.setting());
     let tools = goforge_sdk::tools::status(&dirs, &version, user);
     let gopath = if go.gopath.is_empty() {
-        std::env::var("GOPATH").unwrap_or_else(|_| {
+        forge_process::host::env_var("GOPATH").unwrap_or_else(|| {
             dirs::home_dir()
                 .map(|h| h.join("go").to_string_lossy().into_owned())
                 .unwrap_or_default()
@@ -391,14 +391,13 @@ pub struct ModCompletionResult {
 }
 
 fn gomodcache(go: &GoContext) -> Option<PathBuf> {
-    if let Ok(c) = std::env::var("GOMODCACHE") {
+    if let Some(c) = forge_process::host::env_var("GOMODCACHE") {
         if !c.is_empty() {
             return Some(PathBuf::from(c));
         }
     }
     let gopath = if go.gopath.is_empty() {
-        std::env::var("GOPATH")
-            .ok()
+        forge_process::host::env_var("GOPATH")
             .filter(|g| !g.is_empty())
             .map(PathBuf::from)
             .or_else(|| dirs::home_dir().map(|h| h.join("go")))?
@@ -740,7 +739,7 @@ fn delve_config(state: &AppState) -> goforge_delve::DelveConfig {
         // Delve runs `go build`: the project's SDK first on the PATH.
         let bin = Path::new(&go.goroot).join("bin");
         let mut paths = vec![bin];
-        if let Some(p) = std::env::var_os("PATH") {
+        if let Some(p) = forge_process::host::path_var() {
             paths.extend(std::env::split_paths(&p));
         }
         if let Ok(joined) = std::env::join_paths(paths) {
