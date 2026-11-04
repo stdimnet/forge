@@ -2639,6 +2639,7 @@ dependencies = [
  "forge-ai",
  "forge-ai-editor",
  "forge-core",
+ "forge-hostspawn",
  "forge-output",
  "forge-vcs",
  "serde",

@@ -32,8 +32,10 @@ fn git_with(cwd: &Path, args: &[&str], stdin: Option<&str>) -> Result<String, St
         .args(args)
         .env("LC_ALL", "C")
         .env("GIT_TERMINAL_PROMPT", "0")
-        .env("GIT_EDITOR", "true")
-        .stdout(Stdio::piped())
+        .env("GIT_EDITOR", "true");
+    // In Flatpak git runs on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(if stdin.is_some() {
             Stdio::piped()

@@ -303,7 +303,7 @@ user's shell live on the host. Forge detects the sandbox at start (`/.flatpak-in
 package managers (all of them go through `forge_process::runner`), the Terminal, language
 servers (`forge-lsp`), debug adapters and their `runInTerminal` debuggees (`forge-dap`), Git
 (`forge-vcs`, settings sync), Docker / Podman / kubectl and Dev Containers, project generators,
-language server installers, the AI agent CLIs, plugin processes and the SDK detectors.
+language server installers, the AI agent CLIs, Agent Tasks (their commands, git sandbox and container engine), plugin processes and the SDK detectors.
 
 - **Environment and working directory** travel as `--env=KEY=VALUE`, `--unset-env=KEY` and
   `--directory=`; the host process starts from the host session's environment, not the
