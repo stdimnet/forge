@@ -11,7 +11,7 @@ use forge_core::{ForgeError, Result, SettingsScope};
 use forge_maintenance::archive::{self, SettingsArchive};
 use forge_maintenance::caches::CacheOption;
 use forge_maintenance::dirs::ForgeDirs;
-use forge_maintenance::groups::{count_groups, settings_groups, GroupCount};
+use forge_maintenance::groups::{count_groups, settings_groups, GroupCount, INSTALLED_PLUGINS_FILE};
 use forge_maintenance::{pending, restore, InvalidateModel};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -22,7 +22,7 @@ use crate::state::AppState;
 /// The bundle identifier, which names the webview's cache folders.
 const IDENTIFIER: &str = "dev.forge.ide";
 
-fn forge_dirs() -> ForgeDirs {
+pub(crate) fn forge_dirs() -> ForgeDirs {
     ForgeDirs::system(IDENTIFIER)
 }
 
@@ -112,7 +112,10 @@ pub fn settings_export_info(state: State<'_, AppState>) -> ExportInfo {
         .read_settings()
         .layer_values(SettingsScope::User)
         .clone();
-    let files = config_files(&forge_dirs());
+    let mut files = config_files(&forge_dirs());
+    if let Some(bytes) = crate::commands::settings_sync::installed_plugins_file(&state) {
+        files.insert(INSTALLED_PLUGINS_FILE.to_string(), bytes);
+    }
     let names: Vec<&str> = files.keys().map(String::as_str).collect();
     ExportInfo {
         groups: count_groups(user.keys().map(String::as_str), &names),
@@ -135,10 +138,15 @@ pub async fn settings_export(
         .read_settings()
         .layer_values(SettingsScope::User)
         .clone();
+    let plugins = crate::commands::settings_sync::installed_plugins_file(&state);
     blocking(move || {
+        let mut files = config_files(&forge_dirs());
+        if let Some(bytes) = plugins {
+            files.insert(INSTALLED_PLUGINS_FILE.to_string(), bytes);
+        }
         let bytes = archive::export_settings(
             &user,
-            &config_files(&forge_dirs()),
+            &files,
             &groups,
             env!("CARGO_PKG_VERSION"),
         )
@@ -180,13 +188,7 @@ pub async fn settings_import(path: String, groups: Vec<String>, app: AppHandle) 
                 .map(|(k, v)| (k, v, SettingsScope::User))
                 .collect(),
         )?;
-        if let Some(config) = forge_dirs().forge_config() {
-            std::fs::create_dir_all(&config).map_err(|e| ForgeError::io(&config, e))?;
-            for (name, bytes) in plan.files {
-                let target = config.join(name);
-                std::fs::write(&target, bytes).map_err(|e| ForgeError::io(&target, e))?;
-            }
-        }
+        crate::commands::settings_sync::apply_files(&state, plan.files)?;
         Ok(count)
     })
     .await

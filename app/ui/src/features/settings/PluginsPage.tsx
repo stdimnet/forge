@@ -1,15 +1,22 @@
 /**
- * Settings > Plugins: installed plugins grouped by pack, with enable toggles, a search
- * field and a details pane (PHPStorm's "Installed" tab).
+ * Settings > Plugins: PHPStorm's "Marketplace" and "Installed" tabs. Installed plugins are
+ * grouped by pack, with enable toggles, a search field and a details pane; third-party
+ * plugins ("Downloaded") also show their permissions and can be uninstalled. The gear menu
+ * has Install Plugin from Disk…, Check for Updates and the marketplace URL.
  */
-import { createMemo, createSignal, For, Show } from "solid-js";
-import { Puzzle, Search } from "lucide-solid";
+import { createMemo, createSignal, For, onMount, Show } from "solid-js";
+import { Puzzle, Search, Settings as Gear } from "lucide-solid";
+import { MarketplaceTab, PermissionList, PermissionPromptView } from "@/features/plugins/PluginViews";
+import { checkPluginUpdates, installFromDisk, installed, refreshInstalled, uninstall } from "@/features/plugins/store";
+import { getSetting, saveSetting } from "@/state/settings";
 import type { PluginInfo } from "@/ipc/settings";
 import { settingsState } from "@/state/settings";
 import { pluginEnabled, pluginDraft, setPluginDraftEnabled } from "./dialogState";
 import { createSettingsSearch, segmentsOf, type SearchResult } from "./search";
+import { showContextMenu } from "@/features/contextMenu/state";
 
 export const PACKS: Record<string, { label: string; order: number }> = {
+  thirdParty: { label: "Downloaded", order: -1 },
   core: { label: "Bundled", order: 0 },
   phpforge: { label: "PHPForge", order: 1 },
   webforge: { label: "WebForge", order: 2 },
@@ -69,7 +76,34 @@ function PluginIcon(props: { plugin: PluginInfo; size?: "lg" }) {
   );
 }
 
+const MARKETPLACE_URL = "plugins.marketplace.url";
+
+function MarketplaceUrlEditor(props: { onClose: () => void }) {
+  const [url, setUrl] = createSignal(getSetting<string>(MARKETPLACE_URL) ?? "");
+  const save = () => {
+    void saveSetting(MARKETPLACE_URL, url().trim() || null, "user");
+    props.onClose();
+  };
+  return (
+    <div class="plg-url plugins-note" data-testid="marketplace-url">
+      <span>Marketplace index URL (JSON, index format 1). The default plugins.forge.example is a placeholder: no public Forge marketplace is live yet.</span>
+      <input value={url()} spellcheck={false} onInput={(e) => setUrl(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+      <div class="sync-status-row">
+        <button class="btn-primary set-btn" onClick={save}>
+          Save
+        </button>
+        <button class="btn-secondary set-btn" onClick={props.onClose}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PluginsPage() {
+  const [tab, setTab] = createSignal<"marketplace" | "installed">("installed");
+  const [editUrl, setEditUrl] = createSignal(false);
+  onMount(() => void refreshInstalled());
   const [filter, setFilter] = createSignal("");
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
 
@@ -96,13 +130,41 @@ export function PluginsPage() {
   return (
     <div class="plugins-page">
       <div class="plugins-tabs">
-        <button class="plugins-tab" disabled title="Marketplace is not available yet">
+        <button class="plugins-tab" classList={{ active: tab() === "marketplace" }} data-testid="plugins-tab-marketplace" onClick={() => setTab("marketplace")}>
           Marketplace
         </button>
-        <button class="plugins-tab active">Installed</button>
+        <button class="plugins-tab" classList={{ active: tab() === "installed" }} data-testid="plugins-tab-installed" onClick={() => setTab("installed")}>
+          Installed
+        </button>
         <span class="plugins-count muted">{settingsState.plugins.length} plugins</span>
+        <button
+          class="icon-btn plg-gear"
+          title="Manage plugins"
+          data-testid="plugins-gear"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            showContextMenu(
+              [
+                { type: "item", label: "Install Plugin from Disk…", run: () => void installFromDisk() },
+                { type: "item", label: "Check for Updates", run: () => void checkPluginUpdates() },
+                { type: "separator" },
+                { type: "item", label: "Marketplace URL…", run: () => setEditUrl(true) },
+              ],
+              r.left,
+              r.bottom + 2,
+            );
+          }}
+        >
+          <Gear size={14} />
+        </button>
       </div>
-      <div class="plugins-body">
+      <Show when={editUrl()}>
+        <MarketplaceUrlEditor onClose={() => setEditUrl(false)} />
+      </Show>
+      <Show when={tab() === "marketplace"}>
+        <MarketplaceTab />
+      </Show>
+      <div class="plugins-body" style={{ display: tab() === "installed" ? undefined : "none" }}>
         <div class="plugins-list-pane">
           <div class="set-search plugins-search">
             <Search size={14} class="muted" />
@@ -184,6 +246,21 @@ export function PluginsPage() {
                 </Show>
               </div>
               <p class="plugin-details-desc">{p().description}</p>
+              <Show when={installed().find((i) => i.manifest.id === p().id)}>
+                {(i) => (
+                  <>
+                    <div class="plugin-details-row muted">
+                      {i().source.kind === "marketplace" ? "From the marketplace" : `Installed from disk: ${(i().source as { file: string }).file}`}
+                      {i().needsTrust ? " · not loaded in Safe Mode" : ""}
+                    </div>
+                    <div class="plg-prompt-section">Permissions</div>
+                    <PermissionList lines={i().permissionLines} />
+                    <button class="btn-secondary" data-testid="plugin-uninstall" onClick={() => void uninstall(i().manifest.id, i().manifest.name)}>
+                      Uninstall
+                    </button>
+                  </>
+                )}
+              </Show>
               <Show when={p().depends.length}>
                 <div class="plugin-details-row">
                   <span class="muted">Depends on:</span> {depNames(p())}
@@ -196,6 +273,7 @@ export function PluginsPage() {
           )}
         </Show>
       </div>
+      <PermissionPromptView />
       <Show when={pending()}>
         <div class="plugins-note">
           {pending()} plugin change{pending() > 1 ? "s" : ""} will be applied when you click Apply or OK.

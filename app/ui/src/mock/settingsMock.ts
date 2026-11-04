@@ -49,7 +49,7 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
   if (key in layers.project) return { value: layers.project[key], scope: "project" };
   if (key in layers.newProjects) return { value: layers.newProjects[key], scope: "newProjects" };
   if (key in layers.user) return { value: layers.user[key], scope: "user" };
-  return { value: defaults[key] ?? null, scope: "default" };
+  return { value: defaults[key] ?? allSpecs().find((s) => s.key === key)?.default ?? null, scope: "default" };
 }
 
 /** Effective value of a setting (for other mocks). */
@@ -95,6 +95,9 @@ export function setSetting(key: string, value: SettingValue | null, scope: Setti
 }
 
 const byId = (id: string) => plugins.find((p) => p.id === id);
+
+/** The registry itself, for the third-party plugin mock (installs add entries). */
+export const mockPluginRegistry = (): PluginInfo[] => plugins;
 
 /** Test frameworks the enabled plugins declare (`contributions.testFrameworks`). */
 export const mockTestFrameworkSpecs = () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.testFrameworks ?? []);

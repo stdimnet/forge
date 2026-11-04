@@ -4,8 +4,6 @@
 use std::collections::BTreeMap;
 use std::io::{Cursor, Read};
 
-use sha2::{Digest, Sha256};
-
 use crate::manifest::{describe, is_package_path, PluginManifest, MANIFEST_FILE};
 
 /// File extension of plugin packages.
@@ -24,9 +22,7 @@ pub struct Package {
     pub sha256: String,
 }
 
-pub fn sha256_hex(bytes: &[u8]) -> String {
-    hex::encode(Sha256::digest(bytes))
-}
+pub use crate::sha256_hex;
 
 impl Package {
     /// Read a package and validate its manifest for `forge_version`.
@@ -155,5 +151,44 @@ pub(crate) mod tests {
         assert!(Package::read(&old_forge, "0.0.9")
             .unwrap_err()
             .contains("engines.forge"));
+    }
+}
+
+#[cfg(test)]
+mod sdk_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn sdk(path: &str) -> Vec<u8> {
+        let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk").join(path);
+        std::fs::read(&file).unwrap_or_else(|e| panic!("{}: {e}", file.display()))
+    }
+
+    /// The SDK's example plugin, as `pnpm plugin pack` packs it, installs.
+    #[test]
+    fn the_word_count_example_is_a_valid_package() {
+        let bytes = write(&[
+            (MANIFEST_FILE, &sdk("examples/word-count/forge-plugin.json")),
+            ("dist/plugin.js", &sdk("examples/word-count/dist/plugin.js")),
+        ])
+        .unwrap();
+        let p = Package::read(&bytes, crate::FORGE_VERSION).unwrap();
+        assert_eq!(p.manifest.id, "example.word-count");
+        let bundle = String::from_utf8(p.files["dist/plugin.js"].clone()).unwrap();
+        assert!(bundle.contains("var __forgePlugin"), "dist/plugin.js is an esbuild IIFE");
+    }
+
+    /// `pnpm plugin new` fills the template's placeholders into a valid manifest.
+    #[test]
+    fn the_template_manifest_is_valid_once_filled() {
+        let template = String::from_utf8(sdk("templates/basic/forge-plugin.json")).unwrap();
+        let filled = template
+            .replace("{{id}}", "acme.hello")
+            .replace("{{name}}", "Hello")
+            .replace("{{publisher}}", "Acme")
+            .replace("{{description}}", "Hi")
+            .replace("{{forgeVersion}}", crate::FORGE_VERSION);
+        let m = PluginManifest::parse(&filled).unwrap();
+        assert_eq!(m.validate(crate::FORGE_VERSION), vec![]);
     }
 }

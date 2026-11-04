@@ -13,21 +13,34 @@
 //! Plugins run as sandboxed JavaScript in the UI (see the SDK docs); this crate holds
 //! everything that decides what they may do. Native code is never loaded.
 
+#[cfg(feature = "net")]
+pub mod host;
 pub mod manifest;
 pub mod marketplace;
+#[cfg(feature = "disk")]
 pub mod package;
 pub mod permissions;
+#[cfg(feature = "disk")]
 pub mod store;
 
 pub use manifest::{PluginManifest, Problem};
+#[cfg(feature = "disk")]
 pub use package::Package;
+#[cfg(feature = "disk")]
 pub use store::{InstalledPlugin, PluginRef, PluginStore, Source};
+
+/// SHA-256 of `bytes`, lowercase hex.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    hex::encode(sha2::Sha256::digest(bytes))
+}
 
 /// The running Forge version, which engine ranges are checked against.
 pub const FORGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// A downloaded package must be the plugin and version the marketplace listed, asking for
 /// the permissions the listing showed in the install prompt.
+#[cfg(feature = "disk")]
 pub fn check_listing(
     package: &Package,
     id: &str,
@@ -46,7 +59,7 @@ pub fn check_listing(
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "disk"))]
 mod tests {
     use super::*;
 

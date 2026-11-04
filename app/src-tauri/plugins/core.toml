@@ -1876,3 +1876,84 @@ type = "list"
 default = [".git", ".hg", ".svn", "node_modules", "vendor", ".idea"]
 group = "vcs.local-history"
 order = 3
+
+# ---- Plugins > Marketplace -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "plugins.marketplace.url"
+title = "Marketplace index URL"
+description = "The plugin index (JSON, format 1) the Marketplace tab reads. The default is a placeholder: no public Forge marketplace is live yet."
+type = "string"
+default = "https://plugins.forge.example/index.json"
+group = "plugins"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "plugins.marketplace.trustedKeys"
+title = "Trusted publisher keys"
+description = "Base64 Ed25519 public keys. When set, marketplace downloads must carry a signature from one of them (the SHA-256 checksum is always checked)."
+type = "list"
+default = []
+group = "plugins"
+hidden = true
+order = 1
+
+# ---- Settings Sync ---------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "settingsSync.enabled"
+title = "Sync settings across machines"
+description = "Keep the chosen settings in step through a folder or a git repository you provide. Forge runs no sync service; secrets stay in the OS keychain."
+type = "bool"
+default = false
+group = "settingsSync"
+order = 0
+
+[[contributions.settings]]
+key = "settingsSync.method"
+title = "Sync through"
+type = "enum"
+options = [
+  { value = "folder", label = "A folder (e.g. in Dropbox, OneDrive, Google Drive, Nextcloud)" },
+  { value = "git", label = "A git repository" },
+]
+default = "folder"
+group = "settingsSync"
+order = 1
+
+[[contributions.settings]]
+key = "settingsSync.folder"
+title = "Sync folder"
+description = "Forge writes a forge-settings-sync folder into it."
+type = "path"
+default = ""
+group = "settingsSync"
+order = 2
+
+[[contributions.settings]]
+key = "settingsSync.gitUrl"
+title = "Git repository URL"
+description = "A repository you own (SSH or HTTPS). Forge clones it into its cache and uses your git credentials."
+type = "string"
+default = ""
+group = "settingsSync"
+order = 3
+
+[[contributions.settings]]
+key = "settingsSync.gitBranch"
+title = "Branch"
+type = "string"
+default = "main"
+group = "settingsSync"
+order = 4
+
+[[contributions.settings]]
+key = "settingsSync.groups"
+title = "Synced settings"
+description = "Settings groups to sync (ids of the Export Settings groups)."
+type = "list"
+default = ["appearance", "keymap", "editor", "colorSchemes", "codeStyle", "fileTypes", "templates", "liveTemplates", "plugins", "installedPlugins"]
+group = "settingsSync"
+hidden = true
+order = 5

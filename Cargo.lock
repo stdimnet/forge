@@ -2655,6 +2655,7 @@ dependencies = [
  "forge-mcp",
  "forge-open",
  "forge-plugin-api",
+ "forge-plugins",
  "forge-ports",
  "forge-process",
  "forge-profiler",

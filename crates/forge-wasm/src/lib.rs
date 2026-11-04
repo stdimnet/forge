@@ -53,6 +53,7 @@ mod livetemplates;
 mod localhistory;
 mod lua;
 mod maintenance;
+mod plugins;
 mod mcp;
 mod minecraft;
 mod php_interpreters;

@@ -96,6 +96,7 @@ pub fn plugin_set_enabled(
     id: String,
     enabled: bool,
     state: State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>> {
     let changed = state
         .plugins
@@ -103,5 +104,8 @@ pub fn plugin_set_enabled(
         .expect("plugins lock poisoned")
         .set_enabled(&id, enabled)?;
     state.save_disabled_plugins()?;
+    if !changed.is_empty() {
+        crate::commands::third_party::emit_changed(&app);
+    }
     Ok(changed)
 }

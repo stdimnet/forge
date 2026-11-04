@@ -25,13 +25,11 @@
 //! (`plugins.marketplace.trustedKeys`), an Ed25519 signature over the package bytes from one
 //! of them is required as well.
 
-use std::time::Duration;
-
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 
 use crate::manifest::{is_plugin_id, Engines, Permissions};
-use crate::package::sha256_hex;
+use crate::sha256_hex;
 
 /// The index format this Forge reads.
 pub const INDEX_FORMAT: u32 = 1;
@@ -320,16 +318,18 @@ pub fn verify(bytes: &[u8], version: &IndexVersion, trusted_keys: &[String]) -> 
 }
 
 /// HTTP access to a marketplace (system proxy settings apply).
+#[cfg(feature = "net")]
 #[derive(Clone)]
 pub struct Client {
     http: reqwest::Client,
 }
 
+#[cfg(feature = "net")]
 impl Client {
     pub fn new() -> Result<Self, String> {
         let http = reqwest::Client::builder()
             .user_agent(concat!("Forge/", env!("CARGO_PKG_VERSION")))
-            .connect_timeout(Duration::from_secs(20))
+            .connect_timeout(std::time::Duration::from_secs(20))
             .build()
             .map_err(|e| e.to_string())?;
         Ok(Self { http })
@@ -411,7 +411,7 @@ pub fn find_version<'a>(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "net"))]
 mod tests {
     use super::*;
     use crate::package::tests::word_count_package;

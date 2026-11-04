@@ -36,6 +36,9 @@ pub const STATE_FILE: &str = "settings-sync-state.json";
 /// Local backups of groups that lost a conflict, in the Forge config dir.
 pub const LOCAL_BACKUPS: &str = "settings-sync-backups";
 
+/// The sync configuration itself (folder, repository) differs per machine and is not synced.
+pub const LOCAL_ONLY: &str = "settingsSync.";
+
 /// One group of the local settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalComponent {
@@ -77,7 +80,7 @@ pub fn local_components(
             None => {
                 let selected: BTreeMap<String, Value> = values
                     .iter()
-                    .filter(|(k, _)| group_of_key(k) == g.id)
+                    .filter(|(k, _)| group_of_key(k) == g.id && !k.starts_with(LOCAL_ONLY))
                     .map(|(k, v)| (k.clone(), v.clone()))
                     .collect();
                 if selected.is_empty() {
@@ -389,12 +392,14 @@ pub fn apply_plan(
                 archive.values.extend(
                     values
                         .into_iter()
-                        .filter(|(k, _)| group_of_key(k) == p.group),
+                        .filter(|(k, _)| group_of_key(k) == p.group && !k.starts_with(LOCAL_ONLY)),
                 );
             }
         }
     }
-    Ok(archive.plan(current, &ids))
+    let mut plan = archive.plan(current, &ids);
+    plan.changes.retain(|(k, _)| !k.starts_with(LOCAL_ONLY));
+    Ok(plan)
 }
 
 /// A git repository the user provides as the shared folder.
@@ -732,8 +737,13 @@ mod tests {
             ("keymap.active".to_string(), json!("macOS")),
             ("keymap.custom".to_string(), json!([])),
             ("editor.font.size".to_string(), json!(12)),
+            ("settingsSync.folder".to_string(), json!("/sync")),
         ]);
         let pulled = vec![
+            Pulled {
+                group: "other".into(),
+                bytes: b"[other]\nx = 1\n".to_vec(),
+            },
             Pulled {
                 group: "keymap".into(),
                 // A foreign key in the file is ignored.
@@ -745,11 +755,13 @@ mod tests {
             },
         ];
         let plan = apply_plan(&pulled, &current).unwrap();
+        // The machine's own sync configuration ("other" group) is kept.
         assert_eq!(
             plan.changes,
             vec![
                 ("keymap.custom".to_string(), Value::Null),
                 ("keymap.active".to_string(), json!("VSCode")),
+                ("other.x".to_string(), json!(1)),
             ]
         );
         assert_eq!(plan.files[0].0, "ssh.toml");

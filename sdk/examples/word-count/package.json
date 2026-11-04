@@ -1,0 +1,11 @@
+{
+  "name": "forge-plugin-word-count",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example Forge plugin: word count in the status bar.",
+  "license": "MIT",
+  "scripts": {
+    "build": "node ../../scripts/forge-plugin.mjs build .",
+    "pack": "node ../../scripts/forge-plugin.mjs pack ."
+  }
+}
