@@ -30,6 +30,14 @@ then runs the returned action with `runAction`. Unimplemented actions show "not 
 IPC: `keymap_actions`, `keymap_register_actions`, `keymap_set_override`, `keymap_conflicts`,
 `keymap_find_by_shortcut`, `keymap_resolve`, `keymap_import_legacy`.
 
+A widget whose own keys collide with a global action lists them in `data-own-keys` on an
+ancestor of the focused element (`data-own-keys="Alt+Enter Ctrl+Shift+Enter"`, canonical
+stroke ids); the dispatcher then leaves those strokes to the widget's `onKeyDown`. The editor's
+Find/Replace bar does this so `Alt+Enter` selects all occurrences instead of showing context
+actions. To react to a keymap-bound action inside a widget, compare
+`strokeOfEvent(e)` with `shortcutsOf(actionId)` (the bar expands its replace row on the
+`Replace` shortcut this way).
+
 ## Implementing a PHPStorm action
 
 Most actions already exist with the right default keys. Register a command with that id:

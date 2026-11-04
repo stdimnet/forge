@@ -2165,11 +2165,48 @@ doc comments and Reader mode are described in
 
 ## Find and replace in a file
 
-**Find** (`Ctrl+F`, macOS `Cmd+F`) and **Replace** (`Ctrl+R`, macOS `Cmd+R`) open the search
-panel of the editor (CodeMirror's search panel) with match case, regular expression and
-whole word options. **Find Next**
-`F3` and **Find Previous** `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`) move between matches.
-Other occurrences of the selected text are highlighted automatically.
+**Find** (`Ctrl+F`, macOS `Cmd+F`) opens the Find bar at the top of the editor; **Replace**
+(`Ctrl+R`, macOS `Cmd+R`) opens it with the replace row expanded. The arrow at the left
+expands and collapses the replace row. The same bar works in SQL consoles of the
+[Database tools](docs/guide/user/database.md).
+
+![Find bar](docs/screenshots/find-bar-find.png)
+
+The search field starts with the selection, or with the word at the caret. A selection over
+several lines turns on **In Selection** instead, so the search stays inside it (the scope stays
+marked in the editor). The field has:
+
+| Control | What it does |
+| --- | --- |
+| magnifier with arrow | recent searches (also `Alt+Down`); the replace field has its own history |
+| **Multiline** | makes the field taller; `Ctrl+Shift+Enter` inserts a line break |
+| **Cc** / **W** / **.\*** | Match Case, Words, Regex (Forge remembers them, as PHPStorm does) |
+
+Next to it, the counter shows the current match and the total (`2/5`), or the number of
+results while the caret is not on a match. Without matches the field turns red and the
+counter says **0 results**; an invalid regular expression shows **Bad pattern** (the error
+is in the tooltip).
+
+![No matches](docs/screenshots/find-bar-no-matches.png)
+
+| Key or button | Action |
+| --- | --- |
+| `Enter` / `Shift+Enter` in the field, `F3` / `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`), arrow buttons | next / previous occurrence |
+| `Alt+Enter`, **Select All Occurrences** button | a caret on every match, focus back in the editor |
+| **In Selection** button | search only in the selected text |
+| `Escape` | close the bar; the focus goes back to the editor |
+
+The replace row has **Replace** (also `Enter` in the replace field: replaces the current match
+and selects the next one), **Replace All**, **Exclude** (skips the current match: it no longer
+counts, and Replace All leaves it alone) and **Preserve case** (**Aa**): an upper-case match
+gets an upper-case replacement and a capitalized match a capitalized one. With **Regex**,
+`$1`, `$&` and `\n` work in the replacement.
+
+![Replace](docs/screenshots/find-bar-replace.png)
+
+The options, Preserve case and both histories are saved in the user settings
+(`editor.find.*`), like PHPStorm's find settings. Other occurrences of the selected text are
+highlighted automatically.
 
 To search the whole project, use [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
@@ -7652,7 +7689,7 @@ More: [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md#f
 
 **Shortcut:** `Ctrl+F` · macOS `Cmd+F` · action id `Find`
 
-Opens the find panel of the editor for the current file.
+Opens the Find bar at the top of the editor for the current file, prefilled with the selection or the word at the caret.
 
 **Menu:** Edit | Find | Find…
 
@@ -7664,7 +7701,9 @@ More: [Editor](docs/guide/user/editor.md#find-and-replace-in-a-file)
 
 **Shortcut:** `Ctrl+R` · macOS `Cmd+R` · action id `Replace`
 
-Opens the find panel with the replace field.
+Opens the Find bar with the replace row expanded.
+
+![Replace in File](docs/screenshots/find-bar-replace.png)
 
 **Menu:** Edit | Find | Replace…
 
@@ -23045,8 +23084,8 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Paste Special › Paste as Plain Text | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes | Pastes the clipboard as plain text. [More](docs/guide/user/editor.md#editing-actions) |
 | Delete | `Delete` | `Delete`, `Backspace` | yes | Delete |
 | **Find** | | | | submenu |
-| Find › Find… | `Ctrl+F` | `Cmd+F` | yes | Opens the find panel of the editor for the current file. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) ([screenshot](docs/screenshots/docs-find-in-file.png)) |
-| Find › Replace… | `Ctrl+R` | `Cmd+R` | yes | Opens the find panel with the replace field. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
+| Find › Find… | `Ctrl+F` | `Cmd+F` | yes | Opens the Find bar at the top of the editor, prefilled with the selection or the word at the caret. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) ([screenshot](docs/screenshots/docs-find-in-file.png)) |
+| Find › Replace… | `Ctrl+R` | `Cmd+R` | yes | Opens the Find bar with the replace row expanded. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Next / Move to Next Occurrence | `F3` | `Cmd+G` | yes | Moves to the next match of the current search. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Previous / Move to Previous Occurrence | `Shift+F3` | `Cmd+Shift+G` | yes | Moves to the previous match. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Word at Caret | `Ctrl+F3` | `Alt+Cmd+F3` | not yet | Not available yet; the entry is disabled. |
@@ -28167,6 +28206,14 @@ resolver — synchronously, through the WebAssembly build, in desktop and browse
 then runs the returned action with `runAction`. Unimplemented actions show "not available yet".
 IPC: `keymap_actions`, `keymap_register_actions`, `keymap_set_override`, `keymap_conflicts`,
 `keymap_find_by_shortcut`, `keymap_resolve`, `keymap_import_legacy`.
+
+A widget whose own keys collide with a global action lists them in `data-own-keys` on an
+ancestor of the focused element (`data-own-keys="Alt+Enter Ctrl+Shift+Enter"`, canonical
+stroke ids); the dispatcher then leaves those strokes to the widget's `onKeyDown`. The editor's
+Find/Replace bar does this so `Alt+Enter` selects all occurrences instead of showing context
+actions. To react to a keymap-bound action inside a widget, compare
+`strokeOfEvent(e)` with `shortcutsOf(actionId)` (the bar expands its replace row on the
+`Replace` shortcut this way).
 
 ## Implementing a PHPStorm action
 
