@@ -257,9 +257,9 @@ function Header(props: { mr: MergeRequestDetails; reload: () => void }) {
       <div class="fg-mr-sub">
         <Avatar user={mr().author} size={18} />
         <span class="fg-note-author">{displayName(mr().author)}</span>
-        <span class="muted">{mr().state === "merged" ? "merged" : tr("tools.forges.wantsToMerge")}</span>
+        <span class="muted">{mr().state === "merged" ? tr("tools.forges.merged") : tr("tools.forges.wantsToMerge")}</span>
         <BranchPill name={mr().sourceBranch} />
-        <span class="muted">into</span>
+        <span class="muted">{tr("tools.forges.into")}</span>
         <BranchPill name={mr().targetBranch} />
         <span class="muted">{tr("tools.forges.opened", { value: ago(mr().createdAt) })}</span>
       </div>
@@ -314,7 +314,7 @@ function Overview(props: {
           <div class="fg-note-head">
             <Avatar user={mr().author} size={20} />
             <span class="fg-note-author">{displayName(mr().author)}</span>
-            <span class="muted fg-small">opened {ago(mr().createdAt)}</span>
+            <span class="muted fg-small">{tr("tools.forges.openedAgo", { value: ago(mr().createdAt) })}</span>
           </div>
           <Markdown text={mr().description} class="fg-description-body" />
         </div>

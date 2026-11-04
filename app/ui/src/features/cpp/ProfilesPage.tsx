@@ -85,10 +85,10 @@ function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void;
           <For each={GENERATORS}>{(g) => <option value={g}>{g || tr("langs.cpp.useDefault2")}</option>}</For>
         </select>
       </label>
-      {text("cmakeOptions", "CMake options", "-DSHAPES_TESTS=ON")}
-      {text("buildDirectory", "Build directory", defaultBuildDir(props.entry.name))}
-      {text("buildOptions", "Build options", "-j 8")}
-      {text("environment", "Environment", "CCACHE_DISABLE=1;ASAN_OPTIONS=detect_leaks=0")}
+      {text("cmakeOptions", tr("langs.cpp.cmakeOptions"), "-DSHAPES_TESTS=ON")}
+      {text("buildDirectory", tr("langs.cpp.buildDirectory"), defaultBuildDir(props.entry.name))}
+      {text("buildOptions", tr("langs.cpp.buildOptions"), "-j 8")}
+      {text("environment", tr("langs.cpp.environment"), "CCACHE_DISABLE=1;ASAN_OPTIONS=detect_leaks=0")}
       <div class="tc-field" data-testid="cmake-profile-sanitizers">
         <span>{tr("langs.cpp.sanitizersLabel")}</span>
         <div class="tc-sanitizers">

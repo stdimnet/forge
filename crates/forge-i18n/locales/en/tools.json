@@ -848,7 +848,7 @@
   "tools.forges.yourS": "Your {requestName}s",
   "tools.forges.assignedToYou": "Assigned to you",
   "tools.forges.reviewRequests": "Review requests",
-  "tools.forges.merged": "Merged",
+  "tools.forges.merged": "merged",
   "tools.forges.search": "Search",
   "tools.forges.quickFilters": "Quick Filters",
   "tools.forges.state": "State",
@@ -1996,5 +1996,7 @@
   "tools.services.execOpenATerminalIn": "Exec (open a terminal in the container)",
   "tools.vim.normal": "Normal",
   "tools.vim.visual": "Visual",
-  "tools.vulnerabilities.vulnerableDependencies": "Vulnerable Dependencies"
+  "tools.vulnerabilities.vulnerableDependencies": "Vulnerable Dependencies",
+  "tools.forges.into": "into",
+  "tools.forges.openedAgo": "opened {value}"
 }

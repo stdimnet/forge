@@ -1344,5 +1344,9 @@
   "langs.webTooling.bun": "Bun",
   "langs.webTooling.configuration": "Konfiguration",
   "langs.webTooling.nxTargets": "Nx-Targets",
-  "langs.webTooling.openapi": "OpenAPI"
+  "langs.webTooling.openapi": "OpenAPI",
+  "langs.cpp.cmakeOptions": "CMake-Optionen",
+  "langs.cpp.buildDirectory": "Build-Verzeichnis",
+  "langs.cpp.buildOptions": "Build-Optionen",
+  "langs.cpp.environment": "Umgebung"
 }
