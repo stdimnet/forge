@@ -1160,7 +1160,11 @@ impl KeymapService {
     }
 
     /// [`KeymapService::main_menu`] in the language of `l10n`.
-    pub fn main_menu_in(&self, request: &MainMenuRequest, l10n: &forge_i18n::Localizer) -> MainMenu {
+    pub fn main_menu_in(
+        &self,
+        request: &MainMenuRequest,
+        l10n: &forge_i18n::Localizer,
+    ) -> MainMenu {
         let titles: HashMap<String, String> = self
             .all_actions_in(l10n)
             .into_iter()

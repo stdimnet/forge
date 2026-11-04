@@ -42,6 +42,7 @@ The types are in [`sdk/plugin-api/index.d.ts`](../../../../sdk/plugin-api/index.
 | `activationEvents` | when `main` is loaded, see below |
 | `permissions` | see [Permissions](permissions.md) |
 | `contributes` | see below |
+| `l10n` | optional translations by locale: `{ "de": { "plugin.<id>.name": "…", "action.<command id>": "…", "toolwindow.<id>.title": "…", "setting.<key>.title": "…" } }`; keys and message syntax as in [Localization](../localization.md#plugin-manifests) |
 
 Every contributed id (commands, status items, tool windows, settings pages) and setting key
 must start with the plugin id and a dot: `acme.todo-sync.push`.

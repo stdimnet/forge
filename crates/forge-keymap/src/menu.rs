@@ -320,9 +320,7 @@ pub fn label_key(id: &str, label: &str) -> String {
             for e in e {
                 match e {
                     MenuEntry::Action {
-                        id,
-                        label: Some(l),
-                        ..
+                        id, label: Some(l), ..
                     } => {
                         let plain = plain(l);
                         if seen.entry(id.clone()).or_insert_with(|| plain.clone()) != &plain {
@@ -1247,7 +1245,10 @@ mod tests {
     #[test]
     fn english_catalogs_match_the_code() {
         let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../forge-i18n/locales/en");
-        for (file, messages) in [("menu.json", menu_messages()), ("actions.json", action_messages())] {
+        for (file, messages) in [
+            ("menu.json", menu_messages()),
+            ("actions.json", action_messages()),
+        ] {
             let path = format!("{dir}/{file}");
             let want = serde_json::to_string_pretty(&messages).unwrap() + "\n";
             if std::env::var_os("FORGE_UPDATE_SNAPSHOTS").is_some() {
@@ -1275,7 +1276,11 @@ mod tests {
         let file = &menu.menus[0];
         assert_eq!(file.label, "Datei");
         assert_eq!(file.mnemonic, Some(0));
-        let save = file.items.iter().find(|i| i.action.as_deref() == Some("SaveAll")).unwrap();
+        let save = file
+            .items
+            .iter()
+            .find(|i| i.action.as_deref() == Some("SaveAll"))
+            .unwrap();
         assert_eq!(save.label, "Alle speichern");
         // Untranslated labels stay English.
         let edit = &menu.menus[1];

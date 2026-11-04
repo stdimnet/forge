@@ -243,7 +243,10 @@ mod tests {
         let en = builtin_messages("en");
         let de = builtin_messages("de");
         let problems = check_translation(&en, &de);
-        assert!(problems.is_empty(), "German catalog problems: {problems:#?}");
+        assert!(
+            problems.is_empty(),
+            "German catalog problems: {problems:#?}"
+        );
         // No key is defined twice across the area files of one locale.
         for loc in ["en", "de"] {
             let mut seen = HashMap::new();

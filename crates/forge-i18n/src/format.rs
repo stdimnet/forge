@@ -190,8 +190,14 @@ mod tests {
         assert_eq!(date_time("en", ms, 0, DateStyle::Short, false), "11/4/26");
         assert_eq!(date_time("de", ms, 0, DateStyle::Short, false), "04.11.26");
         assert_eq!(date_time("de", ms, 60, DateStyle::Medium, true), "16:04:05");
-        assert_eq!(date_time("en", ms, -16 * 60, DateStyle::Short, true), "11:04 PM");
-        assert_eq!(date_time("en", ms, -16 * 60, DateStyle::Short, false), "11/3/26");
+        assert_eq!(
+            date_time("en", ms, -16 * 60, DateStyle::Short, true),
+            "11:04 PM"
+        );
+        assert_eq!(
+            date_time("en", ms, -16 * 60, DateStyle::Short, false),
+            "11/3/26"
+        );
         assert_eq!(date_time("ja", ms, 0, DateStyle::Long, false), "2026-11-04");
     }
 }

@@ -297,9 +297,7 @@ impl Parser<'_> {
                             "" | "medium" => DateStyle::Medium,
                             "short" => DateStyle::Short,
                             "long" | "full" => DateStyle::Long,
-                            other => {
-                                return Err(self.err(&format!("unknown date style `{other}`")))
-                            }
+                            other => return Err(self.err(&format!("unknown date style `{other}`"))),
                         };
                         if kind == "date" {
                             Part::Date(name, style)
@@ -477,9 +475,9 @@ impl Ctx<'_> {
                             .iter()
                             .find(|(k, _)| *k == PluralKey::Category(cat))
                             .or_else(|| {
-                                cases.iter().find(|(k, _)| {
-                                    *k == PluralKey::Category(PluralCategory::Other)
-                                })
+                                cases
+                                    .iter()
+                                    .find(|(k, _)| *k == PluralKey::Category(PluralCategory::Other))
                             })
                     });
                     if let Some((_, body)) = case {
@@ -559,35 +557,64 @@ mod tests {
         assert_eq!(fmt(ord, "en", json!({ "n": 1 })), "1st");
         assert_eq!(fmt(ord, "en", json!({ "n": 22 })), "22nd");
         assert_eq!(fmt(ord, "en", json!({ "n": 13 })), "13th");
-        assert_eq!(fmt("{n, selectordinal, other {#.}}", "de", json!({ "n": 3 })), "3.");
+        assert_eq!(
+            fmt("{n, selectordinal, other {#.}}", "de", json!({ "n": 3 })),
+            "3."
+        );
     }
 
     #[test]
     fn select_and_nesting() {
-        let src = "{kind, select, file {{count, plural, one {# file} other {# files}}} other {# items}}";
-        assert_eq!(fmt(src, "en", json!({ "kind": "file", "count": 2 })), "2 files");
-        assert_eq!(fmt(src, "en", json!({ "kind": "x", "count": 2 })), "# items");
+        let src =
+            "{kind, select, file {{count, plural, one {# file} other {# files}}} other {# items}}";
+        assert_eq!(
+            fmt(src, "en", json!({ "kind": "file", "count": 2 })),
+            "2 files"
+        );
+        assert_eq!(
+            fmt(src, "en", json!({ "kind": "x", "count": 2 })),
+            "# items"
+        );
     }
 
     #[test]
     fn numbers_and_dates() {
-        assert_eq!(fmt("{n, number}", "de", json!({ "n": 1234567.891 })), "1.234.567,891");
+        assert_eq!(
+            fmt("{n, number}", "de", json!({ "n": 1234567.891 })),
+            "1.234.567,891"
+        );
         assert_eq!(fmt("{n, number, integer}", "en", json!({ "n": 2.6 })), "3");
-        assert_eq!(fmt("{n, number, percent}", "en", json!({ "n": 0.25 })), "25%");
-        assert_eq!(fmt("{n, number, percent}", "de", json!({ "n": 0.25 })), "25\u{a0}%");
+        assert_eq!(
+            fmt("{n, number, percent}", "en", json!({ "n": 0.25 })),
+            "25%"
+        );
+        assert_eq!(
+            fmt("{n, number, percent}", "de", json!({ "n": 0.25 })),
+            "25\u{a0}%"
+        );
         // 2026-11-04T15:04:05Z
         let ms = 1_793_804_645_000_i64;
-        assert_eq!(fmt("{d, date, medium}", "en", json!({ "d": ms })), "Nov 4, 2026");
-        assert_eq!(fmt("{d, date, medium}", "de", json!({ "d": ms })), "04.11.2026");
-        assert_eq!(fmt("{d, date, long}", "de", json!({ "d": ms })), "4. November 2026");
+        assert_eq!(
+            fmt("{d, date, medium}", "en", json!({ "d": ms })),
+            "Nov 4, 2026"
+        );
+        assert_eq!(
+            fmt("{d, date, medium}", "de", json!({ "d": ms })),
+            "04.11.2026"
+        );
+        assert_eq!(
+            fmt("{d, date, long}", "de", json!({ "d": ms })),
+            "4. November 2026"
+        );
         assert_eq!(fmt("{d, time, short}", "en", json!({ "d": ms })), "3:04 PM");
         assert_eq!(fmt("{d, time, short}", "de", json!({ "d": ms })), "15:04");
     }
 
     #[test]
     fn arguments_and_errors() {
-        let m = Message::parse("{a} {n, plural, one {{b}} other {#}} {s, select, x {{c}} other {}}")
-            .unwrap();
+        let m =
+            Message::parse("{a} {n, plural, one {{b}} other {#}} {s, select, x {{c}} other {}}")
+                .unwrap();
         let names: Vec<_> = m.arguments().into_iter().collect();
         assert_eq!(names, ["a", "b", "c", "n", "s"]);
         assert!(Message::parse("{unclosed").is_err());

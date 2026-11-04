@@ -113,7 +113,10 @@ mod tests {
         assert_eq!(i18n_set_locale("de", 0), "de");
         assert_eq!(i18n_t("common.cancel"), "Abbrechen");
         assert!(i18n_has("common.cancel"));
-        assert_eq!(i18n_format("{n, plural, one {# Datei} other {# Dateien}}", r#"{"n":3}"#), "3 Dateien");
+        assert_eq!(
+            i18n_format("{n, plural, one {# Datei} other {# Dateien}}", r#"{"n":3}"#),
+            "3 Dateien"
+        );
         assert_eq!(i18n_set_locale("en", 0), "en");
         assert_eq!(i18n_t("common.cancel"), "Cancel");
         assert!(i18n_locales().contains("Deutsch"));

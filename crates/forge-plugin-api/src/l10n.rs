@@ -89,7 +89,9 @@ impl<'a> Translator<'a> {
         if let Some(t) = self.l10n.translate(key) {
             *english = t;
         } else if let Some(t) = self.own.iter().find_map(|m| m.get(key)) {
-            *english = self.l10n.format_message(t, self.l10n.locale(), &Default::default());
+            *english = self
+                .l10n
+                .format_message(t, self.l10n.locale(), &Default::default());
         }
     }
 }
@@ -134,7 +136,10 @@ pub fn localize_plugin(info: &PluginInfo, l10n: &Localizer) -> PluginInfo {
     for r in &mut c.run_configuration_types {
         t.tr(&format!("runconfig.{}.name", r.id), &mut r.name);
         if !r.description.is_empty() {
-            t.tr(&format!("runconfig.{}.description", r.id), &mut r.description);
+            t.tr(
+                &format!("runconfig.{}.description", r.id),
+                &mut r.description,
+            );
         }
         for f in &mut r.fields {
             t.tr(&format!("runconfig.{}.field.{}", r.id, f.key), &mut f.label);
@@ -181,9 +186,7 @@ pub fn manifest_messages(
         for e in entries {
             match e {
                 MenuEntry::Action {
-                    id,
-                    label: Some(l),
-                    ..
+                    id, label: Some(l), ..
                 } => put(forge_keymap::menu::label_key(id, l), l),
                 MenuEntry::Group { label, items } => {
                     put(forge_keymap::menu::group_key(label), label);
@@ -282,7 +285,10 @@ section = "Behavior"
         de.add_messages(
             "de",
             [
-                ("plugin.acme.tools.name".to_string(), "Acme-Werkzeuge".to_string()),
+                (
+                    "plugin.acme.tools.name".to_string(),
+                    "Acme-Werkzeuge".to_string(),
+                ),
                 ("setting.acme.mode.title".to_string(), "Modus".to_string()),
                 (
                     "setting.section.tools.acme.behavior".to_string(),
@@ -306,7 +312,10 @@ section = "Behavior"
         let specs = localize_settings(p.contributions.settings.clone(), &[plugin()], &de);
         assert_eq!(specs[0].title, "Modus");
         // English leaves everything as written.
-        assert_eq!(localize_plugin(&plugin(), &Localizer::empty("en")), plugin());
+        assert_eq!(
+            localize_plugin(&plugin(), &Localizer::empty("en")),
+            plugin()
+        );
     }
 
     #[test]

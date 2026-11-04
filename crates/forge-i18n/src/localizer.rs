@@ -318,7 +318,10 @@ mod tests {
         assert_eq!(sample("de-AT").t("a.title"), "Projekt (AT)");
         assert_eq!(sample("de-CH").t("a.title"), "Projekt");
         assert_eq!(sample("fr").t("a.title"), "Project");
-        assert_eq!(sample("en").t_args("a.files", &args! { "n" => 1 }), "1 file");
+        assert_eq!(
+            sample("en").t_args("a.files", &args! { "n" => 1 }),
+            "1 file"
+        );
         // Only a key missing in English too shows as itself.
         assert_eq!(de.t("a.nowhere"), "a.nowhere");
     }

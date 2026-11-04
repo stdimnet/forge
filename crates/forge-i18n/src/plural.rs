@@ -73,7 +73,11 @@ pub fn cardinal(locale: &str, n: f64) -> PluralCategory {
             }
         }
         "pt" => {
-            let one = if locale.contains("PT") { i == 1 && v == 0 } else { i <= 1 };
+            let one = if locale.contains("PT") {
+                i == 1 && v == 0
+            } else {
+                i <= 1
+            };
             if one {
                 One
             } else {

@@ -221,7 +221,10 @@ pub fn refusal(what: &str) -> String {
         &format!("errors.safeMode.action.{}", forge_i18n::slug(what)),
         what,
     );
-    forge_i18n::t_args("errors.safeMode.refused", &forge_i18n::args! { "what" => what })
+    forge_i18n::t_args(
+        "errors.safeMode.refused",
+        &forge_i18n::args! { "what" => what },
+    )
 }
 
 /// Where the target of an SSH terminal session (Tools | Start SSH Session…) comes from.
