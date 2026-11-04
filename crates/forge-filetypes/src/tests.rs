@@ -234,21 +234,32 @@ fn detects_every_bundled_interpreter_through_env_variants() {
     ] {
         assert_eq!(id(line).as_deref(), Some(expected), "{line}");
     }
-    for line in ["#!/usr/bin/env", "#!/usr/bin/env -i", "#!/usr/bin/phpx", "#!/usr/bin/env FOO=1"] {
+    for line in [
+        "#!/usr/bin/env",
+        "#!/usr/bin/env -i",
+        "#!/usr/bin/phpx",
+        "#!/usr/bin/env FOO=1",
+    ] {
         assert_eq!(id(line), None, "{line}");
     }
     // Laravel and Symfony entry points.
     assert_eq!(
-        r.detect("artisan", Some("#!/usr/bin/env php"), &[]).unwrap().id,
+        r.detect("artisan", Some("#!/usr/bin/env php"), &[])
+            .unwrap()
+            .id,
         "php"
     );
     assert_eq!(
-        r.detect("bin/console", Some("#!/usr/bin/env php"), &[]).unwrap().id,
+        r.detect("bin/console", Some("#!/usr/bin/env php"), &[])
+            .unwrap()
+            .id,
         "php"
     );
     // A known extension still wins.
     assert_eq!(
-        r.detect("deploy.sh", Some("#!/usr/bin/env php"), &[]).unwrap().id,
+        r.detect("deploy.sh", Some("#!/usr/bin/env php"), &[])
+            .unwrap()
+            .id,
         "shell"
     );
 }
@@ -257,8 +268,13 @@ fn detects_every_bundled_interpreter_through_env_variants() {
 fn plugin_types_without_interpreters_keep_the_bundled_ones() {
     let mut r = FileTypeRegistry::with_builtins();
     // The CMS plugin replaces `php` with more extensions but no interpreters.
-    r.register(spec("php", "PHP", &["php", "module"], &[]), Some("forge.cms"));
-    let detected = r.detect("artisan", Some("#!/usr/bin/env php"), &[]).unwrap();
+    r.register(
+        spec("php", "PHP", &["php", "module"], &[]),
+        Some("forge.cms"),
+    );
+    let detected = r
+        .detect("artisan", Some("#!/usr/bin/env php"), &[])
+        .unwrap();
     assert_eq!(detected.id, "php");
     assert_eq!(detected.extensions, ["php", "module"]);
 }
@@ -267,16 +283,30 @@ fn plugin_types_without_interpreters_keep_the_bundled_ones() {
 fn modelines_select_a_type_after_names_and_shebangs() {
     let r = FileTypeRegistry::with_builtins();
     let id = |path: &str, first: &str| r.detect(path, Some(first), &[]).map(|t| t.id.clone());
-    assert_eq!(id("scripts/run", "# vim: set ft=php:").as_deref(), Some("php"));
-    assert_eq!(id("scripts/run", "# -*- mode: python -*-").as_deref(), Some("python"));
+    assert_eq!(
+        id("scripts/run", "# vim: set ft=php:").as_deref(),
+        Some("php")
+    );
+    assert_eq!(
+        id("scripts/run", "# -*- mode: python -*-").as_deref(),
+        Some("python")
+    );
     assert_eq!(id("scripts/run", "# vim: ft=sh").as_deref(), Some("shell"));
-    assert_eq!(id("scripts/run", "// -*- js -*-").as_deref(), Some("javascript"));
+    assert_eq!(
+        id("scripts/run", "// -*- js -*-").as_deref(),
+        Some("javascript")
+    );
     assert_eq!(id("scripts/run", "# vim: ft=klingon").as_deref(), None);
     // Names win over modelines.
     assert_eq!(id("a.yaml", "# vim: set ft=php:").as_deref(), Some("yaml"));
 }
 
-fn resolve_one(r: &FileTypeRegistry, req: &DetectRequest, path: &str, first: Option<&str>) -> FileTypeInfo {
+fn resolve_one(
+    r: &FileTypeRegistry,
+    req: &DetectRequest,
+    path: &str,
+    first: Option<&str>,
+) -> FileTypeInfo {
     let req = DetectRequest {
         files: vec![FileRef {
             path: path.into(),
@@ -291,7 +321,12 @@ fn resolve_one(r: &FileTypeRegistry, req: &DetectRequest, path: &str, first: Opt
 fn overrides_win_over_names_extensions_and_shebangs() {
     let mut r = FileTypeRegistry::with_builtins();
     r.register(
-        spec("symfony-services", "Symfony Services", &[], &["config/services.yaml"]),
+        spec(
+            "symfony-services",
+            "Symfony Services",
+            &[],
+            &["config/services.yaml"],
+        ),
         Some("forge.symfony-services"),
     );
     let req = DetectRequest {
@@ -312,21 +347,30 @@ fn overrides_win_over_names_extensions_and_shebangs() {
     assert_eq!((info.id.as_deref(), info.overridden), (Some("php"), true));
     assert_eq!(resolve_one(&r, &req, "deploy.sh", None).label, "Python");
     assert_eq!(
-        resolve_one(&r, &req, "bin/tool", Some("#!/usr/bin/env php")).id.as_deref(),
+        resolve_one(&r, &req, "bin/tool", Some("#!/usr/bin/env php"))
+            .id
+            .as_deref(),
         Some("shell")
     );
     let plain = resolve_one(&r, &req, "app/User.php", None);
-    assert_eq!((plain.id, plain.label.as_str(), plain.overridden), (None, "Plain text", true));
+    assert_eq!(
+        (plain.id, plain.label.as_str(), plain.overridden),
+        (None, "Plain text", true)
+    );
     // An unknown type is ignored.
     let unknown = resolve_one(&r, &req, "gone.txt", None);
     assert_eq!((unknown.id, unknown.overridden), (None, false));
     // A type of an inactive plugin is activated for the overridden file only.
     assert_eq!(
-        resolve_one(&r, &req, "config/other.yaml", None).id.as_deref(),
+        resolve_one(&r, &req, "config/other.yaml", None)
+            .id
+            .as_deref(),
         Some("symfony-services")
     );
     assert_eq!(
-        resolve_one(&r, &req, "config/services.yaml", None).id.as_deref(),
+        resolve_one(&r, &req, "config/services.yaml", None)
+            .id
+            .as_deref(),
         Some("yaml")
     );
     // Custom file types can be chosen too.
@@ -345,15 +389,31 @@ fn overrides_win_over_names_extensions_and_shebangs() {
 #[test]
 fn override_choices_list_every_type_once() {
     let mut r = FileTypeRegistry::with_builtins();
-    r.register(spec("php", "PHP", &["php", "module"], &[]), Some("forge.cms"));
-    r.register(spec("symfony-services", "Symfony Services", &[], &[]), Some("forge.symfony-services"));
+    r.register(
+        spec("php", "PHP", &["php", "module"], &[]),
+        Some("forge.cms"),
+    );
+    r.register(
+        spec("symfony-services", "Symfony Services", &[], &[]),
+        Some("forge.symfony-services"),
+    );
     let inactive = vec!["forge.symfony-services".to_string()];
     let overrides = vec![serde_json::json!({ "path": "artisan", "fileType": "php" })];
     let c = r.override_choices("artisan", &inactive, &UserFileTypes::default(), &overrides);
     assert_eq!(c.choices.iter().filter(|c| c.id == "php").count(), 1);
-    assert!(c.choices.iter().any(|c| c.id == "text" && c.name == "Plain text"));
-    let symfony = c.choices.iter().find(|c| c.id == "symfony-services").unwrap();
-    assert_eq!(symfony.inactive_plugin.as_deref(), Some("forge.symfony-services"));
+    assert!(c
+        .choices
+        .iter()
+        .any(|c| c.id == "text" && c.name == "Plain text"));
+    let symfony = c
+        .choices
+        .iter()
+        .find(|c| c.id == "symfony-services")
+        .unwrap();
+    assert_eq!(
+        symfony.inactive_plugin.as_deref(),
+        Some("forge.symfony-services")
+    );
     let names: Vec<String> = c.choices.iter().map(|c| c.name.to_lowercase()).collect();
     let mut sorted = names.clone();
     sorted.sort();

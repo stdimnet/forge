@@ -220,7 +220,12 @@ const INTERPRETERS: &[(&str, &[&str])] = &[
     ("javascript", &["node", "nodejs", "bun", "zx", "qjs", "gjs"]),
     // Deno runs TypeScript as is, so its scripts are TypeScript.
     ("typescript", &["ts-node", "ts-node-esm", "tsx", "deno"]),
-    ("shell", &["sh", "bash", "zsh", "ksh", "mksh", "dash", "ash", "busybox", "fish"]),
+    (
+        "shell",
+        &[
+            "sh", "bash", "zsh", "ksh", "mksh", "dash", "ash", "busybox", "fish",
+        ],
+    ),
     ("python", &["python", "pypy", "uv", "pythonw"]),
     ("ruby", &["ruby", "jruby", "truffleruby", "macruby"]),
     ("lua", &["lua", "luajit", "tarantool"]),

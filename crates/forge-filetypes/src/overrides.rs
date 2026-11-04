@@ -217,7 +217,9 @@ mod tests {
     use serde_json::json;
 
     fn values(list: &[FileTypeOverride]) -> Vec<Value> {
-        list.iter().map(|o| serde_json::to_value(o).unwrap()).collect()
+        list.iter()
+            .map(|o| serde_json::to_value(o).unwrap())
+            .collect()
     }
 
     #[test]

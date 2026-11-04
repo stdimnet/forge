@@ -232,7 +232,13 @@ impl FileTypeRegistry {
         self.active(inactive_plugins)
             .into_iter()
             .find(|t| t.id == id)
-            .or_else(|| self.entries.iter().rev().map(|e| &e.spec).find(|t| t.id == id))
+            .or_else(|| {
+                self.entries
+                    .iter()
+                    .rev()
+                    .map(|e| &e.spec)
+                    .find(|t| t.id == id)
+            })
     }
 
     /// The file type of `path`, or `None` for plain text.
@@ -268,7 +274,9 @@ impl FileTypeRegistry {
         }
         let mode = modeline::mode_of(first_line)?;
         modeline::resolve(&mode, &active, |t, m| {
-            self.interpreters_of(t).iter().any(|i| i.eq_ignore_ascii_case(m))
+            self.interpreters_of(t)
+                .iter()
+                .any(|i| i.eq_ignore_ascii_case(m))
         })
     }
 
@@ -395,7 +403,9 @@ pub fn shebang_interpreter(line: &str) -> Option<String> {
     let rest = line.trim_start_matches('\u{feff}').strip_prefix("#!")?;
     let base = |w: &str| {
         let name = w.rsplit(['/', '\\']).next().unwrap_or(w).to_lowercase();
-        name.strip_suffix(".exe").map(str::to_string).unwrap_or(name)
+        name.strip_suffix(".exe")
+            .map(str::to_string)
+            .unwrap_or(name)
     };
     let mut words = rest.split_whitespace();
     let program = base(words.next()?);

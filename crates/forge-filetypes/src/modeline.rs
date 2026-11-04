@@ -50,7 +50,9 @@ fn emacs_mode(line: &str) -> Option<String> {
     }
     body.split(';').find_map(|part| {
         let (key, value) = part.split_once(':')?;
-        key.trim().eq_ignore_ascii_case("mode").then(|| clean(value))?
+        key.trim()
+            .eq_ignore_ascii_case("mode")
+            .then(|| clean(value))?
     })
 }
 
@@ -58,10 +60,14 @@ fn emacs_mode(line: &str) -> Option<String> {
 fn vim_mode(line: &str) -> Option<String> {
     let lower = line.to_lowercase();
     let at = ["vim:", "vi:", "ex:"].iter().find_map(|tag| {
-        lower.match_indices(tag).map(|(i, _)| i).find(|&i| {
-            i == 0 || lower[..i].ends_with(|c: char| c.is_whitespace() || "#/;*\"-!%".contains(c))
-        })
-        .map(|i| i + tag.len())
+        lower
+            .match_indices(tag)
+            .map(|(i, _)| i)
+            .find(|&i| {
+                i == 0
+                    || lower[..i].ends_with(|c: char| c.is_whitespace() || "#/;*\"-!%".contains(c))
+            })
+            .map(|i| i + tag.len())
     })?;
     let body = &lower[at..];
     body.split([' ', ':', '\t'])
@@ -87,7 +93,8 @@ pub fn resolve<'a>(
         .iter()
         .find(|(alias, _)| *alias == mode)
         .map_or(mode, |(_, id)| id);
-    let newest = |pred: &dyn Fn(&FileTypeSpec) -> bool| active.iter().rev().find(|t| pred(t)).copied();
+    let newest =
+        |pred: &dyn Fn(&FileTypeSpec) -> bool| active.iter().rev().find(|t| pred(t)).copied();
     newest(&|t| t.id == id)
         .or_else(|| newest(&|t| t.name.eq_ignore_ascii_case(mode)))
         .or_else(|| newest(&|t| t.extensions.iter().any(|e| e.eq_ignore_ascii_case(mode))))

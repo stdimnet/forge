@@ -287,7 +287,10 @@ mod tests {
         assert_eq!(id("bin/run", Some("#!/usr/bin/php")), Some("php"));
         assert_eq!(id("artisan", Some("#!/usr/bin/env php")), Some("php"));
         assert_eq!(id("bin/console", Some("#!/usr/bin/env php")), Some("php"));
-        assert_eq!(id("bin/run", Some("#!/usr/bin/env node")), Some("javascript"));
+        assert_eq!(
+            id("bin/run", Some("#!/usr/bin/env node")),
+            Some("javascript")
+        );
         assert_eq!(id("bin/run", Some("#!/usr/bin/env fish")), Some("shell"));
         assert_eq!(id("bin/run", Some("#!/usr/bin/env ruby")), Some("ruby"));
         assert_eq!(id("bin/run", None), None);
