@@ -827,7 +827,9 @@ pub fn collab_session_log(state: State<'_, CollabState>) -> SessionLogView {
 }
 
 fn running_host(state: &CollabState) -> Result<Arc<HostSession>> {
-    state.host().ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))
+    state
+        .host()
+        .ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))
 }
 
 /// Permissions for the whole session (host): new guests and everyone in the session.
@@ -980,7 +982,8 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
 /// The round trip to the host in milliseconds (the guest's status bar item).
 #[tauri::command]
 pub async fn collab_ping(app: AppHandle) -> Result<u64> {
-    let guest = guest_session(&app).ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))?;
+    let guest =
+        guest_session(&app).ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))?;
     guest.ping().await.map_err(other)
 }
 
