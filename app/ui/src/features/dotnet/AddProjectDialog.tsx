@@ -19,7 +19,7 @@ export function openAddProjectDialog(): void {
 }
 
 const FRAMEWORKS = [
-  { value: "", label: "Template default" },
+  { value: "", label: tr("langs.dotnet.templateDefault") },
   { value: "net10.0", label: ".NET 10" },
   { value: "net9.0", label: ".NET 9" },
   { value: "net8.0", label: ".NET 8 (LTS)" },

@@ -33,7 +33,7 @@ async function restart(): Promise<void> {
 
 registerDialog<Record<string, never>, InvalidateResult>({
   id: INVALIDATE_DIALOG,
-  title: "Invalidate Caches",
+  title: t("tools.maintenance.invalidateCaches"),
   width: 540,
   height: 400,
   minWidth: 440,

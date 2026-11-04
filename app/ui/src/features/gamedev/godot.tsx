@@ -65,7 +65,7 @@ const sceneOptions = () => (status()?.scenes ?? []).map((s) => ({ value: s, labe
 registerRunConfigurationType({
   id: "godot",
   name: "Godot",
-  description: "Run a Godot project or one of its scenes. Debug uses the Godot editor's debug adapter for GDScript, or netcoredbg for C#.",
+  description: t("langs.gamedev.runAGodotProjectOr"),
   icon: Gamepad2,
   color: "var(--syn-type)",
   pluginId: GODOT_PLUGIN,
@@ -76,25 +76,25 @@ registerRunConfigurationType({
   fields: [
     {
       key: "target",
-      label: "Run",
+      label: t("common.run2"),
       kind: "segmented",
       default: "project",
       options: [
-        { value: "project", label: "Project (main scene)" },
-        { value: "scene", label: "Scene" },
+        { value: "project", label: t("langs.gamedev.projectMainScene") },
+        { value: "scene", label: t("langs.gamedev.scene") },
       ],
     },
-    { key: "scene", label: "Scene", kind: "enum", required: true, options: sceneOptions, visible: (cfg) => opt(cfg, "target") === "scene" },
-    { key: "headless", label: "Headless (--headless)", kind: "bool" },
-    { key: "godotArgs", label: "Godot options", placeholder: "--debug-collisions --verbose" },
+    { key: "scene", label: t("langs.gamedev.scene"), kind: "enum", required: true, options: sceneOptions, visible: (cfg) => opt(cfg, "target") === "scene" },
+    { key: "headless", label: t("langs.gamedev.headlessHeadless"), kind: "bool" },
+    { key: "godotArgs", label: t("langs.gamedev.godotOptions"), placeholder: "--debug-collisions --verbose" },
     {
       key: "debugger",
-      label: "Debug with",
+      label: t("langs.gamedev.debugWith"),
       kind: "enum",
       default: "auto",
       options: [
-        { value: "auto", label: "Settings | Godot" },
-        { value: "gdscript", label: "The Godot editor (GDScript)" },
+        { value: "auto", label: t("langs.gamedev.settingsGodot") },
+        { value: "gdscript", label: t("langs.gamedev.theGodotEditorGdscript") },
         { value: "csharp", label: "netcoredbg (C#)" },
       ],
     },
@@ -105,7 +105,7 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: "gdunit4",
   name: "GdUnit4",
-  description: "Run GdUnit4 test suites headless with GdUnit4's command line tool; results from its JUnit report.",
+  description: t("langs.gamedev.runGdunit4TestSuitesHeadless"),
   icon: FlaskConical,
   color: "var(--success)",
   pluginId: GODOT_PLUGIN,
@@ -115,18 +115,18 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test scope",
+      label: t("common.testScope"),
       kind: "segmented",
       default: "all",
       options: [
-        { value: "all", label: "All (test/)" },
-        { value: "directory", label: "Folder" },
-        { value: "file", label: "Suite" },
+        { value: "all", label: t("langs.gamedev.allTest") },
+        { value: "directory", label: t("langs.gamedev.folder") },
+        { value: "file", label: t("langs.gamedev.suite") },
       ],
     },
-    { key: "directory", label: "Folder", kind: "path", placeholder: "test", visible: (cfg) => opt(cfg, "scope") === "directory" },
-    { key: "file", label: "Suite", kind: "path", required: true, placeholder: "test/player_test.gd", visible: (cfg) => opt(cfg, "scope") === "file" },
-    { key: "flags", label: "GdUnit4 options", placeholder: "--verbose" },
+    { key: "directory", label: t("langs.gamedev.folder"), kind: "path", placeholder: "test", visible: (cfg) => opt(cfg, "scope") === "directory" },
+    { key: "file", label: t("langs.gamedev.suite"), kind: "path", required: true, placeholder: "test/player_test.gd", visible: (cfg) => opt(cfg, "scope") === "file" },
+    { key: "flags", label: t("langs.gamedev.gdunit4Options"), placeholder: "--verbose" },
   ],
   suggestName: (cfg) => (opt(cfg, "scope") === "file" ? opt(cfg, "file").split("/").pop()?.replace(/\.gd$/, "") : "GdUnit4 Tests"),
 });

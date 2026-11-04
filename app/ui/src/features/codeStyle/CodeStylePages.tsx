@@ -41,8 +41,8 @@ import { t as tr } from "@/i18n";
 // ---- Scheme box and ⚙ menu -------------------------------------------------------------
 
 const FORMATS: { format: CodeStyleExportFormat; label: string }[] = [
-  { format: "xml", label: "IntelliJ IDEA code style XML" },
-  { format: "json", label: "Forge code style JSON" },
+  { format: "xml", label: tr("tools.codeStyle.intellijIdeaCodeStyleXml") },
+  { format: "json", label: tr("tools.codeStyle.forgeCodeStyleJson") },
 ];
 
 async function exportScheme(format: CodeStyleExportFormat): Promise<void> {

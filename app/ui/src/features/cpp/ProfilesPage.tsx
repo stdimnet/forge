@@ -37,11 +37,11 @@ const entryOf = (p: Partial<Profile> & { name: string }): ProfileEntry => ({
 
 /** The sanitizers a profile can enable (`cforge_cmake::sanitizers::SANITIZERS`). */
 const SANITIZERS = [
-  { id: "address", label: "ASan", title: "AddressSanitizer: out-of-bounds accesses, use after free, double free" },
-  { id: "undefined", label: "UBSan", title: "UndefinedBehaviorSanitizer: overflows, invalid shifts, null dereferences" },
-  { id: "thread", label: "TSan", title: "ThreadSanitizer: data races (not with ASan, LSan or MSan)" },
-  { id: "memory", label: "MSan", title: "MemorySanitizer: reads of uninitialized memory (Clang only; not with ASan, LSan or TSan)" },
-  { id: "leak", label: "LSan", title: "LeakSanitizer: memory leaks (included in ASan on Linux)" },
+  { id: "address", label: tr("langs.cpp.asan"), title: tr("langs.cpp.addresssanitizerOutOfBoundsAccesses") },
+  { id: "undefined", label: tr("langs.cpp.ubsan"), title: tr("langs.cpp.undefinedbehaviorsanitizerOverflowsInval") },
+  { id: "thread", label: tr("langs.cpp.tsan"), title: tr("langs.cpp.threadsanitizerDataRacesNotWith") },
+  { id: "memory", label: tr("langs.cpp.msan"), title: tr("langs.cpp.memorysanitizerReadsOfUninitializedMemor") },
+  { id: "leak", label: tr("langs.cpp.lsan"), title: tr("langs.cpp.leaksanitizerMemoryLeaksIncludedIn") },
 ];
 
 function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void; toolchains: { id: string; name: string }[]; sanitizerError?: string }) {

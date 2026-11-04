@@ -65,7 +65,7 @@ for (const kind of Object.keys(CLI_PREFIX)) {
 // the Symfony index.
 registerRunAnythingProvider({
   id: "symfony-index",
-  title: "Symfony console commands",
+  title: tr("tools.runAnything.symfonyConsoleCommands"),
   when: () => usesFramework("symfony") && !isPluginActive("forge.command-line-tools"),
   commands: async () =>
     (await symfonyApi.consoleCommands())

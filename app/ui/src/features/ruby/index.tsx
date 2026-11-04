@@ -101,19 +101,19 @@ registerToolWindow({
 
 const bundleExecField = {
   key: "bundleExec",
-  label: "Run with bundle exec",
+  label: tr("langs.ruby.runWithBundleExec"),
   kind: "enum" as const,
   default: "true",
   options: [
-    { value: "true", label: "When the project has a Gemfile" },
-    { value: "false", label: "Never" },
+    { value: "true", label: tr("langs.ruby.whenTheProjectHasA") },
+    { value: "false", label: tr("langs.ruby.never") },
   ],
 };
 
 registerRunConfigurationType({
   id: "ruby",
   name: "Ruby",
-  description: "Run a Ruby script with the project's interpreter, through bundle exec in Bundler projects.",
+  description: tr("langs.ruby.runARubyScriptWith"),
   icon: Gem,
   color: "var(--danger)",
   pluginId: PLUGIN,
@@ -121,22 +121,22 @@ registerRunConfigurationType({
   defaultInterpreter: () => rubyStatus()?.chosen?.interpreter.path ?? "ruby",
   argumentsLabel: "Script arguments",
   debuggable: true,
-  fields: [{ key: "script", label: "Ruby script", kind: "path", required: true, placeholder: "bin/report.rb" }, bundleExecField],
+  fields: [{ key: "script", label: tr("langs.ruby.rubyScript"), kind: "path", required: true, placeholder: "bin/report.rb" }, bundleExecField],
   suggestName: (cfg) => (opt(cfg, "script") ? baseName(opt(cfg, "script")) : undefined),
 });
 
 registerRunConfigurationType({
   id: "rake",
   name: "Rake",
-  description: "Run a Rake task with its arguments.",
+  description: tr("langs.ruby.runARakeTaskWith"),
   icon: Hammer,
   color: "var(--warning)",
   pluginId: PLUGIN,
   argumentsLabel: "Rake options",
   debuggable: true,
   fields: [
-    { key: "task", label: "Task name", required: true, placeholder: "db:seed" },
-    { key: "taskArgs", label: "Arguments", placeholder: "2026-10 (rake task[arg1,arg2])" },
+    { key: "task", label: tr("langs.ruby.taskName"), required: true, placeholder: "db:seed" },
+    { key: "taskArgs", label: tr("langs.ruby.arguments"), placeholder: "2026-10 (rake task[arg1,arg2])" },
     bundleExecField,
   ],
   suggestName: (cfg) => (opt(cfg, "task") ? `rake ${opt(cfg, "task")}` : undefined),
@@ -154,7 +154,7 @@ registerRunConfigurationType({
 
 // ---- Debugging with rdbg ---------------------------------------------------------------------
 
-registerDebugAdapter({ type: "rdbg", label: "Ruby (rdbg)", languages: ["rb", "rake", "ru", "gemspec"] });
+registerDebugAdapter({ type: "rdbg", label: tr("langs.ruby.rubyRdbg"), languages: ["rb", "rake", "ru", "gemspec"] });
 
 const RDBG_TYPES = new Set(["ruby", "rake", "rspec", "minitest", "rails"]);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

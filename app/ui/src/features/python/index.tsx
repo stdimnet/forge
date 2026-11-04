@@ -340,7 +340,7 @@ async function installRequirements(): Promise<void> {
 registerRunConfigurationType({
   id: "python",
   name: "Python",
-  description: "Run a Python script or module (python -m) with the project's interpreter.",
+  description: tr("langs.python.runAPythonScriptOr"),
   icon: FileCode,
   color: "var(--info)",
   pluginId: "forge.python-env",
@@ -351,15 +351,15 @@ registerRunConfigurationType({
   fields: [
     {
       key: "target",
-      label: "Run",
+      label: tr("common.run2"),
       kind: "segmented",
       options: [
-        { value: "script", label: "Script path" },
-        { value: "module", label: "Module name" },
+        { value: "script", label: tr("langs.python.scriptPath") },
+        { value: "module", label: tr("langs.python.moduleName") },
       ],
       default: "script",
     },
-    { key: "script", label: "Script / module", kind: "path", required: true, placeholder: "main.py or package.module" },
+    { key: "script", label: tr("langs.python.scriptModule"), kind: "path", required: true, placeholder: "main.py or package.module" },
   ],
   suggestName: (cfg) => {
     const s = cfg.options?.script;

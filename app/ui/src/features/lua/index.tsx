@@ -116,8 +116,8 @@ async function search(kind: "class" | "symbol", query: string, limit: number): P
   }));
 }
 
-registerSearchProvider({ id: "lua.classes", tab: "classes", title: "Classes", order: 1, search: (q, o) => search("class", q, o.limit) });
-registerSearchProvider({ id: "lua.symbols", tab: "symbols", title: "Symbols", order: 1, search: (q, o) => search("symbol", q, o.limit) });
+registerSearchProvider({ id: "lua.classes", tab: "classes", title: tr("langs.lua.classes"), order: 1, search: (q, o) => search("class", q, o.limit) });
+registerSearchProvider({ id: "lua.symbols", tab: "symbols", title: tr("langs.lua.symbols"), order: 1, search: (q, o) => search("symbol", q, o.limit) });
 
 // ---- Go to Declaration ------------------------------------------------------------------
 
@@ -160,14 +160,14 @@ registerEditorExtension(({ path }) => (isLuaPath(path) ? luaHover(path) : null))
 registerRunConfigurationType({
   id: "lua-script",
   name: "Lua Script",
-  description: "Run a Lua file, or a LÖVE game directory with love.",
+  description: tr("langs.lua.runALuaFileOr"),
   icon: Moon,
   color: "var(--info)",
   pluginId: "forge.lua",
   interpreter: "custom",
   defaultInterpreter: () => getSetting<string>("lua.interpreter", "lua") || "lua",
   argumentsLabel: "Script arguments",
-  fields: [{ key: "file", label: "File", kind: "path", required: true, placeholder: "main.lua (or . for a LÖVE game)" }],
+  fields: [{ key: "file", label: tr("common.file"), kind: "path", required: true, placeholder: "main.lua (or . for a LÖVE game)" }],
   suggestName: (cfg) => {
     const file = cfg.options?.file;
     return file === "." ? workspace()?.name : baseName(file)?.replace(/\.lua$/, "");

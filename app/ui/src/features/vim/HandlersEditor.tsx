@@ -14,9 +14,9 @@ import { t } from "@/i18n";
 
 type ModeKey = "normal" | "insert" | "visual";
 const MODES: { key: ModeKey; title: string }[] = [
-  { key: "normal", title: "Normal" },
-  { key: "insert", title: "Insert" },
-  { key: "visual", title: "Visual" },
+  { key: "normal", title: t("tools.vim.normal") },
+  { key: "insert", title: t("common.insert") },
+  { key: "visual", title: t("tools.vim.visual") },
 ];
 
 export function HandlersEditor(props: { spec: SettingSpec }) {

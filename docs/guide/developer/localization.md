@@ -32,7 +32,8 @@ Catalogs are flat JSON files `crates/forge-i18n/locales/<locale>/<area>.json`, o
 | `settings` | the Settings dialog, page titles (`settings.page.<id>`), groups, Plugins page |
 | `search`, `vcs`, `run`, `dialogs` (Project view, Rename, New Project, …), `welcome`, `errors` | their features |
 | `git`, `debug`, `database`, `codeintel` | the Git dialogs and tool window, the Debugger, the Database tools, refactorings / Find Usages / hierarchy dialogs; keys `<area>.<component>.<name>` (`git.branchesPopup.newBranch`, `database.objects.tableDialog.createTable`) |
-| `commands` | titles of Forge's own actions without a PHPStorm id (`action.NewWindow`, `action.Database.NewTable`), registered with `registerCommand` / `registerKeymapActions` in the UI |
+| `langs`, `tools` | tool windows, dialogs, settings pages and run configuration types of the language and framework packs (`langs.<feature>.<name>`: `langs.dotnet.restoreNugetPackages`) and of the other UI features (`tools.<feature>.<name>`: `tools.forges.submitReview`) |
+| `commands` | titles of Forge's own actions without a PHPStorm id (`action.NewWindow`, `action.Database.NewTable`), registered with `registerCommand` / `registerKeymapActions` in the UI, and the labels of main menu entries that UI features contribute with `registerMainMenuEntries` (`menu.<action id>`, `menu.group.<slug>`) |
 | `menu`, `actions`, `plugins` | **generated in English** (see below), translated by hand |
 
 A new area file must also be listed in `BUILTIN` in `crates/forge-i18n/src/catalog.rs`; a test
@@ -172,36 +173,33 @@ the hand-written areas are fully translated.
 ## Current coverage
 
 `pnpm i18n:check` now (German was added in #134 with 1,711 of 3,740 keys and 4,423 hard-coded
-strings):
+strings; #140 reached 4,416 of 5,614 keys and 3,382 strings):
 
 | Measure | Value |
 | --- | --- |
-| English catalog keys | 5,614 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
-| German translations | 4,416 (78.7 %): every hand-written key, all menu labels and PHPStorm action titles, and 1,226 of 2,424 manifest texts |
-| Keys used in the UI code | 2,203 literal keys plus 9 dynamic `t()` calls |
-| Hard-coded strings left in `.tsx` (heuristic) | 3,380 |
+| English catalog keys | 9,154 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
+| German translations | 9,154 (100 %): every hand-written key, all menu labels, action titles and manifest texts of every pack |
+| Keys used in the UI code | 5,641 literal keys plus 9 dynamic `t()` calls |
+| Hard-coded strings left in `.tsx` (heuristic) | 783 (87.8 % of UI strings go through `t()`) |
 
-Translated: the main menu, Find Action and the keymap (PHPStorm actions and Forge's own
-actions), tool window titles and chrome, the status bar file widgets, index and language server
-status, the Settings dialog with the Appearance, System Settings, Language, Editor (General,
-Tabs, Font, Code Style, Inlay Hints, Live Templates, Postfix, Emmet, Reader Mode, Natural
-Languages), Version Control, Tools (Terminal, Actions on Save, AI, Code With Me, Database, MCP
-Server, Browser Companion, Search, External Tools) and Languages & Frameworks | PHP pages
-(Composer, Quality Tools, Debug, Test Frameworks, Laravel, Symfony, Doctrine, WordPress, Drupal),
-the Plugins page, the Welcome screen, Search Everywhere, Find in Files, Rename, New Project, the
-Git dialogs, Git log, file history, merge window and Branches popup, the Commit tool window, the
-Debugger tool window and dialogs, the Database tool window and dialogs, refactoring, Find Usages
-and hierarchy dialogs, the Find and Run tool windows, Run/Debug Configurations with the run
-configuration fields and types and the Run on targets, the Project view and editor tab and editor
-context menus, notifications, the language restart prompt, Safe Mode refusals and common backend
-errors (no project open, not found, I/O, outside the workspace).
+Translated: the main menu (including the entries UI features contribute), Find Action and the
+keymap, tool window titles and chrome, the status bar, the Settings dialog with all pages and the
+settings of every bundled plugin (PHP, Web, Lua, .NET, C/C++, Python, Java, Kotlin, Scala, Groovy,
+Go, Rust, Ruby, Minecraft, Unity / Godot, …), the Plugins page, the Welcome screen, Search
+Everywhere, Find in Files, the Git, Commit, Debugger, Database, Run and refactoring tools, and the
+tool windows and dialogs of the language packs and other features: .NET (Build, NuGet, EF Core,
+endpoints), C/C++ (CMake, PlatformIO, profiles, sanitizers, embedded), code hosts (merge
+requests, review, issues, pipelines), game engines, Python, PHP interpreters and tool windows,
+web tooling, Java / Kotlin / Gradle / Maven, inspections, remote development, Services,
+deployment, Rust, Jupyter, Go, Ruby / Rails, Symfony, Laravel, Spring and the run configuration
+types the UI registers.
 
-Still English: the other tool windows and dialogs (.NET 192 strings, C/C++ 147, code hosts 136,
-Code With Me 118, game engines 105, Python 105, PHP tool windows 95, web tooling 93, Java 88,
-inspections 80, remote development 72, …), the settings of the other language packs (1,198
-manifest texts), file templates and New Project generator names, menu entries contributed by UI
-features (`registerMainMenuEntries` labels), most other Rust errors (git and tool output stays as
-the tools write it), the splash screen.
+Still English: the action titles passed to `registerCommand` / `registerKeymapActions` in the
+source (by design: they are translated through `action.<id>` in Find Action and the keymap, which
+is most of the 783 strings the check still counts), Code With Me (`features/code-with-me`, 118
+strings, maintained by another developer and left for them), Agent Tasks (37), sentence
+fragments around inline code and links, file templates and New Project generator names, most
+other Rust errors (git and tool output stays as the tools write it), the splash screen.
 
 `app/ui/scripts/scenarios/localization-dialogs.mjs` captures the translated dialogs in German
 (`i18n-*-de.png`) by running the English scenarios of the features after switching the

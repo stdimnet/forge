@@ -43,10 +43,10 @@ export function formatSize(bytes: number | null): string {
 }
 
 const STATES: { status: DiffStatus; title: string; icon: typeof Equal }[] = [
-  { status: "leftOnly", title: "Show Files Only on the Left", icon: ArrowRight },
-  { status: "different", title: "Show Different Files", icon: EqualNot },
-  { status: "equal", title: "Show Equal Files", icon: Equal },
-  { status: "rightOnly", title: "Show Files Only on the Right", icon: ArrowLeft },
+  { status: "leftOnly", title: t("tools.compare.showFilesOnlyOnThe"), icon: ArrowRight },
+  { status: "different", title: t("tools.compare.showDifferentFiles"), icon: EqualNot },
+  { status: "equal", title: t("tools.compare.showEqualFiles"), icon: Equal },
+  { status: "rightOnly", title: t("tools.compare.showFilesOnlyOnThe2"), icon: ArrowLeft },
 ];
 
 const STATUS_TITLE: Record<DiffStatus, string> = {

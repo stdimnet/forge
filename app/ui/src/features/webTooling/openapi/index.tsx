@@ -28,7 +28,7 @@ const active = () => isPluginActive("forge.openapi");
 
 registerEndpointsView({
   id: "openapi",
-  title: "OpenAPI",
+  title: t("langs.webTooling.openapi"),
   order: 30,
   when: () => active() && openApiFiles().length > 0,
   component: OpenApiEndpointsView,

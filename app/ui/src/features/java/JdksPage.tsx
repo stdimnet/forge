@@ -20,7 +20,7 @@ const [downloadOpen, setDownloadOpen] = createSignal(false);
 export const openDownloadForm = () => setDownloadOpen(true);
 
 const LANGUAGE_LEVELS = [
-  { value: "", label: "SDK default" },
+  { value: "", label: t("langs.java.sdkDefault") },
   { value: "8", label: "8 - Lambdas, type annotations etc." },
   { value: "11", label: "11 - Local variable syntax for lambda parameters" },
   { value: "17", label: "17 - Sealed types, always-strict floating-point semantics" },

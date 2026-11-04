@@ -34,9 +34,9 @@ registerRunConfigurationType({
   color: "var(--info)",
   pluginId: "forge.nx",
   fields: [
-    { key: "project", label: "Project", kind: "string", required: true },
-    { key: "target", label: "Target", kind: "string", required: true },
-    { key: "configuration", label: "Configuration", kind: "string" },
+    { key: "project", label: tr("common.project"), kind: "string", required: true },
+    { key: "target", label: tr("common.target"), kind: "string", required: true },
+    { key: "configuration", label: tr("langs.webTooling.configuration"), kind: "string" },
   ],
   suggestName: (cfg) => (cfg.options?.project ? `${cfg.options.project}:${cfg.options?.target ?? ""}` : undefined),
   buildCommand: (cfg) => {
@@ -182,7 +182,7 @@ registerCommand({ id: "ActivateNxToolWindow", title: "Nx", category: "View", run
 
 registerRunAnythingProvider({
   id: "nx",
-  title: "Nx targets",
+  title: tr("langs.webTooling.nxTargets"),
   when: active,
   commands: async () => {
     const ws = workspaceData() ?? (await nxApi.workspace());

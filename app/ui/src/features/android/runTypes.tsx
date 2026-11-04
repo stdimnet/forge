@@ -16,7 +16,7 @@ const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 registerRunConfigurationType({
   id: APP,
   name: "Android App",
-  description: "Build the module's APK with Gradle, install it on a device or emulator with adb and start its launcher activity.",
+  description: t("langs.android.buildTheModuleSApk"),
   icon: Smartphone,
   color: "var(--success)",
   pluginId: PLUGIN_ID,
@@ -24,19 +24,19 @@ registerRunConfigurationType({
   noRunTarget: true,
   defaults: () => ({ options: { module: "app", variant: "debug" } }),
   fields: [
-    { key: "module", label: "Module", required: true, placeholder: "app" },
-    { key: "variant", label: "Build variant", placeholder: "debug" },
+    { key: "module", label: t("common.module"), required: true, placeholder: "app" },
+    { key: "variant", label: t("langs.android.buildVariant"), placeholder: "debug" },
     {
       key: "device",
-      label: "Deploy to",
+      label: t("langs.android.deployTo"),
       kind: "enum",
       options: () => [
         { value: "", label: t("langs.android.theFirstRunningDevice") },
         ...onlineDevices().map((d) => ({ value: d.serial, label: `${deviceLabel(d.serial)} (${d.serial})` })),
       ],
     },
-    { key: "activity", label: "Launch activity", placeholder: "Empty: the default activity of the manifest" },
-    { key: "apk", label: "APK", placeholder: "Empty: app/build/outputs/apk/<variant>/app-<variant>.apk" },
+    { key: "activity", label: t("langs.android.launchActivity"), placeholder: t("langs.android.emptyTheDefaultActivityOf") },
+    { key: "apk", label: "APK", placeholder: t("langs.android.emptyAppBuildOutputsApk") },
   ],
   suggestName: (cfg) => opt(cfg, "module") || "app",
 });

@@ -31,12 +31,12 @@ import { t } from "@/i18n";
 import "./android.css";
 
 const LEVELS: { level: LogLevel; label: string }[] = [
-  { level: "V", label: "Verbose" },
-  { level: "D", label: "Debug" },
-  { level: "I", label: "Info" },
-  { level: "W", label: "Warn" },
-  { level: "E", label: "Error" },
-  { level: "A", label: "Assert" },
+  { level: "V", label: t("langs.android.verbose") },
+  { level: "D", label: t("common.debug2") },
+  { level: "I", label: t("langs.android.info") },
+  { level: "W", label: t("langs.android.warn") },
+  { level: "E", label: t("langs.android.error") },
+  { level: "A", label: t("langs.android.assert") },
 ];
 
 /** Character index of a UTF-8 byte offset of `s`. */

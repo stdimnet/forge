@@ -12,9 +12,9 @@ import { FindingCard, InlineCode, ProviderLine, SeverityIcon } from "./ReviewCar
 import { t as tr } from "@/i18n";
 
 const eventLabels: Record<ReviewEvent, { label: string; hint: string }> = {
-  comment: { label: "Comment", hint: "Submit general feedback without explicit approval." },
-  approve: { label: "Approve", hint: "Give your approval to merge these changes." },
-  requestChanges: { label: "Request changes", hint: "Submit feedback that must be addressed before merging." },
+  comment: { label: tr("tools.forges.comment"), hint: tr("tools.forges.submitGeneralFeedbackWithoutExplicit") },
+  approve: { label: tr("tools.forges.approve"), hint: tr("tools.forges.giveYourApprovalToMerge") },
+  requestChanges: { label: tr("tools.forges.requestChanges"), hint: tr("tools.forges.submitFeedbackThatMustBe") },
 };
 
 /** The AI provider in use, or why AI is not available. */

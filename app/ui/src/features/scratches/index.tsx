@@ -72,7 +72,7 @@ registerRunConfigurationType({
   hidden: true,
   interpreter: "php",
   argumentsLabel: false,
-  fields: [{ key: "scratch", label: "Scratch", required: true }],
+  fields: [{ key: "scratch", label: t("tools.scratches.scratch"), required: true }],
 });
 
 registerRunConfigurationType({
@@ -86,8 +86,8 @@ registerRunConfigurationType({
   argumentsLabel: false,
   // `scratch` (a scratch's name) or `file` (a project path), and the request's `line`.
   fields: [
-    { key: "scratch", label: "Scratch" },
-    { key: "file", label: "File" },
+    { key: "scratch", label: t("tools.scratches.scratch") },
+    { key: "file", label: t("common.file") },
   ],
   start: async (cfg, request) => {
     const file = cfg.options?.file;

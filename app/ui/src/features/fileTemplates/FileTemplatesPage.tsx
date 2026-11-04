@@ -17,9 +17,9 @@ import { CUSTOM_KEY } from "./model";
 import { t as tr } from "@/i18n";
 
 const TABS: { kind: TemplateKind; label: string }[] = [
-  { kind: "file", label: "Files" },
-  { kind: "include", label: "Includes" },
-  { kind: "code", label: "Code" },
+  { kind: "file", label: tr("tools.fileTemplates.files") },
+  { kind: "include", label: tr("tools.fileTemplates.includes") },
+  { kind: "code", label: tr("tools.fileTemplates.code") },
 ];
 
 const EMPTY: TemplateCatalog = { templates: [], variables: [] };

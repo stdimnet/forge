@@ -26,13 +26,13 @@ const REASONS: Record<string, string> = {
 };
 
 const TOOLS: { tool: string; label: string; gem?: "debug" | "rubocop"; licence: string }[] = [
-  { tool: "bundle", label: "Bundler", licence: "MIT" },
+  { tool: "bundle", label: tr("langs.ruby.bundler"), licence: "MIT" },
   { tool: "rake", label: "Rake", licence: "MIT" },
-  { tool: "rspec", label: "RSpec", licence: "MIT" },
-  { tool: "rubocop", label: "RuboCop", gem: "rubocop", licence: "MIT" },
+  { tool: "rspec", label: tr("langs.ruby.rspec"), licence: "MIT" },
+  { tool: "rubocop", label: tr("langs.ruby.rubocop"), gem: "rubocop", licence: "MIT" },
   { tool: "rdbg", label: "rdbg (debug gem)", gem: "debug", licence: "BSD-2-Clause" },
   { tool: "irb", label: "IRB", licence: "BSD-2-Clause" },
-  { tool: "ruby-lsp", label: "Ruby LSP", licence: "MIT" },
+  { tool: "ruby-lsp", label: tr("langs.ruby.rubyLsp"), licence: "MIT" },
 ];
 
 export function RubySettingsPage() {

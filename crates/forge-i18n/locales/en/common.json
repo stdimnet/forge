@@ -94,5 +94,16 @@
   "common.reload": "Reload",
   "common.installEllipsis": "Install…",
   "common.browseEllipsis": "Browse…",
-  "common.callTree": "Call Tree"
+  "common.callTree": "Call Tree",
+  "common.module": "Module",
+  "common.target": "Target",
+  "common.testScope": "Test scope",
+  "common.class": "Class",
+  "common.filter": "Filter",
+  "common.file": "File",
+  "common.port": "Port",
+  "common.vmOptions": "VM options",
+  "common.testKind": "Test kind",
+  "common.allInProject": "All in project",
+  "common.buildToolArguments": "Build tool arguments"
 }

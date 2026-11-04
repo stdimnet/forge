@@ -29,18 +29,18 @@ export interface AddResult {
 }
 
 const TARGETS: { id: Target; label: string; icon: (p: { size: number }) => JSX.Element }[] = [
-  { id: "local", label: "Local Interpreter", icon: (p) => <Monitor size={p.size} /> },
+  { id: "local", label: tr("langs.python.localInterpreter"), icon: (p) => <Monitor size={p.size} /> },
   { id: "docker", label: "Docker", icon: (p) => <Box size={p.size} /> },
-  { id: "compose", label: "Docker Compose", icon: (p) => <Container size={p.size} /> },
+  { id: "compose", label: tr("langs.python.dockerCompose"), icon: (p) => <Container size={p.size} /> },
   { id: "ssh", label: "SSH", icon: (p) => <Server size={p.size} /> },
   { id: "wsl", label: "WSL", icon: (p) => <Terminal size={p.size} /> },
 ];
 
 const NEW_KINDS: { id: EnvKind; label: string }[] = [
-  { id: "venv", label: "Virtualenv" },
+  { id: "venv", label: tr("langs.python.virtualenv") },
   { id: "uv", label: "uv" },
-  { id: "poetry", label: "Poetry" },
-  { id: "conda", label: "Conda" },
+  { id: "poetry", label: tr("langs.python.poetry") },
+  { id: "conda", label: tr("langs.python.conda") },
 ];
 
 function Row(props: { label: string; for?: string; children: JSX.Element }) {

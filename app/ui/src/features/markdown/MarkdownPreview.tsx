@@ -165,11 +165,11 @@ function Mermaid(props: { code: string }) {
 }
 
 const ALERTS: Record<string, { title: string; icon: typeof Info }> = {
-  note: { title: "Note", icon: Info },
-  tip: { title: "Tip", icon: Lightbulb },
-  important: { title: "Important", icon: MessageSquareWarning },
-  warning: { title: "Warning", icon: TriangleAlert },
-  caution: { title: "Caution", icon: OctagonAlert },
+  note: { title: tr("tools.markdown.note"), icon: Info },
+  tip: { title: tr("tools.markdown.tip"), icon: Lightbulb },
+  important: { title: tr("tools.markdown.important"), icon: MessageSquareWarning },
+  warning: { title: tr("tools.markdown.warning"), icon: TriangleAlert },
+  caution: { title: tr("tools.markdown.caution"), icon: OctagonAlert },
 };
 
 function ListItem(props: { item: MdListItem; ctx: Ctx }) {

@@ -36,9 +36,9 @@ type TestState = { running: true } | ({ running: false } & TestResult);
 const NEW_ID = "__new__";
 
 const featureRows: { feature: AiFeature; label: string; hint: string }[] = [
-  { feature: "chat", label: "Chat", hint: "AI Chat tool window and inline questions" },
-  { feature: "commitMessages", label: "Commit messages", hint: "Generate Commit Message in the Commit tool window" },
-  { feature: "completion", label: "Code completion", hint: "Inline completion while typing; prefer a fast local model" },
+  { feature: "chat", label: tr("tools.ai.chat"), hint: tr("tools.ai.aiChatToolWindowAnd") },
+  { feature: "commitMessages", label: tr("tools.ai.commitMessages"), hint: tr("tools.ai.generateCommitMessageInThe") },
+  { feature: "completion", label: tr("tools.ai.codeCompletion"), hint: tr("tools.ai.inlineCompletionWhileTypingPrefer") },
 ];
 
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);

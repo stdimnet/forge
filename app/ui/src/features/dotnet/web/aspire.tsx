@@ -75,7 +75,7 @@ let seq = 0;
 registerRunConfigurationType({
   id: "dotnet-aspire",
   name: ".NET Aspire",
-  description: "Run a .NET Aspire AppHost with dotnet run: its resources show up in the Services tool window, the dashboard link in the console.",
+  description: t("langs.dotnet.runANetAspireApphost"),
   icon: Boxes,
   color: "var(--syn-type)",
   pluginId: PLUGIN,
@@ -86,10 +86,10 @@ registerRunConfigurationType({
     return { options: { project: h?.path ?? "", profile: projectByPath(h?.path ?? "")?.launchProfiles?.[0]?.name ?? "" } };
   },
   fields: [
-    { key: "project", label: "AppHost project", kind: "enum", required: true, options: () => (hosts() ?? []).map((h) => ({ value: h.path, label: h.name })) },
+    { key: "project", label: t("langs.dotnet.apphostProject"), kind: "enum", required: true, options: () => (hosts() ?? []).map((h) => ({ value: h.path, label: h.name })) },
     {
       key: "profile",
-      label: "Launch profile",
+      label: t("langs.dotnet.launchProfile"),
       kind: "enum",
       default: "",
       options: () => {
@@ -102,13 +102,13 @@ registerRunConfigurationType({
     },
     {
       key: "configuration",
-      label: "Configuration",
+      label: t("langs.dotnet.configuration"),
       kind: "enum",
       default: "",
       options: [
-        { value: "", label: "Settings | .NET" },
-        { value: "Debug", label: "Debug" },
-        { value: "Release", label: "Release" },
+        { value: "", label: t("langs.dotnet.settingsNet") },
+        { value: "Debug", label: t("common.debug2") },
+        { value: "Release", label: t("langs.dotnet.release") },
       ],
     },
     { key: "dotnetArgs", label: "dotnet run options", placeholder: "--property:Foo=Bar" },

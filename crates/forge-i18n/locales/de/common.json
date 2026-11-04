@@ -94,5 +94,16 @@
   "common.reload": "Neu laden",
   "common.installEllipsis": "Installieren…",
   "common.browseEllipsis": "Durchsuchen…",
-  "common.callTree": "Aufrufbaum"
+  "common.callTree": "Aufrufbaum",
+  "common.module": "Modul",
+  "common.target": "Ziel",
+  "common.testScope": "Testbereich",
+  "common.class": "Klasse",
+  "common.filter": "Filter",
+  "common.file": "Datei",
+  "common.port": "Port",
+  "common.vmOptions": "VM-Optionen",
+  "common.testKind": "Testart",
+  "common.allInProject": "Alle im Projekt",
+  "common.buildToolArguments": "Argumente für das Build-Tool"
 }

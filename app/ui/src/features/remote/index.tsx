@@ -55,7 +55,7 @@ registerCommand({
 
 registerDialog<SshDialogRequest, SshDialogResult>({
   id: SSH_CONNECTION_DIALOG,
-  title: "New SSH Connection",
+  title: t("tools.remote.newSshConnection"),
   width: 640,
   height: 560,
   minWidth: 520,

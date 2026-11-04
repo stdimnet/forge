@@ -20,17 +20,17 @@ const simple = (cls: string) => cls.split(/[.$]/).pop() || undefined;
 registerRunConfigurationType({
   id: SBT_TASK,
   name: "sbt Task",
-  description: "Run sbt tasks (one per line or separated by ';', e.g. ~compile, test, runMain com.acme.Main). Without tasks it opens the sbt shell in the Run tool window.",
+  description: t("langs.scala.runSbtTasksOnePer"),
   icon: SquareTerminal,
   color: "var(--accent)",
   pluginId: PLUGIN_ID,
   argumentsLabel: "sbt options",
   noRunTarget: true,
   fields: [
-    { key: "tasks", label: "Tasks", kind: "text", placeholder: "~compile (empty: the sbt shell)" },
-    { key: "project", label: "Project", placeholder: "core (empty: the root project)" },
-    { key: "interpreterOptions", label: "VM parameters", placeholder: "-Xmx2g" },
-    { key: "sbt", label: "sbt launcher", placeholder: "Empty: Settings | Scala, SDKMAN! or the PATH" },
+    { key: "tasks", label: t("langs.scala.tasks"), kind: "text", placeholder: "~compile (empty: the sbt shell)" },
+    { key: "project", label: t("common.project"), placeholder: "core (empty: the root project)" },
+    { key: "interpreterOptions", label: t("langs.scala.vmParameters"), placeholder: "-Xmx2g" },
+    { key: "sbt", label: "sbt launcher", placeholder: t("langs.scala.emptySettingsScalaSdkmanOr") },
   ],
   suggestName: (cfg) => {
     const tasks = opt(cfg, "tasks").trim().split(/[\n;]/)[0]?.trim();
@@ -87,7 +87,7 @@ const testName = (label: string) => (cfg: RunConfiguration) => {
 registerRunConfigurationType({
   id: SCALATEST,
   name: "ScalaTest",
-  description: "Run ScalaTest suites through sbt testOnly: all, a package, a suite or one test.",
+  description: t("langs.scala.runScalatestSuitesThroughSbt"),
   icon: TestTubes,
   color: "var(--success)",
   pluginId: PLUGIN_ID,
@@ -101,7 +101,7 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: MUNIT,
   name: "MUnit",
-  description: "Run MUnit suites through sbt testOnly: all, a package, a suite or one test.",
+  description: t("langs.scala.runMunitSuitesThroughSbt"),
   icon: FlaskConical,
   color: "var(--success)",
   pluginId: PLUGIN_ID,

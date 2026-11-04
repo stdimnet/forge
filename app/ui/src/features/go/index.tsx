@@ -65,7 +65,7 @@ registerProfilerSource({ id: "go", label: "pprof", active: goActive, component: 
 registerRunConfigurationType({
   id: "go-build",
   name: "Go Build",
-  description: "Build a Go package, folder or files, and run the program (go run) or only build it (go build -o).",
+  description: tr("langs.go.buildAGoPackageFolder"),
   icon: Box,
   color: "var(--info)",
   pluginId: PLUGIN,
@@ -75,22 +75,22 @@ registerRunConfigurationType({
   fields: [
     {
       key: "kind",
-      label: "Run kind",
+      label: tr("langs.go.runKind"),
       kind: "segmented",
       default: "package",
       options: [
-        { value: "package", label: "Package" },
-        { value: "directory", label: "Directory" },
-        { value: "file", label: "File" },
+        { value: "package", label: tr("common.package") },
+        { value: "directory", label: tr("langs.go.directory") },
+        { value: "file", label: tr("common.file") },
       ],
     },
-    { key: "package", label: "Package path", required: true, placeholder: "./cmd/ledger or github.com/acme/ledger/cmd/ledger", visible: (c) => (opt(c, "kind") || "package") === "package" },
-    { key: "directory", label: "Directory", kind: "path", directory: true, required: true, visible: (c) => opt(c, "kind") === "directory" },
-    { key: "files", label: "Files", kind: "text", required: true, placeholder: "cmd/tool/main.go (one per line)", visible: (c) => opt(c, "kind") === "file" },
-    { key: "runAfterBuild", label: "Run after build", kind: "bool", default: "true" },
-    { key: "output", label: "Output directory or file", kind: "path", placeholder: "bin/ledger (go build -o)", visible: (c) => opt(c, "runAfterBuild") === "false" },
-    { key: "tags", label: "Build tags", placeholder: "integration,prod" },
-    { key: "flags", label: "Go tool arguments", placeholder: "-race -trimpath" },
+    { key: "package", label: tr("langs.go.packagePath"), required: true, placeholder: "./cmd/ledger or github.com/acme/ledger/cmd/ledger", visible: (c) => (opt(c, "kind") || "package") === "package" },
+    { key: "directory", label: tr("langs.go.directory"), kind: "path", directory: true, required: true, visible: (c) => opt(c, "kind") === "directory" },
+    { key: "files", label: tr("langs.go.files"), kind: "text", required: true, placeholder: "cmd/tool/main.go (one per line)", visible: (c) => opt(c, "kind") === "file" },
+    { key: "runAfterBuild", label: tr("langs.go.runAfterBuild"), kind: "bool", default: "true" },
+    { key: "output", label: tr("langs.go.outputDirectoryOrFile"), kind: "path", placeholder: "bin/ledger (go build -o)", visible: (c) => opt(c, "runAfterBuild") === "false" },
+    { key: "tags", label: tr("langs.go.buildTags"), placeholder: "integration,prod" },
+    { key: "flags", label: tr("langs.go.goToolArguments"), placeholder: "-race -trimpath" },
   ],
   suggestName: (cfg) => {
     switch (opt(cfg, "kind")) {
@@ -107,7 +107,7 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: "go-remote",
   name: "Go Remote",
-  description: "Attach the debugger to dlv --headless --listen=:2345 --accept-multiclient (Delve 1.20 or newer), e.g. in a container or on another machine.",
+  description: tr("langs.go.attachTheDebuggerToDlv"),
   icon: Plug,
   color: "var(--warning)",
   pluginId: PLUGIN,
@@ -115,9 +115,9 @@ registerRunConfigurationType({
   debuggable: true,
   noRunTarget: true,
   fields: [
-    { key: "host", label: "Host", default: "localhost" },
-    { key: "port", label: "Port", default: "2345", required: true },
-    { key: "remotePath", label: "Project folder on the remote side", placeholder: "/app (maps breakpoints with substitutePath)" },
+    { key: "host", label: tr("langs.go.host"), default: "localhost" },
+    { key: "port", label: tr("common.port"), default: "2345", required: true },
+    { key: "remotePath", label: tr("langs.go.projectFolderOnTheRemote"), placeholder: "/app (maps breakpoints with substitutePath)" },
   ],
   suggestName: (cfg) => `${opt(cfg, "host") || "localhost"}:${opt(cfg, "port") || "2345"}`,
   start: () => Promise.reject(new Error("Go Remote configurations only debug: use Debug (Shift+F9)")),
@@ -152,7 +152,7 @@ if (typeof document !== "undefined") {
             ...base,
             fields: [
               ...base.fields.filter((f) => !["executable", "testRunnerOptions"].includes(f.key)),
-              { key: "recursive", label: "Include sub folders", kind: "bool", default: "true", visible: (c) => opt(c, "scope") === "directory" },
+              { key: "recursive", label: tr("langs.go.includeSubFolders"), kind: "bool", default: "true", visible: (c) => opt(c, "scope") === "directory" },
             ],
             argumentsLabel: "Program arguments (-args)",
             start: async (cfg, request) => {

@@ -371,7 +371,7 @@ export function TableEditor(props: { tab: EditorTab }) {
   const aggregates = useAggregates(selected);
 
   const compareSource = () => tableSource(loc.id, loc.schema, loc.table, where().trim() || undefined);
-  onCleanup(registerCompareSource({ ...tableSource(loc.id, loc.schema, loc.table), label: `${ds()?.name ?? loc.id} · ${loc.schema}.${loc.table} (open)` }));
+  onCleanup(registerCompareSource({ ...tableSource(loc.id, loc.schema, loc.table), label: tr("tools.database.open2", { value: ds()?.name ?? loc.id, schema: loc.schema, table: loc.table }) }));
 
   dataEditors.set(props.tab.path, { submit, revert, addRow, deleteRows, reload: () => load() });
   gridControllers.set(gridId, {

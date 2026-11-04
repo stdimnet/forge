@@ -63,7 +63,7 @@ const opt = (cfg: { options?: Record<string, string> }, key: string) => cfg.opti
 registerRunConfigurationType({
   id: "rails",
   name: "Rails",
-  description: "Run bin/rails server on a host and port in an environment; debug with rdbg.",
+  description: t("langs.rails.runBinRailsServerOn"),
   icon: TrainFront,
   color: "var(--danger)",
   pluginId: PLUGIN,
@@ -73,7 +73,7 @@ registerRunConfigurationType({
   fields: [
     {
       key: "environment",
-      label: "Environment",
+      label: t("langs.rails.environment"),
       kind: "enum",
       default: "development",
       options: [
@@ -82,9 +82,9 @@ registerRunConfigurationType({
         { value: "production", label: "production" },
       ],
     },
-    { key: "host", label: "IP address", placeholder: "localhost (0.0.0.0 for other machines)" },
-    { key: "port", label: "Port", placeholder: "3000" },
-    { key: "interpreterOptions", label: "Ruby arguments", placeholder: "-W0" },
+    { key: "host", label: t("langs.rails.ipAddress"), placeholder: "localhost (0.0.0.0 for other machines)" },
+    { key: "port", label: t("common.port"), placeholder: "3000" },
+    { key: "interpreterOptions", label: t("langs.rails.rubyArguments"), placeholder: "-W0" },
   ],
   suggestName: (cfg) => `${railsProject()?.appName?.toLowerCase() ?? "rails"}: ${opt(cfg, "environment") || "development"}`,
   validate: (cfg) => (opt(cfg, "port") && !/^\d{1,5}$/.test(opt(cfg, "port")) ? "The port must be a number" : null),

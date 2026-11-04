@@ -65,7 +65,7 @@ function WatcherProblemsView() {
 
 registerProblemsTab({
   id: "file-watchers",
-  title: "File Watchers",
+  title: t("langs.webTooling.fileWatchers"),
   order: 30,
   count: watcherProblemCount,
   visible: () => fileWatchers().length > 0 || watcherProblemCount() > 0,

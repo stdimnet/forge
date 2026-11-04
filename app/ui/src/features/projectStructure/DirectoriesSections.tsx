@@ -27,10 +27,10 @@ export function addStructureFolder(path: string, kind: StructureKind): void {
 }
 
 const SECTIONS: { kind: FolderKind; title: string; remove: string }[] = [
-  { kind: "resource", title: "Resource Folders", remove: "Unmark as Resource Root" },
-  { kind: "testResource", title: "Test Resource Folders", remove: "Unmark as Test Resources Root" },
-  { kind: "excluded", title: "Excluded Folders", remove: "Cancel Exclusion" },
-  { kind: "included", title: "Cancelled Default Exclusions", remove: "Exclude Again" },
+  { kind: "resource", title: t("tools.projectStructure.resourceFolders"), remove: "Unmark as Resource Root" },
+  { kind: "testResource", title: t("tools.projectStructure.testResourceFolders"), remove: "Unmark as Test Resources Root" },
+  { kind: "excluded", title: t("tools.projectStructure.excludedFolders"), remove: "Cancel Exclusion" },
+  { kind: "included", title: t("tools.projectStructure.cancelledDefaultExclusions"), remove: "Exclude Again" },
 ];
 
 export function ProjectStructureSections() {

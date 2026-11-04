@@ -71,7 +71,7 @@ function NuxtView() {
 
 registerEndpointsView({
   id: "nuxt",
-  title: "Nuxt",
+  title: tr("langs.webTooling.nuxt"),
   order: 25,
   when: nuxtActive,
   component: NuxtView,
@@ -124,7 +124,7 @@ registerCommand({
 });
 registerRunAnythingProvider({
   id: "prisma",
-  title: "Prisma",
+  title: tr("langs.webTooling.prisma"),
   when: prismaActive,
   commands: async () => [
     { command: "npx prisma generate", description: tr("langs.webTooling.generateThePrismaClient") },
@@ -139,14 +139,14 @@ registerRunAnythingProvider({
 
 registerRunAnythingProvider({
   id: "deno",
-  title: "Deno tasks",
+  title: tr("langs.webTooling.denoTasks"),
   when: () => isPluginActive("forge.deno"),
   commands: async () => (await denoApi.tasks()).map((t) => ({ command: `deno task ${t.name}`, description: t.command })),
 });
 
 registerRunAnythingProvider({
   id: "bun",
-  title: "Bun",
+  title: tr("langs.webTooling.bun"),
   when: () => isPluginActive("forge.bun"),
   commands: async () => [
     { command: "bun test", description: tr("langs.webTooling.runTheTestsWithBun") },

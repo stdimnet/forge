@@ -112,12 +112,12 @@ function blank(driver: Driver): DataSource {
 
 /** Dialects DDL files can be written in. */
 const DDL_DIALECTS: { id: Dialect; label: string }[] = [
-  { id: "postgres", label: "PostgreSQL" },
-  { id: "mysql", label: "MySQL / MariaDB" },
-  { id: "sqlite", label: "SQLite" },
-  { id: "sqlserver", label: "SQL Server" },
-  { id: "oracle", label: "Oracle" },
-  { id: "clickhouse", label: "ClickHouse" },
+  { id: "postgres", label: tr("tools.database.postgresql") },
+  { id: "mysql", label: tr("tools.database.mysqlMariadb") },
+  { id: "sqlite", label: tr("tools.database.sqlite") },
+  { id: "sqlserver", label: tr("tools.database.sqlServer") },
+  { id: "oracle", label: tr("tools.database.oracle") },
+  { id: "clickhouse", label: tr("tools.database.clickhouse") },
 ];
 
 const fromInfo = (i: DataSourceInfo): DataSource => {

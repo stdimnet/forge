@@ -93,15 +93,15 @@ interface ToolButton {
 }
 
 const TOOL_BUTTONS: (ToolButton | "sep")[] = [
-  { id: "start", title: "Start", icon: Play, cls: "run", actions: ["start", "up", "connect"] },
-  { id: "stop", title: "Stop", icon: Square, cls: "stop", actions: ["stop"] },
-  { id: "restart", title: "Restart", icon: RotateCw, actions: ["restart"] },
-  { id: "remove", title: "Delete", icon: Trash2, actions: ["remove", "down"] },
+  { id: "start", title: t("tools.services.start"), icon: Play, cls: "run", actions: ["start", "up", "connect"] },
+  { id: "stop", title: t("common.stop"), icon: Square, cls: "stop", actions: ["stop"] },
+  { id: "restart", title: t("tools.services.restart"), icon: RotateCw, actions: ["restart"] },
+  { id: "remove", title: t("common.delete"), icon: Trash2, actions: ["remove", "down"] },
   "sep",
-  { id: "logs", title: "Show Log", icon: ScrollText, actions: ["logs"] },
-  { id: "exec", title: "Exec (open a terminal in the container)", icon: SquareTerminal, actions: ["exec"] },
-  { id: "pull", title: "Pull Image", icon: Download, actions: ["pull"] },
-  { id: "forward", title: "Forward Ports…", icon: ArrowRightLeft, actions: ["forwardPorts"] },
+  { id: "logs", title: t("tools.services.showLog"), icon: ScrollText, actions: ["logs"] },
+  { id: "exec", title: t("tools.services.execOpenATerminalIn"), icon: SquareTerminal, actions: ["exec"] },
+  { id: "pull", title: t("tools.services.pullImage"), icon: Download, actions: ["pull"] },
+  { id: "forward", title: t("tools.services.forwardPortsEllipsis"), icon: ArrowRightLeft, actions: ["forwardPorts"] },
 ];
 
 const LABELS: Partial<Record<ServiceAction, string>> = {

@@ -14,12 +14,12 @@ import { embeddedInfo, refreshEmbedded, runPioTask } from "./embedded";
 import { t as tr } from "@/i18n";
 
 const TASKS: { task: PioTask; label: string; icon: typeof Hammer }[] = [
-  { task: "build", label: "Build", icon: Hammer },
-  { task: "upload", label: "Upload", icon: Upload },
-  { task: "monitor", label: "Monitor", icon: MonitorDot },
-  { task: "test", label: "Test", icon: FlaskConical },
-  { task: "clean", label: "Clean", icon: Trash2 },
-  { task: "compiledb", label: "Compilation Database", icon: Database },
+  { task: "build", label: tr("langs.cpp.build2"), icon: Hammer },
+  { task: "upload", label: tr("langs.cpp.upload"), icon: Upload },
+  { task: "monitor", label: tr("langs.cpp.monitor"), icon: MonitorDot },
+  { task: "test", label: tr("common.test"), icon: FlaskConical },
+  { task: "clean", label: tr("langs.cpp.clean"), icon: Trash2 },
+  { task: "compiledb", label: tr("langs.cpp.compilationDatabase"), icon: Database },
 ];
 
 const [selected, setSelected] = createSignal<string | null>(null);

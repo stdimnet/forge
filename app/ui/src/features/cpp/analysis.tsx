@@ -37,7 +37,7 @@ import { t } from "@/i18n";
 
 registerRunPanel({
   id: "sanitizers",
-  title: "Sanitizers",
+  title: t("langs.cpp.sanitizers"),
   icon: ShieldAlert,
   accepts: acceptSanitizer,
   count: (d) => (d as unknown[]).length,
@@ -47,7 +47,7 @@ registerRunPanel({
 
 registerRunPanel({
   id: "valgrind",
-  title: "Valgrind",
+  title: t("langs.cpp.valgrind"),
   icon: Bug,
   accepts: acceptValgrind,
   count: (d) => (d as { errors: unknown[] }).errors.length,

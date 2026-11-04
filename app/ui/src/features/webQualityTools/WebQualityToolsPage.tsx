@@ -31,9 +31,9 @@ const FILES: Record<WebTool, string> = {
   biome: "web.biome.files",
 };
 const MODES: { value: WebToolMode; label: string }[] = [
-  { value: "disabled", label: "Disabled" },
-  { value: "automatic", label: "Automatic configuration" },
-  { value: "manual", label: "Manual configuration" },
+  { value: "disabled", label: tr("langs.webQualityTools.disabled") },
+  { value: "automatic", label: tr("langs.webQualityTools.automaticConfiguration") },
+  { value: "manual", label: tr("langs.webQualityTools.manualConfiguration") },
 ];
 
 /** The options of a tool, in the order the page shows them. */

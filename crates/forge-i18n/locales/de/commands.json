@@ -312,5 +312,8 @@
   "action.TextEditorWithPreview.Layout.EditorAndPreview": "Editor und Vorschau",
   "action.TextEditorWithPreview.Layout.PreviewOnly": "Nur Vorschau",
   "action.Csv.EditAsTable": "Als Tabelle bearbeiten",
-  "action.Csv.EditAsText": "Als Text bearbeiten"
+  "action.Csv.EditAsText": "Als Text bearbeiten",
+  "menu.group.external-tools": "Externe Tools",
+  "menu.group.http-client": "HTTP-Client",
+  "menu.group.prisma": "Prisma"
 }
