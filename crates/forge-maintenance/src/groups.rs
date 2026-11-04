@@ -75,6 +75,7 @@ const GROUPS: &[SettingsGroup] = &[
             "search.",
         ],
     ),
+    keys("colorSchemes", "Color Schemes", &["editor.colorScheme."]),
     keys(
         "codeStyle",
         "Code Style",
@@ -144,7 +145,17 @@ const GROUPS: &[SettingsGroup] = &[
         "dataSources.toml",
     ),
     file("ssh", "SSH Configurations", "ssh.toml"),
+    // Written from the installed third-party plugins when exporting; importing it offers the
+    // missing ones in Settings | Plugins | Marketplace (`forge-plugins`).
+    file(
+        "installedPlugins",
+        "Installed Plugins (list only)",
+        INSTALLED_PLUGINS_FILE,
+    ),
 ];
+
+/// The file of the `installedPlugins` group: the installed third-party plugins as JSON.
+pub const INSTALLED_PLUGINS_FILE: &str = "installed-plugins.json";
 
 /// All groups, in the order the dialogs list them.
 pub fn settings_groups() -> &'static [SettingsGroup] {
@@ -155,8 +166,12 @@ pub fn group(id: &str) -> Option<&'static SettingsGroup> {
     GROUPS.iter().find(|g| g.id == id)
 }
 
-/// The group a setting key belongs to (the longest matching prefix wins).
+/// The group a setting key belongs to (the longest matching prefix wins). Code style keys
+/// of every language (`json.codeStyle.indent`) are "Code Style".
 pub fn group_of_key(key: &str) -> &'static str {
+    if key.split('.').nth(1) == Some("codeStyle") {
+        return "codeStyle";
+    }
     GROUPS
         .iter()
         .flat_map(|g| g.prefixes.iter().map(move |p| (g.id, *p)))
@@ -210,6 +225,8 @@ mod tests {
     fn keys_go_to_the_most_specific_group() {
         assert_eq!(group_of_key("editor.font.size"), "editor");
         assert_eq!(group_of_key("editor.codeStyle.scheme"), "codeStyle");
+        assert_eq!(group_of_key("json.codeStyle.indent"), "codeStyle");
+        assert_eq!(group_of_key("editor.colorScheme.active"), "colorSchemes");
         assert_eq!(group_of_key("editor.liveTemplates.custom"), "liveTemplates");
         assert_eq!(group_of_key("keymap.overrides.default"), "keymap");
         assert_eq!(group_of_key("templates.delimiters"), "fileTypes");
