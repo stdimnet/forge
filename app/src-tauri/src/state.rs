@@ -31,6 +31,9 @@ pub struct AppState {
     pub plugin_store: Option<forge_plugins::PluginStore>,
 }
 
+/// The IDE language setting (`en`, `de`).
+pub const LANGUAGE_KEY: &str = "ide.language";
+
 impl AppState {
     /// State with the built-in plugins registered, their setting defaults applied, and the
     /// user settings (including disabled plugins) loaded.
@@ -99,6 +102,10 @@ impl AppState {
             }
         }
         drop(registry);
+        // The IDE language (Settings | Appearance & Behavior | System Settings | Language)
+        // applies to Rust-originated text from the start.
+        let language: Option<String> = state.read_settings().get_as(LANGUAGE_KEY);
+        forge_i18n::set_locale(language.as_deref().unwrap_or("en"));
         state
     }
 

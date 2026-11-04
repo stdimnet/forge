@@ -2660,6 +2660,7 @@ dependencies = [
  "forge-filetypes",
  "forge-forges",
  "forge-fuzzy",
+ "forge-i18n",
  "forge-injections",
  "forge-inspections",
  "forge-jsonschema",
@@ -3356,6 +3357,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-filetypes",
+ "forge-i18n",
  "forge-inspections",
  "forge-keymap",
  "forge-output",

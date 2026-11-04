@@ -293,6 +293,7 @@ pub fn descriptor(p: &InstalledPlugin) -> PluginDescriptor {
             depends: Vec::new(),
             required: false,
             project_types: Vec::new(),
+            l10n: m.l10n.clone(),
         },
         contributions: Contributions {
             commands: m.contributes.commands.clone(),

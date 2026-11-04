@@ -325,4 +325,28 @@ mod tests {
             path.display()
         );
     }
+
+    /// `crates/forge-i18n/locales/en/plugins.json`, the English source of the manifests'
+    /// translatable text, follows the manifests (`FORGE_UPDATE_SNAPSHOTS=1` rewrites it).
+    #[test]
+    fn english_plugin_catalog_is_current() {
+        let registry = builtin_registry().unwrap();
+        let actions = forge_keymap::catalog::action_messages();
+        let menu = forge_keymap::menu::menu_messages();
+        let messages = forge_plugin_api::l10n::manifest_messages(registry.list(), |k| {
+            actions.contains_key(k) || menu.contains_key(k)
+        });
+        let json = serde_json::to_string_pretty(&messages).unwrap() + "\n";
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../crates/forge-i18n/locales/en/plugins.json");
+        if std::env::var_os("FORGE_UPDATE_SNAPSHOTS").is_some() {
+            std::fs::write(&path, &json).unwrap();
+        }
+        let current = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(
+            current.replace("\r\n", "\n") == json,
+            "{} is out of date; rerun with FORGE_UPDATE_SNAPSHOTS=1",
+            path.display()
+        );
+    }
 }

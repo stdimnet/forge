@@ -8,6 +8,7 @@
 //! only on this crate, never on app internals.
 
 pub mod contributions;
+pub mod l10n;
 pub mod registry;
 pub mod settings_model;
 
@@ -40,6 +41,10 @@ pub struct PluginManifest {
     /// uses any of them; empty means always active.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub project_types: Vec<String>,
+    /// Translations of the manifest's own text by locale (`[l10n.de]`), keyed like the
+    /// bundled catalogs (see [`l10n`]).
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub l10n: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 }
 
 pub trait Plugin: Send + Sync {
