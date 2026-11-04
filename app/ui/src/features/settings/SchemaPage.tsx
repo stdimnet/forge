@@ -9,6 +9,7 @@ import { settingsApi, type SettingSpec } from "@/ipc/settings";
 import { settingsState } from "@/state/settings";
 import { draft, draftValue, setDraft } from "./dialogState";
 import { Hl, settingMatches } from "./dialogSearch";
+import { t } from "@/i18n";
 
 /** Custom editors of `objects` settings (lists of tables) and `list` settings, by setting key. */
 const objectEditors = new Map<string, Component<{ spec: SettingSpec }>>();
@@ -83,18 +84,18 @@ function ListEditor(props: { spec: SettingSpec }) {
   return (
     <div class="set-list">
       <div class="set-list-toolbar">
-        <button class="icon-btn" title="Add" onClick={add}>
+        <button class="icon-btn" title={t("common.add")} onClick={add}>
           <Plus size={14} />
         </button>
-        <button class="icon-btn" title="Remove" disabled={sel() === null} onClick={remove}>
+        <button class="icon-btn" title={t("common.remove")} disabled={sel() === null} onClick={remove}>
           <Minus size={14} />
         </button>
-        <button class="icon-btn" title="Move Up" disabled={!sel()} onClick={() => move(-1)}>
+        <button class="icon-btn" title={t("common.moveUp")} disabled={!sel()} onClick={() => move(-1)}>
           <ArrowUp size={14} />
         </button>
         <button
           class="icon-btn"
-          title="Move Down"
+          title={t("common.moveDown")}
           disabled={sel() === null || sel()! >= items().length - 1}
           onClick={() => move(1)}
         >
@@ -102,7 +103,7 @@ function ListEditor(props: { spec: SettingSpec }) {
         </button>
       </div>
       <div class="set-list-items" ref={listEl}>
-        <Index each={items()} fallback={<div class="set-list-empty">Nothing to show</div>}>
+        <Index each={items()} fallback={<div class="set-list-empty">{t("common.nothingToShow")}</div>}>
           {(item, i) => (
             <input
               class="set-list-item"
@@ -194,7 +195,7 @@ export function SettingRow(props: { spec: SettingSpec }) {
             <Hl text={spec.title} />:
           </div>
           {description()}
-          <Show when={objectEditors.get(spec.key)} fallback={<div class="set-desc">No editor for this setting.</div>}>
+          <Show when={objectEditors.get(spec.key)} fallback={<div class="set-desc">{t("settings.noEditor")}</div>}>
             {(editor) => <Dynamic component={editor()} spec={spec} />}
           </Show>
         </Match>

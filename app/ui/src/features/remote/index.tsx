@@ -29,6 +29,7 @@ import { registerDialog } from "@/shell/window/dialogs";
 import { isDialogWindow } from "@/shell/window/mode";
 import { adoptWorkspace } from "@/state/workspace";
 import "./remote.css";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Remote Development");
 
@@ -38,7 +39,7 @@ registerStatusItem({ id: "remote.connection", align: "right", order: -30, compon
 
 registerSettingsPage({
   id: "tools.ssh",
-  title: "SSH Configurations",
+  title: t("settings.page.tools.ssh"),
   group: "Tools",
   order: 30,
   keywords: ["SSH", "remote", "host", "password", "private key", "known_hosts", "Gateway"],

@@ -17,6 +17,7 @@ import { LiveTemplatesPage } from "./LiveTemplatesPage";
 import { PAGE_ID } from "./model";
 import { LiveTemplatePopupHost } from "./Popup";
 import "./liveTemplates.css";
+import { t } from "@/i18n";
 
 registerEditorExtension(({ path }) => liveTemplatesExtension(path));
 
@@ -28,7 +29,7 @@ registerCommand({ id: "SaveAsTemplate", title: "Save as Live Template…", categ
 
 registerSettingsPage({
   id: PAGE_ID,
-  title: "Live Templates",
+  title: t("settings.page.live-templates"),
   group: "Editor",
   order: 35,
   keywords: ["abbreviation", "snippet", "template", "surround", "expand", "tab"],

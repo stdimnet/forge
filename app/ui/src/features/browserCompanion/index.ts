@@ -8,10 +8,11 @@ import { registerCommand } from "@/state/commands";
 import { BrowserCompanionPage } from "./BrowserCompanionPage";
 import { listenForOpenRequests } from "./openRequests";
 import "./companion.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "tools.browser-companion",
-  title: "Browser Companion",
+  title: t("settings.page.tools.browser-companion"),
   group: "Tools",
   order: 20,
   keywords: [

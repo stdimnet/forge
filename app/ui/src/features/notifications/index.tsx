@@ -13,10 +13,11 @@ import { onProjectSwitch } from "@/state/workspace";
 import { clearNotifications, markAllRead } from "@/state/notifications";
 import { NotificationsActions, NotificationsIcon, NotificationsView } from "./NotificationsView";
 import "./notifications.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "notifications",
-  title: "Notifications",
+  title: t("toolwindow.notifications.title"),
   icon: NotificationsIcon,
   anchor: "right",
   order: 20,
@@ -39,7 +40,7 @@ registerCommand({ id: "ClearAllNotifications", title: "Clear All Notifications",
 
 registerSettingsPage({
   id: "notifications",
-  title: "Notifications",
+  title: t("settings.page.notifications"),
   group: "Appearance & Behavior",
   order: 20,
   keywords: ["balloon", "sticky", "log", "popup", "event log"],

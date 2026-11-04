@@ -25,6 +25,8 @@ export interface ActionDef {
   context: ActionContext;
   native: boolean;
   description?: string;
+  /** The English title when `title` is a translation (Find Action matches both). */
+  titleEn?: string;
 }
 
 /** An action with its shortcuts in the active keymap. */

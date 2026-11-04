@@ -16,6 +16,7 @@ import { viewersApi } from "@/ipc/viewers";
 import { TextEditorWithPreview, type PreviewLayout } from "@/editor/TextEditorWithPreview";
 import { ImageCanvas, imageControls, type ImageControls } from "./ImageCanvas";
 import "./images.css";
+import { t } from "@/i18n";
 
 export const IMAGE_VIEW = "image";
 
@@ -109,7 +110,7 @@ for (const a of ACTIONS) {
 
 registerSettingsPage({
   id: "editor.image",
-  title: "Image",
+  title: t("settings.page.editor.image"),
   group: "Editor",
   order: 60,
   keywords: ["grid", "chessboard", "transparency", "svg", "zoom"],

@@ -34,6 +34,7 @@ import { RustSettingsPage } from "./RustSettingsPage";
 import { isRustPath, runClippy } from "./editor";
 import { downloadAnalyzer, installAnalyzer, installToolchain } from "./install";
 import { PLUGIN, refreshCargo, refreshRustStatus, runRustCommand, rustActive, showRustBalloon } from "./state";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -41,7 +42,7 @@ const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
 registerSettingsPage({
   id: "lang.rust",
-  title: "Rust",
+  title: t("settings.page.lang.rust"),
   group: "Languages & Frameworks",
   order: 27,
   keywords: ["rust", "cargo", "rustup", "toolchain", "rust-toolchain.toml", "rustfmt", "clippy", "rust-analyzer", "nextest", "llvm-cov", "features", "lldb", "gdb", "sysroot"],
@@ -50,7 +51,7 @@ registerSettingsPage({
 
 registerToolWindow({
   id: "cargo",
-  title: "Cargo",
+  title: t("toolwindow.cargo.title"),
   icon: Package,
   anchor: "right",
   order: 41,

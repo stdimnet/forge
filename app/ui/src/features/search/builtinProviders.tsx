@@ -13,6 +13,7 @@ import { allActions, isActionAvailable, runAction, shortcutLabel } from "@/keyma
 import { recentFiles } from "@/features/navigation/history";
 import { recencyBoost } from "./recencyBoost";
 import { registerSearchProvider, type SearchItem } from "./providers";
+import { t, tOr } from "@/i18n";
 
 const dirOf = (path: string) => path.split("/").slice(0, -1).join("/");
 
@@ -34,7 +35,7 @@ function fileItem(path: string, score: number, matches?: number[]): SearchItem {
 registerSearchProvider({
   id: "core.files",
   tab: "files",
-  title: "Files",
+  title: t("search.tab.files"),
   order: 0,
   async search(query, { limit }) {
     if (!query.trim()) return recentFiles().slice(0, limit).map((p, i) => fileItem(p, 1000 - i));
@@ -78,15 +79,29 @@ function symbolProvider(id: string, tab: "classes" | "symbols", title: string, t
   });
 }
 
-symbolProvider("core.classes", "classes", "Classes", true);
-symbolProvider("core.symbols", "symbols", "Symbols", false);
+symbolProvider("core.classes", "classes", t("search.tab.classes"), true);
+symbolProvider("core.symbols", "symbols", t("search.tab.symbols"), false);
 
-const groupLabel = (group: string) => group.split("/").slice(1).join(" | ") || group;
+/** Key segment of a menu label, as `forge_i18n::slug` makes it ("_Recent Projects" → "recent-projects"). */
+const slugOf = (label: string) =>
+  label
+    .toLowerCase()
+    .replace(/[_&]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+
+/** "Main Menu/Navigate/Search" → "Navigate | Search", in the IDE language. */
+const groupLabel = (group: string) =>
+  group
+    .split("/")
+    .slice(1)
+    .map((seg) => tOr(`menu.group.${slugOf(seg)}`, seg).replace(/_(?!_)/g, ""))
+    .join(" | ") || group;
 
 registerSearchProvider({
   id: "core.actions",
   tab: "actions",
-  title: "Actions",
+  title: t("search.tab.actions"),
   order: 0,
   search(query) {
     if (!query.trim()) return [];
@@ -101,8 +116,9 @@ registerSearchProvider({
         return {
           id: a.id,
           label: a.title,
-          // Matched by title, else (ranked lower) by id, the way PHPStorm does.
-          match: { strict: true, altTexts: [a.id] },
+          // Matched by title, else (ranked lower) by the English title of a translated action
+          // and by id, the way PHPStorm does with a language pack.
+          match: { strict: true, altTexts: a.titleEn ? [a.titleEn, a.id] : [a.id] },
           detail: groupLabel(a.group),
           hint: shortcutLabel(a.id),
           kind: "action",

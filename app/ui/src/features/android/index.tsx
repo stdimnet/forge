@@ -27,6 +27,7 @@ import "./runTypes";
 import "@/features/java/java.css";
 import "@/features/scala/scala.css";
 import "./android.css";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Android");
 
@@ -81,7 +82,7 @@ function AndroidSdkPage() {
 
 registerSettingsPage({
   id: "lang.android",
-  title: "Android SDK",
+  title: t("settings.page.lang.android"),
   group: "Languages & Frameworks",
   order: 29,
   keywords: ["android", "sdk", "adb", "logcat", "emulator", "avd", "ANDROID_HOME"],
@@ -90,7 +91,7 @@ registerSettingsPage({
 
 registerToolWindow({
   id: "android-devices",
-  title: "Device Manager",
+  title: t("toolwindow.android-devices.title"),
   icon: MonitorSmartphone,
   anchor: "right",
   order: 42,
@@ -100,7 +101,7 @@ registerToolWindow({
 
 registerToolWindow({
   id: "logcat",
-  title: "Logcat",
+  title: t("toolwindow.logcat.title"),
   icon: ScrollText,
   anchor: "bottom",
   order: 45,

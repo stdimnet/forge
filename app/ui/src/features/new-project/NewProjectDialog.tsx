@@ -46,6 +46,7 @@ import {
   useFallback,
 } from "./store";
 import { groupGenerators, isOptionVisible, joinPath, previewLines, progressPercent, toolName, validateName } from "./wizard";
+import { t } from "@/i18n";
 
 function OptionField(props: { option: GeneratorOption }) {
   const value = () => options()[props.option.id] ?? props.option.default;
@@ -166,7 +167,7 @@ function Form() {
       </div>
 
       <div class="np-row">
-        <span class="np-label">Name:</span>
+        <span class="np-label">{t("newProject.name")}</span>
         <input
           ref={nameEl}
           class="np-input"
@@ -177,7 +178,7 @@ function Form() {
         />
       </div>
       <div class="np-row">
-        <span class="np-label">Location:</span>
+        <span class="np-label">{t("newProject.location")}</span>
         <div class="np-path">
           <input
             class="np-input"
@@ -187,7 +188,7 @@ function Form() {
           />
           <button
             class="np-browse"
-            title={isTauri() ? "Browse… (Shift+Enter)" : "Folder chooser is available in the desktop app"}
+            title={isTauri() ? t("newProject.browse", { shortcut: "Shift+Enter" }) : t("newProject.browseUnavailable")}
             disabled={!isTauri()}
             onClick={() => void browseLocation()}
           >
@@ -201,7 +202,7 @@ function Form() {
           when={formError()}
           fallback={
             <span class="np-hint">
-              Project will be created in: <span class="np-hint-path">{joinPath(location(), name())}</span>
+              {t("newProject.createdIn")} <span class="np-hint-path">{joinPath(location(), name())}</span>
             </span>
           }
         >
@@ -229,15 +230,14 @@ function Form() {
           <TriangleAlert size={15} class="np-warning-icon" />
           <div>
             <div>
-              {missing().map(toolName).join(", ")} {missing().length > 1 ? "are" : "is"} not installed or not on the
-              PATH. Install {missing().length > 1 ? "them" : "it"} to use this generator
+              {t("newProject.missingTools", { tools: missing().map(toolName).join(", "), count: missing().length })}
               <Show when={fallbackName()} fallback=".">
-                , or create an offline project instead.
+                {t("newProject.orOffline")}
               </Show>
             </div>
             <Show when={fallbackName()}>
               <button class="np-link" onClick={useFallback}>
-                Create {fallbackName()} instead
+                {t("newProject.useFallback", { name: fallbackName() })}
               </button>
             </Show>
           </div>
@@ -246,7 +246,7 @@ function Form() {
 
       <div class="np-preview">
         <div class="np-preview-title">
-          <TerminalSquare size={13} /> {selected()?.tools.length ? "Commands to run" : "Steps"}
+          <TerminalSquare size={13} /> {selected()?.tools.length ? t("newProject.commands") : t("newProject.steps")}
         </div>
         <pre class="np-preview-body">
           <For each={previewLines(plan(), location())}>
@@ -288,16 +288,16 @@ function ProgressView() {
         </Switch>
         <div class="np-progress-title">
           {p().phase === "failed"
-            ? `Could not create ${name()}`
+            ? t("newProject.failed", { name: name() })
             : p().phase === "done"
-              ? `${name()} is ready`
-              : `Creating ${name()}…`}
+              ? t("newProject.ready", { name: name() })
+              : t("newProject.creating", { name: name() })}
         </div>
       </div>
       <div class="np-progress-step">
         <Show when={p().total > 1}>
           <span class="muted">
-            Step {Math.min(p().step + 1, p().total)} of {p().total}:{" "}
+            {t("newProject.step", { step: Math.min(p().step + 1, p().total), total: p().total })}{" "}
           </span>
         </Show>
         <span class="np-progress-label">{p().label}</span>
@@ -373,7 +373,7 @@ export function NewProjectDialog() {
         </main>
       </div>
       <footer class="np-footer">
-        <button class="icon-btn" title="Help">
+        <button class="icon-btn" title={t("common.help")}>
           <CircleHelp size={16} />
         </button>
         <div class="np-footer-buttons">
@@ -382,10 +382,10 @@ export function NewProjectDialog() {
             fallback={
               <>
                 <button class="btn-primary np-btn" disabled={!canCreate()} onClick={() => void createProject()}>
-                  Create
+                  {t("newProject.create")}
                 </button>
                 <button class="btn-secondary np-btn" onClick={closeNewProject}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               </>
             }
@@ -398,15 +398,15 @@ export function NewProjectDialog() {
                   disabled={progress()?.phase !== "running"}
                   onClick={cancelCreation}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               }
             >
               <button class="btn-secondary np-btn" onClick={cancelCreation}>
-                Back
+                {t("newProject.back")}
               </button>
               <button class="btn-secondary np-btn" onClick={closeNewProject}>
-                Close
+                {t("common.close")}
               </button>
             </Show>
           </Show>

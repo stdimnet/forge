@@ -14,6 +14,7 @@ import { revealLocation } from "./navigation";
 import { pluralize, severityIcon } from "./severity";
 import { baseName } from "./util";
 import { problemsTabs } from "./problemsTabs";
+import { t } from "@/i18n";
 
 /** "file", "project" or the id of a registered tab (`registerProblemsTab`). */
 export type ProblemsTab = "file" | "project" | (string & {});
@@ -107,7 +108,7 @@ export function ProblemsView() {
     <div class="problems-view">
       <div class="problems-tabs" role="tablist">
         <button class="problems-tab" classList={{ active: tab() === "file" }} role="tab" onClick={() => setTab("file")}>
-          Current File
+          {t("problems.currentFile")}
           <Show when={currentDiags().length}>
             <span class="problems-count">{currentDiags().length}</span>
           </Show>
@@ -118,23 +119,23 @@ export function ProblemsView() {
           role="tab"
           onClick={() => setTab("project")}
         >
-          Project Errors
+          {t("problems.projectErrors")}
           <Show when={projectErrorCount()}>
             <span class="problems-count">{projectErrorCount()}</span>
           </Show>
         </button>
         <For each={problemsTabs()}>
-          {(t) => (
+          {(pt) => (
             <button
               class="problems-tab"
-              classList={{ active: tab() === t.id }}
+              classList={{ active: tab() === pt.id }}
               role="tab"
-              data-problems-tab={t.id}
-              onClick={() => setTab(t.id)}
+              data-problems-tab={pt.id}
+              onClick={() => setTab(pt.id)}
             >
-              {t.title}
-              <Show when={t.count?.()}>
-                <span class="problems-count">{t.count?.()}</span>
+              {pt.title}
+              <Show when={pt.count?.()}>
+                <span class="problems-count">{pt.count?.()}</span>
               </Show>
             </button>
           )}
@@ -142,7 +143,7 @@ export function ProblemsView() {
       </div>
       <div class="problems-tree">
         <Show when={tab() === "file"}>
-          <Show when={current()} fallback={<Empty text="No file is open" />}>
+          <Show when={current()} fallback={<Empty text={t("problems.noFile")} />}>
             {(path) => (
               <Show when={currentDiags().length} fallback={<Empty text={`No problems in ${baseName(path())}`} />}>
                 <FileNode path={path()} diags={currentDiags()} />
@@ -151,7 +152,7 @@ export function ProblemsView() {
           </Show>
         </Show>
         <Show when={tab() === "project"}>
-          <Show when={projectErrors().length} fallback={<Empty text="No errors found in the project" />}>
+          <Show when={projectErrors().length} fallback={<Empty text={t("problems.noErrors")} />}>
             <For each={projectErrors()}>{(f) => <FileNode path={f.path} diags={f.diags} />}</For>
           </Show>
         </Show>

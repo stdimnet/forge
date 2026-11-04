@@ -18,6 +18,7 @@ import {
   type EditorTab,
 } from "@/state/editor";
 import { getSetting, saveSetting } from "@/state/settings";
+import { t } from "@/i18n";
 
 const message = (e: unknown) => String(e instanceof Error ? e.message : e);
 
@@ -28,9 +29,9 @@ function popupAbove(el: HTMLElement, entries: ResolvedEntry[]): void {
 }
 
 const SEPARATORS: { eol: Eol; label: string }[] = [
-  { eol: "\r\n", label: "CRLF - Windows (\\r\\n)" },
-  { eol: "\n", label: "LF - Unix and macOS (\\n)" },
-  { eol: "\r", label: "CR - Classic Mac OS (\\r)" },
+  { eol: "\r\n", label: t("statusbar.eol.crlf") },
+  { eol: "\n", label: t("statusbar.eol.lf") },
+  { eol: "\r", label: t("statusbar.eol.cr") },
 ];
 
 /** The separator the file is written with (a new file gets the code style's one). */
@@ -47,7 +48,7 @@ export function LineSeparatorStatus(props: { tab: EditorTab }) {
         checkable: true,
         checked: eol === current,
         run: () => {
-          void changeLineSeparator(props.tab.path, eol).catch((e) => showBalloon("Cannot change the line separator", message(e), 6000));
+          void changeLineSeparator(props.tab.path, eol).catch((e) => showBalloon(t("statusbar.eol.failed"), message(e), 6000));
         },
       })),
     );
@@ -56,7 +57,7 @@ export function LineSeparatorStatus(props: { tab: EditorTab }) {
     <button
       class="status-item"
       data-status="line-separator"
-      title={`Line Separator: ${eolLabel(effectiveEol(props.tab))}`}
+      title={t("statusbar.eol.tooltip", { eol: eolLabel(effectiveEol(props.tab)) })}
       onClick={(e) => open(e.currentTarget)}
     >
       {eolLabel(effectiveEol(props.tab))}
@@ -67,44 +68,44 @@ export function LineSeparatorStatus(props: { tab: EditorTab }) {
 async function pickEncoding(tab: EditorTab, encoding: EncodingId): Promise<void> {
   const dirty = isDirty(tab);
   const choice = await askChoice({
-    title: `${tab.name}: Reload or Convert to ${encoding}`,
-    message: `The encoding you've chosen ('${encoding}') may change the contents of '${tab.name}'. Do you want to reload the file from disk or convert the text and save in the new encoding?`,
+    title: t("statusbar.encoding.reloadOrConvert", { file: tab.name, encoding }),
+    message: t("statusbar.encoding.question", { file: tab.name, encoding }),
     choices: [
       {
         id: "reload",
-        label: "Reload",
+        label: t("statusbar.encoding.reload"),
         disabled: dirty,
-        hint: dirty ? "Save or revert the changes first" : "Read the file again in the new encoding",
+        hint: dirty ? t("statusbar.encoding.saveFirst") : t("statusbar.encoding.reloadHint"),
       },
-      { id: "convert", label: "Convert", hint: "Save the text in the new encoding" },
+      { id: "convert", label: t("statusbar.encoding.convert"), hint: t("statusbar.encoding.convertHint") },
     ],
   });
   try {
     if (choice === "reload") await reloadWithEncoding(tab.path, encoding);
     else if (choice === "convert") await convertEncoding(tab.path, encoding, encoding.startsWith("UTF-16") || (encoding === "UTF-8" && tab.bom));
   } catch (e) {
-    showBalloon(`Cannot convert to ${encoding}`, message(e), 8000);
+    showBalloon(t("statusbar.encoding.convertFailed", { encoding }), message(e), 8000);
   }
 }
 
 export function EncodingStatus(props: { tab: EditorTab }) {
   const open = (el: HTMLElement) => {
-    const t = props.tab;
+    const tab = props.tab;
     const entries: ResolvedEntry[] = ENCODINGS.map((encoding) => ({
       kind: "action" as const,
       label: encoding,
       checkable: true,
-      checked: encoding === t.encoding,
+      checked: encoding === tab.encoding,
       run: () => {
-        if (encoding !== t.encoding) void pickEncoding(t, encoding);
+        if (encoding !== tab.encoding) void pickEncoding(tab, encoding);
       },
     }));
-    if (t.encoding === "UTF-8") {
+    if (tab.encoding === "UTF-8") {
       entries.push("separator", {
         kind: "action",
-        label: t.bom ? "Remove BOM" : "Add BOM",
+        label: tab.bom ? t("statusbar.bom.remove") : t("statusbar.bom.add"),
         run: () => {
-          void convertEncoding(t.path, "UTF-8", !t.bom).catch((e) => showBalloon("Cannot change the BOM", message(e), 6000));
+          void convertEncoding(tab.path, "UTF-8", !tab.bom).catch((e) => showBalloon(t("statusbar.bom.failed"), message(e), 6000));
         },
       });
     }
@@ -119,8 +120,8 @@ export function EncodingStatus(props: { tab: EditorTab }) {
       class="status-item"
       data-status="encoding"
       title={
-        `File Encoding: ${encodingLabel(props.tab.encoding, props.tab.bom)}` +
-        (charsetMismatch() ? ` (EditorConfig asks for ${charsetMismatch()})` : "")
+        t("statusbar.encoding.tooltip", { encoding: encodingLabel(props.tab.encoding, props.tab.bom) }) +
+        (charsetMismatch() ? t("statusbar.encoding.editorConfig", { encoding: charsetMismatch() }) : "")
       }
       onClick={(e) => open(e.currentTarget)}
     >
@@ -134,14 +135,16 @@ export function IndentStatus(props: { tab: EditorTab }) {
   const format = () => props.tab?.format;
   const tooltip = () => {
     const f = format();
-    if (!f) return "Indent";
+    if (!f) return t("statusbar.indent");
     const source = {
-      codeStyle: "from the code style",
-      fileType: "default of the file type",
-      editorConfig: "from EditorConfig",
-      detected: `detected in the file; the code style says ${f.configuredIndent.useTabs ? "Tab" : `${f.configuredIndent.size} spaces`}`,
+      codeStyle: t("statusbar.indent.codeStyle"),
+      fileType: t("statusbar.indent.fileType"),
+      editorConfig: t("statusbar.indent.editorConfig"),
+      detected: t("statusbar.indent.detected", {
+        indent: f.configuredIndent.useTabs ? t("statusbar.indent.tab") : t("statusbar.indent.spaces", { count: f.configuredIndent.size }),
+      }),
     }[f.indentSource];
-    return `Indent: ${f.indentLabel.replace(/\*$/, "")} (${source})`;
+    return t("statusbar.indent.tooltip", { indent: f.indentLabel.replace(/\*$/, ""), source });
   };
   const open = (el: HTMLElement) => {
     const f = format();
@@ -149,18 +152,18 @@ export function IndentStatus(props: { tab: EditorTab }) {
     const entries: ResolvedEntry[] = [];
     entries.push({
       kind: "action",
-      label: `Configure Indents for ${f?.codeStylePage ? (f.languageName ?? "the language") : "All Files"}…`,
+      label: t("statusbar.indent.configureFor", { language: f?.codeStylePage ? (f.languageName ?? t("statusbar.indent.theLanguage")) : t("statusbar.indent.allFiles") }),
       run: () => openSettings(f?.codeStylePage ?? "editor.code-style"),
     });
     entries.push({
       kind: "action",
-      label: detect ? "Disable Indents Detection for Project" : "Enable Indents Detection for Project",
+      label: detect ? t("statusbar.indent.disableDetection") : t("statusbar.indent.enableDetection"),
       run: () => void saveSetting("editor.codeStyle.detectIndents", !detect, "project"),
     });
     if (f?.editorConfig) {
       entries.push("separator", {
         kind: "action",
-        label: "Indents are set by .editorconfig",
+        label: t("statusbar.indent.byEditorConfig"),
         disabled: true,
       });
     }

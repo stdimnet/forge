@@ -30,6 +30,7 @@ import { FileTemplatesPage } from "./FileTemplatesPage";
 import { NewFileDialogHost } from "./NewFileDialog";
 import { catalog, newMenuGroups, newMenuLabel, offeredTemplates, openNewFileDialog, refreshCatalog, setDialog, SETTINGS_PAGE, trackCatalog } from "./model";
 import "./fileTemplates.css";
+import { t } from "@/i18n";
 
 const editTemplates = () => openSettings(SETTINGS_PAGE);
 
@@ -126,7 +127,7 @@ registerContextActionHandler("PhpCreateClass", async (raw) => {
 
 registerSettingsPage({
   id: SETTINGS_PAGE,
-  title: "File and Code Templates",
+  title: t("settings.page.file-and-code-templates"),
   group: "Editor",
   order: 35,
   keywords: ["file templates", "code templates", "includes", "velocity", "php class", "header", "new file"],

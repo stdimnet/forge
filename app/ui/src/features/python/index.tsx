@@ -52,12 +52,13 @@ import { openRunConfigurations } from "@/features/run/dialogState";
 import { action, registerMainMenuEntries } from "@/features/mainMenu/model";
 import "./python.css";
 import "./profiler/profiler.css";
+import { t } from "@/i18n";
 
 // ---- Settings -----------------------------------------------------------------------------
 
 registerSettingsPage({
   id: "project.python-interpreter",
-  title: "Python Interpreter",
+  title: t("settings.page.project.python-interpreter"),
   group: "Project",
   order: 0,
   keywords: ["python", "interpreter", "venv", "virtualenv", "uv", "poetry", "conda", "pipenv", "hatch", "pyenv", "docker", "ssh", "wsl", "packages"],
@@ -66,7 +67,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.python",
-  title: "Python",
+  title: t("settings.page.lang.python"),
   group: "Languages & Frameworks",
   order: 25,
   keywords: ["python", "ruff", "black", "basedpyright", "pyright", "ty", "formatter", "pypi", "requirements", "inspections"],
@@ -81,7 +82,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "tools.python-integrated-tools",
-  title: "Python Integrated Tools",
+  title: t("settings.page.tools.python-integrated-tools"),
   group: "Tools",
   order: 40,
   keywords: ["pytest", "unittest", "tox", "test runner", "default test runner", "junit", "report log", "profiler", "cprofile"],
@@ -90,7 +91,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.python-debugger",
-  title: "Python Debugger",
+  title: t("settings.page.build.python-debugger"),
   group: "Build, Execution, Deployment",
   parent: "build.debugger",
   order: 20,
@@ -100,7 +101,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.python-console",
-  title: "Python Console",
+  title: t("settings.page.build.python-console"),
   group: "Build, Execution, Deployment",
   order: 25,
   keywords: ["python console", "ipython", "repl", "interpreter options"],
@@ -186,7 +187,7 @@ registerStatusItem({ id: "python.interpreter", align: "right", order: 88, compon
 
 registerToolWindow({
   id: "pythonPackages",
-  title: "Python Packages",
+  title: t("toolwindow.pythonPackages.title"),
   icon: Package,
   anchor: "bottom",
   order: 45,
@@ -201,7 +202,7 @@ const toolsActive = () => pythonActive() && isPluginActive("forge.python-tools")
 
 registerToolWindow({
   id: "pythonConsole",
-  title: "Python Console",
+  title: t("toolwindow.pythonConsole.title"),
   icon: SquareTerminal,
   anchor: "bottom",
   order: 46,

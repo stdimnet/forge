@@ -77,6 +77,7 @@ import "./library";
 import "./markers";
 import "./codeintel.css";
 import "./refactoring.css";
+import { t } from "@/i18n";
 
 const NAV_TITLES: Record<NavKind, { title: string; none: string }> = {
   implementation: { title: "Choose Implementation", none: "No implementations found" },
@@ -224,7 +225,7 @@ registerEditorExtension(({ path }) =>
 
 registerToolWindow({
   id: "find",
-  title: "Find",
+  title: t("toolwindow.find.title"),
   icon: Search,
   anchor: "bottom",
   order: 5,

@@ -54,6 +54,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Forge in German**: Settings | Appearance & Behavior | System Settings | Language switches
+  the IDE to Deutsch: main menu, actions (Find Action matches German and English names), tool
+  windows, the Settings dialog, Welcome screen, Commit window and the common dialogs
+  ([IDE language](docs/guide/user/languages.md), [Localization](docs/guide/developer/localization.md)).
 - **php-lsp is the only PHP language server**: support for Intelephense and Phpactor was
   removed (no server choice, licence key or install offer any more); old settings are ignored
   ([Language servers](docs/guide/user/language-servers.md#php-php-lsp)).
@@ -871,6 +875,7 @@ not finished, the page says so.
 | [Keymap](docs/guide/user/keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](docs/guide/user/shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](docs/guide/user/shortcuts/reference-card.md) |
 | [Color schemes](docs/guide/user/color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
+| [IDE language](docs/guide/user/languages.md) | English or German (Deutsch): the Language settings page, what is translated, Find Action in both languages |
 | [Settings and themes](docs/guide/user/settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
 | [Invalidate Caches and Repair IDE](docs/guide/user/repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
 | [Plugins and packs](docs/guide/user/plugins-and-packs.md) | packs, activation, Settings \| Plugins |
@@ -9002,6 +9007,78 @@ select its attribute.
 Your schemes are user settings (`editor.colorScheme.schemes`, one entry per scheme with its
 name, its parent and the changed attributes), so they are part of `settings.toml`, of
 **Export Settings** (group Editor) and of the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
+Source: docs/guide/user/languages.md
+
+# IDE language
+
+Forge is English by default, like PHPStorm. Other languages come as translations bundled with
+Forge; German (Deutsch) is the first one.
+
+![Settings in German](docs/screenshots/i18n-settings-de.png)
+
+## Changing the language
+
+1. Open Settings (`Ctrl+Alt+S`, macOS `Cmd+,`) | Appearance & Behavior | System Settings |
+   Language.
+2. Pick **IDE language**: English or Deutsch.
+3. Press OK or Apply. Forge asks to restart. **Restart** applies the language everywhere;
+   **Not Now** keeps working.
+
+Most of the UI switches at once, because it renders its text through the translation catalog.
+Text that Forge computes once at startup keeps the previous language until the restart: tool
+window and Settings page titles, the action list of Find Action and the keymap, and messages
+that are already open. The setting is `ide.language` (`en` or `de`) and is stored in the user
+settings, so it applies to every project.
+
+## What is translated
+
+| Area | German |
+| --- | --- |
+| Main menu (File … Help), its submenus and mnemonics | yes |
+| Action names in Find Action, the keymap settings and the main menu | yes (PHPStorm actions) |
+| Tool window titles and stripe buttons, tool window options menu | yes |
+| Status bar (line separator, encoding, indent widgets) | yes |
+| Settings dialog: page tree, buttons, search, Appearance, System Settings, Editor General, Editor Tabs, Font, Terminal, Git and Commit settings | yes |
+| Welcome screen | yes |
+| Search Everywhere and Find Action | yes |
+| Find in Files, Rename, New Project, Run/Debug Configurations | yes |
+| Commit tool window and Commit Options | yes |
+| Project view and editor tab context menus, the editor context menu | yes |
+| Notifications tool window and the balloons of the shell | yes |
+| Safe Mode refusals from the backend | yes |
+| Other tool windows, dialogs and settings pages | not yet, they stay English |
+
+Untranslated text is always English, never a key or an empty label. The
+[developer guide](docs/guide/developer/localization.md) explains how the coverage is measured and how
+to add translations.
+
+> **Note:** plugin names, settings and tool window titles of the bundled plugins are partly
+> translated; the rest of their settings stay English for now. Third-party plugins can ship
+> their own translations in their manifest.
+
+## Find Action in two languages
+
+With German selected, Find Action (`Ctrl+Shift+A`) and the Actions tab of Search Everywhere
+show the German action names, and a query matches both names: `einstell` finds
+*Einstellungen…* and `reformat` finds *Code neu formatieren* (Reformat Code), like PHPStorm with
+a language pack. Matches on the German name rank first.
+
+![Find Action matching German action names](docs/screenshots/i18n-find-action-de.png)
+
+## Terminology
+
+The German translation follows JetBrains' German terminology and addresses you formally
+("Sie"): *Einstellungen*, *Projekt*, *Ausführen*, *Debuggen*, *Refactoring*, *Toolfenster*,
+*Änderungsliste*. Git terms stay as JetBrains keeps them: *Commit*, *Push*, *Pull*, *Branch*,
+*Merge*, *Rebase*, *Stash*. Keyboard shortcuts keep their English key names (`Ctrl+Alt+S`).
+
+Numbers, dates and plurals follow the language: *1.234 Dateien*, *04.11.2026*.
+
+![Commit window in German](docs/screenshots/i18n-commit-de.png)
 
 
 ---
@@ -23256,6 +23333,7 @@ Page id `system`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
+| `ide.language` | enum (`en`, `de`) | `en` | user | Language page | IDE language: English or Deutsch; Forge offers a restart to apply it everywhere ([IDE language](docs/guide/user/languages.md)) |
 | `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
 | `system.confirmExit` | bool | `true` | user | Project | Confirm before exiting the IDE |
 | `system.openProjectIn` | enum: `newWindow`, `thisWindow`, `ask` | `ask` | user | Project | Open project in — Where File \| Open and the recent projects open a project while another one is open in this window. |
@@ -25490,6 +25568,7 @@ skills in [`.claude/skills/`](.claude/skills); the detailed IPC contracts are in
 | [Plugin SDK](docs/guide/developer/plugins/index.md) | third-party plugins: sandbox, manifest, `forge` API, permissions, marketplace index |
 | [Adding a language](docs/guide/developer/adding-a-language.md) | file types, syntax modes, template data languages, language packs |
 | [Settings](docs/guide/developer/settings.md) | declaring, reading and showing settings |
+| [Localization](docs/guide/developer/localization.md) | translatable UI text: catalogs, `t()`, key naming, German, `pnpm i18n:check` |
 | [Keymap actions](docs/guide/developer/keymap-actions.md) | shortcuts through the keymap engine |
 
 ## Quality and delivery
@@ -26949,6 +27028,7 @@ The types are in [`sdk/plugin-api/index.d.ts`](sdk/plugin-api/index.d.ts)
 | `activationEvents` | when `main` is loaded, see below |
 | `permissions` | see [Permissions](docs/guide/developer/plugins/permissions.md) |
 | `contributes` | see below |
+| `l10n` | optional translations by locale: `{ "de": { "plugin.<id>.name": "…", "action.<command id>": "…", "toolwindow.<id>.title": "…", "setting.<key>.title": "…" } }`; keys and message syntax as in [Localization](docs/guide/developer/localization.md#plugin-manifests) |
 
 Every contributed id (commands, status items, tool windows, settings pages) and setting key
 must start with the plugin id and a dot: `acme.todo-sync.push`.
@@ -27372,6 +27452,204 @@ The dialog's search, highlighting and validation are computed in Rust
   `keyring` crate (see `forge-ai`, `forge-db`, `forge-forges`, `forge-langservers::licence`).
 - Do not keep persistent state in `localStorage`; use settings.
 - A declared setting should be applied; if it is not yet, the user docs must say so.
+
+
+---
+
+Source: docs/guide/developer/localization.md
+
+# Localization
+
+Forge's UI text goes through message catalogs. English is the source language; German is the
+first translation. The logic (parsing, lookup, fallback, plurals, number and date formats)
+lives in the Rust crate [forge-i18n](docs/guide/developer/crates/forge-i18n.md); the UI calls it synchronously
+through WebAssembly, in the desktop app and in browser mode alike.
+
+## Catalogs
+
+Catalogs are flat JSON files `crates/forge-i18n/locales/<locale>/<area>.json`, one object of
+`key → message` per file, compiled into the binary and the WebAssembly bundle:
+
+```json
+{
+  "vcs.commit": "Commit",
+  "vcs.files": "{count, plural, one {# file} other {# files}}",
+  "find.summary": "{count}{plus} {count, plural, one {match} other {matches}} in {files}{plus} {files, plural, one {file} other {files}} in {duration}"
+}
+```
+
+| Area | Contents |
+| --- | --- |
+| `common` | buttons and words many places share (`common.ok`, `common.cancel`, `common.apply`) |
+| `shell` | main toolbar, status bar, tool window chrome, editor tabs and menus, notifications, Problems |
+| `settings` | the Settings dialog, page titles (`settings.page.<id>`), groups, Plugins page |
+| `search`, `vcs`, `run`, `dialogs` (Project view, Rename, New Project, …), `welcome`, `errors` | their features |
+| `menu`, `actions`, `plugins` | **generated in English** (see below), translated by hand |
+
+A new area file must also be listed in `BUILTIN` in `crates/forge-i18n/src/catalog.rs`; a test
+fails when a file on disk is missing there.
+
+### Messages
+
+Messages use [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/):
+
+| Syntax | Example |
+| --- | --- |
+| argument | `Open {name}?` |
+| plural (`zero one two few many other`, `=n`, `#`, `offset:`) | `{count, plural, =0 {No files} one {# file} other {# files}}` |
+| ordinal | `{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}` |
+| select | `{kind, select, file {File} other {Folder}}` |
+| number (`integer`, `percent`) | `{size, number}` → *1,234.5* / *1.234,5* |
+| date / time (`short`, `medium`, `long`), milliseconds since the epoch | `{when, date, medium}` → *Nov 4, 2026* / *04.11.2026* |
+
+An apostrophe before a brace quotes it: write `Run ''{name}''` for *Run 'app'*. A lone
+apostrophe elsewhere (`don't`) needs no escaping. The key-parity test reports a translation
+whose arguments differ from the English message, which also catches a forgotten `''`.
+
+### Key naming
+
+Keys are dotted, lower camel case segments, starting with the area or feature:
+`toolwindow.project.title`, `vcs.commitOptions`, `settings.page.editor.general`,
+`statusbar.indent.tooltip`. Keys derived from ids keep the id as it is:
+
+| Text | Key | English source |
+| --- | --- | --- |
+| main menu submenu | `menu.group.<slug>` (`_Recent Projects` → `recent-projects`) | `crates/forge-keymap/src/menu.rs` |
+| own label of a menu action | `menu.<action id>` | `menu.rs` |
+| action title (Find Action, keymap, menu) | `action.<action id>` | `crates/forge-keymap/data/phpstorm.json`, manifest commands |
+| plugin name / description | `plugin.<id>.name`, `plugin.<id>.description` | manifests |
+| tool window title | `toolwindow.<id>.title` | manifests or `registerToolWindow` |
+| setting title / description / option / section | `setting.<key>.title`, `.description`, `.option.<value>`, `setting.section.<page>.<slug>` | manifests |
+| run configuration type | `runconfig.<id>.name`, `.description`, `.field.<key>` | manifests |
+| Settings page / group | `settings.page.<page id>`, `settings.group.<slug>` | `registerSettingsPage` |
+
+`locales/en/menu.json`, `actions.json` and `plugins.json` are generated from the code that owns
+the English text by snapshot tests; never edit them. After changing `menu.rs`, the PHPStorm
+action catalog or a manifest, run:
+
+```sh
+FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-keymap -p forge-app
+```
+
+## Using translations in the UI
+
+```ts
+import { T, t, tOr } from "@/i18n";
+
+t("vcs.commit");                                  // "Commit" / "Committen"
+t("vcs.files", { count: n });                     // "3 files" / "3 Dateien"
+t("toolbar.settings", { shortcut: "Ctrl+Alt+S" }); // shortcuts stay arguments
+tOr(`search.tab.${id}`, fallback);                // a key built from data that may not exist
+<T k="common.apply" />                            // reactive JSX text
+```
+
+- Add the English message to the right `locales/en/<area>.json` and the German one to
+  `locales/de/<area>.json` in the same change. Hand-written areas must be complete in German
+  (a test enforces it).
+- `t()` reads the current language from a signal, so text rendered in JSX or a memo follows a
+  language change at once. Text computed once (titles passed to `registerToolWindow`,
+  `registerSettingsPage` or `registerContextMenu` at startup) is translated with the language
+  of the session; changing the language offers a restart for that reason.
+- Never build sentences from pieces (`` `${n} file${n === 1 ? "" : "s"}` ``): use one message with
+  arguments and a plural. Keep keyboard shortcuts, file names and code as arguments.
+- Do not translate command titles passed to `registerCommand` or `registerKeymapActions`: they
+  stay English, and the keymap (Rust) shows the `action.<id>` translation with the English
+  title as `titleEn`, which Find Action also matches.
+- A local variable called `t` (common for "tab" or "type") shadows the import; rename the
+  variable, or import `t as tr` as `features/run/ConfigurationsDialog.tsx` does.
+- In vitest, `t()` loads the WebAssembly module synchronously on first use, so components
+  render English text in tests without setup.
+
+## Rust-side text
+
+Text that Rust produces for the user goes through the process-wide localizer, whose language
+the desktop app sets from `ide.language` at startup and whenever the setting changes (the
+UI does the same for its WebAssembly instance):
+
+```rust
+forge_i18n::t("errors.safeMode.refused");
+forge_i18n::t_args("errors.safeMode.refused", &forge_i18n::args! { "what" => what });
+forge_i18n::t_or("menu.SaveAll", "Save _All"); // translation, or the English text from code
+```
+
+The main menu and action titles (`forge-keymap`), plugin manifests
+(`forge_plugin_api::l10n::localize_plugin` / `localize_settings`, used by `plugins_list` and
+`settings_schema`), Settings group titles (`settings_model`) and Safe Mode refusals
+(`forge-trust`) are localized this way. Tests that need a language use their own
+`Localizer` (`Localizer::new("de")`, or `Localizer::empty` plus `add_messages`) instead of the
+process-wide one, so parallel tests do not interfere.
+
+## Plugin manifests
+
+Built-in manifests need no keys: their English text is the source and the keys above are
+derived from ids. Third-party plugins can ship translations in their manifest:
+
+```toml
+[l10n.de]
+"plugin.acme.tools.name" = "Acme-Werkzeuge"
+"setting.acme.mode.title" = "Modus"
+"setting.acme.mode.option.fast" = "Schnell"
+```
+
+The bundled catalogs win over a manifest's own table; locales follow the same fallback chain
+(`de-AT` → `de` → English).
+
+## Checking coverage
+
+```sh
+cd app/ui && pnpm i18n:check            # summary
+pnpm i18n:check --list src/features/git  # every hard-coded string below a path
+pnpm i18n:check --missing-de             # English keys without a German translation
+```
+
+The check fails (exit code 1) only when the code uses a key that the English catalog does not
+have. It also reports German coverage per area and finds hard-coded user-visible strings in
+`.tsx` files heuristically (JSX text, `title`, `placeholder`, `aria-label`, `label`, balloon
+calls); `scripts/i18n-allowlist.json` lists strings that need no translation (product names,
+units). Legacy strings do not fail the quality gates yet.
+
+The Rust tests in `forge-i18n` are the hard gate for the catalogs: every file parses, no key is
+defined twice, every German key exists in English with the same arguments (key parity), and
+the hand-written areas are fully translated.
+
+## Current coverage
+
+`pnpm i18n:check` at the time German was added:
+
+| Measure | Value |
+| --- | --- |
+| English catalog keys | 3,740 (of which 3,094 generated: 320 menu labels, 375 action titles, 2,399 manifest texts) |
+| German translations | 1,711 (45.7 %): every hand-written key, all menu labels and PHPStorm action titles, and 370 of 2,399 manifest texts |
+| Keys used in the UI code | 579 literal keys plus 9 dynamic `t()` calls |
+| Hard-coded strings left in `.tsx` (heuristic) | 4,423 |
+
+Translated: the main menu, Find Action and the keymap's PHPStorm actions, tool window titles
+and chrome, the status bar file widgets, index and language server status, the Settings
+dialog (tree, page titles, buttons, search) with the Appearance, System Settings, Language,
+Editor General / Tabs / Font, Terminal, Git and Commit settings, the Plugins page, the
+Welcome screen, Search Everywhere, Find in Files, Rename, New Project, Run/Debug
+Configurations (dialog chrome) and the run widget, the Commit tool window, the Project view
+and editor tab and editor context menus, notifications, the language restart prompt and Safe
+Mode refusals.
+
+Still English: the other tool windows and dialogs (Database 508 strings, Git log and dialogs
+262, .NET 192, Debugger 185, code intelligence dialogs 155, C/C++ 147, code hosts 136, Code
+With Me 118, …), most settings of the language packs (2,029 manifest texts), run
+configuration fields and Run on targets, file templates and New Project generator names,
+menu entries contributed by UI features (`registerMainMenuEntries` labels) and Forge's own
+commands without a PHPStorm action id, Rust errors other than Safe Mode, the splash screen.
+
+## Adding a language
+
+1. Add the locale to `locales()` in `crates/forge-i18n/src/catalog.rs` with its own name
+   (`Français`), create `locales/<id>/` with the area files and list them in `BUILTIN`.
+2. Check the plural rules in `plural.rs` and the separators and date patterns in `format.rs`
+   for the language; add them when missing.
+3. Add the option to `ide.language` in `app/src-tauri/plugins/core.toml` and regenerate the
+   snapshots (`FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`), then `pnpm wasm`.
+4. Translate, run `cargo test -p forge-i18n` and `pnpm i18n:check`, and take screenshots of
+   the main window, Settings, Find Action and the Commit window in the new language to check
+   for truncated text (`app/ui/scripts/scenarios/localization.mjs` shows how).
 
 
 ---
@@ -28185,6 +28463,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-injections](docs/guide/developer/crates/forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
 | [forge-inspections](docs/guide/developer/crates/forge-inspections.md) | Forge's inspection framework: registry, severities, profiles (PHPStorm XML), suppressions, duplicates, the batch runner, Code Cleanup and report export (pure, also built to WebAssembly) |
 | [forge-jsonschema](docs/guide/developer/crates/forge-jsonschema.md) | JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping parsers, a draft 4–2020-12 validator with PHPStorm's messages, completion, hover, Go to Declaration, schema mappings, bundled schemas and remote schema downloads |
+| [forge-i18n](docs/guide/developer/crates/forge-i18n.md) | Localization: ICU MessageFormat catalogs, locale fallback, plural rules and number/date formatting (pure, WebAssembly-friendly) |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
@@ -31027,6 +31306,75 @@ Minecraft plugin descriptors and the Unity assembly definitions (`unity-asmdef.j
 completion and hover in JSON and YAML, Go to Declaration, mappings and globs, the bundled
 schemas against composer.json, package.json, Compose, GitHub Actions and GitLab CI samples, and
 `RemoteCache` against a local HTTP server (no network).
+
+
+---
+
+Source: docs/guide/developer/crates/forge-i18n.md
+
+# forge-i18n
+
+`crates/forge-i18n` — Localization: ICU MessageFormat catalogs, locale fallback, plural rules and number/date formatting (pure, WebAssembly-friendly).
+
+## Purpose
+
+- Parses and formats ICU MessageFormat messages: arguments, `plural` (with `=n`, `offset:`
+  and `#`), `selectordinal`, `select`, `number` (`integer`, `percent`), `date` and `time`
+  (`short`, `medium`, `long`) and apostrophe quoting.
+- Bundles the catalogs `locales/<locale>/<area>.json` (English source, German translation)
+  and looks keys up along the fallback chain `de-AT` → `de` → `en`. A key missing in a
+  language falls back to English, never to the key.
+- CLDR plural rules (cardinal and ordinal) for English, German and the common European and
+  Asian languages; decimal and grouping separators and date patterns per language.
+- Checks translations against the source: unknown keys, syntax errors and argument
+  mismatches (the key-parity test), plus coverage.
+- A process-wide localizer (`set_locale`, `t`, `t_args`, `t_or`) for Rust-originated text:
+  the main menu and action titles (`forge-keymap`), plugin manifests (`forge-plugin-api`),
+  Settings group titles and Safe Mode refusals (`forge-trust`).
+
+See the [Localization](docs/guide/developer/localization.md) guide for the key naming and how to add strings
+and languages.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `message.rs` | ICU MessageFormat parser and formatter, argument names of a message. |
+| `plural.rs` | CLDR cardinal and ordinal plural categories per language. |
+| `format.rs` | Number formatting (grouping, percent) and dates and times per language. |
+| `catalog.rs` | Bundled catalog files, supported locales, translation checks, coverage and key slugs. |
+| `localizer.rs` | `Localizer` (lookup with fallback, `t`, `t_args`, `t_or`, `translate`) and the process-wide instance. |
+
+## Main public items
+
+```rust
+pub use catalog::{builtin_messages, check_translation, coverage, locales, slug, Coverage, LocaleInfo, Problem, SOURCE_LOCALE};
+pub use localizer::{add_messages, current, normalize_locale, set_locale, set_timezone_offset, t, t_args, t_or, Localizer};
+pub use message::{Args, Message, ParseError};
+```
+
+## Used by
+
+- `forge-keymap` (menu labels, action titles), `forge-plugin-api` (`l10n` module,
+  Settings groups), `forge-trust` (Safe Mode refusals), `forge-app` (sets the language from
+  `ide.language`, localizes `plugins_list` and `settings_schema`).
+- UI: `app/ui/src/i18n` (`t()`, `<T>`) through the `i18n_*` functions of `forge-wasm`.
+- Browser mode: built into `forge-wasm`.
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`
+
+## Tests
+
+The catalogs parse, every file is listed, no key is defined twice, German matches English
+(keys and arguments) and the hand-written areas are fully translated; messages, plurals,
+numbers, dates and fallback have unit tests.
+
+```sh
+cargo test -p forge-i18n
+```
 
 
 ---

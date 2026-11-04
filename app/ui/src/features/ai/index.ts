@@ -2,10 +2,11 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { registerCommand } from "@/state/commands";
 import { AiProvidersPage } from "./AiProvidersPage";
 import { openSettings } from "@/features/settings/dialogState";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "tools.ai-providers",
-  title: "AI Providers",
+  title: t("settings.page.tools.ai-providers"),
   group: "Tools",
   order: 10,
   keywords: ["AI", "LLM", "Anthropic", "Claude", "OpenAI", "OpenRouter", "Ollama", "LM Studio", "llama.cpp", "API key", "model"],

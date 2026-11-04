@@ -20,12 +20,13 @@ import { ConsoleActions, ConsoleTabs, ConsoleToolWindow } from "./ConsoleToolWin
 import { ToolsEditor } from "./ToolsEditor";
 import { cliToolsActive, TOOL_WINDOW_ID, TOOLS_SETTING } from "./store";
 import "./cliTools.css";
+import { t } from "@/i18n";
 
 export { openRunCommand } from "./CommandPopup";
 
 registerToolWindow({
   id: TOOL_WINDOW_ID,
-  title: "Command Line Tools Console",
+  title: t("toolwindow.command-line-tools-console.title"),
   icon: SquareTerminal,
   anchor: "bottom",
   order: 45,
@@ -37,7 +38,7 @@ registerToolWindow({
 
 registerSettingsPage({
   id: SETTINGS_PAGE,
-  title: "Command Line Tool Support",
+  title: t("settings.page.command-line-tool-support"),
   group: "Tools",
   order: 20,
   keywords: ["composer", "artisan", "symfony", "console", "wp-cli", "drush", "alias", "run command"],
@@ -52,7 +53,7 @@ registerKeymapActions([
     group: "Tools",
     shortcuts: { $default: ["Ctrl+Shift+X"], macOS: ["Cmd+Shift+X"] },
   },
-  { id: "ActivateCommandLineToolsConsoleToolWindow", title: "Command Line Tools Console", group: "Tool Windows" },
+  { id: "ActivateCommandLineToolsConsoleToolWindow", title: t("toolwindow.command-line-tools-console.title"), group: "Tool Windows" },
 ]);
 
 registerCommand({

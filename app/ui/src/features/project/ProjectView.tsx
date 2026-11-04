@@ -26,6 +26,7 @@ import { showFileNestingDialog } from "@/features/projectStructure/FileNestingDi
 import { caretNodeId, hasFileStructure, loadFileStructure, revealStructureNode } from "@/features/php/StructureView";
 import { SymbolIcon } from "@/features/php/SymbolIcon";
 import type { FileStructure, StructureNode } from "@/features/php/api";
+import { t } from "@/i18n";
 
 const [expanded, setExpanded] = createSignal<Set<string>>(new Set(["app", "app/Models"]));
 
@@ -156,22 +157,22 @@ export function ProjectActions() {
     const group = (label: string, items: ResolvedEntry[]): ResolvedEntry => ({ kind: "submenu", label, items });
     showResolvedMenu(
       [
-        group("Behavior", [
-          toggle(ALWAYS_SELECT, "Always Select Opened File", false),
-          toggle("projectView.openFilesWithSingleClick", "Open Files with Single Click", true),
+        group(t("project.view.behavior"), [
+          toggle(ALWAYS_SELECT, t("project.view.alwaysSelect"), false),
+          toggle("projectView.openFilesWithSingleClick", t("project.view.singleClick"), true),
         ]),
-        group("Appearance", [
-          toggle(VIEW_KEYS.showMembers, "Show Members", false),
-          toggle(VIEW_KEYS.showExcluded, "Show Excluded Files", true),
-          toggle(VIEW_KEYS.compact, "Compact Middle Packages", false),
+        group(t("project.view.appearance"), [
+          toggle(VIEW_KEYS.showMembers, t("project.view.showMembers"), false),
+          toggle(VIEW_KEYS.showExcluded, t("project.view.showExcluded"), true),
+          toggle(VIEW_KEYS.compact, t("project.view.compact"), false),
           "separator",
-          { kind: "action", label: "File Nesting…", run: showFileNestingDialog },
+          { kind: "action", label: t("project.view.fileNesting"), run: showFileNestingDialog },
         ]),
-        group("Sort", [
-          { kind: "action", label: "By Name", checkable: true, checked: !getSetting<boolean>(VIEW_KEYS.sortByType, false), run: () => void saveSetting(VIEW_KEYS.sortByType, false) },
-          { kind: "action", label: "By Type", checkable: true, checked: getSetting<boolean>(VIEW_KEYS.sortByType, false), run: () => void saveSetting(VIEW_KEYS.sortByType, true) },
+        group(t("project.view.sort"), [
+          { kind: "action", label: t("project.view.byName"), checkable: true, checked: !getSetting<boolean>(VIEW_KEYS.sortByType, false), run: () => void saveSetting(VIEW_KEYS.sortByType, false) },
+          { kind: "action", label: t("project.view.byType"), checkable: true, checked: getSetting<boolean>(VIEW_KEYS.sortByType, false), run: () => void saveSetting(VIEW_KEYS.sortByType, true) },
           "separator",
-          toggle(VIEW_KEYS.foldersOnTop, "Folders Always on Top", true),
+          toggle(VIEW_KEYS.foldersOnTop, t("project.view.foldersOnTop"), true),
         ]),
       ],
       r.left,
@@ -182,17 +183,17 @@ export function ProjectActions() {
     <>
       <button
         class="icon-btn"
-        title="Select Opened File"
-        aria-label="Select Opened File"
+        title={t("project.view.selectOpened")}
+        aria-label={t("project.view.selectOpened")}
         disabled={!editor.active || !isProjectFile(editor.active)}
         onClick={() => editor.active && selectInTree(editor.active)}
       >
         <LocateFixed size={15} />
       </button>
-      <button class="icon-btn" title="Collapse All" aria-label="Collapse All" onClick={() => setExpanded(new Set<string>())}>
+      <button class="icon-btn" title={t("project.view.collapseAll")} aria-label={t("project.view.collapseAll")} onClick={() => setExpanded(new Set<string>())}>
         <ChevronsDownUp size={15} />
       </button>
-      <button class="icon-btn" title="Options" aria-label="Options" onClick={options}>
+      <button class="icon-btn" title={t("project.view.options")} aria-label={t("project.view.options")} onClick={options}>
         <EllipsisVertical size={15} />
       </button>
     </>

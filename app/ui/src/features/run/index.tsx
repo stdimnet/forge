@@ -39,6 +39,7 @@ import type { RunConfiguration } from "@/ipc/run";
 import "./builtinTypes";
 import "./testFrameworkTypes";
 import "./run.css";
+import { t } from "@/i18n";
 
 export {
   registerRunConfigurationType,
@@ -65,7 +66,7 @@ export { registerTestFileMatcher } from "./frameworkFiles";
 
 registerToolWindow({
   id: "run",
-  title: "Run",
+  title: t("toolwindow.run.title"),
   icon: Play,
   anchor: "bottom",
   order: 10,
@@ -126,7 +127,7 @@ function contextConfiguration() {
 
 registerDialog<DialogRequest>({
   id: RUN_CONFIGURATIONS_DIALOG,
-  title: "Run/Debug Configurations",
+  title: t("run.widget.title"),
   width: 1000,
   height: 660,
   minWidth: 720,

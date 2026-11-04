@@ -8,10 +8,11 @@ import { ScopesPage } from "./ScopesPage";
 import { FileColorsPage } from "./FileColorsPage";
 import { SCOPES_PAGE } from "./ScopeSelect";
 import "./scopes.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: SCOPES_PAGE,
-  title: "Scopes",
+  title: t("settings.page.scopes"),
   group: "Appearance & Behavior",
   order: 20,
   keywords: ["scope", "pattern", "file:", "include", "exclude", "shared", "local"],
@@ -20,7 +21,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "appearance.fileColors",
-  title: "File Colors",
+  title: t("settings.page.appearance.fileColors"),
   group: "Appearance & Behavior",
   order: 21,
   keywords: ["file colors", "tabs", "project view", "tests", "non-project files", "tint"],

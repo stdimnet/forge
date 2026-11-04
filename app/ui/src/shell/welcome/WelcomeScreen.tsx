@@ -25,6 +25,7 @@ import { DevContainersPage } from "@/features/devenv/DevContainersPage";
 import { WslPage } from "@/features/devenv/WslPage";
 import { CodeWithMeWelcomePage } from "@/features/code-with-me/WelcomePage";
 import "./welcome.css";
+import { t } from "@/i18n";
 
 /** Badge color derived from the project name so each project keeps its color. */
 function badgeColor(name: string): string {
@@ -70,7 +71,7 @@ function ProjectRow(props: { project: RecentProject; onError: (message: string) 
       </span>
       <Show when={props.project.primary}>
         {(p) => (
-          <span class="welcome-project-type" title={`Detected: ${frameworkLabel(p())}`}>
+          <span class="welcome-project-type" title={t("welcome.detected", { framework: frameworkLabel(p()) })}>
             <ProjectTypeIcon type={p().id} size={18} />
             {frameworkLabel(p())}
           </span>
@@ -115,7 +116,7 @@ export function WelcomeScreen() {
           </div>
         </div>
         <button class="welcome-nav-item" classList={{ active: page() === "projects" }} onClick={() => setPage("projects")}>
-          <LayoutGrid size={15} /> Projects
+          <LayoutGrid size={15} /> {t("welcome.nav.projects")}
         </button>
         <button
           class="welcome-nav-item"
@@ -123,7 +124,7 @@ export function WelcomeScreen() {
           onClick={() => setPage("remote")}
           data-testid="welcome-nav-remote"
         >
-          <Server size={15} /> Remote Development
+          <Server size={15} /> {t("welcome.nav.remote")}
         </button>
         <Show when={isRemotePage(page())}>
           <button
@@ -161,29 +162,29 @@ export function WelcomeScreen() {
           </Show>
         </Show>
         <button class="welcome-nav-item" onClick={() => runCommand("settings.open")}>
-          <SlidersHorizontal size={15} /> Customize
+          <SlidersHorizontal size={15} /> {t("welcome.nav.customize")}
         </button>
         <button class="welcome-nav-item" onClick={() => runCommand("settings.open")}>
-          <Puzzle size={15} /> Plugins
+          <Puzzle size={15} /> {t("welcome.nav.plugins")}
         </button>
         <div class="welcome-nav-foot">
           <button
             class="icon-btn"
-            title="Manage IDE Settings"
+            title={t("welcome.manage")}
             data-testid="welcome-manage"
             onClick={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
               showContextMenu(
                 [
-                  action("ShowSettings", "Settings..."),
-                  action("TemplateProjectProperties", "Settings for New Projects..."),
+                  action("ShowSettings", t("welcome.manage.settings")),
+                  action("TemplateProjectProperties", t("welcome.manage.newProjects")),
                   separator,
-                  action("ImportSettings", "Import Settings..."),
-                  action("ExportSettings", "Export Settings..."),
-                  action("RestoreDefaultSettings", "Restore Default Settings..."),
-                  action("SettingsSync.Open", "Settings Sync..."),
+                  action("ImportSettings", t("welcome.manage.import")),
+                  action("ExportSettings", t("welcome.manage.export")),
+                  action("RestoreDefaultSettings", t("welcome.manage.restore")),
+                  action("SettingsSync.Open", t("welcome.manage.sync")),
                   separator,
-                  action("InvalidateCaches", "Invalidate Caches..."),
+                  action("InvalidateCaches", t("welcome.manage.invalidate")),
                 ],
                 r.left,
                 r.top - 8,
@@ -213,21 +214,21 @@ export function WelcomeScreen() {
               when={(recent() ?? []).length > 0}
               fallback={
                 <div class="welcome-empty">
-                  <h1>Welcome to Forge</h1>
-                  <p class="muted">Create a new project to start from scratch.</p>
-                  <p class="muted">Open existing project from disk or version control.</p>
+                  <h1>{t("welcome.title")}</h1>
+                  <p class="muted">{t("welcome.hint.create")}</p>
+                  <p class="muted">{t("welcome.hint.open")}</p>
                   <div class="welcome-big-actions">
                     <button class="welcome-big" onClick={newProject}>
                       <FolderPlus size={22} />
-                      <span>New Project</span>
+                      <span>{t("welcome.newProject")}</span>
                     </button>
                     <button class="welcome-big" onClick={open}>
                       <FolderOpen size={22} />
-                      <span>Open</span>
+                      <span>{t("welcome.open")}</span>
                     </button>
                     <button class="welcome-big" onClick={getFromVcs} data-testid="welcome-vcs">
                       <GitBranch size={22} />
-                      <span>Get from VCS</span>
+                      <span>{t("welcome.getFromVcs")}</span>
                     </button>
                   </div>
                 </div>
@@ -237,17 +238,17 @@ export function WelcomeScreen() {
                 <label class="welcome-search">
                   <Search size={14} class="muted" />
                   <input
-                    placeholder="Search projects"
+                    placeholder={t("welcome.search")}
                     value={query()}
                     onInput={(e) => setQuery(e.currentTarget.value)}
                   />
                 </label>
                 <button class="btn-secondary" onClick={newProject}>
-                  New Project
+                  {t("welcome.newProject")}
                 </button>
-                <button class="btn-primary" onClick={open}>Open</button>
+                <button class="btn-primary" onClick={open}>{t("welcome.open")}</button>
                 <button class="btn-secondary" onClick={getFromVcs} data-testid="welcome-vcs">
-                  Get from VCS
+                  {t("welcome.getFromVcs")}
                 </button>
               </div>
               <div class="welcome-list">

@@ -8,6 +8,7 @@ import { findToolWindow } from "@/features/registry";
 import { layout, moveFloatingToolWindow, undockedWindows, viewModeOf } from "@/state/layout";
 import { anchorOf, clampFloating, defaultFloatingBounds, placementOf, type FloatingBounds, type ToolWindowSlot } from "@/state/toolWindowLayout";
 import { ToolWindowPanel } from "./ToolWindowPanel";
+import { t } from "@/i18n";
 
 /** Elements in the header that keep their own mouse handling. */
 const INTERACTIVE = "button, a, input, select, textarea, [role='button'], [role='tab']";
@@ -69,7 +70,7 @@ function FloatingPanel(props: { id: string; slot: ToolWindowSlot }) {
       <ToolWindowPanel slot={props.slot} />
       <div
         class="floating-resize"
-        title="Resize"
+        title={t("toolwindow.resize")}
         onPointerDown={(e) => {
           e.stopPropagation();
           track(e, (s, dx, dy) => ({ ...s, width: s.width + dx, height: s.height + dy }));

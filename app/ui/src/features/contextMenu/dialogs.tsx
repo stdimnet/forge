@@ -1,6 +1,7 @@
 /** Small modal dialogs the context menus need: ask for a name, confirm a destructive action. */
 import { createSignal, onCleanup, Show } from "solid-js";
 import { suspendKeymap } from "@/keymap";
+import { t } from "@/i18n";
 
 interface NameRequest {
   kind: "name";
@@ -98,7 +99,7 @@ function ChoiceDialog(props: { req: ChoiceRequest }) {
             </label>
           </Show>
           <button class="btn-secondary" onClick={() => close(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           {props.req.choices.map((c, i) => (
             <button
@@ -160,7 +161,7 @@ function NameDialog(props: { req: NameRequest }) {
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={() => close(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!valid()} onClick={() => close(value().trim())}>
             {props.req.confirm}
@@ -203,7 +204,7 @@ function ConfirmDialog(props: { req: ConfirmRequest }) {
             </label>
           </Show>
           <button class="btn-secondary" onClick={() => close(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => close(true)}>
             {props.req.confirm}

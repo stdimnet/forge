@@ -5,6 +5,7 @@ import { registerToolWindow } from "@/features/registry";
 import { affectedDirs, onFsChanged, startReloadingChangedTabs } from "@/state/fsWatch";
 import { ProjectActions, ProjectView, refreshDirs } from "./ProjectView";
 import { newEntryFromSelection } from "./fileMenu";
+import { t } from "@/i18n";
 
 // Files changed outside the editor: refresh the tree and reload unmodified open tabs.
 onFsChanged((c) => refreshDirs(affectedDirs(c)));
@@ -12,7 +13,7 @@ startReloadingChangedTabs();
 
 registerToolWindow({
   id: "project",
-  title: "Project",
+  title: t("toolwindow.project.title"),
   icon: Folder,
   anchor: "left",
   order: 0,

@@ -38,6 +38,7 @@ import { RailsEndpointsActions, RailsEndpointsView, setRailsEndpointsTab } from 
 import { wrapGotoDeclaration } from "./editor";
 import { errorText, loadRailsProject, PLUGIN, railsActive, railsProject, showRailsBalloon } from "./state";
 import "./rails.css";
+import { t } from "@/i18n";
 
 wrapGotoDeclaration();
 
@@ -47,7 +48,7 @@ registerEndpointsView({ id: "rails", title: "Rails", order: 15, when: railsActiv
 
 registerSettingsPage({
   id: "lang.rails",
-  title: "Rails",
+  title: t("settings.page.lang.rails"),
   group: "Languages & Frameworks",
   parent: "lang.ruby",
   order: 10,

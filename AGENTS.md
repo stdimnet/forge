@@ -74,6 +74,12 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 ### Language and style
 - Everything is written in **English**: code, comments, docs, UI text and commit messages.
 - Match the surrounding code: naming, comment density and idioms.
+- **UI text is translatable.** Use `t("area.key", args)` (or `<T k="…" />`) from `@/i18n`
+  for every label, tooltip, placeholder and message; add the English message to
+  `crates/forge-i18n/locales/en/<area>.json` and the German one to `locales/de/<area>.json`
+  (ICU MessageFormat, formal "Sie", JetBrains' German terms). Never assemble sentences or
+  plurals from pieces. Rust text the user sees uses `forge_i18n::t` / `t_args`. See
+  `docs/guide/developer/localization.md`; `pnpm i18n:check` reports coverage.
 - UI: PHPStorm New UI layout and wording. Use only the CSS variables from
   `app/ui/src/theme/theme.css`, both dark and light, and icons from `lucide-solid`.
 
@@ -114,7 +120,7 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 ### Quality
 - Before every commit, run the `quality-gates` skill:
   `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
-  `cargo test --workspace`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
+  `cargo test --workspace`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm i18n:check`.
 - UI changes need screenshots (`verify-ui-with-screenshots`), and you must look at them.
 - Every user-visible change updates the matching page in `docs/guide/` (see `docs/guide/README.md`).
   After changing guide pages, regenerate `docs/llms-full.txt` with `pnpm docs:llms`; update

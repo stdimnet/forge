@@ -28,6 +28,7 @@ import { tools as cliTools } from "@/features/cliTools/store";
 import { LaravelSettingsPage, LaravelStatus, showLaravelStatus } from "./status";
 import { laravelActive, laravelInfo, laravelSetting, loadRoutes } from "./state";
 import "./laravel.css";
+import { t } from "@/i18n";
 
 registerLanguage({
   id: "blade",
@@ -52,7 +53,7 @@ wrapGotoDeclaration();
 
 registerToolWindow({
   id: "laravel.routes",
-  title: "Routes",
+  title: t("toolwindow.laravel.routes.title"),
   icon: Route,
   anchor: "bottom",
   order: 35,
@@ -63,7 +64,7 @@ registerToolWindow({
 
 registerToolWindow({
   id: "laravel",
-  title: "Laravel",
+  title: t("toolwindow.laravel.title"),
   icon: LayoutDashboard,
   anchor: "bottom",
   order: 36,
@@ -76,7 +77,7 @@ registerStatusItem({ id: "framework.laravel", align: "right", order: 80, compone
 
 registerSettingsPage({
   id: "lang.php.laravel",
-  title: "Laravel",
+  title: t("settings.page.lang.php.laravel"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 10,

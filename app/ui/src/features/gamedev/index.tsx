@@ -12,6 +12,7 @@ import { godotStatus, refreshGodot } from "./godot";
 import { refreshUnity, unityStatus } from "./unity";
 import "./syntax";
 import "./gamedev.css";
+import { t } from "@/i18n";
 
 /** Unity and Godot command lines built in Rust (Start Unity, project files, the Godot editor). */
 registerRunConfigurationType({
@@ -85,7 +86,7 @@ function GodotPage() {
 
 registerSettingsPage({
   id: "lang.dotnet.unity",
-  title: "Unity",
+  title: t("settings.page.lang.dotnet.unity"),
   group: "Languages & Frameworks",
   parent: "lang.dotnet",
   order: 10,
@@ -95,7 +96,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.dotnet.godot",
-  title: "Godot",
+  title: t("settings.page.lang.dotnet.godot"),
   group: "Languages & Frameworks",
   parent: "lang.dotnet",
   order: 11,

@@ -112,6 +112,34 @@ pub struct ActionDef {
     pub native: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// The English title when `title` is a translation; Find Action matches both.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_en: Option<String>,
+}
+
+impl ActionDef {
+    /// Catalog key of the action title: `action.<id>`.
+    pub fn title_key(id: &str) -> String {
+        format!("action.{id}")
+    }
+
+    /// Show the title in the language of `l10n`, keeping the English one in `title_en`.
+    pub fn localize(&mut self, l10n: &forge_i18n::Localizer) {
+        if let Some(t) = l10n.translate(&Self::title_key(&self.id)) {
+            if t != self.title {
+                self.title_en = Some(std::mem::replace(&mut self.title, t));
+            }
+        }
+    }
+}
+
+/// The English source catalog of the PHPStorm action titles (`locales/en/actions.json`).
+pub fn action_messages() -> std::collections::BTreeMap<String, String> {
+    catalog()
+        .actions
+        .iter()
+        .map(|a| (ActionDef::title_key(&a.id), a.title.clone()))
+        .collect()
 }
 
 /// Top-level groups of the keymap tree, in display order.

@@ -26,6 +26,7 @@ import { activeTab } from "@/state/editor";
 import { isPluginActive } from "@/state/project";
 import "@/features/java/java.css";
 import "@/features/scala/scala.css";
+import { t } from "@/i18n";
 
 export const PLUGIN_ID = "forge.groovy";
 export const SCRIPT = "groovy-script";
@@ -84,7 +85,7 @@ function GroovyPage() {
 
 registerSettingsPage({
   id: "lang.groovy",
-  title: "Groovy",
+  title: t("settings.page.lang.groovy"),
   group: "Languages & Frameworks",
   order: 27,
   keywords: ["groovy", "spock", "sdkman", "groovy sdk", "scripts"],

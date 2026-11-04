@@ -42,6 +42,10 @@ registerKeymapActions([
 registerCommand({ id: "CommandLineToolsAction", title: "Run Command…", run: () => openRunCommand() });
 ```
 
+Titles stay English here: the keymap (Rust) shows the translation of `action.<id>` from
+`crates/forge-i18n/locales/<locale>/actions.json` and keeps the English title for Find Action
+matching. Labels of `registerMainMenuEntries` are English source text too (`menu.<id>`).
+
 Shortcut syntax: `Ctrl+Shift+A`, `Alt+Insert`, chords `Ctrl+K Ctrl+C`, double taps `Shift Shift`,
 macOS `Cmd`/`Opt`. Physical key codes are used, so keyboard layouts work.
 

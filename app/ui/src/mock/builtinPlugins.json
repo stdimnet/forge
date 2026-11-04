@@ -859,6 +859,26 @@
           "order": 20
         },
         {
+          "key": "ide.language",
+          "title": "IDE language",
+          "description": "The language of menus, tool windows, dialogs and messages. Forge restarts to apply it everywhere.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "en",
+              "label": "English"
+            },
+            {
+              "value": "de",
+              "label": "Deutsch"
+            }
+          ],
+          "default": "en",
+          "group": "system.language",
+          "project": false,
+          "order": 0
+        },
+        {
           "key": "updates.checkOnStartup",
           "title": "Check for updates on startup",
           "description": "The splash screen checks at most once a day. Help | Check for Updates… checks at any time.",

@@ -40,6 +40,7 @@ import { askForProfile, openProfile, ProfilerActions, ProfilerView } from "./Pro
 import { isGoPath, runGenerate, runLint } from "./editor";
 import { downloadSdk } from "./sdk";
 import { goActive, installTool, PLUGIN, refreshGoStatus, runGoCommand, showGoBalloon } from "./state";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -47,7 +48,7 @@ const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
 registerSettingsPage({
   id: "lang.go",
-  title: "Go",
+  title: t("settings.page.lang.go"),
   group: "Languages & Frameworks",
   order: 26,
   keywords: ["go", "golang", "goroot", "gopath", "goflags", "build tags", "gofmt", "goimports", "gopls", "delve", "dlv", "golangci-lint", "vet", "modules", "proxy", "sdk"],

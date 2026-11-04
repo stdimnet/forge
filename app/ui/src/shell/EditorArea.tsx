@@ -26,6 +26,7 @@ import { canDragTabsOut, openTabMenu, tabDraggedOut } from "./tabMenu";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
 import { tabColor } from "@/features/scopes/model";
 import { SafeModeBanner } from "@/features/trust";
+import { t } from "@/i18n";
 
 const docOf = (id: string): EditorTab | undefined => editor.tabs.find((t) => t.path === id);
 const customOf = (id: string) => customTabs().find((t) => t.id === id);
@@ -130,7 +131,7 @@ function Tab(props: { group: TabGroup; id: string }) {
       <Show
         when={pinned() && getSetting<boolean>("editor.tabs.showPinnedIcon", true) !== false}
         fallback={
-          <button class="tab-close" classList={{ dirty: !!doc() && isDirty(doc()!) }} title="Close (Ctrl+F4)" onClick={close}>
+          <button class="tab-close" classList={{ dirty: !!doc() && isDirty(doc()!) }} title={t("editor.tab.close", { shortcut: "Ctrl+F4" })} onClick={close}>
             <span class="dirty-dot" />
             <X size={13} />
           </button>
@@ -139,7 +140,7 @@ function Tab(props: { group: TabGroup; id: string }) {
         <button
           class="tab-close tab-pin"
           classList={{ dirty: !!doc() && isDirty(doc()!) }}
-          title="Unpin Tab"
+          title={t("editor.tab.unpin")}
           onClick={(e) => {
             e.stopPropagation();
             togglePinTab(props.id);

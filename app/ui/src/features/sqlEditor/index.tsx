@@ -28,6 +28,7 @@ import { SqlDialectsPage } from "./SqlDialectsPage";
 import { openRunFile, SqlDialogsHost } from "./SqlDialogs";
 import "./navigation";
 import "./sqlEditor.css";
+import { t } from "@/i18n";
 
 registerLanguage({ id: "sql", load: (path) => sqlFileLanguage(path) });
 
@@ -38,7 +39,7 @@ registerStatusItem({ id: "sql.dialect", align: "right", order: 8, component: Dia
 
 registerSettingsPage({
   id: SQL_DIALECTS_PAGE,
-  title: "SQL Dialects",
+  title: t("settings.page.sql-dialects"),
   group: "Languages & Frameworks",
   order: 60,
   keywords: ["sql", "dialect", "mysql", "postgresql", "sqlite", "sql server", "oracle", "clickhouse", "resolution", "data source"],

@@ -19,10 +19,11 @@ import { MnemonicHost, askMnemonic } from "./MnemonicPopup";
 import { applyBookmarks, bookmarkAt, bookmarkByMnemonic, bookmarksIn, flushEdits } from "./store";
 import "./gutter";
 import "./bookmarks.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "bookmarks",
-  title: "Bookmarks",
+  title: t("toolwindow.bookmarks.title"),
   icon: Bookmark,
   anchor: "left",
   order: 40,

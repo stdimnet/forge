@@ -61,6 +61,7 @@ import { generateCommitMessage } from "./aiMessage";
 import { showMessageHistory } from "./extras";
 import { unifiedDiff } from "./textDiff";
 import { CommitSpellProblems, createCommitMessageCheck, SpellOverlay } from "@/features/spelling/commitMessage";
+import { t, tOr } from "@/i18n";
 
 // Panel state lives at module level so it survives hiding the tool window.
 const [message, setMessage] = createSignal("");
@@ -115,11 +116,12 @@ async function confirmLineSeparators(paths: string[]): Promise<boolean> {
   if (!paths.length || !getSetting<boolean>("vcs.git.commit.warnOnCrlf", true)) return true;
   const crlf = await gitApi.crlfFiles(paths).catch(() => [] as string[]);
   if (!crlf.length) return true;
-  const list = crlf.slice(0, 5).join(", ") + (crlf.length > 5 ? ` and ${crlf.length - 5} more` : "");
+  const first = crlf.slice(0, 5).join(", ");
+  const list = crlf.length > 5 ? t("vcs.crlf.more", { list: first, count: crlf.length - 5 }) : first;
   const choice = await askChoice({
-    title: "Line Separators Warning",
-    message: `You are about to commit CRLF line separators (${list}). Setting the core.autocrlf Git attribute to true avoids line separator issues.`,
-    choices: [{ id: "commit", label: "Commit As Is" }],
+    title: t("vcs.crlf.title"),
+    message: t("vcs.crlf.message", { list }),
+    choices: [{ id: "commit", label: t("vcs.crlf.commitAsIs") }],
   });
   return choice === "commit";
 }
@@ -130,7 +132,7 @@ const unversioned = () => (status()?.entries ?? []).filter((e) => e.worktree ===
 
 const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
-const plural = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
+const plural = (n: number) => t("vcs.files", { count: n });
 
 function toggleCollapsed(id: string) {
   setCollapsed((prev) => {
@@ -199,8 +201,8 @@ function FileRow(props: { entry: StatusEntry; item: ListItem; list: string; dept
         <span class="tree-hint">{dirOf(props.entry.path)}</span>
       </Show>
       <Show when={props.item.hunks}>
-        <span class="tree-hint commit-partial" title="Some changes of this file are in another changelist">
-          {props.item.hunks!.length} {props.item.hunks!.length === 1 ? "change" : "changes"}
+        <span class="tree-hint commit-partial" title={t("vcs.partial.tooltip")}>
+          {t("vcs.partial.changes", { count: props.item.hunks!.length })}
         </span>
       </Show>
     </div>
@@ -352,7 +354,7 @@ function ConflictsGroup() {
     <Show when={conflicts().length > 0}>
       <div class="tree-row commit-group commit-conflicts" onClick={() => toggleCollapsed("conflicts")} style={{ "padding-left": "8px" }}>
         <span class="tree-chevron">{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-        <span class="tree-label strong">Merge Conflicts</span>
+        <span class="tree-label strong">{t("vcs.mergeConflicts")}</span>
         <span class="tree-hint">{plural(conflicts().length)}</span>
         <button
           class="link-btn commit-resolve"
@@ -480,7 +482,7 @@ const listGroups = createMemo(() => {
   const rest: ListItem[] = [...changed].filter((p) => !seen.has(p)).map((path) => ({ path, hunks: null }));
   const target = groups.find((g) => g.active) ?? groups[0];
   if (target) target.items = [...target.items, ...rest];
-  else groups.push({ list: undefined, id: "changes", title: "Changes", active: true, items: rest });
+  else groups.push({ list: undefined, id: "changes", title: t("vcs.changes"), active: true, items: rest });
   return groups;
 });
 
@@ -510,49 +512,49 @@ function CommitOptionsPopup() {
   const toggle = (key: string, value: boolean) => void saveSetting(key, value);
   const configs = () => allConfigurations();
   return (
-    <div class="commit-options-popup" ref={ref} role="dialog" aria-label="Commit Options">
+    <div class="commit-options-popup" ref={ref} role="dialog" aria-label={t("vcs.commitOptions")}>
       <div class="commit-options-section">Git</div>
       <label class="commit-options-row commit-options-author">
-        Author:
-        <input class="gd-input" value={author()} placeholder="Name <email>" spellcheck={false} onInput={(e) => setAuthor(e.currentTarget.value)} />
+        {t("vcs.author")}
+        <input class="gd-input" value={author()} placeholder={t("vcs.authorPlaceholder")} spellcheck={false} onInput={(e) => setAuthor(e.currentTarget.value)} />
       </label>
       <label class="commit-options-row">
         <input type="checkbox" checked={setting("vcs.git.commit.signOff")} onChange={(e) => toggle("vcs.git.commit.signOff", e.currentTarget.checked)} />
-        Sign-off commit
+        {t("vcs.signOffCommit")}
       </label>
       <label class="commit-options-row">
         <input type="checkbox" checked={amend()} onChange={(e) => void toggleAmend(e.currentTarget.checked)} />
-        Amend commit
+        {t("vcs.amendCommit")}
       </label>
       <label class="commit-options-row">
         <input type="checkbox" checked={setting("vcs.commit.runHooks", true)} onChange={(e) => toggle("vcs.commit.runHooks", e.currentTarget.checked)} />
-        Run Git hooks
+        {t("vcs.runHooks")}
       </label>
-      <div class="commit-options-section">Commit Checks</div>
+      <div class="commit-options-section">{t("vcs.commitChecks")}</div>
       <For each={COMMIT_CHECKS}>
         {(c) => (
           <label class="commit-options-row">
             <input type="checkbox" checked={setting(c.key)} onChange={(e) => toggle(c.key, e.currentTarget.checked)} />
-            {c.label}
+            {tOr(`vcs.commitCheck.${c.key}`, c.label)}
           </label>
         )}
       </For>
-      <div class="commit-options-section">Advanced Commit Checks</div>
+      <div class="commit-options-section">{t("vcs.advancedChecks")}</div>
       <label class="commit-options-row">
         <input type="checkbox" checked={setting("vcs.commit.runTests")} onChange={(e) => toggle("vcs.commit.runTests", e.currentTarget.checked)} />
-        Run Tests:
+        {t("vcs.runTests")}
         <select
           class="gd-select"
           disabled={!setting("vcs.commit.runTests")}
           value={getSetting<string>("vcs.commit.testConfiguration", "")}
           onChange={(e) => void saveSetting("vcs.commit.testConfiguration", e.currentTarget.value)}
         >
-          <option value="">Choose configuration…</option>
+          <option value="">{t("vcs.chooseConfiguration")}</option>
           <For each={configs()}>{(c) => <option value={c.name}>{c.name}</option>}</For>
         </select>
       </label>
       <button class="link-btn commit-options-settings" onClick={() => (setOptionsOpen(false), openSettings("vcs.commit"))}>
-        Settings | Version Control | Commit
+        {t("vcs.commitSettingsLink")}
       </button>
     </div>
   );
@@ -568,12 +570,12 @@ export function CommitPanel() {
   return (
     <div class="commit-panel" tabIndex={-1}>
       <div class="panel-toolbar">
-        <button class="icon-btn" title="Refresh (Ctrl+F5)" onClick={() => void repositoryChanged()}>
+        <button class="icon-btn" title={t("vcs.refresh", { shortcut: "Ctrl+F5" })} onClick={() => void repositoryChanged()}>
           <RefreshCw size={15} />
         </button>
         <button
           class="icon-btn"
-          title="Rollback… (Ctrl+Alt+Z)"
+          title={t("vcs.rollback", { shortcut: "Ctrl+Alt+Z" })}
           disabled={!checkedPaths().length}
           onClick={() => confirmRollback(checkedPaths().filter((p) => changes().some((c) => c.path === p)))}
         >
@@ -581,44 +583,44 @@ export function CommitPanel() {
         </button>
         <button
           class="icon-btn"
-          title="Show Diff (Ctrl+D)"
+          title={t("vcs.showDiff", { shortcut: "Ctrl+D" })}
           disabled={!selected() && !checkedPaths().length}
           onClick={() => void showDiff(selected() ?? checkedPaths()[0], allPaths())}
         >
           <FileDiff size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Expand All (Ctrl+NumPad +)" onClick={() => setCollapsed(new Set<string>())}>
+        <button class="icon-btn" title={t("common.expandAll", { shortcut: "Ctrl+NumPad +" })} onClick={() => setCollapsed(new Set<string>())}>
           <ChevronsUpDown size={15} />
         </button>
         <button
           class="icon-btn"
-          title="Collapse All (Ctrl+NumPad -)"
+          title={t("common.collapseAll", { shortcut: "Ctrl+NumPad -" })}
           onClick={() => setCollapsed(new Set(["conflicts", "unversioned", ...listGroups().map((g) => g.id)]))}
         >
           <ChevronsDownUp size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="New Changelist…" onClick={() => newChangelistDialog()}>
+        <button class="icon-btn" title={t("vcs.newChangelist")} onClick={() => newChangelistDialog()}>
           <ListPlus size={15} />
         </button>
       </div>
       <div class="commit-tree" role="tree">
         <Show
           when={total() > 0}
-          fallback={<div class="commit-empty">{status() ? "No changes" : "No Git repository for this project"}</div>}
+          fallback={<div class="commit-empty">{status() ? t("vcs.noChanges") : t("vcs.noRepository")}</div>}
         >
           <ConflictsGroup />
           <For each={listGroups()}>
             {(g) => <Group id={g.id} title={g.title} items={g.items} strong={g.active} list={g.list} showEmpty={listGroups().length > 1} />}
           </For>
-          <Group id="unversioned" title="Unversioned Files" items={unversioned().map((e) => ({ path: e.path, hunks: null }))} />
+          <Group id="unversioned" title={t("vcs.unversioned")} items={unversioned().map((e) => ({ path: e.path, hunks: null }))} />
         </Show>
       </div>
       <div class="commit-message">
         <div class="commit-message-toolbar">
           <Show when={status()?.branch}>
-            <span class="commit-branch-hint" title="Current branch">
+            <span class="commit-branch-hint" title={t("vcs.currentBranch")}>
               {status()!.branch}
               <Show when={(status()?.ahead ?? 0) > 0}>
                 <span class="muted"> ↑{status()!.ahead}</span>
@@ -626,13 +628,13 @@ export function CommitPanel() {
             </span>
           </Show>
           <span class="spacer" />
-          <button class="icon-btn" title="Commit Message History (Ctrl+M)" onClick={() => void showMessageHistory()} data-testid="message-history-btn">
+          <button class="icon-btn" title={t("vcs.messageHistory", { shortcut: "Ctrl+M" })} onClick={() => void showMessageHistory()} data-testid="message-history-btn">
             <Clock size={14} />
           </button>
           <button
             class="icon-btn ai-generate"
             classList={{ busy: generating() }}
-            title="Generate Commit Message with AI"
+            title={t("vcs.generateMessage")}
             disabled={generating()}
             onClick={() => void generate()}
           >
@@ -644,7 +646,7 @@ export function CommitPanel() {
         <div class="spell-textarea">
           <textarea
             ref={messageInput}
-            placeholder="Commit Message"
+            placeholder={t("vcs.commitMessage")}
             data-focus-context="toolwindow-input"
             value={message()}
             spellcheck={false}
@@ -662,10 +664,10 @@ export function CommitPanel() {
           <ul class="commit-problems" data-commit-problems>
             <For each={problems()}>
               {(p) => (
-                <li title="Settings | Version Control | Git | Commit Message Inspections" onClick={() => openSettings("vcs.git")}>
+                <li title={t("vcs.inspectionsLink")} onClick={() => openSettings("vcs.git")}>
                   <TriangleAlert size={12} />
                   <span>
-                    Line {p.line + 1}: {p.message}
+                    {t("vcs.problemLine", { line: p.line + 1, message: p.message })}
                   </span>
                 </li>
               )}
@@ -680,18 +682,18 @@ export function CommitPanel() {
         <div class="commit-options">
           <label class="commit-amend">
             <input type="checkbox" checked={amend()} onChange={(e) => void toggleAmend(e.currentTarget.checked)} />
-            Amend
+            {t("vcs.amend")}
           </label>
-          <label class="commit-amend" title="Add a Signed-off-by line (Settings | Version Control | Git)">
+          <label class="commit-amend" title={t("vcs.signOff.tooltip")}>
             <input
               type="checkbox"
               checked={getSetting<boolean>("vcs.git.commit.signOff", false)}
               onChange={(e) => void saveSetting("vcs.git.commit.signOff", e.currentTarget.checked)}
             />
-            Sign-off
+            {t("vcs.signOff")}
           </label>
           <Show when={generating()}>
-            <span class="muted ai-status">Generating commit message…</span>
+            <span class="muted ai-status">{t("vcs.generating")}</span>
           </Show>
           <Show when={progress()}>
             <span class="muted ai-status commit-progress">
@@ -700,14 +702,14 @@ export function CommitPanel() {
           </Show>
         </div>
         <div class="commit-actions">
-          <button class="btn-primary" disabled={!canCommit()} onClick={() => void doCommit(false)} title="Commit (Ctrl+Enter)">
-            {amend() ? "Amend Commit" : "Commit"}
+          <button class="btn-primary" disabled={!canCommit()} onClick={() => void doCommit(false)} title={t("vcs.commit.tooltip", { shortcut: "Ctrl+Enter" })}>
+            {amend() ? t("vcs.amendCommitButton") : t("vcs.commit")}
           </button>
-          <button class="btn-secondary" disabled={!canCommit()} onClick={() => void doCommit(true)} title="Commit and Push… (Ctrl+Alt+K)">
-            {amend() ? "Amend Commit and Push…" : "Commit and Push…"}
+          <button class="btn-secondary" disabled={!canCommit()} onClick={() => void doCommit(true)} title={t("vcs.commitAndPush.tooltip", { shortcut: "Ctrl+Alt+K" })}>
+            {amend() ? t("vcs.amendCommitAndPush") : t("vcs.commitAndPush")}
           </button>
           <span class="spacer" />
-          <button class="icon-btn commit-options-btn" classList={{ active: optionsOpen() }} title="Commit Options" onClick={() => setOptionsOpen(!optionsOpen())}>
+          <button class="icon-btn commit-options-btn" classList={{ active: optionsOpen() }} title={t("vcs.commitOptions")} onClick={() => setOptionsOpen(!optionsOpen())}>
             <Settings size={15} />
           </button>
           <Show when={optionsOpen()}>

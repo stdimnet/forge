@@ -23,6 +23,7 @@ import {
 import { registerMainMenuLabel } from "@/features/mainMenu/model";
 import { isDialogWindow } from "@/shell/window/mode";
 import { DEFAULT_ZOOM, nextZoom, zoomPercent } from "./zoom";
+import { t, tOr } from "@/i18n";
 
 const MODES: [string, AppearanceMode, string][] = [
   ["TogglePresentationMode", "presentation", "_Presentation Mode"],
@@ -37,11 +38,11 @@ for (const [id, mode, label] of MODES) {
     category: "View",
     run: () => toggleAppearanceMode(mode),
   });
-  registerMainMenuLabel(id, () => (appearanceMode() === mode ? `Exit ${label}` : undefined));
+  registerMainMenuLabel(id, () => (appearanceMode() === mode ? tOr(`menu.exit.${id}`, `Exit ${label}`) : undefined));
 }
 
 registerCommand({ id: "ToggleFullScreen", title: "Toggle Full Screen Mode", category: "View", run: toggleFullScreen });
-registerMainMenuLabel("ToggleFullScreen", () => (isFullScreen() ? "Exit F_ull Screen" : undefined));
+registerMainMenuLabel("ToggleFullScreen", () => (isFullScreen() ? t("menu.exit.ToggleFullScreen") : undefined));
 
 // ---- Zoom IDE
 const ZOOM_KEY = "appearance.zoom";

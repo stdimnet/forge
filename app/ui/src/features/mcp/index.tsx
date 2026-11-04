@@ -12,10 +12,11 @@ import { McpServerPage } from "./McpServerPage";
 import { MCP_PAGE_ID, McpStatusItem } from "./McpStatusItem";
 import { listenToMcp, mcpStatus, setPopupOpen } from "./store";
 import "./mcp.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: MCP_PAGE_ID,
-  title: "MCP Server",
+  title: t("settings.page.mcp-server"),
   group: "Tools",
   order: 12,
   keywords: ["MCP", "Model Context Protocol", "Claude Code", "Claude Desktop", "Cursor", "Gemini CLI", "Codex", "agent", "token", "approval"],

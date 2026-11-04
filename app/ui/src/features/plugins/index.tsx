@@ -20,6 +20,7 @@ import { isDialogWindow } from "@/shell/window/mode";
 import { reloadPlugins } from "./host";
 import { checkPluginUpdates, installFromDisk, refreshInstalled } from "./store";
 import "./plugins.css";
+import { t } from "@/i18n";
 
 export const PLUGINS_CHANGED_EVENT = "plugins://changed";
 
@@ -110,7 +111,7 @@ function SettingsSyncPage() {
 
 registerSettingsPage({
   id: "settingsSync",
-  title: "Settings Sync",
+  title: t("settings.page.settingsSync"),
   group: "Settings Sync",
   order: 95,
   keywords: ["backup", "sync", "cloud", "dropbox", "git", "export"],

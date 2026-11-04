@@ -15,10 +15,11 @@ import { registerKeymapActions } from "@/keymap/store";
 import { cmsInfo, drupalActive, shopwareActive } from "./store";
 import "./editor";
 import "./cms.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "lang.php.cms",
-  title: "Drupal, Joomla and Shopware",
+  title: t("settings.page.lang.php.cms"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 24,

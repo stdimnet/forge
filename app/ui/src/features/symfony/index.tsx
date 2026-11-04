@@ -22,10 +22,11 @@ import { loadSymfony } from "./store";
 import "./editor";
 import "./translations";
 import "./symfony.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "symfony",
-  title: "Symfony",
+  title: t("toolwindow.symfony.title"),
   icon: Route,
   anchor: "bottom",
   order: 35,
@@ -38,7 +39,7 @@ claimFrameworkStatus("symfony");
 
 registerSettingsPage({
   id: "lang.php.symfony",
-  title: "Symfony",
+  title: t("settings.page.lang.php.symfony"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 20,

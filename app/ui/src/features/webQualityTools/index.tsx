@@ -34,12 +34,13 @@ import { isPluginActive } from "@/state/project";
 import { clearAll, problemsOf } from "./problems";
 import { WebQualityToolsPage } from "./WebQualityToolsPage";
 import { active, ALL_TOOLS, checkFile, fixWith, formatWithWebTools, inspectWithWebTools, isWebFile, onTheFly, PAGE } from "./run";
+import { t } from "@/i18n";
 
 export { inspectWithWebTools } from "./run";
 
 registerSettingsPage({
   id: PAGE,
-  title: "Code Quality Tools",
+  title: t("settings.page.code-quality-tools"),
   group: "Languages & Frameworks",
   order: 22,
   keywords: ["eslint", "prettier", "stylelint", "biome", "lint", "linter", "code quality", "formatter", "fix on save", "run on save", "javascript", "css"],

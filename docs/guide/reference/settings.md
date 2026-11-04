@@ -98,6 +98,7 @@ Page id `system`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
+| `ide.language` | enum (`en`, `de`) | `en` | user | Language page | IDE language: English or Deutsch; Forge offers a restart to apply it everywhere ([IDE language](../user/languages.md)) |
 | `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
 | `system.confirmExit` | bool | `true` | user | Project | Confirm before exiting the IDE |
 | `system.openProjectIn` | enum: `newWindow`, `thisWindow`, `ask` | `ask` | user | Project | Open project in — Where File \| Open and the recent projects open a project while another one is open in this window. |

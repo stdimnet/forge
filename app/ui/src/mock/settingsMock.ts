@@ -148,8 +148,16 @@ registerMock("settings_set", async ({ key, value, scope }) => {
   await ready;
   setSetting(String(key), (value ?? null) as SettingValue | null, scope as SettingsScope);
 });
-registerMock("settings_schema", () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.settings));
-registerMock("plugins_list", () => structuredClone(plugins));
+// Manifests in the IDE language, like the desktop commands (`forge_plugin_api::l10n`).
+registerMock("settings_schema", async () => {
+  await ready;
+  const specs = plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.settings);
+  return wasm ? callWasmSync<SettingSpec[]>(wasm.i18n_localize_settings, { specs, plugins }) : specs;
+});
+registerMock("plugins_list", async () => {
+  await ready;
+  return wasm ? callWasmSync<PluginInfo[]>(wasm.i18n_localize_plugins, plugins) : structuredClone(plugins);
+});
 registerMock("settings_search", async ({ request }) => callWasm((await ready).settings_search, request));
 registerMock("settings_validate", async ({ key, value }) => {
   await ready;

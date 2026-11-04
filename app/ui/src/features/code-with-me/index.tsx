@@ -43,6 +43,7 @@ import { joinSession } from "./join";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
+import { t } from "@/i18n";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
@@ -102,7 +103,7 @@ registerToolbarItem({ id: "codeWithMe", order: 30, component: () => <ToolbarButt
 
 registerSettingsPage({
   id: "tools.code-with-me",
-  title: "Code With Me",
+  title: t("settings.page.tools.code-with-me"),
   group: "Tools",
   order: 40,
   keywords: ["collaboration", "pair programming", "share", "session", "guest", "host", "invite"],
@@ -191,7 +192,7 @@ for (const [id, title, run] of commands) registerCommand({ id, title, category: 
 // Participants (Follow, Jump To) and the host's Session Log, while a session runs.
 registerToolWindow({
   id: "code-with-me",
-  title: "Code With Me",
+  title: t("toolwindow.code-with-me.title"),
   icon: Users,
   anchor: "right",
   order: 60,

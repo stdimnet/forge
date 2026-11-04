@@ -9,6 +9,7 @@ import { Route } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { activeEndpointsViews, currentEndpointsView, selectEndpointsView } from "./registry";
 import "./endpoints.css";
+import { t } from "@/i18n";
 
 function EndpointsToolWindow() {
   return (
@@ -49,7 +50,7 @@ function EndpointsToolWindowActions() {
 
 registerToolWindow({
   id: "endpoints",
-  title: "Endpoints",
+  title: t("toolwindow.endpoints.title"),
   icon: Route,
   anchor: "bottom",
   order: 48,

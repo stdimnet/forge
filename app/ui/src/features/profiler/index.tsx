@@ -12,6 +12,7 @@ import { registerKeymapActions } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { showToolWindow, toggleToolWindow } from "@/state/layout";
 import "./profiler-host.css";
+import { t } from "@/i18n";
 
 export interface ProfilerSource {
   id: string;
@@ -70,7 +71,7 @@ function ProfilerActions() {
 
 registerToolWindow({
   id: "profiler",
-  title: "Profiler",
+  title: t("toolwindow.profiler.title"),
   icon: Gauge,
   anchor: "bottom",
   order: 47,

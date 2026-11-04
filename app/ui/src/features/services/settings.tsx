@@ -10,6 +10,7 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { servicesApi } from "@/ipc/services";
 import { workspace } from "@/state/workspace";
+import { t } from "@/i18n";
 
 function TestConnection() {
   const [state, setState] = createSignal<{ ok: boolean; text: string } | "testing" | null>(null);
@@ -285,7 +286,7 @@ function HostKubectl() {
 
 registerSettingsPage({
   id: "build.docker",
-  title: "Docker",
+  title: t("settings.page.build.docker"),
   group: "Build, Execution, Deployment",
   order: 10,
   keywords: ["docker", "socket", "DOCKER_HOST", "tcp", "tls", "compose", "named pipe", "podman", "ssh", "remote", "context"],
@@ -294,7 +295,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.docker.registries",
-  title: "Docker Registry",
+  title: t("settings.page.build.docker.registries"),
   group: "Build, Execution, Deployment",
   parent: "build.docker",
   order: 0,
@@ -304,7 +305,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.kubernetes",
-  title: "Kubernetes",
+  title: t("settings.page.build.kubernetes"),
   group: "Build, Execution, Deployment",
   order: 20,
   keywords: ["kubeconfig", "kubectl", "context", "namespace", "k8s", "remote", "host", "ssh"],

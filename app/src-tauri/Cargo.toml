@@ -65,6 +65,7 @@ base64 = "0.22"
 forge-sqlcode.workspace = true
 forge-containers.workspace = true
 forge-keymap.workspace = true
+forge-i18n.workspace = true
 forge-vim.workspace = true
 forge-livetemplates.workspace = true
 forge-injections.workspace = true

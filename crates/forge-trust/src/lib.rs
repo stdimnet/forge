@@ -214,11 +214,16 @@ impl SafeMode {
     }
 }
 
-/// The error text of a command refused in Safe Mode.
+/// The error text of a command refused in Safe Mode, in the IDE language (`what` is the
+/// English action, translated through `errors.safeMode.action.<slug>` when it can be).
 pub fn refusal(what: &str) -> String {
-    format!(
-        "{what} is not available in Safe Mode: the project is not trusted. \
-         Trust the project (Trust Project… in the Safe Mode banner) to run its code."
+    let what = forge_i18n::t_or(
+        &format!("errors.safeMode.action.{}", forge_i18n::slug(what)),
+        what,
+    );
+    forge_i18n::t_args(
+        "errors.safeMode.refused",
+        &forge_i18n::args! { "what" => what },
     )
 }
 

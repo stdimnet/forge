@@ -30,10 +30,11 @@ import { loadInspections, setProfiles } from "./model";
 import { applyCleanup, cancelRun, cleanupPlan, RESULTS_WINDOW, resultTabs, runInspections, runningInspection } from "./run";
 import "./suppress";
 import "./inspections.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: INSPECTIONS_PAGE,
-  title: "Inspections",
+  title: t("settings.page.inspections"),
   group: "Editor",
   order: 25,
   keywords: ["inspection", "profile", "severity", "suppress", "noinspection", "duplicates", "data flow", "Project Default"],
@@ -50,7 +51,7 @@ registerDraftSource({
 
 registerToolWindow({
   id: RESULTS_WINDOW,
-  title: "Inspection Results",
+  title: t("toolwindow.inspection-results.title"),
   icon: ListChecks,
   anchor: "bottom",
   order: 58,

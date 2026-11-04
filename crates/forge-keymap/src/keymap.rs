@@ -27,7 +27,7 @@ use crate::catalog::{
 use crate::engine::{
     build_bindings, find_conflicts, Binding, ConflictKind, KeyInput, Resolution, Resolver,
 };
-use crate::menu::{resolve_main_menu, ActionLookup, MainMenu, MainMenuRequest};
+use crate::menu::{resolve_main_menu_in, ActionLookup, MainMenu, MainMenuRequest};
 use crate::shortcut::{canonical_shortcut, format_shortcut_text, try_parse_shortcut, Platform};
 
 /// Setting that selects the keymap: "auto" or a keymap id ("$default", "macOS", "VSCode",
@@ -620,6 +620,7 @@ impl Registry {
                 context: a.context,
                 native: a.native,
                 description: a.description,
+                title_en: None,
             });
         }
     }
@@ -733,8 +734,22 @@ impl KeymapService {
         self.keymap().platform()
     }
 
-    /// Every known action: PHPStorm catalog, plugin actions and bare registered commands.
+    /// Every known action: PHPStorm catalog, plugin actions and bare registered commands,
+    /// titled in the language of the process-wide localizer.
     pub fn all_actions(&self) -> Vec<ActionDef> {
+        self.all_actions_in(&forge_i18n::current())
+    }
+
+    /// [`KeymapService::all_actions`] with the titles of `l10n` (`action.<id>` keys).
+    pub fn all_actions_in(&self, l10n: &forge_i18n::Localizer) -> Vec<ActionDef> {
+        let mut out = self.all_actions_en();
+        for a in &mut out {
+            a.localize(l10n);
+        }
+        out
+    }
+
+    fn all_actions_en(&self) -> Vec<ActionDef> {
         let cat = catalog();
         let mut out = cat.actions.clone();
         let mut known: std::collections::HashSet<String> =
@@ -756,6 +771,7 @@ impl KeymapService {
                     context: ActionContext::Any,
                     native: false,
                     description: None,
+                    title_en: None,
                 });
             }
         }
@@ -801,7 +817,7 @@ impl KeymapService {
     /// Bindings of all non-native actions in the active keymap.
     pub fn bindings(&self) -> Vec<Binding> {
         let actions: HashMap<String, ActionDef> = self
-            .all_actions()
+            .all_actions_en()
             .into_iter()
             .map(|a| (a.id.clone(), a))
             .collect();
@@ -1140,8 +1156,17 @@ impl KeymapService {
 
     /// The main menu with labels, shortcuts and enabled states from this keymap.
     pub fn main_menu(&self, request: &MainMenuRequest) -> MainMenu {
+        self.main_menu_in(request, &forge_i18n::current())
+    }
+
+    /// [`KeymapService::main_menu`] in the language of `l10n`.
+    pub fn main_menu_in(
+        &self,
+        request: &MainMenuRequest,
+        l10n: &forge_i18n::Localizer,
+    ) -> MainMenu {
         let titles: HashMap<String, String> = self
-            .all_actions()
+            .all_actions_in(l10n)
             .into_iter()
             .map(|a| (a.id, a.title))
             .collect();
@@ -1156,7 +1181,7 @@ impl KeymapService {
                 .collect(),
             platform: self.platform(),
         };
-        resolve_main_menu(request, &lookup)
+        resolve_main_menu_in(request, &lookup, l10n)
     }
 
     /// Feed one key event to the resolver.

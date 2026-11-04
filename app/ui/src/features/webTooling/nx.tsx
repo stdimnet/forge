@@ -16,6 +16,7 @@ import { registerKeymapActions } from "@/keymap";
 import { toggleToolWindow } from "@/state/layout";
 import { openFileAt } from "@/editor/views";
 import { isPluginActive } from "@/state/project";
+import { t } from "@/i18n";
 
 const active = () => isPluginActive("forge.nx");
 
@@ -175,7 +176,7 @@ function NxActions() {
   );
 }
 
-registerToolWindow({ id: "nx", title: "Nx", icon: Network, anchor: "left", order: 32, component: NxView, actions: NxActions, when: active });
+registerToolWindow({ id: "nx", title: t("toolwindow.nx.title"), icon: Network, anchor: "left", order: 32, component: NxView, actions: NxActions, when: active });
 registerKeymapActions([{ id: "ActivateNxToolWindow", title: "Nx", group: "Tool Windows" }]);
 registerCommand({ id: "ActivateNxToolWindow", title: "Nx", category: "View", run: () => toggleToolWindow("nx") });
 

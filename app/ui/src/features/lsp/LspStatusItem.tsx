@@ -8,6 +8,7 @@ import { Braces, Check, CircleAlert, LoaderCircle } from "lucide-solid";
 import type { ServerStatus } from "@/ipc/lsp";
 import { openSettings } from "@/features/settings/dialogState";
 import { servers } from "./store";
+import { t } from "@/i18n";
 
 export function statusTooltip(s: ServerStatus): string {
   switch (s.state) {
@@ -78,7 +79,7 @@ export function LspStatusItem() {
                 <>
                   <LoaderCircle size={12} class="lsp-spin" />
                   <span>
-                    {b().server.message || "Indexing"}… {shortName(b().server.name)}
+                    {b().server.message || t("lsp.indexing")}… {shortName(b().server.name)}
                   </span>
                   <Show when={b().server.percentage != null}>
                     <span class="lsp-status-detail">{b().server.percentage}%</span>
@@ -88,7 +89,7 @@ export function LspStatusItem() {
             </Match>
             <Match when={s().kind === "starting"}>
               <LoaderCircle size={12} class="lsp-spin" />
-              <span>Starting {shortName(s().server.name)}…</span>
+              <span>{t("lsp.starting", { name: shortName(s().server.name) })}</span>
             </Match>
             <Match when={s().kind === "failed"}>
               <Braces size={12} />

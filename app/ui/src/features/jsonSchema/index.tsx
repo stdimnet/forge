@@ -27,6 +27,7 @@ import { JsonSchemaMappingsPage } from "./MappingsPage";
 import { JsonSchemaStatus } from "./SchemaStatus";
 import { active, schemaLanguage } from "./state";
 import "./jsonSchema.css";
+import { t } from "@/i18n";
 
 registerEditorExtension(({ path }) => {
   const language = schemaLanguage(path);
@@ -85,7 +86,7 @@ registerStatusItem({ id: "json-schema", align: "right", order: 60, component: Js
 
 registerSettingsPage({
   id: "lang.schemas",
-  title: "Schemas and DTDs",
+  title: t("settings.page.lang.schemas"),
   group: "Languages & Frameworks",
   order: 70,
   keywords: ["json schema", "dtd", "xsd", "schemastore"],
@@ -103,7 +104,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.json-schema",
-  title: "JSON Schema Mappings",
+  title: t("settings.page.lang.json-schema"),
   group: "Languages & Frameworks",
   parent: "lang.schemas",
   order: 10,
@@ -113,7 +114,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.json-schema.remote",
-  title: "Remote JSON Schemas",
+  title: t("settings.page.lang.json-schema.remote"),
   group: "Languages & Frameworks",
   parent: "lang.schemas",
   order: 20,

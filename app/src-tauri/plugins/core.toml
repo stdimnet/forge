@@ -644,6 +644,21 @@ group = "system"
 section = "Synchronization"
 order = 20
 
+# ---- Appearance & Behavior > System Settings > Language -----------------------------
+
+[[contributions.settings]]
+key = "ide.language"
+title = "IDE language"
+description = "The language of menus, tool windows, dialogs and messages. Forge restarts to apply it everywhere."
+type = "enum"
+options = [
+  { value = "en", label = "English" },
+  { value = "de", label = "Deutsch" },
+]
+default = "en"
+group = "system.language"
+order = 0
+
 # ---- Appearance & Behavior > System Settings > Updates ------------------------------
 
 [[contributions.settings]]

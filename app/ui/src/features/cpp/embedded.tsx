@@ -39,6 +39,7 @@ import { PeripheralsView, setSessionSvd, svdOf } from "./PeripheralsView";
 import { PlatformIOToolWindow } from "./PlatformIOToolWindow";
 import { buildFirst, cppActive, executableTargets, runTool, showCppBalloon } from "./state";
 import "./embedded.css";
+import { t } from "@/i18n";
 
 const [info, setInfo] = createSignal<EmbeddedInfo | null>(null);
 export { info as embeddedInfo };
@@ -81,7 +82,7 @@ export async function runPioTask(env: string, task: PioTask): Promise<void> {
 
 registerToolWindow({
   id: "platformio",
-  title: "PlatformIO",
+  title: t("toolwindow.platformio.title"),
   icon: CircuitBoard,
   anchor: "right",
   order: 30,
@@ -347,7 +348,7 @@ registerMainMenuEntries(
 
 registerSettingsPage({
   id: "build.embedded",
-  title: "Embedded Development",
+  title: t("settings.page.build.embedded"),
   group: "Build, Execution, Deployment",
   order: 6,
   keywords: ["openocd", "platformio", "pio", "esp-idf", "idf.py", "zephyr", "west", "board", "svd", "gdb", "serial port"],

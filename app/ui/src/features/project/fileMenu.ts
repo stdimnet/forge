@@ -13,6 +13,7 @@ import { guestCanEdit } from "@/features/code-with-me/guest";
 import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
 import { copyEntries, moveEntries, safeDeleteEntries } from "@/features/codeintel/moveRefactorings";
+import { t } from "@/i18n";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
@@ -22,20 +23,20 @@ const targetDir = (entry: FileEntry | null) => (!entry ? "" : entry.kind === "di
 
 /** Names that would escape the folder or cannot be a single path segment. */
 export function validateName(name: string): string | null {
-  if (name === "." || name === "..") return `"${name}" is not a valid name`;
-  if (/[\\\0]/.test(name)) return "The name contains characters that are not allowed";
+  if (name === "." || name === "..") return t("project.name.invalid", { name });
+  if (/[\\\0]/.test(name)) return t("project.name.badChars");
   return null;
 }
 
 /** Like `validateName`, but a new entry may name nested folders (`app/Models/Order.php`). */
 export function validateNewPath(name: string): string | null {
-  if (name.startsWith("/")) return "Use a path relative to the folder";
+  if (name.startsWith("/")) return t("project.path.absolute");
   const bad = name.split("/").find((s) => s === "" || s === "." || s === ".." || validateName(s));
-  return bad === undefined ? null : bad === "" ? "The path has an empty segment" : (validateName(bad) ?? `"${bad}" is not allowed in a path`);
+  return bad === undefined ? null : bad === "" ? t("project.path.emptySegment") : (validateName(bad) ?? t("project.path.badSegment", { segment: bad }));
 }
 
 function fail(what: string, e: unknown): void {
-  showBalloon(`${what} failed`, String(e instanceof Error ? e.message : e));
+  showBalloon(t("project.failed", { what }), String(e instanceof Error ? e.message : e));
 }
 
 const affectedTabs = (path: string) => editor.tabs.filter((t) => !t.view && (t.path === path || t.path.startsWith(`${path}/`)));
@@ -43,10 +44,10 @@ const affectedTabs = (path: string) => editor.tabs.filter((t) => !t.view && (t.p
 async function newEntry(dir: string, kind: "file" | "dir"): Promise<void> {
   const where = dir || workspace()?.name || "project";
   const name = await askName({
-    title: kind === "file" ? "New File" : "New Directory",
-    label: `Name (in ${where})`,
+    title: kind === "file" ? t("project.newFile") : t("project.newDirectory"),
+    label: t("project.nameIn", { where }),
     initial: "",
-    confirm: "OK",
+    confirm: t("common.ok"),
     validate: validateNewPath,
   });
   if (!name) return;
@@ -55,7 +56,7 @@ async function newEntry(dir: string, kind: "file" | "dir"): Promise<void> {
     if (kind === "file") await workspaceApi.createFile(path);
     else await workspaceApi.createDir(path);
   } catch (e) {
-    return fail(kind === "file" ? "Creating the file" : "Creating the directory", e);
+    return fail(kind === "file" ? t("project.creatingFile") : t("project.creatingDirectory"), e);
   }
   refreshDirs([dir, parentOf(path)]);
   revealPath(kind === "file" ? parentOf(path) : path);
@@ -87,11 +88,11 @@ export async function newTargetDir(): Promise<string> {
 
 async function rename(entry: FileEntry): Promise<void> {
   const name = await askName({
-    title: `Rename ${entry.kind === "dir" ? "Directory" : "File"}`,
-    label: "New name",
+    title: entry.kind === "dir" ? t("project.renameDirectory") : t("project.renameFile"),
+    label: t("project.newName"),
     initial: entry.name,
-    confirm: "Rename",
-    validate: (n) => validateName(n) ?? (n.includes("/") ? "The name cannot contain /" : null),
+    confirm: t("project.rename"),
+    validate: (n) => validateName(n) ?? (n.includes("/") ? t("project.noSlash") : null),
   });
   if (!name || name === entry.name) return;
   const target = join(parentOf(entry.path), name);
@@ -102,7 +103,7 @@ async function rename(entry: FileEntry): Promise<void> {
     for (const t of tabs.filter(isDirty)) await saveFile(t.path);
     await workspaceApi.rename(entry.path, target);
   } catch (e) {
-    return fail("Renaming", e);
+    return fail(t("project.renaming"), e);
   }
   const moved = tabs.map((t) => t.path);
   for (const p of moved) closeTab(p);
@@ -130,27 +131,27 @@ export const renameSelection = () => renameEntryAt(projectTree.selected());
 async function remove(entry: FileEntry): Promise<void> {
   const tabs = affectedTabs(entry.path);
   const unsaved = tabs.some(isDirty);
-  const what = entry.kind === "dir" ? `the directory "${entry.name}" and everything in it` : `"${entry.name}"`;
+  const question = t(entry.kind === "dir" ? "project.delete.dir" : "project.delete.file", { name: entry.name });
   const ok = await askConfirm({
-    title: "Delete",
-    message: `Delete ${what}? This cannot be undone.${unsaved ? " Unsaved changes in open editors are lost." : ""}`,
-    confirm: "Delete",
+    title: t("project.delete"),
+    message: unsaved ? `${question} ${t("project.delete.unsaved")}` : question,
+    confirm: t("project.delete"),
   });
   if (!ok) return;
   try {
     await workspaceApi.delete(entry.path);
   } catch (e) {
-    return fail("Deleting", e);
+    return fail(t("project.deleting"), e);
   }
   for (const t of tabs) closeTab(t.path);
   refreshDirs([parentOf(entry.path)]);
 }
 
-async function copy(text: string, what: string): Promise<void> {
+async function copy(text: string, what: "path" | "name"): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
   } catch {
-    showBalloon(`Cannot copy the ${what}`, "The clipboard is not available.");
+    showBalloon(t(what === "path" ? "project.copy.failed.path" : "project.copy.failed.name"), t("project.clipboardUnavailable"));
   }
 }
 
@@ -165,8 +166,8 @@ const absolute = (path: string) => {
  */
 export function newMenuEntries(dir: string): MenuEntry[] {
   return [
-    item("File", () => void newEntry(dir, "file"), "NewFile"),
-    item("Directory", () => void newEntry(dir, "dir"), "NewDir"),
+    item(t("project.menu.file"), () => void newEntry(dir, "file"), "NewFile"),
+    item(t("project.menu.directory"), () => void newEntry(dir, "dir"), "NewDir"),
     separator,
     ...providedEntries("project.new", dir),
   ];
@@ -180,37 +181,37 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   const canEdit = guestCanEdit();
   const entries: MenuEntry[] = canEdit
     ? [
-        submenu("New", newMenuEntries(dir)),
+        submenu(t("project.menu.new"), newMenuEntries(dir)),
         separator,
       ]
     : [];
   if (entry) {
     entries.push(
-      submenu("Copy Path/Reference", [
+      submenu(t("project.menu.copyPathReference"), [
         // The host's path is not shared with guests.
-        ...(guest ? [] : [item("Absolute Path", () => void copy(absolute(entry.path), "path"), "CopyPaths")]),
-        item("Path From Project Root", () => void copy(entry.path, "path")),
-        item("File Name", () => void copy(entry.name, "name")),
+        ...(guest ? [] : [item(t("project.menu.absolutePath"), () => void copy(absolute(entry.path), "path"), "CopyPaths")]),
+        item(t("project.menu.pathFromRoot"), () => void copy(entry.path, "path")),
+        item(t("project.menu.fileName"), () => void copy(entry.name, "name")),
       ]),
       separator,
     );
   }
-  entries.push(item("Find in Files…", () => openFindInFiles({ directory: dir }), "FindInPath"));
+  entries.push(item(t("project.menu.findInFiles"), () => openFindInFiles({ directory: dir }), "FindInPath"));
   if (entry && canEdit) {
     // The selected rows (Ctrl+click) move and are deleted together.
     const paths = () => (projectTree.selectedPaths().includes(entry.path) ? projectTree.selectedPaths() : [entry.path]);
     entries.push(
-      submenu("Refactor", [
-        item("Rename…", () => void rename(entry), "RenameElement"),
-        item("Move…", () => void moveEntries(paths()), "Move"),
-        item("Copy…", () => void copyEntries([entry.path]), "CopyElement"),
-        item("Safe Delete…", () => void safeDeleteEntries(paths()), "SafeDelete"),
+      submenu(t("project.menu.refactor"), [
+        item(t("project.menu.rename"), () => void rename(entry), "RenameElement"),
+        item(t("project.menu.move"), () => void moveEntries(paths()), "Move"),
+        item(t("project.menu.copy"), () => void copyEntries([entry.path]), "CopyElement"),
+        item(t("project.menu.safeDelete"), () => void safeDeleteEntries(paths()), "SafeDelete"),
       ]),
-      item("Delete…", () => void remove(entry), "$Delete"),
+      item(t("project.menu.delete"), () => void remove(entry), "$Delete"),
     );
   }
   // Other features (Git) add their submenus next to Reload from Disk, like PHPStorm.
-  entries.push(separator, ...providedEntries("project", entry), item("Reload from Disk", () => refreshDirs([dir])));
+  entries.push(separator, ...providedEntries("project", entry), item(t("project.menu.reload"), () => refreshDirs([dir])));
   // Compare With… / Compare Files below Reload from Disk, like PHPStorm.
   entries.push(separator, ...providedEntries("project.compare", entry));
   return entries;

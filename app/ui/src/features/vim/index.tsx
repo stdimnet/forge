@@ -26,6 +26,7 @@ import { loadVimEngine, vimEngine, vimReady } from "./engine";
 import { refreshVimEditors, setVimHost, vimExtension } from "./extension";
 import { HandlersEditor } from "./HandlersEditor";
 import "./vim.css";
+import { t } from "@/i18n";
 
 export const VIM_ENABLED_KEY = "vim.enabled";
 const HANDLERS_KEY = "vim.shortcutHandlers";
@@ -218,7 +219,7 @@ registerMainMenuToggle("VimPluginToggle", vimEnabled);
 
 registerSettingsPage({
   id: "editor.vim",
-  title: "Vim",
+  title: t("settings.page.editor.vim"),
   group: "Editor",
   order: 70,
   keywords: ["ideavim", "ideavimrc", "vim emulation", "sethandler", "shortcut conflicts", "handler"],

@@ -28,6 +28,17 @@ pub const GROUP_ORDER: &[&str] = &[
     "Advanced Settings",
 ];
 
+/// Catalog key of a top-level group's title: `settings.group.<slug>`.
+pub fn group_title_key(group: &str) -> String {
+    format!("settings.group.{}", forge_i18n::slug(group))
+}
+
+/// The title of a top-level group in the IDE language (the group name is its English title
+/// and stays the id).
+pub fn group_title(group: &str) -> String {
+    forge_i18n::t_or(&group_title_key(group), group)
+}
+
 /// Node id of a group without a page of its own.
 pub fn group_node_id(group: &str) -> String {
     format!("group:{group}")
@@ -72,7 +83,8 @@ fn group_rank(g: &str) -> usize {
 }
 
 /// Pages become a tree: group > page > child pages (via `parent`). A page whose title
-/// equals its group and that has no parent (e.g. "Plugins", "Keymap") is a top-level leaf.
+/// equals its group (or the group's translated title) and that has no parent (e.g. "Plugins",
+/// "Keymap") is a top-level leaf.
 pub fn build_tree(pages: &[PageInput]) -> Vec<TreeNode> {
     // Children by parent page id, in registration order.
     let mut children: BTreeMap<&str, Vec<&PageInput>> = BTreeMap::new();
@@ -85,7 +97,9 @@ pub fn build_tree(pages: &[PageInput]) -> Vec<TreeNode> {
             Some(parent) if parent != page.id && known(parent) => {
                 children.entry(parent).or_default().push(page);
             }
-            None if page.title == page.group => roots.push((&page.group, Some(page))),
+            None if page.title == page.group || page.title == group_title(&page.group) => {
+                roots.push((&page.group, Some(page)))
+            }
             _ => {
                 if !grouped.contains_key(page.group.as_str()) {
                     roots.push((&page.group, None));
@@ -121,7 +135,7 @@ pub fn build_tree(pages: &[PageInput]) -> Vec<TreeNode> {
                 let pages = kids.iter().flat_map(|k| k.pages.iter().cloned()).collect();
                 let n = TreeNode {
                     id: group_node_id(group),
-                    title: group.to_string(),
+                    title: group_title(group),
                     page: false,
                     pages,
                     children: kids,

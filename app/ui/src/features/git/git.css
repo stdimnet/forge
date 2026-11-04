@@ -165,9 +165,14 @@
 .commit-actions {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   padding: 0 10px 0 12px;
+}
+/* Longer labels (German "Committen und pushen…") move to a second row instead of wrapping. */
+.commit-actions > button {
+  white-space: nowrap;
 }
 /* Changelists: drop target while dragging files, the share of a partly moved file. */
 .commit-group.drop-target {
@@ -190,7 +195,10 @@
   right: 8px;
   bottom: calc(100% + 6px);
   z-index: 40;
-  width: 290px;
+  /* Wide enough for German labels, never wider than the Commit tool window. */
+  width: 330px;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
   padding: 6px 0 8px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);

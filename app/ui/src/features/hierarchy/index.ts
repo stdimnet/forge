@@ -14,10 +14,11 @@ import { activeView } from "@/features/lsp/navigation";
 import { HierarchyTabs, HierarchyToolWindow } from "./HierarchyToolWindow";
 import { callHierarchyAt, HIERARCHY_WINDOW, methodHierarchyAt, typeHierarchyAt } from "./state";
 import "./hierarchy.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: HIERARCHY_WINDOW,
-  title: "Hierarchy",
+  title: t("toolwindow.hierarchy.title"),
   icon: Network,
   anchor: "right",
   order: 20,

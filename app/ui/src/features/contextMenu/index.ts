@@ -12,6 +12,7 @@ import { copiedFrom, recordCopy } from "@/features/clipboard/clipboard";
 import { pasteClipboard } from "@/features/clipboard";
 import { action, menuEntries, providedEntries, registerContextMenu, separator, showContextMenu, submenu } from "./state";
 import "./contextMenu.css";
+import { t } from "@/i18n";
 
 function command(id: string, run: () => void | Promise<void>): void {
   registerCommand({ id, title: actionById(id)?.title ?? id, run });
@@ -26,7 +27,7 @@ async function copy(cut: boolean): Promise<void> {
   try {
     await navigator.clipboard.writeText(copied.linewise ? copied.text + view.state.lineBreak : copied.text);
   } catch {
-    showBalloon("Clipboard is not available", "Use the keyboard shortcut instead.");
+    showBalloon(t("editor.clipboardUnavailable"), t("editor.useShortcut"));
     return;
   }
   recordCopy(copied.text, copied.linewise ? [] : copied.carets);
@@ -52,42 +53,42 @@ registerContextMenu("editor", [
   separator,
   action("$Cut"),
   action("$Copy"),
-  submenu("Copy / Paste Special", [action("CopyPaths"), action("CopyReference"), action("PasteSimple")]),
+  submenu(t("editor.menu.copyPasteSpecial"), [action("CopyPaths"), action("CopyReference"), action("PasteSimple")]),
   action("$Paste"),
   separator,
   action("$SelectAll"),
   action("EditorToggleColumnMode"),
   separator,
   action("FindUsages"),
-  submenu("Refactor", [
+  submenu(t("editor.menu.refactor"), [
     action("Refactorings.QuickListPopupAction"),
     separator,
     action("RenameElement"),
     action("ChangeSignature"),
-    submenu("Extract/Introduce", [
-      action("IntroduceVariable", "Variable…"),
-      action("IntroduceConstant", "Constant…"),
-      action("IntroduceField", "Field…"),
-      action("IntroduceParameter", "Parameter…"),
+    submenu(t("editor.menu.extractIntroduce"), [
+      action("IntroduceVariable", t("editor.menu.variable")),
+      action("IntroduceConstant", t("editor.menu.constant")),
+      action("IntroduceField", t("editor.menu.field")),
+      action("IntroduceParameter", t("editor.menu.parameter")),
       separator,
-      action("ExtractMethod", "Method…"),
+      action("ExtractMethod", t("editor.menu.method")),
     ]),
     action("Inline"),
     separator,
     action("Move"),
-    action("CopyElement", "Copy…"),
+    action("CopyElement", t("editor.menu.copy")),
     action("SafeDelete"),
     separator,
     action("MakeStatic"),
   ]),
-  submenu("Go To", [action("GotoDeclaration"), action("GotoImplementation"), action("GotoLine")]),
+  submenu(t("editor.menu.goTo"), [action("GotoDeclaration"), action("GotoImplementation"), action("GotoLine")]),
   action("Generate"),
   separator,
   action("ReformatCode"),
   action("OptimizeImports"),
   action("CommentByLineComment"),
   separator,
-  submenu("Git", [
+  submenu(t("editor.menu.git"), [
     action("Annotate"),
     action("Compare.SameVersion"),
     action("Compare.Selected"),
@@ -95,11 +96,11 @@ registerContextMenu("editor", [
     action("Vcs.ShowTabbedFileHistory"),
     action("Vcs.ShowHistoryForBlock"),
   ]),
-  submenu("Local History", [
-    action("LocalHistory.ShowHistory", "Show History"),
-    action("LocalHistory.ShowSelectionHistory", "Show History for Selection"),
+  submenu(t("editor.menu.localHistory"), [
+    action("LocalHistory.ShowHistory", t("editor.menu.showHistory")),
+    action("LocalHistory.ShowSelectionHistory", t("editor.menu.showSelectionHistory")),
     separator,
-    action("LocalHistory.PutLabel", "Put Label…"),
+    action("LocalHistory.PutLabel", t("editor.menu.putLabel")),
   ]),
   action("CompareClipboardWithSelection"),
 ]);

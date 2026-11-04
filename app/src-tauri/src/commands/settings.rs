@@ -59,14 +59,23 @@ pub fn settings_set(
         }
     }
     drop(plugins);
-    state.write_settings().set(&key, value, scope)
+    state.write_settings().set(&key, value, scope)?;
+    if key == crate::state::LANGUAGE_KEY {
+        let language: Option<String> = state.read_settings().get_as(&key);
+        forge_i18n::set_locale(language.as_deref().unwrap_or("en"));
+    }
+    Ok(())
 }
 
 /// Settings schema contributed by enabled plugins.
 #[tauri::command]
 pub fn settings_schema(state: State<'_, AppState>) -> Vec<SettingSpec> {
     let plugins = state.plugins.read().expect("plugins lock poisoned");
-    plugins.settings_schema().cloned().collect()
+    forge_plugin_api::l10n::localize_settings(
+        plugins.settings_schema().cloned(),
+        plugins.list(),
+        &forge_i18n::current(),
+    )
 }
 
 /// Search the Settings dialog: page tree, matching pages and settings, highlights.
@@ -87,7 +96,12 @@ pub fn settings_validate(key: String, value: Value, state: State<'_, AppState>) 
 #[tauri::command]
 pub fn plugins_list(state: State<'_, AppState>) -> Vec<PluginInfo> {
     let plugins = state.plugins.read().expect("plugins lock poisoned");
-    plugins.list().to_vec()
+    let l10n = forge_i18n::current();
+    plugins
+        .list()
+        .iter()
+        .map(|p| forge_plugin_api::l10n::localize_plugin(p, &l10n))
+        .collect()
 }
 
 /// Enable or disable a plugin (cascading over dependencies); returns the changed ids.

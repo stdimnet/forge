@@ -46,10 +46,11 @@ import "./changesIndex";
 import "./logIndex";
 import "./extrasIndex";
 import "./git.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "commit",
-  title: "Commit",
+  title: t("toolwindow.commit.title"),
   icon: GitCommitHorizontal,
   anchor: "left",
   order: 10,
@@ -60,7 +61,7 @@ registerToolWindow({
 
 registerToolWindow({
   id: "git",
-  title: "Git",
+  title: t("toolwindow.git.title"),
   icon: Layers,
   anchor: "bottom",
   order: 60,

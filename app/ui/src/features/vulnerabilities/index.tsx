@@ -25,6 +25,7 @@ import { clearResults, COMMAND_TYPE, runCheck, vulnerabilityCount, vulnerability
 import { VulnerabilitiesView } from "./VulnerabilitiesView";
 import "./editor";
 import "./vulnerabilities.css";
+import { t } from "@/i18n";
 
 export const PLUGIN = "forge.vulnerabilities";
 const active = () => isPluginActive(PLUGIN);
@@ -63,7 +64,7 @@ registerProblemsTab({
 
 registerSettingsPage({
   id: "tools.vulnerabilities",
-  title: "Package Checker",
+  title: t("settings.page.tools.vulnerabilities"),
   group: "Tools",
   order: 60,
   keywords: ["vulnerable", "vulnerabilities", "security", "CVE", "advisory", "audit", "npm audit", "composer audit", "pip-audit", "cargo audit", "govulncheck", "dependency-check"],

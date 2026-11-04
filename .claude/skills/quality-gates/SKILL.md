@@ -28,6 +28,7 @@ cargo test --workspace
 pnpm typecheck
 pnpm test        # vitest
 pnpm build
+pnpm i18n:check      # keys used in the UI exist in the English catalog; German coverage
 pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
 pnpm workflows:check # release.yml runs only on `release: published`, ci.yml only manually
 ```

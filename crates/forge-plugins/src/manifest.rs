@@ -67,6 +67,10 @@ pub struct PluginManifest {
     pub permissions: Permissions,
     #[serde(default)]
     pub contributes: Contributes,
+    /// Translations of the manifest's text by locale, keyed like Forge's catalogs
+    /// (`plugin.<id>.name`, `setting.<key>.title`, `action.<command id>`, …).
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub l10n: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -10,6 +10,7 @@ import type { FilePreview, PreviewRow, RenameConflict, UsagesAnswer } from "@/ip
 import { openFileAt } from "@/editor/views";
 import { countLabel, openInFindWindow } from "./usages";
 import type { PreviewRequest, RenameDialogRequest } from "./rename";
+import { t } from "@/i18n";
 
 const fileName = (p: string) => p.split("/").pop() ?? p;
 const dirName = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
@@ -24,7 +25,7 @@ export function RenameDialog(props: { req: RenameDialogRequest }) {
       <div
         class="dialog rename-dialog"
         role="dialog"
-        aria-label="Rename"
+        aria-label={t("rename.title")}
         onKeyDown={(e) => {
           if (e.key === "Escape") close(null);
           else if (e.key === "Enter" && name().trim()) close(false);
@@ -33,7 +34,7 @@ export function RenameDialog(props: { req: RenameDialogRequest }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Rename</div>
+        <div class="dialog-title">{t("rename.title")}</div>
         <div class="dialog-body">
           <label class="form-label">{props.req.label}</label>
           <input
@@ -51,21 +52,21 @@ export function RenameDialog(props: { req: RenameDialogRequest }) {
             {(file) => (
               <label class="rename-option">
                 <input type="checkbox" checked={renameFile()} onChange={(e) => setRenameFile(e.currentTarget.checked)} />
-                Rename file '{fileName(file())}'
+                {t("rename.renameFile", { name: fileName(file()) })}
               </label>
             )}
           </Show>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={() => close(true)} disabled={!name().trim()}>
-            Preview
+            {t("rename.preview")}
           </button>
           <span class="dialog-buttons-gap" />
           <button class="btn-secondary" onClick={() => close(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!name().trim()} onClick={() => close(false)}>
-            Refactor
+            {t("rename.refactor")}
           </button>
         </div>
       </div>
@@ -104,18 +105,18 @@ function FileBlock(props: { file: FilePreview }) {
           {(to) => (
             <span class="preview-file-op">
               <FilePen size={12} />{" "}
-              {dirName(to()) === dirName(props.file.path) ? `Rename file to ${fileName(to())}` : `Move file to ${to()}`}
+              {dirName(to()) === dirName(props.file.path) ? t("rename.fileTo", { name: fileName(to()) }) : t("rename.moveTo", { path: to() })}
             </span>
           )}
         </Show>
         <Show when={props.file.operation === "create"}>
           <span class="preview-file-op">
-            <FilePlus size={12} /> Create file
+            <FilePlus size={12} /> {t("rename.createFile")}
           </span>
         </Show>
         <Show when={props.file.operation === "delete"}>
           <span class="preview-file-op">
-            <FileX size={12} /> Delete file
+            <FileX size={12} /> {t("rename.deleteFile")}
           </span>
         </Show>
         <Show when={props.file.rows.length}>

@@ -47,12 +47,13 @@ import { active, activeInstall, buildView, refreshBuild, refreshJdks, refreshMod
 import { APPLICATION } from "./runTypes";
 import "./debug";
 import "./java.css";
+import { t } from "@/i18n";
 
 // ---- Settings ---------------------------------------------------------------------------
 
 registerSettingsPage({
   id: "build.jdks",
-  title: "JDKs",
+  title: t("settings.page.build.jdks"),
   group: "Build, Execution, Deployment",
   order: 1,
   keywords: ["jdk", "sdk", "java home", "JAVA_HOME", "project jdk", "language level", "temurin", "adoptium", "download jdk", "sdkman", "asdf", "jabba", "toolchain"],
@@ -61,7 +62,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.tools",
-  title: "Build Tools",
+  title: t("settings.page.build.tools"),
   group: "Build, Execution, Deployment",
   order: 2,
   keywords: ["maven", "gradle", "build tools", "maven central", "dependency completion"],
@@ -70,7 +71,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.tools.gradle",
-  title: "Gradle",
+  title: t("settings.page.build.tools.gradle"),
   group: "Build, Execution, Deployment",
   parent: "build.tools",
   order: 0,
@@ -80,7 +81,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.tools.maven",
-  title: "Maven",
+  title: t("settings.page.build.tools.maven"),
   group: "Build, Execution, Deployment",
   parent: "build.tools",
   order: 1,
@@ -90,7 +91,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.java",
-  title: "Java",
+  title: t("settings.page.lang.java"),
   group: "Languages & Frameworks",
   order: 25,
   keywords: ["java", "jdt", "jdtls", "eclipse", "language server", "java-debug", "hot code replace", "hotswap"],
@@ -129,7 +130,7 @@ registerEditorExtension(({ path }) => buildScriptEditor(path));
 
 registerToolWindow({
   id: "gradle",
-  title: "Gradle",
+  title: t("toolwindow.gradle.title"),
   icon: Boxes,
   anchor: "right",
   order: 40,
@@ -139,7 +140,7 @@ registerToolWindow({
 
 registerToolWindow({
   id: "maven",
-  title: "Maven",
+  title: t("toolwindow.maven.title"),
   icon: Hammer,
   anchor: "right",
   order: 40,

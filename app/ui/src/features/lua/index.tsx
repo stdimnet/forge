@@ -41,6 +41,7 @@ import { isPluginActive } from "@/state/project";
 import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { hitDetail, isLuaPath, markerConfiguration, SEARCH_KIND, STRUCTURE_KIND, toStructureNode } from "./model";
+import { t } from "@/i18n";
 
 const active = () => isPluginActive("forge.lua");
 
@@ -48,7 +49,7 @@ const active = () => isPluginActive("forge.lua");
 
 registerSettingsPage({
   id: "lang.lua",
-  title: "Lua",
+  title: t("settings.page.lang.lua"),
   group: "Languages & Frameworks",
   order: 30,
   keywords: ["lua", "love", "löve", "neovim", "luajit", "lua-language-server", "luals", "stylua", "require", "package.path", "interpreter"],

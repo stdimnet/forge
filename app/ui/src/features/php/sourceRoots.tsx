@@ -29,6 +29,7 @@ import {
   ProjectStructureSections,
   type StructureKind,
 } from "@/features/projectStructure/DirectoriesSections";
+import { t } from "@/i18n";
 
 export const SOURCE_ROOTS_KEY = "php.sourceRoots";
 
@@ -342,7 +343,7 @@ function DirectoriesPage() {
 
 registerSettingsPage({
   id: "directories",
-  title: "Directories",
+  title: t("settings.page.directories"),
   group: "Directories",
   order: 0,
   keywords: [

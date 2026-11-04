@@ -20,6 +20,7 @@ import {
   setSeTab,
   type SeTab,
 } from "./state";
+import { t, tOr } from "@/i18n";
 
 /** Render `text` with matched characters emphasized. */
 export function Highlight(props: { text: string; positions?: number[] }) {
@@ -81,7 +82,7 @@ export function SearchEverywhere() {
   const [loading, setLoading] = createSignal(false);
   let seq = 0;
 
-  const filterLabel = () => (seTab() === "actions" ? "Include disabled actions" : "Include non-project items");
+  const filterLabel = () => (seTab() === "actions" ? t("search.includeDisabled") : t("search.includeNonProject"));
 
   async function refresh() {
     const id = ++seq;
@@ -183,31 +184,31 @@ export function SearchEverywhere() {
   const footer = () => {
     const action = TAB_ACTION[seTab()];
     const key = action ? shortcutLabel(action) : "";
-    if (!key) return "Press Tab to switch between tabs";
+    if (!key) return t("search.footer.tab");
     return seTab() === "actions"
-      ? `Press ${key} again to include disabled actions`
-      : `Press ${key} again to include non-project items`;
+      ? t("search.footer.disabled", { key })
+      : t("search.footer.nonProject", { key });
   };
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeSearchEverywhere()}>
-      <div class="popup se-popup" role="dialog" aria-label="Search Everywhere" onKeyDown={onKeyDown}>
+      <div class="popup se-popup" role="dialog" aria-label={t("search.title")} onKeyDown={onKeyDown}>
         <div class="se-header">
           <div class="se-tabs" role="tablist">
             <For each={SEARCH_TABS}>
-              {(t) => (
+              {(tab) => (
                 <button
                   class="se-tab"
-                  classList={{ active: seTab() === t.id }}
+                  classList={{ active: seTab() === tab.id }}
                   role="tab"
-                  aria-selected={seTab() === t.id}
+                  aria-selected={seTab() === tab.id}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
-                    setSeTab(t.id);
+                    setSeTab(tab.id);
                     input.focus();
                   }}
                 >
-                  {t.title}
+                  {tOr(`search.tab.${tab.id}`, tab.title)}
                 </button>
               )}
             </For>
@@ -223,10 +224,10 @@ export function SearchEverywhere() {
             />
             <span>{filterLabel()}</span>
           </label>
-          <button class="icon-btn se-tool" title="Filter" onMouseDown={(e) => e.preventDefault()}>
+          <button class="icon-btn se-tool" title={t("search.filter")} onMouseDown={(e) => e.preventDefault()}>
             <Filter size={14} />
           </button>
-          <button class="icon-btn se-tool" title="Open in Find Tool Window" onMouseDown={(e) => e.preventDefault()}>
+          <button class="icon-btn se-tool" title={t("search.openInFind")} onMouseDown={(e) => e.preventDefault()}>
             <Pin size={14} />
           </button>
         </div>
@@ -238,7 +239,7 @@ export function SearchEverywhere() {
             value={seQuery()}
             spellcheck={false}
             autocomplete="off"
-            placeholder={seTab() === "actions" ? "Type action name" : ""}
+            placeholder={seTab() === "actions" ? t("search.typeActionName") : ""}
             onInput={(e) => setSeQuery(e.currentTarget.value)}
           />
           <Show when={loading()}>
@@ -247,7 +248,7 @@ export function SearchEverywhere() {
           <button
             class="icon-btn se-tool"
             classList={{ active: exactMatching() }}
-            title={exactMatching() ? "Matching text that contains the query (click for fuzzy)" : "Fuzzy matching (click to match only text that contains the query)"}
+            title={exactMatching() ? t("search.matchContains") : t("search.matchFuzzy")}
             aria-pressed={exactMatching()}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
@@ -263,7 +264,7 @@ export function SearchEverywhere() {
             when={rows().length}
             fallback={
               <div class="se-empty">
-                {seQuery().trim() ? "Nothing found." : seTab() === "actions" ? "Type to search actions" : "Type to search"}
+                {seQuery().trim() ? t("search.nothingFound") : seTab() === "actions" ? t("search.typeToSearchActions") : t("search.typeToSearch")}
               </div>
             }
           >
@@ -278,7 +279,7 @@ export function SearchEverywhere() {
                 if (row.type === "more")
                   return (
                     <div class="se-row se-more" classList={{ selected: isSel() }} data-row={i()} onMouseMove={selectRow} onClick={() => activate(row)}>
-                      … more
+                      {t("search.more")}
                     </div>
                   );
                 const item = row.item;

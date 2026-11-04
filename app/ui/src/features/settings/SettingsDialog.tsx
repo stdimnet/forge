@@ -29,6 +29,7 @@ import {
 } from "./dialogState";
 import { dialogSearch, Hl, nodeMatches } from "./dialogSearch";
 import { nodesById, type TreeNode } from "./search";
+import { t } from "@/i18n";
 
 function TreeRow(props: {
   node: TreeNode;
@@ -163,19 +164,19 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
             <Search size={14} class="muted" />
             <input
               ref={searchEl}
-              placeholder="Search settings"
+              placeholder={t("settings.search")}
               value={query()}
               spellcheck={false}
               onInput={(e) => setQuery(e.currentTarget.value)}
             />
             <Show when={searching()}>
-              <button class="set-search-clear" title="Clear" onClick={() => setQuery("")}>
+              <button class="set-search-clear" title={t("common.clear")} onClick={() => setQuery("")}>
                 <X size={13} />
               </button>
             </Show>
           </div>
           <div class="set-tree">
-            <For each={visibleTree()} fallback={<div class="set-empty">Nothing found</div>}>
+            <For each={visibleTree()} fallback={<div class="set-empty">{t("common.nothingFound")}</div>}>
               {(node) => <TreeRow node={node} depth={0} expanded={expanded} toggle={toggle} />}
             </For>
           </div>
@@ -199,29 +200,29 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
                 )}
               </For>
               <Show when={projectScoped()}>
-                <span class="set-scope" title="Stored in .forge/settings.toml of the open project">
-                  <FolderGit2 size={13} /> For current project
+                <span class="set-scope" title={t("settings.scope.project.tooltip")}>
+                  <FolderGit2 size={13} /> {t("settings.scope.project")}
                 </span>
               </Show>
               <Show when={newProjectsScoped()}>
-                <span class="set-scope" title="Defaults for projects without their own value (new-project-settings.toml)">
-                  <FolderPlus size={13} /> For new projects
+                <span class="set-scope" title={t("settings.scope.newProjects.tooltip")}>
+                  <FolderPlus size={13} /> {t("settings.scope.newProjects")}
                 </span>
               </Show>
             </div>
             <Show when={currentPageId() && pageModified(currentPageId()!)}>
               <button class="set-reset" onClick={() => resetPage(currentPageId()!)}>
-                Reset
+                {t("settings.reset")}
               </button>
             </Show>
             <Show when={currentPageId() && pageDiffersFromDefaults(currentPageId()!)}>
               <button
                 class="set-reset"
                 data-testid="restore-page-defaults"
-                title="Set every option of this page to its default; Apply stores it"
+                title={t("settings.restoreDefaults.tooltip")}
                 onClick={() => restorePageDefaults(currentPageId()!)}
               >
-                Restore Defaults
+                {t("settings.restoreDefaults")}
               </button>
             </Show>
           </div>
@@ -237,7 +238,7 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
         </main>
       </div>
       <footer class="set-footer">
-        <button class="icon-btn" title="Help">
+        <button class="icon-btn" title={t("common.help")}>
           <CircleHelp size={16} />
         </button>
         <Show when={error()}>
@@ -245,17 +246,17 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
         </Show>
         <div class="set-footer-buttons">
           <button class="btn-primary set-btn" disabled={applying()} onClick={ok}>
-            OK
+            {t("common.ok")}
           </button>
           <button class="btn-secondary set-btn" onClick={closeSettings}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             class="btn-secondary set-btn"
             disabled={!hasChanges() || applying()}
             onClick={() => void applyChanges()}
           >
-            Apply
+            {t("common.apply")}
           </button>
         </div>
       </footer>

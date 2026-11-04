@@ -11,6 +11,7 @@ import { TextEditorWithPreview, type PreviewLayout } from "@/editor/TextEditorWi
 import { GUEST_PREFIX } from "@/features/code-with-me/docs";
 import { MarkdownPreview } from "./MarkdownPreview";
 import "./markdown.css";
+import { t } from "@/i18n";
 
 /** Markdown files of the project, and of the host's project in a Code With Me guest window. */
 export const isMarkdownPath = (path: string) =>
@@ -31,7 +32,7 @@ registerFileEditor({
 
 registerSettingsPage({
   id: "lang.markdown",
-  title: "Markdown",
+  title: t("settings.page.lang.markdown"),
   group: "Languages & Frameworks",
   order: 40,
   keywords: ["preview", "mermaid", "front matter", "sync scroll", "layout"],

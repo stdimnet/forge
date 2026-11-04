@@ -34,6 +34,7 @@ skills in [`.claude/skills/`](../../../.claude/skills/); the detailed IPC contra
 | [Plugin SDK](plugins/index.md) | third-party plugins: sandbox, manifest, `forge` API, permissions, marketplace index |
 | [Adding a language](adding-a-language.md) | file types, syntax modes, template data languages, language packs |
 | [Settings](settings.md) | declaring, reading and showing settings |
+| [Localization](localization.md) | translatable UI text: catalogs, `t()`, key naming, German, `pnpm i18n:check` |
 | [Keymap actions](keymap-actions.md) | shortcuts through the keymap engine |
 
 ## Quality and delivery

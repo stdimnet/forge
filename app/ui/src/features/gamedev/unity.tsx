@@ -48,6 +48,7 @@ import { isPluginActive, usesFramework } from "@/state/project";
 import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { errorText, runCommandLine } from "./shared";
+import { t } from "@/i18n";
 
 export const UNITY_PLUGIN = "forge.unity";
 export const unityActive = () => isPluginActive(UNITY_PLUGIN) && usesFramework("unity");
@@ -411,7 +412,7 @@ function UnityIntro() {
 
 registerToolWindow({
   id: "unity",
-  title: "Unity",
+  title: t("toolwindow.unity.title"),
   icon: Box,
   anchor: "bottom",
   order: 48,

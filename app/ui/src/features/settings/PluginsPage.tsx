@@ -14,6 +14,7 @@ import { settingsState } from "@/state/settings";
 import { pluginEnabled, pluginDraft, setPluginDraftEnabled } from "./dialogState";
 import { createSettingsSearch, segmentsOf, type SearchResult } from "./search";
 import { showContextMenu } from "@/features/contextMenu/state";
+import { t, tOr } from "@/i18n";
 
 export const PACKS: Record<string, { label: string; order: number }> = {
   thirdParty: { label: "Downloaded", order: -1 },
@@ -33,7 +34,7 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   configforge: { label: "ConfigForge", order: 12 },
 };
 
-const packLabel = (pack: string) => PACKS[pack]?.label ?? pack;
+const packLabel = (pack: string) => tOr(`plugins.pack.${pack}`, PACKS[pack]?.label ?? pack);
 
 export function PackBadge(props: { pack: string }) {
   return <span class={`pack-badge pack-${props.pack}`}>{packLabel(props.pack)}</span>;
@@ -131,24 +132,24 @@ export function PluginsPage() {
     <div class="plugins-page">
       <div class="plugins-tabs">
         <button class="plugins-tab" classList={{ active: tab() === "marketplace" }} data-testid="plugins-tab-marketplace" onClick={() => setTab("marketplace")}>
-          Marketplace
+          {t("plugins.marketplace")}
         </button>
         <button class="plugins-tab" classList={{ active: tab() === "installed" }} data-testid="plugins-tab-installed" onClick={() => setTab("installed")}>
-          Installed
+          {t("plugins.installed")}
         </button>
-        <span class="plugins-count muted">{settingsState.plugins.length} plugins</span>
+        <span class="plugins-count muted">{t("plugins.count", { count: settingsState.plugins.length })}</span>
         <button
           class="icon-btn plg-gear"
-          title="Manage plugins"
+          title={t("plugins.manage")}
           data-testid="plugins-gear"
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             showContextMenu(
               [
-                { type: "item", label: "Install Plugin from Disk…", run: () => void installFromDisk() },
-                { type: "item", label: "Check for Updates", run: () => void checkPluginUpdates() },
+                { type: "item", label: t("plugins.installFromDisk"), run: () => void installFromDisk() },
+                { type: "item", label: t("plugins.checkUpdates"), run: () => void checkPluginUpdates() },
                 { type: "separator" },
-                { type: "item", label: "Marketplace URL…", run: () => setEditUrl(true) },
+                { type: "item", label: t("plugins.marketplaceUrl"), run: () => setEditUrl(true) },
               ],
               r.left,
               r.bottom + 2,
@@ -169,14 +170,14 @@ export function PluginsPage() {
           <div class="set-search plugins-search">
             <Search size={14} class="muted" />
             <input
-              placeholder="Search installed plugins"
+              placeholder={t("plugins.search")}
               value={filter()}
               spellcheck={false}
               onInput={(e) => setFilter(e.currentTarget.value)}
             />
           </div>
           <div class="plugins-list">
-            <For each={groups()} fallback={<div class="set-empty">Nothing found</div>}>
+            <For each={groups()} fallback={<div class="set-empty">{t("common.nothingFound")}</div>}>
               {(g) => (
                 <>
                   <div class="plugins-group">
@@ -202,7 +203,7 @@ export function PluginsPage() {
                         </div>
                         <input
                           type="checkbox"
-                          title={p.required ? "Required by the IDE" : pluginEnabled(p.id) ? "Disable" : "Enable"}
+                          title={p.required ? t("plugins.requiredShort") : pluginEnabled(p.id) ? t("plugins.disable") : t("plugins.enable")}
                           checked={pluginEnabled(p.id)}
                           disabled={p.required}
                           onClick={(e) => e.stopPropagation()}
@@ -235,13 +236,13 @@ export function PluginsPage() {
               <div class="plugin-details-actions">
                 <Show
                   when={!p().required}
-                  fallback={<span class="muted">Required by the IDE and cannot be disabled.</span>}
+                  fallback={<span class="muted">{t("plugins.required")}</span>}
                 >
                   <button
                     class="btn-secondary"
                     onClick={() => setPluginDraftEnabled(p().id, !pluginEnabled(p().id))}
                   >
-                    {pluginEnabled(p().id) ? "Disable" : "Enable"}
+                    {pluginEnabled(p().id) ? t("plugins.disable") : t("plugins.enable")}
                   </button>
                 </Show>
               </div>
@@ -250,20 +251,20 @@ export function PluginsPage() {
                 {(i) => (
                   <>
                     <div class="plugin-details-row muted">
-                      {i().source.kind === "marketplace" ? "From the marketplace" : `Installed from disk: ${(i().source as { file: string }).file}`}
-                      {i().needsTrust ? " · not loaded in Safe Mode" : ""}
+                      {i().source.kind === "marketplace" ? t("plugins.fromMarketplace") : t("plugins.fromDisk", { file: (i().source as { file: string }).file })}
+                      {i().needsTrust ? t("plugins.notInSafeMode") : ""}
                     </div>
-                    <div class="plg-prompt-section">Permissions</div>
+                    <div class="plg-prompt-section">{t("plugins.permissions")}</div>
                     <PermissionList lines={i().permissionLines} />
                     <button class="btn-secondary" data-testid="plugin-uninstall" onClick={() => void uninstall(i().manifest.id, i().manifest.name)}>
-                      Uninstall
+                      {t("plugins.uninstall")}
                     </button>
                   </>
                 )}
               </Show>
               <Show when={p().depends.length}>
                 <div class="plugin-details-row">
-                  <span class="muted">Depends on:</span> {depNames(p())}
+                  <span class="muted">{t("plugins.dependsOn")}</span> {depNames(p())}
                 </div>
               </Show>
               <ul class="plugin-details-list">
@@ -276,8 +277,7 @@ export function PluginsPage() {
       <PermissionPromptView />
       <Show when={pending()}>
         <div class="plugins-note">
-          {pending()} plugin change{pending() > 1 ? "s" : ""} will be applied when you click Apply or OK.
-          Dependent plugins are enabled or disabled along with them.
+          {t("plugins.pending", { count: pending() })}
         </div>
       </Show>
     </div>

@@ -32,13 +32,14 @@ import "./editor";
 import "./runType";
 import "./dashboard";
 import "./spring.css";
+import { t } from "@/i18n";
 
 // The shared Endpoints tool window (features/endpoints) shows this view in Spring / Jakarta EE projects.
 registerEndpointsView({ id: "spring", title: "Spring and JAX-RS", order: 20, when: springActive, component: EndpointsView, actions: EndpointsActions });
 
 registerToolWindow({
   id: "spring",
-  title: "Spring",
+  title: t("toolwindow.spring.title"),
   icon: Leaf,
   anchor: "right",
   order: 45,
@@ -49,7 +50,7 @@ registerToolWindow({
 
 registerSettingsPage({
   id: "lang.java.spring-boot",
-  title: "Spring Boot",
+  title: t("settings.page.lang.java.spring-boot"),
   group: "Languages & Frameworks",
   parent: "lang.java",
   order: 10,

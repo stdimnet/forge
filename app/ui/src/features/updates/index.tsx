@@ -10,6 +10,7 @@ import { registerCommand } from "@/state/commands";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { openCheckForUpdates, openUpdateOffer, UpdateDialogHost } from "./UpdateDialog";
 import { UpdatesSettingsPage } from "./UpdatesSettingsPage";
+import { t } from "@/i18n";
 
 export { openCheckForUpdates } from "./UpdateDialog";
 
@@ -22,7 +23,7 @@ registerCommand({
 
 registerSettingsPage({
   id: "system.updates",
-  title: "Updates",
+  title: t("settings.page.system.updates"),
   group: "Appearance & Behavior",
   parent: "system",
   order: 0,

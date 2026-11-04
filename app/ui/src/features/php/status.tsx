@@ -6,6 +6,7 @@ import { isPluginActive } from "@/state/project";
 import { phpApi, type IndexProgress, type IndexStats } from "./api";
 import { defaultPhpSettings, LEVEL_FROM_INTERPRETER, phpSettings } from "./settings";
 import { languageLevel } from "./composer";
+import { t } from "@/i18n";
 
 const [progress, setProgress] = createSignal<IndexProgress | null>(null);
 const [lastStats, setLastStats] = createSignal<IndexStats | null>(null);
@@ -48,8 +49,8 @@ export function IndexingStatus() {
   return (
     <Show when={progress()}>
       {(p) => (
-        <span class="status-item php-indexing" title={`Indexing PHP files: ${p().done} of ${p().total}`}>
-          <span>Indexing… {percent(p())}%</span>
+        <span class="status-item php-indexing" title={t("php.indexing.tooltip", { done: p().done, total: p().total })}>
+          <span>{t("php.indexing", { percent: percent(p()) })}</span>
           <span class="php-progress">
             <span class="php-progress-bar" style={{ width: `${percent(p())}%` }} />
           </span>
@@ -73,10 +74,10 @@ export function PhpVersionStatus() {
         data-status="php-version"
         title={
           languageLevel()?.fromComposer
-            ? `PHP language level: ${level()} (from composer.json). Click to configure`
+            ? t("php.level.composer", { level: level() })
             : languageLevel()?.fromInterpreter
-              ? `PHP language level: ${level()} (from the CLI interpreter). Click to configure`
-              : `PHP language level: ${level()}. Click to configure`
+              ? t("php.level.interpreter", { level: level() })
+              : t("php.level", { level: level() })
         }
         onClick={() => void runCommand("settings.open")}
       >

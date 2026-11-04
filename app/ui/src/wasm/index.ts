@@ -1,7 +1,8 @@
 /**
  * Loader for the WebAssembly build of Forge's Rust logic (crates/forge-wasm). Browser-mode
- * mocks call Rust through it instead of re-implementing logic in TypeScript; the desktop app
- * uses Tauri IPC and never loads it.
+ * mocks call Rust through it instead of re-implementing logic in TypeScript. The desktop app
+ * loads it too, for work that must be synchronous: key resolution (`@/keymap`) and message
+ * formatting (`@/i18n`).
  */
 import init, { initSync } from "./pkg/forge_wasm.js";
 import * as bindings from "./pkg/forge_wasm.js";
@@ -27,6 +28,22 @@ export function forgeWasm(): Promise<ForgeWasm> {
     return bindings;
   })();
   return ready;
+}
+
+/**
+ * vitest only: load the module synchronously (Node can compile it on the spot), for code that
+ * needs Rust before any `await`, like `t()` in a component under test. Null elsewhere.
+ */
+export function forgeWasmSyncForTests(): ForgeWasm | null {
+  if (import.meta.env.MODE !== "test") return null;
+  const proc = (globalThis as unknown as {
+    process?: { cwd(): string; getBuiltinModule?(id: string): { readFileSync(path: string): Uint8Array } };
+  }).process;
+  const fs = proc?.getBuiltinModule?.("node:fs");
+  if (!proc || !fs) return null;
+  initSync({ module: fs.readFileSync(`${proc.cwd()}/src/wasm/pkg/forge_wasm_bg.wasm`) });
+  ready ??= Promise.resolve(bindings);
+  return bindings;
 }
 
 /** Call a JSON-in/JSON-out bridge function and parse the result. */

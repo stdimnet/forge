@@ -19,6 +19,7 @@ import {
   type DisplayMode,
   type NotificationEntry,
 } from "@/state/notifications";
+import { t } from "@/i18n";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -31,29 +32,29 @@ export function timeLabel(time: number, now = Date.now()): string {
   const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((day(today) - day(d)) / 86_400_000);
   if (days <= 0) return clock;
-  if (days === 1) return `Yesterday ${clock}`;
+  if (days === 1) return t("notifications.yesterday", { clock });
   return `${MONTHS[d.getMonth()]} ${d.getDate()} ${clock}`;
 }
 
 const MODE_LABELS: [DisplayMode, string][] = [
-  ["balloon", "Balloon"],
-  ["sticky", "Sticky Balloon"],
-  ["log", "No Popup (Tool Window Only)"],
+  ["balloon", "notifications.mode.balloon"],
+  ["sticky", "notifications.mode.sticky"],
+  ["log", "notifications.mode.log"],
 ];
 
 function showEntryMenu(e: MouseEvent, n: NotificationEntry): void {
   e.preventDefault();
   const mode = modeOf(n.group);
   const entries: ResolvedEntry[] = [
-    { kind: "action", label: "Mark as Read", run: () => markRead(n.id), disabled: n.read },
-    { kind: "action", label: "Remove", run: () => removeNotification(n.id) },
+    { kind: "action", label: t("notifications.markRead"), run: () => markRead(n.id), disabled: n.read },
+    { kind: "action", label: t("notifications.remove"), run: () => removeNotification(n.id) },
     "separator",
     {
       kind: "submenu",
-      label: `Display "${n.group}" as`,
-      items: MODE_LABELS.map(([m, label]) => ({ kind: "action", label, checkable: true, checked: mode === m, run: () => void setGroupMode(n.group, m) })),
+      label: t("notifications.displayAs", { group: n.group }),
+      items: MODE_LABELS.map(([m, key]) => ({ kind: "action", label: t(key), checkable: true, checked: mode === m, run: () => void setGroupMode(n.group, m) })),
     },
-    { kind: "action", label: "Notification Settings…", run: () => openSettings("notifications") },
+    { kind: "action", label: t("notifications.settingsEllipsis"), run: () => openSettings("notifications") },
   ];
   showResolvedMenu(entries, e.clientX, e.clientY);
 }
@@ -83,13 +84,13 @@ export function NotificationsIcon(props: { size?: number; "stroke-width"?: numbe
 export function NotificationsActions() {
   return (
     <>
-      <button class="icon-btn" title="Mark All as Read" disabled={unreadCount() === 0} onClick={markAllRead}>
+      <button class="icon-btn" title={t("notifications.markAllRead")} disabled={unreadCount() === 0} onClick={markAllRead}>
         <CheckCheck size={15} />
       </button>
-      <button class="icon-btn" title="Clear All" disabled={notifications().length === 0} onClick={clearNotifications}>
+      <button class="icon-btn" title={t("notifications.clearAll")} disabled={notifications().length === 0} onClick={clearNotifications}>
         <Trash2 size={15} />
       </button>
-      <button class="icon-btn" title="Notification Settings" onClick={() => openSettings("notifications")}>
+      <button class="icon-btn" title={t("notifications.settings")} onClick={() => openSettings("notifications")}>
         <Settings size={15} />
       </button>
     </>
@@ -99,7 +100,7 @@ export function NotificationsActions() {
 export function NotificationsView() {
   return (
     <div class="notif-view" tabIndex={-1}>
-      <Show when={notifications().length} fallback={<div class="notif-empty muted">No notifications</div>}>
+      <Show when={notifications().length} fallback={<div class="notif-empty muted">{t("notifications.none")}</div>}>
         <For each={notifications()}>
           {(n) => (
             <div
@@ -140,7 +141,7 @@ export function NotificationsView() {
               </div>
               <button
                 class="icon-btn notif-remove"
-                title="Remove"
+                title={t("notifications.remove")}
                 onClick={(e) => {
                   e.stopPropagation();
                   removeNotification(n.id);

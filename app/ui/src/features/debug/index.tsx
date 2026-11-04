@@ -69,10 +69,11 @@ export { dapApi, type LaunchRequest } from "./dapApi";
 
 const showDebuggerBalloon = balloonsFor("Debugger");
 import "./debug.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "debug",
-  title: "Debug",
+  title: t("toolwindow.debug.title"),
   icon: Bug,
   anchor: "bottom",
   order: 20,
@@ -138,7 +139,7 @@ registerStatusItem({ id: "php.debug", align: "right", order: -20, component: Deb
 
 registerSettingsPage({
   id: "lang.php.debug",
-  title: "Debug",
+  title: t("settings.page.lang.php.debug"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 10,
@@ -148,7 +149,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.debugger",
-  title: "Debugger",
+  title: t("settings.page.build.debugger"),
   group: "Build, Execution, Deployment",
   order: 5,
   keywords: ["dap", "debug adapter", "lldb", "gdb", "lldb-dap", "memory", "inline values", "attach"],
@@ -157,7 +158,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.php.servers",
-  title: "Servers",
+  title: t("settings.page.lang.php.servers"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 20,

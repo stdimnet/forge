@@ -1104,6 +1104,53 @@ export function hierarchy_method_view(request_json: string): string;
 export function hierarchy_type_view(request_json: string): string;
 
 /**
+ * Add translations (`{ locale, messages }`), e.g. of a third-party plugin's UI bundle.
+ */
+export function i18n_add_messages(request_json: string): string;
+
+/**
+ * Format a message source (not a key) in the selected language, e.g. a plugin's own
+ * translation.
+ */
+export function i18n_format(message: string, args_json: string): string;
+
+/**
+ * Whether `key` exists in the selected language or in English.
+ */
+export function i18n_has(key: string): boolean;
+
+/**
+ * The languages with a bundled catalog (`LocaleInfo[]`).
+ */
+export function i18n_locales(): string;
+
+/**
+ * `PluginInfo[]` in the selected language (the browser-mode `plugins_list`).
+ */
+export function i18n_localize_plugins(plugins_json: string): string;
+
+/**
+ * `{ specs, plugins }` → `SettingSpec[]` in the selected language (the browser-mode
+ * `settings_schema`).
+ */
+export function i18n_localize_settings(request_json: string): string;
+
+/**
+ * Select the UI language and the time zone for dates (minutes east of UTC).
+ */
+export function i18n_set_locale(locale: string, tz_offset_minutes: number): string;
+
+/**
+ * The text of `key` in the selected language (English fallback).
+ */
+export function i18n_t(key: string): string;
+
+/**
+ * The text of `key` formatted with `args_json` (a JSON object).
+ */
+export function i18n_t_args(key: string, args_json: string): string;
+
+/**
  * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
  */
 export function image_describe(request_json: string): string;
@@ -2876,6 +2923,15 @@ export interface InitOutput {
     readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
+    readonly i18n_add_messages: (a: number, b: number, c: number) => void;
+    readonly i18n_format: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly i18n_has: (a: number, b: number) => number;
+    readonly i18n_locales: (a: number) => void;
+    readonly i18n_localize_plugins: (a: number, b: number, c: number) => void;
+    readonly i18n_localize_settings: (a: number, b: number, c: number) => void;
+    readonly i18n_set_locale: (a: number, b: number, c: number, d: number) => void;
+    readonly i18n_t: (a: number, b: number, c: number) => void;
+    readonly i18n_t_args: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
     readonly imports_folder_summary: (a: number, b: number, c: number, d: number) => void;
     readonly imports_minimal_edit: (a: number, b: number, c: number) => void;

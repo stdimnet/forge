@@ -2660,6 +2660,7 @@ dependencies = [
  "forge-filetypes",
  "forge-forges",
  "forge-fuzzy",
+ "forge-i18n",
  "forge-injections",
  "forge-inspections",
  "forge-jsonschema",
@@ -3174,6 +3175,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-i18n"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-injections"
 version = "0.1.0"
 dependencies = [
@@ -3212,6 +3221,7 @@ dependencies = [
 name = "forge-keymap"
 version = "0.1.0"
 dependencies = [
+ "forge-i18n",
  "serde",
  "serde_json",
 ]
@@ -3347,6 +3357,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-filetypes",
+ "forge-i18n",
  "forge-inspections",
  "forge-keymap",
  "forge-output",
@@ -3656,7 +3667,9 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "forge-i18n",
  "serde",
+ "serde_json",
  "tempfile",
  "toml 0.8.23",
 ]
@@ -3750,6 +3763,7 @@ dependencies = [
  "forge-filetypes",
  "forge-find",
  "forge-fuzzy",
+ "forge-i18n",
  "forge-injections",
  "forge-inspections",
  "forge-jsonschema",

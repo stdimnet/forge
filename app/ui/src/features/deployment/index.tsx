@@ -51,6 +51,7 @@ import {
   uploadToDefault,
 } from "./store";
 import "./deployment.css";
+import { t } from "@/i18n";
 
 const PLUGIN = "forge.deployment";
 const active = () => isPluginActive(PLUGIN);
@@ -59,7 +60,7 @@ setSettingsOpener((page) => openSettings(page));
 
 registerSettingsPage({
   id: "build.deployment",
-  title: "Deployment",
+  title: t("settings.page.build.deployment"),
   group: "Build, Execution, Deployment",
   order: 5,
   keywords: ["deployment", "sftp", "ftp", "ftps", "server", "upload", "mappings", "web server", "excluded paths", "root path"],
@@ -68,7 +69,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.deployment.options",
-  title: "Options",
+  title: t("settings.page.build.deployment.options"),
   group: "Build, Execution, Deployment",
   parent: "build.deployment",
   order: 0,
@@ -78,7 +79,7 @@ registerSettingsPage({
 
 registerToolWindow({
   id: "fileTransfer",
-  title: "File Transfer",
+  title: t("toolwindow.fileTransfer.title"),
   icon: ArrowUpDown,
   anchor: "bottom",
   order: 60,

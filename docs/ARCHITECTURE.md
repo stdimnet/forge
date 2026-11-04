@@ -145,6 +145,20 @@ app/ui/            SolidJS UI
   -deco|-box]`, `--editor-fg`, `--editor-caret`, `--editor-selection`, …) that
   `features/colorScheme/store.ts` sets on <html>; `editor/forgeTheme.ts` reads them with the
   theme's variables as fallbacks, so following the theme sets nothing.
+- Localization: `crates/forge-i18n` holds the message catalogs
+  (`locales/<locale>/<area>.json`, ICU MessageFormat, English source, German translation),
+  lookup with fallback (`de-AT` → `de` → `en`, never the key), CLDR plurals and number/date
+  formats. The UI calls it synchronously through WebAssembly in both modes: `t(key, args)` and
+  `<T k=… />` from `src/i18n` read a `locale` signal, so tracked text follows a change at
+  once; `main.tsx` awaits `initI18n` (setting `ide.language`) before the features register,
+  so startup titles are translated too, and `features/language` offers a restart for the
+  rest. Rust-originated text uses the process-wide localizer (`forge_i18n::set_locale`, set
+  by `forge-app` from `ide.language`): the main menu and action titles (`forge-keymap`,
+  `ActionDef.titleEn` keeps the English title for Find Action), manifests
+  (`forge_plugin_api::l10n`, keys derived from ids, `[l10n.<locale>]` tables in manifests),
+  Settings group titles and Safe Mode refusals. `locales/en/{menu,actions,plugins}.json` are
+  generated from code by snapshot tests. `pnpm i18n:check` reports coverage and fails on keys
+  missing in English; see `docs/guide/developer/localization.md`.
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
@@ -187,6 +201,12 @@ app/ui/            SolidJS UI
   "rename" | "delete" | "setAttribute" | "resetAll", … }`, stored in the user settings);
   `color_scheme_import({ text? | path?, dark }) -> SchemesSnapshot` reads an IntelliJ `.icls`
   file into a new scheme; `color_scheme_export({ name, path? }) -> string`.
+- Localization (`src/i18n`, `forge-wasm` `i18n_*`): `i18n_set_locale(locale, tzOffset)`,
+  `i18n_t(key)`, `i18n_t_args(key, argsJson)`, `i18n_format(message, argsJson)`,
+  `i18n_has(key)`, `i18n_locales()`, `i18n_add_messages({ locale, messages })`; browser mode
+  also uses `i18n_localize_plugins` / `i18n_localize_settings` for `plugins_list` and
+  `settings_schema`, which the desktop commands localize in Rust. Labels in `MainMenu` and
+  titles in `KeymapSnapshot` are already in the IDE language.
 - Main menu (`src/ipc/keymap.ts`, `forge-keymap::menu`): `keymap_main_menu({ request }) -> MainMenu`.
   The request carries `contributions` (manifest `mainMenu` of active plugins plus
   `registerMainMenuEntries`), `dynamic` lists (`{ key, label, action?, detail?, enabled?,

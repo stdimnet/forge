@@ -31,6 +31,7 @@ import { analysisHighlightExtension } from "./analysisHighlights";
 import { PerfView, setPerfUnsupported, showPerfProfile } from "./PerfView";
 import { cppActive, refreshProfiles, reloadCMake, showCppBalloon } from "./state";
 import "./analysis.css";
+import { t } from "@/i18n";
 
 // ---- Result panels and the Profiler ---------------------------------------------------------
 
@@ -134,7 +135,7 @@ registerMainMenuEntries("Tools", [action("cpp.conanInstall", "Conan _Install")],
 
 registerSettingsPage({
   id: "build.analysis",
-  title: "Dynamic Analysis Tools",
+  title: t("settings.page.build.analysis"),
   group: "Build, Execution, Deployment",
   order: 4,
   keywords: ["valgrind", "memcheck", "perf", "profiler", "sanitizer", "flame graph"],
@@ -143,7 +144,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.packages",
-  title: "Package Managers",
+  title: t("settings.page.build.packages"),
   group: "Build, Execution, Deployment",
   order: 5,
   keywords: ["vcpkg", "conan", "toolchain file", "VCPKG_ROOT", "conan_toolchain.cmake"],
