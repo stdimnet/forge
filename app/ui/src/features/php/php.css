@@ -68,6 +68,16 @@
 .php-visibility-private { color: var(--danger); }
 
 /* ---------- Structure tool window ---------- */
+.php-structure-file {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
 .php-structure-row {
   gap: 4px;
 }

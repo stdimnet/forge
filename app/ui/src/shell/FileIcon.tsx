@@ -16,7 +16,9 @@ import {
   Package,
   Settings2,
 } from "lucide-solid";
+import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
+import { iconStyle, themedIcon, type IconKind } from "@/features/iconThemes/state";
 
 type Spec = { icon: typeof File; color: string };
 
@@ -141,16 +143,36 @@ function specFor(name: string): Spec {
   return byExt[ext.toLowerCase()] ?? { icon: File, color: "var(--fg-muted)" };
 }
 
-export function FileIcon(props: { name: string; dir?: boolean; open?: boolean; size?: number; dimmed?: boolean }) {
+/**
+ * The icon of a file or folder: the active icon theme's (`features/iconThemes`), else
+ * Forge's own. `path` (when known) lets theme patterns match on folders too; `name` is used
+ * otherwise.
+ */
+export function FileIcon(props: { name: string; path?: string; dir?: boolean; open?: boolean; size?: number; dimmed?: boolean }) {
+  const kind = (): IconKind => (props.dir ? (props.open ? "folderOpen" : "folder") : "file");
+  const themed = () => themedIcon(props.path || props.name, kind());
   const spec = (): Spec =>
     props.dir ? { icon: props.open ? FolderOpen : Folder, color: "var(--fg-muted)" } : specFor(props.name);
   return (
-    <Dynamic
-      component={spec().icon}
-      class="file-icon"
-      size={props.size ?? 15}
-      stroke-width={1.75}
-      style={{ color: spec().color, "flex-shrink": 0, opacity: props.dimmed ? 0.6 : undefined }}
-    />
+    <Show
+      when={themed()}
+      fallback={
+        <Dynamic
+          component={spec().icon}
+          class="file-icon"
+          size={props.size ?? 15}
+          stroke-width={1.75}
+          style={{ color: spec().color, "flex-shrink": 0, opacity: props.dimmed ? 0.6 : undefined }}
+        />
+      }
+    >
+      {(url) => (
+        <span
+          class="file-icon themed-file-icon"
+          aria-hidden="true"
+          style={{ ...iconStyle(url(), kind(), props.size ?? 15), opacity: props.dimmed ? "0.6" : undefined }}
+        />
+      )}
+    </Show>
   );
 }

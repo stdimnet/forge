@@ -1,6 +1,7 @@
 /**
  * Browser-mode third-party plugins and Settings Sync. The SDK's Word Count example
- * (`sdk/examples/word-count`) is installed and runs in the real sandboxed host; Install
+ * (`sdk/examples/word-count`) is installed and runs in the real sandboxed host, and its
+ * Shapes Icons example (`sdk/examples/shapes-icons`) contributes an icon theme; Install
  * Plugin from Disk offers its 1.1.0 build, and the demo marketplace index is evaluated by
  * the same Rust code as WebAssembly (`forge-plugins`). Nothing is downloaded or written.
  */
@@ -19,6 +20,7 @@ import type { PluginInfo, SettingSpec } from "@/ipc/settings";
 import { callWasmSync, forgeWasm } from "@/wasm";
 import wordCountManifest from "../../../../sdk/examples/word-count/forge-plugin.json";
 import wordCountBundle from "../../../../sdk/examples/word-count/dist/plugin.js?raw";
+import shapesManifest from "../../../../sdk/examples/shapes-icons/forge-plugin.json";
 import { mockPluginRegistry, mockSettingValue, setSetting } from "./settingsMock";
 
 const FORGE_VERSION = "0.1.0";
@@ -84,7 +86,20 @@ async function install(m: ThirdPartyManifest, bundle: string, source: InstalledP
   return p;
 }
 
-const ready = install(manifest(), wordCountBundle, { kind: "disk", file: "~/Downloads/example.word-count-1.0.0.forgeplugin" });
+const ready = Promise.all([
+  install(manifest(), wordCountBundle, { kind: "disk", file: "~/Downloads/example.word-count-1.0.0.forgeplugin" }),
+  // As Rust's serde defaults: no permissions, no activation events.
+  install({ activationEvents: [], permissions: {}, ...structuredClone(shapesManifest) } as unknown as ThirdPartyManifest, "", { kind: "disk", file: "~/Downloads/example.shapes-icons-1.0.0.forgeplugin" }),
+]);
+
+// The Shapes Icons package: its files by package path, read by the same Rust loader as an
+// installed plugin's (`forge_plugins::icon_themes`, as WebAssembly).
+const SHAPES_ROOT = "../../../../sdk/examples/shapes-icons/";
+const shapesFiles: Record<string, string> = Object.fromEntries(
+  Object.entries(import.meta.glob("../../../../sdk/examples/shapes-icons/theme/**/*", { query: "?raw", import: "default", eager: true })).map(
+    ([path, text]) => [path.slice(SHAPES_ROOT.length), text as string],
+  ),
+);
 
 /** The demo marketplace: what an index at the configured URL could list. */
 function demoIndex(): string {
@@ -212,6 +227,20 @@ registerMock("marketplace_install", async ({ id }) => {
   return p;
 });
 registerMock("plugins_wanted_dismiss", () => undefined);
+registerMock("icon_theme_load", async ({ id }) => {
+  await ready;
+  const owner = installed.find((p) => (p.manifest.contributes.iconThemes ?? []).some((t) => t.id === id));
+  if (!owner) throw new Error(`no installed plugin contributes the icon theme \`${String(id)}\``);
+  if (!isEnabled(owner.manifest.id)) throw new Error(`plugin \`${owner.manifest.id}\` is disabled`);
+  const files = owner.manifest.id === shapesManifest.id ? shapesFiles : {};
+  const out = callWasmSync<object | { error: string }>((await forgeWasm()).plugins_load_icon_theme, {
+    manifest: JSON.stringify(owner.manifest),
+    theme: id,
+    files,
+  });
+  if ("error" in out) throw new Error(out.error);
+  return out;
+});
 
 // The host calls: the example only reads the editor (checked in the UI) and its own settings.
 const own = (pluginId: unknown, key: unknown) => {

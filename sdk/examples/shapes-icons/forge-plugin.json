@@ -9,7 +9,7 @@
   "engines": { "forge": ">=0.1.0" },
   "contributes": {
     "iconThemes": [
-      { "id": "example.shapes-icons.shapes", "label": "Shapes (example)", "path": "theme/icon-theme.json" }
+      { "id": "example.shapes-icons.shapes", "label": "Shapes", "path": "theme/icon-theme.json" }
     ]
   }
 }

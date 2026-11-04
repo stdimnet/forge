@@ -36,7 +36,7 @@ function TabIcon(props: { tab: EditorTab }) {
     <Show
       when={fileSystemFor(props.tab.path)?.icon}
       fallback={
-        <Show when={editorViewFor(props.tab)?.icon} fallback={<FileIcon name={props.tab.name} size={14} />}>
+        <Show when={editorViewFor(props.tab)?.icon} fallback={<FileIcon name={props.tab.name} path={props.tab.path} size={14} />}>
           {(Icon) => {
             const I = Icon();
             return <I size={14} tab={props.tab} />;

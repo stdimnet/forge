@@ -120,7 +120,7 @@ function Preview(props: { row: Row | undefined }) {
         <Show when={props.row}>
           {(r) => (
             <>
-              <FileIcon name={fileName(r().path)} size={14} />
+              <FileIcon name={fileName(r().path)} path={r().path} size={14} />
               <span>{r().path}</span>
             </>
           )}

@@ -32,7 +32,11 @@ more marks the new entries and must be accepted again.
 | `editor: read` | | Read the open file (low) | the host |
 
 What needs no permission: the plugin's own settings (`<plugin id>.…`), its contributions,
-balloons, tool window HTML, running IDE actions with `forge.commands.execute`.
+balloons, tool window HTML, running IDE actions with `forge.commands.execute`, and icon
+themes. An icon theme is data: Forge itself reads the theme file and the `.svg` files it
+names from the plugin's own package (nothing outside it, `icon_themes::theme_file_allowed`),
+checks every SVG (size, no scripts, event handlers or external references) on install and
+draws them as images.
 
 ## Enforcement
 
@@ -59,6 +63,7 @@ In an untrusted project ([Project trust](../../user/project-trust.md)) Forge ref
 - writing files inside the project.
 
 Reading files and the other permissions still work, as reading does not run project code.
+Icon themes load in Safe Mode too.
 
 ## Limits
 

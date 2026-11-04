@@ -114,6 +114,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Repository layout](guide/developer/repo-layout.md): where crates, packs, the Tauri shell and the UI live
 - [Architecture](guide/developer/architecture.md) and [Rust computes, TypeScript renders](guide/developer/rust-computes.md)
 - [Contribution points](guide/developer/contribution-points.md): tool windows, commands, settings pages, status items, editor extensions
+- [Icon themes](guide/developer/icon-themes.md): file icon themes (icon-theme.json, matching order, forge-icons resolver, registerIconTheme, plugin iconThemes with SVGs, tree arrows / accent / monochrome / size hooks, Shapes Icons example)
 - [IPC commands and browser mocks](guide/developer/ipc-and-mocks.md) and [WASM bridge](guide/developer/wasm-bridge.md)
 - [Plugin SDK](guide/developer/plugins/index.md): third-party plugins as sandboxed UI bundles with the `forge` API, trade-offs and deferred parts; [Getting started](guide/developer/plugins/getting-started.md) (`pnpm plugin new|build|pack`, Word Count example), [API reference](guide/developer/plugins/api-reference.md) (forge-plugin.json, activation events, contributions, API), [Permissions](guide/developer/plugins/permissions.md), [Publishing](guide/developer/plugins/publishing.md) (marketplace index format 1)
 - [Unity editor bridge protocol](guide/developer/unity-bridge-protocol.md): discovery through Library/ForgeBridge.json, the token handshake, commands and events between Forge and its Unity package
