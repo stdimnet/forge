@@ -20,14 +20,17 @@ pub async fn run_streaming(
     cwd: &Path,
     mut sink: impl FnMut(LogStream, String) + Send,
 ) -> Result<Option<i32>> {
-    let mut cmd = tokio::process::Command::new(program);
-    cmd.args(args)
+    let mut std_cmd = std::process::Command::new(program);
+    std_cmd
+        .args(args)
         .envs(env.iter().cloned())
         // Plain progress output instead of TTY animations.
         .env("COMPOSE_PROGRESS", "plain")
         .env("BUILDKIT_PROGRESS", "plain")
-        .current_dir(cwd)
-        .stdin(Stdio::null())
+        .current_dir(cwd);
+    // In Flatpak the Docker / Podman / kubectl CLI runs on the host.
+    let mut cmd: tokio::process::Command = forge_hostspawn::host_command(std_cmd).into();
+    cmd.stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);

@@ -226,11 +226,30 @@ pub fn rewrite(spec: &Spec) -> Spec {
     }
 }
 
+/// Whether `program` belongs to the sandbox and must not be started on the host: Forge's own
+/// executable (the built-in PHP language server, new project windows) and anything under
+/// `/app`, the Flatpak's own files.
+pub fn is_sandbox_program(program: &Path) -> bool {
+    if program.starts_with("/app") {
+        return true;
+    }
+    static OWN: OnceLock<Option<PathBuf>> = OnceLock::new();
+    let own = OWN.get_or_init(|| std::env::current_exe().ok().map(canonical));
+    own.as_deref().is_some_and(|own| {
+        program.is_absolute() && (program == own || canonical(program.to_path_buf()) == own)
+    })
+}
+
+fn canonical(p: PathBuf) -> PathBuf {
+    std::fs::canonicalize(&p).unwrap_or(p)
+}
+
 /// `cmd` unchanged outside Flatpak; inside it the `flatpak-spawn --host` command that runs
-/// it on the host. Call it after program, arguments, environment and working directory are
-/// set and before stdio and other options, which are not carried over.
+/// it on the host (unless it is a [sandbox program](is_sandbox_program)). Call it after
+/// program, arguments, environment and working directory are set and before stdio and other
+/// options, which are not carried over.
 pub fn host_command(cmd: Command) -> Command {
-    if active() {
+    if active() && !is_sandbox_program(Path::new(cmd.get_program())) {
         rewrite(&Spec::from_command(&cmd)).into_command()
     } else {
         cmd
@@ -239,7 +258,7 @@ pub fn host_command(cmd: Command) -> Command {
 
 /// [`host_command`] for a [`Spec`].
 pub fn host_spec(spec: Spec) -> Spec {
-    if active() {
+    if active() && !is_sandbox_program(Path::new(&spec.program)) {
         rewrite(&spec)
     } else {
         spec
@@ -531,6 +550,14 @@ mod tests {
         assert_eq!(args[5], "-c");
         assert_eq!(args[6], PTY_WRAPPER);
         assert_eq!(&args[7..], ["forge-terminal", "/usr/bin/zsh", "-l"]);
+    }
+
+    #[test]
+    fn forge_itself_and_flatpak_files_stay_in_the_sandbox() {
+        assert!(is_sandbox_program(Path::new("/app/bin/forge")));
+        assert!(is_sandbox_program(&std::env::current_exe().unwrap()));
+        assert!(!is_sandbox_program(Path::new("/usr/bin/php")));
+        assert!(!is_sandbox_program(Path::new("php")));
     }
 
     #[test]

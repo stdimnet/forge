@@ -44,18 +44,20 @@ impl AdapterCommand {
     }
 
     fn spawn(&self, stdio: bool) -> DapResult<Child> {
-        let mut cmd = Command::new(&self.command);
-        cmd.args(&self.args)
-            .stdin(if stdio { Stdio::piped() } else { Stdio::null() })
+        let mut std_cmd = std::process::Command::new(&self.command);
+        std_cmd.args(&self.args);
+        if let Some(cwd) = &self.cwd {
+            std_cmd.current_dir(cwd);
+        }
+        for (k, v) in &self.env {
+            std_cmd.env(k, v);
+        }
+        // In Flatpak the debug adapter runs on the host.
+        let mut cmd: Command = forge_hostspawn::host_command(std_cmd).into();
+        cmd.stdin(if stdio { Stdio::piped() } else { Stdio::null() })
             .stdout(if stdio { Stdio::piped() } else { Stdio::null() })
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        if let Some(cwd) = &self.cwd {
-            cmd.current_dir(cwd);
-        }
-        for (k, v) in &self.env {
-            cmd.env(k, v);
-        }
         cmd.spawn().map_err(|e| {
             DapError::Other(if e.kind() == std::io::ErrorKind::NotFound {
                 format!(

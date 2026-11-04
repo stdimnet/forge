@@ -46,6 +46,10 @@ pub fn filter_processes(list: &[ProcessInfo], filter: &str) -> Vec<ProcessInfo> 
 
 #[cfg(target_os = "linux")]
 fn platform_list() -> Vec<ProcessInfo> {
+    // In Flatpak, /proc only shows the sandbox: list the host's processes with `ps`.
+    if forge_hostspawn::active() {
+        return ps_list();
+    }
     let Ok(dir) = std::fs::read_dir("/proc") else {
         return ps_list();
     };
@@ -69,8 +73,9 @@ fn platform_list() -> Vec<ProcessInfo> {
 
 #[cfg(unix)]
 fn ps_list() -> Vec<ProcessInfo> {
-    std::process::Command::new("ps")
-        .args(["-axww", "-o", "pid=,user=,comm=,args="])
+    let mut cmd = std::process::Command::new("ps");
+    cmd.args(["-axww", "-o", "pid=,user=,comm=,args="]);
+    forge_hostspawn::host_command(cmd)
         .output()
         .map(|o| parse_ps(&String::from_utf8_lossy(&o.stdout)))
         .unwrap_or_default()

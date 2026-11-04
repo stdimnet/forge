@@ -138,20 +138,22 @@ fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
         .env("LC_ALL", "C")
         .env("GIT_OPTIONAL_LOCKS", "0")
         .env("GIT_PAGER", "cat")
-        .env("GIT_EDITOR", "true")
-        .stdout(Stdio::piped())
+        .env("GIT_EDITOR", "true");
+    if opts.non_interactive {
+        cmd.env("GIT_TERMINAL_PROMPT", "0");
+        if forge_hostspawn::env_var("GIT_SSH_COMMAND").is_none() {
+            cmd.env("GIT_SSH_COMMAND", "ssh -o BatchMode=yes");
+        }
+    }
+    // In Flatpak, git (and its credential helpers and SSH) run on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(if opts.stdin.is_some() {
             Stdio::piped()
         } else {
             Stdio::null()
         });
-    if opts.non_interactive {
-        cmd.env("GIT_TERMINAL_PROMPT", "0");
-        if std::env::var_os("GIT_SSH_COMMAND").is_none() {
-            cmd.env("GIT_SSH_COMMAND", "ssh -o BatchMode=yes");
-        }
-    }
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

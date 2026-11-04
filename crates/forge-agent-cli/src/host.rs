@@ -57,10 +57,11 @@ impl AgentHost for LocalHost {
 }
 
 fn spawn_local(spec: &CommandSpec, cwd: &Path) -> Result<SpawnedAgent> {
-    let mut cmd = Command::new(&spec.program);
-    cmd.args(&spec.args)
-        .current_dir(cwd)
-        .stdin(Stdio::piped())
+    let mut std_cmd = std::process::Command::new(&spec.program);
+    std_cmd.args(&spec.args).current_dir(cwd);
+    // In Flatpak the agent CLI runs on the host.
+    let mut cmd: Command = forge_hostspawn::host_command(std_cmd).into();
+    cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);

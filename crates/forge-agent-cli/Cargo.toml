@@ -13,6 +13,7 @@ runtime = ["dep:forge-core", "dep:tokio", "dep:tracing"]
 
 [dependencies]
 forge-core = { workspace = true, optional = true }
+forge-hostspawn.workspace = true
 forge-markdown.workspace = true
 serde.workspace = true
 serde_json.workspace = true
