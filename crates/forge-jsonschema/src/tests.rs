@@ -789,7 +789,14 @@ fn openapi_documents_by_content() {
 
 #[test]
 fn minecraft_plugin_descriptors() {
-    let s = mapping::select("src/main/resources/plugin.yml", "", DocKind::Yaml, &[], None).unwrap();
+    let s = mapping::select(
+        "src/main/resources/plugin.yml",
+        "",
+        DocKind::Yaml,
+        &[],
+        None,
+    )
+    .unwrap();
     assert_eq!(s.uri, bundled::MINECRAFT_BUKKIT);
     let s = mapping::select(
         "core/src/main/resources/paper-plugin.yml",
@@ -814,7 +821,11 @@ fn minecraft_plugin_descriptors() {
         "name: Better Chat!\nversion: 1\nload: LATER\n",
     );
     assert!(bad.iter().any(|p| p.contains("'main'")), "{bad:?}");
-    assert!(bad.iter().any(|p| p.contains("LATER") || p.contains("STARTUP")), "{bad:?}");
+    assert!(
+        bad.iter()
+            .any(|p| p.contains("LATER") || p.contains("STARTUP")),
+        "{bad:?}"
+    );
     assert_eq!(bad.len(), 3, "{bad:?}");
 
     let paper = "name: X\nversion: '1'\nmain: a.b.X\napi-version: '1.21'\ndependencies:\n  server:\n    LuckPerms:\n      load: BEFORE\n      required: false\n";
@@ -837,7 +848,14 @@ fn minecraft_plugin_descriptors() {
     let mut r = Registry::new();
     load_bundled(&mut r, bundled::MINECRAFT_BUKKIT);
     let text = "name: X\nmain: a.b.X\n\n";
-    let c = complete(&r, bundled::MINECRAFT_BUKKIT, DocKind::Yaml, text, text.len()).unwrap();
+    let c = complete(
+        &r,
+        bundled::MINECRAFT_BUKKIT,
+        DocKind::Yaml,
+        text,
+        text.len(),
+    )
+    .unwrap();
     let names: Vec<&str> = c.items.iter().map(|i| i.label.as_str()).collect();
     assert!(
         names.contains(&"api-version") && names.contains(&"commands"),

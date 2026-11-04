@@ -617,9 +617,8 @@ fn minecraft_options(mc_versions: &[String]) -> Vec<GeneratorOption> {
     )
     .visible_when("platform", SERVERS);
     mc.refresh = Some("minecraft_versions_refresh".into());
-    mc.description = Some(
-        "Refresh reads the versions Paper publishes from repo.papermc.io.".into(),
-    );
+    mc.description =
+        Some("Refresh reads the versions Paper publishes from repo.papermc.io.".into());
     vec![
         enum_opt("platform", "Platform", "paper", platforms),
         enum_opt(
@@ -652,8 +651,7 @@ fn minecraft_options(mc_versions: &[String]) -> Vec<GeneratorOption> {
         .visible_when("buildSystem", GRADLE),
         string_opt("groupId", "Group ID", "com.example"),
         string_opt("pluginName", "Plugin name", "").placeholder("From the project name"),
-        string_opt("mainClass", "Main class", "")
-            .placeholder("<group id>.<project>.<Project>"),
+        string_opt("mainClass", "Main class", "").placeholder("<group id>.<project>.<Project>"),
         string_opt("authors", "Authors", "").placeholder("Comma-separated"),
         string_opt("description", "Description", ""),
         string_opt("website", "Website", "").placeholder("https://"),
@@ -1335,9 +1333,15 @@ mod tests {
         assert!(p.missing_tools.is_empty());
         assert_eq!(p.error, None);
         assert_eq!(p.preview, vec!["Create demo/ from the built-in template"]);
-        assert!(p.files.contains(&"src/main/java/com/example/demo/Demo.java".to_string()));
-        assert!(p.files.contains(&"src/main/resources/plugin.yml".to_string()));
-        assert!(p.files.contains(&".forge/runConfigurations.toml".to_string()));
+        assert!(p
+            .files
+            .contains(&"src/main/java/com/example/demo/Demo.java".to_string()));
+        assert!(p
+            .files
+            .contains(&"src/main/resources/plugin.yml".to_string()));
+        assert!(p
+            .files
+            .contains(&".forge/runConfigurations.toml".to_string()));
 
         // Hidden options take their defaults: Kotlin with Maven builds a Java project, a
         // proxy ignores run-paper.
@@ -1355,8 +1359,13 @@ mod tests {
         .unwrap();
         assert_eq!(p.error, None);
         assert!(p.files.contains(&"pom.xml".to_string()));
-        assert!(p.files.contains(&"src/main/resources/velocity-plugin.json".to_string()));
-        assert!(!p.files.iter().any(|f| f.ends_with(".kt") || f.starts_with(".forge")));
+        assert!(p
+            .files
+            .contains(&"src/main/resources/velocity-plugin.json".to_string()));
+        assert!(!p
+            .files
+            .iter()
+            .any(|f| f.ends_with(".kt") || f.starts_with(".forge")));
 
         // Invalid names are shown under the form.
         let p = plan(
@@ -1395,7 +1404,10 @@ mod tests {
         let mc = info.framework("minecraft").unwrap();
         assert_eq!(mc.name, "Spigot Plugin");
         assert_eq!(mc.version.as_deref(), Some("1.21.8"));
-        assert_eq!(info.primary.as_ref().map(|p| p.id.as_str()), Some("minecraft"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.id.as_str()),
+            Some("minecraft")
+        );
     }
 
     #[test]

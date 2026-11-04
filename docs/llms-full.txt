@@ -726,7 +726,7 @@ The primary type appears
 | CForge | C and C++ projects |
 | DotNetForge | .NET projects (C#, F#, Visual Basic) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
-| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md) |
+| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md). A Minecraft server or proxy API (`paper-api`, `purpur-api`, `spigot-api`, `org.bukkit:bukkit`, `velocity-api`, `bungeecord-api`, …) makes the project a Minecraft plugin (framework `minecraft`, e.g. "Paper Plugin 1.21.8") that activates [Minecraft plugins](docs/guide/user/minecraft.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
 | JavaForge: Scala | an sbt build (`build.sbt`, `project/build.properties`; tool `sbt`), Scala sources (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin; ScalaTest and MUnit in `build.sbt` |
 | JavaForge: Android | a Gradle module applying `com.android.application` / `com.android.library` (also catalog aliases) or a `src/main/AndroidManifest.xml`; the framework `android` with the AGP version, tool `android` |
@@ -901,6 +901,7 @@ not finished, the page says so.
 | [Spring Boot and Jakarta EE](docs/guide/user/spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
 | [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
+| [Minecraft plugins](docs/guide/user/minecraft.md) | The Minecraft Plugin wizard (Paper, Purpur, Folia, Spigot, Bukkit, Velocity, BungeeCord; Gradle or Maven; Java or Kotlin), plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml completion and main class checks, Run Paper Server and event handler gutter icons |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control
@@ -3359,6 +3360,7 @@ Forge picks the first match:
    | GitHub Workflow | `.github/workflows/*.yml`, `*.yaml` |
    | GitHub Action | `action.yml`, `action.yaml` |
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
+   | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](docs/guide/user/minecraft.md)) |
 
 4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
    hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
@@ -13265,6 +13267,10 @@ JDT LS imports and builds projects, which runs code of the project (Gradle build
 annotation processors), so it does not start in [Safe Mode](docs/guide/user/project-trust.md). It runs for local
 projects; remote projects do not start it yet.
 
+Minecraft server and proxy plugins (Paper, Spigot, Velocity, …) have their own project
+wizard, descriptor support and Run Paper Server configuration: see
+[Minecraft plugins](docs/guide/user/minecraft.md).
+
 ## JDKs
 
 Settings | Build, Execution, Deployment | **JDKs** combines IntelliJ's SDK list and Project
@@ -15094,6 +15100,147 @@ No layout editor, resource tools, APK analyzer, profilers or Android debugger ye
 Studio stays the tool for those. Kotlin and Java code intelligence comes from
 [KotlinForge](docs/guide/user/kotlin.md) and [JavaForge](docs/guide/user/java.md), which do not know the Android SDK's classes
 unless the build provides them.
+
+
+---
+
+Source: docs/guide/user/minecraft.md
+
+# Minecraft plugins
+
+The **Minecraft Development** plugin (`forge.minecraft`, JavaForge pack) helps you write
+server and proxy plugins for Minecraft, in the style of IntelliJ's Minecraft Development
+plugin. It builds on [JavaForge](docs/guide/user/java.md) (Gradle, Maven, JDKs, Eclipse JDT LS) and
+[KotlinForge](docs/guide/user/kotlin.md) for Kotlin sources.
+
+## New Project: Minecraft Plugin
+
+**File | New Project** (`NewProject`) lists **Minecraft Plugin** in the **Java** group. It
+creates the project offline, from Forge's own templates: nothing is downloaded while the
+project is created.
+
+![The Minecraft Plugin wizard](docs/screenshots/minecraft-wizard.png)
+
+| Option | |
+| --- | --- |
+| Platform | Paper, Purpur, Folia, Spigot, Bukkit (servers); Velocity, BungeeCord / Waterfall (proxies) |
+| Descriptor | `plugin.yml` or `paper-plugin.yml` (Paper, Purpur and Folia; Minecraft 1.20.6 and newer) |
+| Minecraft | The server version the plugin targets (servers only). Each version shows the Java release it needs |
+| Build system | Gradle Kotlin DSL (default), Gradle Groovy DSL or Maven |
+| Language | Java or Kotlin (Gradle builds) |
+| Group ID | The Maven group and the base package, `com.example` |
+| Plugin name | Empty: the main class name derived from the project name (`better-chat` → `BetterChat`) |
+| Main class | Empty: `<group id>.<project>.<Project>`, e.g. `com.example.betterchat.BetterChat` |
+| Authors, Description, Website | Written into the descriptor (authors are comma-separated) |
+| API version | `api-version` of the descriptor; empty: the Minecraft version's (`1.21`) |
+| Run Paper server (run-paper) | Applies [run-paper](https://github.com/jpenilla/run-gradle) (`runServer`) and adds the **Run Paper Server** configuration (Gradle builds, servers) |
+| Shadow jar | Bundles libraries into the plugin jar (Gradle Shadow, Maven Shade); always on for Kotlin, which bundles its standard library |
+| Create Git repository | `git init` |
+
+Options that do not apply to the chosen platform or build are hidden (a proxy has no
+Minecraft version or run-paper, Maven has no Kotlin). The preview under the form lists the
+files that will be written; problems with the group ID, main class, plugin name or versions
+show under the form before you create the project.
+
+The project contains:
+
+- the build: `build.gradle.kts` + `settings.gradle.kts`, `build.gradle` + `settings.gradle`, or
+  `pom.xml`, with the platform's repository, its API as a `compileOnly` / `provided`
+  dependency, the Java release as toolchain and compiler release, and resource filtering that
+  writes the project version into the descriptor (`${version}`, Maven `${project.version}`);
+- the descriptor in `src/main/resources`: `plugin.yml` (with the `/hello` command),
+  `paper-plugin.yml`, `velocity-plugin.json` or `bungee.yml`; Folia plugins declare
+  `folia-supported: true`;
+- the main class with `onEnable` / `onDisable` (Velocity: `ProxyInitializeEvent` /
+  `ProxyShutdownEvent` with constructor injection), a `/hello` command (Bukkit
+  `CommandExecutor`, Paper's Brigadier `BasicCommand` registered through the lifecycle API for
+  `paper-plugin.yml`, Velocity `SimpleCommand`, BungeeCord `Command`) and a join listener; Paper
+  and proxies use Adventure components, Spigot and Bukkit `ChatColor`;
+- `.gitignore` (`build/`, `target/`, `.gradle/`, run-paper's `run/`) and a README;
+- with run-paper, `.forge/runConfigurations.toml` with the shared **Run Paper Server**
+  configuration.
+
+Gradle projects have no wrapper yet, since the wrapper jar is a binary Forge does not ship: run
+`gradle wrapper` once with an installed Gradle (see [Gradle settings and the wrapper](docs/guide/user/java.md#gradle-settings-and-the-wrapper)).
+
+### Platforms and versions
+
+Forge keeps a pinned table of Minecraft versions (1.16.5 to 1.21.10), the Java release each one
+needs (1.16.5: 8, 1.17: 16, 1.18 to 1.20.4: 17, 1.20.5 and newer: 21) and each platform's
+dependency:
+
+| Platform | Repository | Dependency |
+| --- | --- | --- |
+| Paper, Folia | `https://repo.papermc.io/repository/maven-public/` | `io.papermc.paper:paper-api:<version>-R0.1-SNAPSHOT` (1.16.5: `com.destroystokyo.paper:paper-api`) |
+| Purpur (1.18+) | Paper's and `https://repo.purpurmc.org/snapshots` | `org.purpurmc.purpur:purpur-api:<version>-R0.1-SNAPSHOT` |
+| Spigot | `https://hub.spigotmc.org/nexus/content/repositories/snapshots/` | `org.spigotmc:spigot-api:<version>-R0.1-SNAPSHOT` |
+| Bukkit | the Spigot repository | `org.bukkit:bukkit:<version>-R0.1-SNAPSHOT` |
+| Velocity | Paper's | `com.velocitypowered:velocity-api:3.4.0-SNAPSHOT` (Java 21) |
+| BungeeCord / Waterfall | `https://oss.sonatype.org/content/repositories/snapshots` | `net.md-5:bungeecord-api:1.21-R0.1-SNAPSHOT` (Java 17) |
+
+Folia plugins compile against the Paper API, which contains Folia's region, entity and global
+schedulers; Folia (1.20+) only loads plugins that declare `folia-supported: true`.
+
+The **Refresh** button next to **Minecraft** (the version) reads the versions Paper publishes its API
+for from `repo.papermc.io` (paper-api's `maven-metadata.xml`) and adds the release versions the
+table does not have yet. It only runs when you click it, and the result is cached in the user
+cache directory (`<cache>/forge/minecraft/versions.json`), never in a project. New versions
+get their coordinates and Java release from the same rules.
+
+Fabric, NeoForge and Forge mods are not generated yet: their templates need Loom or
+ModDevGradle with mappings and loader versions that change with every Minecraft release.
+
+## Minecraft plugin projects
+
+A project is a Minecraft plugin when its build (`build.gradle(.kts)`, `pom.xml`,
+`gradle/libs.versions.toml`) depends on `paper-api`, `purpur-api`, `folia-api`, `spigot-api`,
+`org.bukkit:bukkit`, `velocity-api`, `bungeecord-api` or `waterfall-api`, or uses paperweight's
+`paperDevBundle`. The status bar shows the platform and the Minecraft version, for example
+**Paper Plugin 1.21.8**, and the plugin activates (see
+[project detection](docs/guide/getting-started/project-detection.md)).
+
+![A generated Paper plugin with the event handler gutter icons](docs/screenshots/minecraft-project.png)
+
+### Plugin descriptors
+
+`plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json` and `bungee.yml` in
+`src/main/resources` get completion, documentation on hover and validation from schemas
+bundled with Forge (see [JSON Schema](docs/guide/user/json-schema.md)): the keys of each format, `load`,
+`api-version`, commands with aliases, usage and permissions, permission defaults and
+children, `paper-plugin.yml` dependencies (`load: BEFORE | AFTER | OMIT`, `required`,
+`join-classpath`), Velocity's plugin id pattern.
+
+The `main` class is checked against the module's sources (`src/main/java`, `src/main/kotlin`):
+an invalid class name or a class that does not exist is an error. **Go to Declaration**
+(`Ctrl+B`, `Ctrl+Click`) on the value opens the class.
+
+![plugin.yml with an unresolved main class](docs/screenshots/minecraft-plugin-yml.png)
+
+### Run Paper Server
+
+Projects that apply run-paper run their plugin on a real server with the **Run Paper Server**
+configuration: a Gradle configuration with the `runServer` task, which builds the plugin,
+downloads Paper of the configured version into Gradle's cache and starts it in `run/` with the
+plugin installed. Start it from the toolbar, **Tools | Minecraft | Run Paper Server**, Find
+Action, or the ▶ gutter icon on the plugin's main class. Generated projects have it as a
+shared configuration; in other projects Forge creates a temporary one.
+
+Like every run of project code, Run Paper Server is refused in
+[Safe Mode](docs/guide/user/project-trust.md) until you trust the project. Accept the Minecraft EULA in
+`run/eula.txt` on the first start.
+
+### Gutter icons
+
+Methods annotated with `@EventHandler` (Bukkit, Paper, Spigot, BungeeCord) or `@Subscribe`
+(Velocity) show an icon with the event they listen to ("Listens to PlayerJoinEvent"). Turn
+the icons off in Settings | Languages & Frameworks | Java | **Minecraft** (**Show gutter
+icons**).
+
+## Browser mode
+
+`?project=minecraft` opens `better-chat`, a Paper plugin as the wizard generates it plus a
+chat listener. The descriptor check, Go to Declaration, the gutter icons and the wizard's
+files run in Rust through WebAssembly; **Refresh** answers with canned versions.
 
 
 ---
@@ -26916,6 +27063,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [javaforge-build](docs/guide/developer/crates/javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
 | [javaforge-fw-spring](docs/guide/developer/crates/javaforge-fw-spring.md) | JavaForge: Spring Boot and Jakarta EE (Java / Kotlin declaration scanner, beans and injection points, Spring MVC and JAX-RS endpoints, JPA entities, application.properties / application.yml assistance from spring-configuration-metadata.json and the dependency jars, the Spring Boot run configuration, actuator client and run dashboard; pure, also built to WebAssembly) |
 | [javaforge-jdk](docs/guide/developer/crates/javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
+| [javaforge-minecraft](docs/guide/developer/crates/javaforge-minecraft.md) | JavaForge: Minecraft plugins (the New Project generator for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord with a pinned version table, project detection, plugin descriptor main class checks and navigation, event handler gutter markers; pure, also built to WebAssembly) |
 | [javaforge-android](docs/guide/developer/crates/javaforge-android.md) | JavaForge: Android basics (Gradle Android modules, AndroidManifest.xml, the Android SDK location, adb devices and emulator AVDs, Android App run command lines, Logcat parsing, filtering and stack trace links; pure, also built to WebAssembly) |
 | [javaforge-lang-groovy](docs/guide/developer/crates/javaforge-lang-groovy.md) | JavaForge: Groovy basics (source scanner, scripts and main classes, Spock for the shared test runner, Groovy script command lines with groovy or Gradle, Groovy SDK lookup; pure, also built to WebAssembly) |
 | [javaforge-lang-scala](docs/guide/developer/crates/javaforge-lang-scala.md) | JavaForge: Scala basics (source scanner, main objects, sbt builds from build.sbt and sbt output, sbt command lines, ScalaTest and MUnit for the shared test runner, Metals install with Coursier; pure, also built to WebAssembly) |
@@ -30812,7 +30960,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
 | `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. .NET: `.sln` / `.slnx` (the languages of their projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# files in the root or two in a folder, or `global.json` → languages `csharp`, `fsharp`, `vbnet`, pack `dotnetforge`; a `Microsoft.NET.Sdk.Web` project → framework `aspnetcore`. |
-| `generators.rs` | New Project generators (File \| New Project); the `.NET Project` generator (group `.NET`, pack `dotnetforge`) runs `dotnet new sln`, `dotnet new <template>` (`-lang`, `--framework`, any template short name) and `dotnet sln add`. |
+| `generators.rs` | New Project generators (File \| New Project); the `.NET Project` generator (group `.NET`, pack `dotnetforge`) runs `dotnet new sln`, `dotnet new <template>` (`-lang`, `--framework`, any template short name) and `dotnet sln add`. The `Minecraft Plugin` generator (group `Java`, pack `javaforge`) computes its files with [`javaforge-minecraft`](docs/guide/developer/crates/javaforge-minecraft.md); options can be shown conditionally (`visibleWhen`, hidden options take their defaults), carry a `placeholder` and a `refresh` IPC command for fresh choices (`generators_with` merges refreshed Minecraft versions). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
 ## Main public items
@@ -32449,6 +32597,74 @@ java-debug and, if needed, a Temurin download:
 cargo test -p javaforge-jdk
 cargo test -p javaforge-jdk --test jdtls_smoke -- --ignored --nocapture   # network
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-minecraft.md
+
+# javaforge-minecraft
+
+`packs/javaforge/minecraft` — JavaForge: Minecraft plugins (the New Project generator for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord with a pinned version table, project detection, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml main class checks and navigation, event handler gutter markers; pure, also built to WebAssembly).
+
+## Purpose
+
+The logic of the Minecraft Development plugin (`forge.minecraft`) and of the New Project
+wizard's Minecraft Plugin generator. Pure Rust: the app reads files and fetches metadata, this
+crate decides. See [Minecraft plugins](docs/guide/user/minecraft.md).
+
+- `versions` is the pinned table: Minecraft versions with their Java release, the rules for
+  versions outside the table, each platform's repositories and API coordinates
+  (`api_spec`), lower bounds (Purpur 1.18, Folia 1.20, `paper-plugin.yml` 1.20.6), the plugin
+  versions of generated builds (run-paper, Shadow, Kotlin, Maven plugins) and the parsing of
+  paper-api's `maven-metadata.xml` for "Refresh versions".
+- `generate` validates the wizard's `Options` (`resolve` → `Project`: names, package, main
+  class, descriptor, Java release) and writes the files: Gradle Kotlin / Groovy DSL or Maven
+  builds, the descriptor, `.gitignore`, README and the shared "Run Paper Server"
+  configuration. `sources` holds the Java and Kotlin templates of the main class, `/hello`
+  command and join listener per API flavor (Paper, `paper-plugin.yml` with Brigadier,
+  Spigot / Bukkit, Velocity, BungeeCord).
+- `detect` recognizes a Minecraft plugin from build texts (API artifact, Minecraft version,
+  run-paper).
+- `descriptor` finds the `main` entry of a descriptor (UTF-16 offsets), checks it against the
+  module's sources and resolves Go to Declaration.
+- `markers` scans Java / Kotlin sources for `@EventHandler` / `@Subscribe` methods (with the
+  event type) and `JavaPlugin` main classes.
+- `net` (feature `net`, desktop only) fetches the Minecraft versions from Paper's repository;
+  it is only called when the user clicks Refresh.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `versions.rs` | `Platform`, `MC_VERSIONS`, `java_for`, `api_version`, `api_spec`, `ApiSpec`, `check_platform`, `supports_paper_plugin_yml`, `mc_versions_from_paper_metadata`, `version_choices`, `compare`. |
+| `generate.rs` | `Options`, `resolve`, `Project`, `generate`, `files`, `GeneratedFile`, `Build`, `Descriptor`, `class_name`, `package_segment`, `velocity_id`. |
+| `sources.rs` | `Flavor`, `java`, `kotlin` (source templates). |
+| `detect.rs` | `detect`, `Detected`. |
+| `descriptor.rs` | `kind`, `main_entry`, `module_prefix`, `class_candidates`, `inspect`, `Problem`, `goto`, `Target`, `declaration_line`. |
+| `markers.rs` | `markers`, `Marker`, `MarkerKind`. |
+| `net.rs` | `fetch_mc_versions`, `default_repository` (feature `net`). |
+
+## Used by
+
+- [`forge-project`](docs/guide/developer/crates/forge-project.md): the `minecraft-plugin` generator (`templates::render`)
+  and the `minecraft` framework of project detection.
+- The app: `commands/minecraft.rs` (`minecraft_versions_refresh`, `minecraft_inspect`,
+  `minecraft_goto`, `minecraft_gutter`), `project_generators_list` with refreshed versions.
+- [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `minecraft_generate`, `minecraft_version_choices`,
+  `minecraft_inspect`, `minecraft_goto`, `minecraft_gutter` for the browser mode.
+
+## Dependencies
+
+- External: `serde`, `serde_json`; `reqwest` with the `net` feature.
+
+## Tests
+
+Unit tests for versions, validation, every platform / build / language combination,
+detection of generated builds, descriptors and markers; golden files of six typical projects
+(`tests/golden/*.txt`, regenerate with `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p
+javaforge-minecraft --test golden`); "Refresh versions" against a local HTTP server with a
+`maven-metadata.xml` fixture. No network.
 
 
 ---

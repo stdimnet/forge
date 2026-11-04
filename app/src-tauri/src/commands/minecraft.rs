@@ -40,11 +40,10 @@ pub struct Choice {
 /// choices of the wizard's "Minecraft version" option.
 #[tauri::command]
 pub async fn minecraft_versions_refresh() -> Result<Vec<Choice>> {
-    let found = javaforge_minecraft::net::fetch_mc_versions(
-        javaforge_minecraft::net::default_repository(),
-    )
-    .await
-    .map_err(ForgeError::Other)?;
+    let found =
+        javaforge_minecraft::net::fetch_mc_versions(javaforge_minecraft::net::default_repository())
+            .await
+            .map_err(ForgeError::Other)?;
     if let Ok(path) = versions_cache() {
         if let Some(dir) = path.parent() {
             let _ = std::fs::create_dir_all(dir);
@@ -61,7 +60,11 @@ pub async fn minecraft_versions_refresh() -> Result<Vec<Choice>> {
 
 /// Problems of the `main` entry of a plugin descriptor.
 #[tauri::command]
-pub async fn minecraft_inspect(path: String, content: String, app: AppHandle) -> Result<Vec<Problem>> {
+pub async fn minecraft_inspect(
+    path: String,
+    content: String,
+    app: AppHandle,
+) -> Result<Vec<Problem>> {
     blocking(move || {
         let backend = app.state::<AppState>().backend()?;
         let exists = |rel: &str| backend.read_optional(rel).ok().flatten().is_some();
@@ -91,7 +94,11 @@ pub async fn minecraft_goto(
 /// Gutter markers of a Java / Kotlin source; the main class's "Run Paper Server" only when
 /// the build applies run-paper.
 #[tauri::command]
-pub async fn minecraft_gutter(path: String, content: String, app: AppHandle) -> Result<Vec<Marker>> {
+pub async fn minecraft_gutter(
+    path: String,
+    content: String,
+    app: AppHandle,
+) -> Result<Vec<Marker>> {
     blocking(move || {
         let state = app.state::<AppState>();
         if !crate::commands::java::flag(&state, "minecraft.gutterIcons", true) {
