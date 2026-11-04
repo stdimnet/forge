@@ -72,7 +72,7 @@ export function DropDialog(p: { ds: string; schema: string; objects: { kind: str
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary danger" disabled={!sql()} onClick={() => void ok()} data-testid="dbo-drop-ok">
             {mode() === "console" ? tr("database.objects.scriptDialogs.openInConsole") : tr("database.objects.scriptDialogs.drop")}
@@ -120,10 +120,10 @@ export function RenameDialog(p: { ds: string; schema: string; table: string; col
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!sql()} onClick={() => void ok()}>
-            Rename
+            {tr("database.objects.scriptDialogs.rename")}
           </button>
         </>
       }

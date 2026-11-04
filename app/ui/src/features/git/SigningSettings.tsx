@@ -90,7 +90,7 @@ function ConfigureDialog(props: { value: string; onClose: (value: string | null)
         </div>
         <footer>
           <button class="btn-secondary" onClick={() => props.onClose(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => props.onClose(choice())} data-testid="signing-ok">
             OK

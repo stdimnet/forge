@@ -107,12 +107,12 @@ export function Chooser(props: { d: ChooserDialog }) {
             when={props.d.onOk}
             fallback={
               <button class="btn-primary" onClick={close}>
-                Close
+                {t("common.close")}
               </button>
             }
           >
             <button class="btn-secondary" onClick={close}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button class="btn-primary" disabled={!current()} onClick={() => void ok()}>
               {props.d.okLabel}

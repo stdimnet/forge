@@ -453,7 +453,7 @@ function ConflictsGroup() {
             resolveConflicts();
           }}
         >
-          Resolve
+          {t("git.commitPanel.resolve")}
         </button>
       </div>
       <Show when={open()}>

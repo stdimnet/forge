@@ -232,7 +232,7 @@ function VariablesPane() {
       <div class="dbg-eval-row">
         <input
           class="dbg-eval-input"
-          placeholder={`Evaluate expression (Enter) or add a watch (${formatForKeymap("Ctrl+Shift+Enter")})`}
+          placeholder={tr("debug.debugView.evaluatePlaceholder", { shortcut: formatForKeymap("Ctrl+Shift+Enter") })}
           value={expr()}
           disabled={!pausedSession()}
           onInput={(e) => setExpr(e.currentTarget.value)}

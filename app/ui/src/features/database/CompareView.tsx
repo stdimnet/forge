@@ -150,7 +150,7 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
         <div class="db-side-foot">
           <span class="db-spacer" />
           <button class="db-btn" onClick={props.onClose}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button
             class="db-btn primary"
@@ -160,7 +160,7 @@ export function CompareDialog(props: { left: CompareSource; onClose: () => void 
               props.onClose();
             }}
           >
-            Compare
+            {tr("database.compareView.compare")}
           </button>
         </div>
       </div>

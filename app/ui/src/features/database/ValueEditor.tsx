@@ -289,7 +289,7 @@ export function ValueEditor(props: {
           <span class="db-spacer" />
           <Show when={k() !== "binary"}>
             <button class="db-btn primary" disabled={!dirty()} onClick={() => void apply()}>
-              Apply
+              {tr("common.apply")}
             </button>
           </Show>
         </div>

@@ -181,7 +181,7 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
                   {r().title}
                 </button>
                 <button class="pill-btn diff-select" classList={{ active: !special() }} role="tab" aria-selected={!special()} onClick={() => setSpecial(false)}>
-                  Text
+                  {t("git.diffViewer.text")}
                 </button>
               </div>
             )}

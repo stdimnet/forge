@@ -175,7 +175,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
           <span class="spacer" />
           <button class="rebase-tool" title={tr("git.logDialogs.undoAllChangesOfThis")} disabled={!changed(rows(), initial)} onClick={() => setRows(initial)}>
             <RotateCcw size={14} />
-            Reset
+            {tr("git.logDialogs.reset")}
           </button>
         </div>
         <div class="rebase-body">
@@ -285,7 +285,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
           </Show>
           <span class="spacer" />
           <button class="btn-secondary" onClick={closeGitDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!!issue()} onClick={() => void start()} title={tr("git.logDialogs.startRebasing", { shortcut: "Ctrl+Enter" })}>
             {tr("git.logDialogs.startRebasing2")}

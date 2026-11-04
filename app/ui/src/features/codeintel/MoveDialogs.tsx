@@ -69,12 +69,12 @@ export function Buttons(props: { ok: string; disabled?: boolean; preview?: () =>
     <div class="dialog-buttons">
       <Show when={props.preview}>
         <button class="btn-secondary" disabled={props.disabled} onClick={() => props.preview?.()}>
-          Preview
+          {tr("codeintel.moveDialogs.preview")}
         </button>
         <span class="dialog-buttons-gap" />
       </Show>
       <button class="btn-secondary" onClick={() => props.cancel()}>
-        Cancel
+        {tr("common.cancel")}
       </button>
       <button class="btn-primary" disabled={props.disabled} onClick={() => props.run()}>
         {props.ok}
@@ -175,7 +175,7 @@ export function MoveClassDialog(props: { req: MoveClassRequest }) {
         </Show>
         <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} onChange={setComments} />
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -250,7 +250,7 @@ export function MoveMembersDialog(props: { req: MoveMembersRequest }) {
           </div>
         </fieldset>
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -270,7 +270,7 @@ export function MoveFunctionDialog(props: { req: MoveFunctionRequest }) {
         <label class="form-label">{tr("codeintel.moveDialogs.toFile")}</label>
         <input ref={focusSelect} class="move-input" value={file()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toFile2")} onInput={(e) => setFile(e.currentTarget.value)} />
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -292,7 +292,7 @@ export function MoveFilesDialog(props: { req: MoveFilesRequest }) {
           <Check label={tr("codeintel.moveDialogs.searchInCommentsAndStrings")} checked={comments()} disabled={!refs()} onChange={setComments} />
         </Show>
       </div>
-      <Buttons ok="Refactor" cancel={() => close(false)} run={() => close(true)} />
+      <Buttons ok={tr("codeintel.refactor")} cancel={() => close(false)} run={() => close(true)} />
     </Frame>
   );
 }
@@ -349,7 +349,7 @@ export function UsagesDetectedDialog(props: { req: UsagesDetectedRequest }) {
         </button>
         <span class="dialog-buttons-gap" />
         <button class="btn-secondary" onClick={() => props.req.done(null)}>
-          Cancel
+          {tr("common.cancel")}
         </button>
       </div>
     </Frame>
@@ -487,7 +487,7 @@ export function ChangeSignatureDialog(props: { req: ChangeSignatureRequest }) {
           <div class="dialog-error">{error()}</div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -531,7 +531,7 @@ export function MakeStaticDialog(props: { req: MakeStaticRequest }) {
           </div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }

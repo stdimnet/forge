@@ -156,7 +156,7 @@ export function RunOnRow(props: {
             />
           </label>
           <div class="rc-target-note muted">
-            Runs, tests and debug runs execute there; paths in arguments, output, test results, coverage and breakpoints are mapped.
+            {tr("run.runOn.targetNote")}
             <Show when={props.php}> {tr("run.runOn.aRemotePhpCliInterpreter")}</Show>
           </div>
         </div>

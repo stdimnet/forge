@@ -78,10 +78,10 @@ function IncomingDialog(props: { session: SessionInfo }) {
       footer={
         <>
           <button class="btn-secondary" onClick={close}>
-            Ignore
+            {t("debug.debugOverlays.ignore")}
           </button>
           <button class="btn-primary" onClick={() => void accept()} disabled={!mapping()}>
-            Accept
+            {t("debug.debugOverlays.accept")}
           </button>
         </>
       }
@@ -177,7 +177,7 @@ function EvaluateDialog(props: { expression: string }) {
             {t("debug.debugOverlays.addToWatches")}
           </button>
           <button class="btn-secondary" onClick={close}>
-            Close
+            {t("common.close")}
           </button>
         </>
       }
@@ -196,7 +196,7 @@ function EvaluateDialog(props: { expression: string }) {
           ref={(el) => (input = el)}
         />
         <button class="btn-primary" disabled={busy() || !pausedSession()} onClick={() => void evaluate()}>
-          Evaluate
+          {t("debug.debugOverlays.evaluate")}
         </button>
       </div>
       <div class="dbg-label">{t("debug.debugOverlays.result")}</div>
@@ -276,7 +276,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
         <div class="dbg-bp-props">
           <label class="dbg-check">
             <input type="checkbox" checked={props.bp.enabled} onChange={(e) => save({ enabled: e.currentTarget.checked })} />
-            Enabled
+            {t("debug.debugOverlays.enabled")}
           </label>
           <p class="muted dbg-hint">
             {findDebugAdapter(props.bp.adapter)?.label ?? props.bp.adapter} suspends the program on "{props.bp.description ?? props.bp.exception}" while
@@ -288,7 +288,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
     <div class="dbg-bp-props">
       <label class="dbg-check">
         <input type="checkbox" checked={props.bp.enabled} onChange={(e) => save({ enabled: e.currentTarget.checked })} />
-        Enabled
+        {t("debug.debugOverlays.enabled")}
       </label>
       <label class="dbg-check">
         <input type="checkbox" checked={props.bp.suspend !== false} onChange={(e) => save({ suspend: e.currentTarget.checked })} />
@@ -332,7 +332,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
       <div class="dbg-bp-log">
         <label class="dbg-check">
           <input type="checkbox" checked={!!props.bp.logMessage} onChange={(e) => save({ logMessage: e.currentTarget.checked })} />
-          "Breakpoint hit" message
+          {t("debug.breakpoints.hitMessage")}
         </label>
         <Show when={!props.compact}>
           <label class="dbg-check">
@@ -518,7 +518,7 @@ function BreakpointsDialog(props: { select?: number }) {
             {t("debug.debugOverlays.muteBreakpoints")}
           </label>
           <button class="btn-primary" onClick={close}>
-            Done
+            {t("debug.debugOverlays.done")}
           </button>
         </>
       }
@@ -544,14 +544,14 @@ function BreakpointsDialog(props: { select?: number }) {
             </button>
           </div>
           <div class="dbg-bp-tree">
-            {group("line", "PHP Line Breakpoints", lines)}
-            <Show when={otherLines().length}>{group("lines", "Line Breakpoints", otherLines)}</Show>
-            <Show when={functions().length}>{group("function", "Function Breakpoints", functions)}</Show>
-            <Show when={watchpoints().length}>{group("data", "Watchpoints", watchpoints)}</Show>
-            {group("exception", "PHP Exception Breakpoints", exceptions)}
+            {group("line", t("debug.breakpoints.phpLine"), lines)}
+            <Show when={otherLines().length}>{group("lines", t("debug.breakpoints.line"), otherLines)}</Show>
+            <Show when={functions().length}>{group("function", t("debug.breakpoints.function"), functions)}</Show>
+            <Show when={watchpoints().length}>{group("data", t("debug.breakpoints.watchpoints"), watchpoints)}</Show>
+            {group("exception", t("debug.breakpoints.phpException"), exceptions)}
             <For each={filterAdapters()}>
               {(type) =>
-                group(`exc-${type}`, `${findDebugAdapter(type)?.label ?? type} Exception Breakpoints`, () =>
+                group(`exc-${type}`, t("debug.breakpoints.exception", { adapter: findDebugAdapter(type)?.label ?? type }), () =>
                   breakpoints().filter((b) => b.kind === "exception" && b.adapter === type),
                 )
               }
@@ -603,7 +603,7 @@ function BreakpointPopupView(props: { id: number; x: number; y: number }) {
                 More ({formatForKeymap(shortcutLabel("ViewBreakpoints") || "Ctrl+Shift+F8")})
               </button>
               <button class="btn-primary" onClick={close}>
-                Done
+                {t("debug.debugOverlays.done")}
               </button>
             </div>
           </div>

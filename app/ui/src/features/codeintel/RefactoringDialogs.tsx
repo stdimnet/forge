@@ -225,7 +225,7 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
             <span class="dialog-buttons-gap" />
           </Show>
           <button class="btn-secondary" onClick={() => props.req.done(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => props.req.done(true)}>
             {a().conflicts.length ? t("codeintel.refactoringDialogs.continue") : t("codeintel.refactoringDialogs.doRefactor")}

@@ -346,20 +346,20 @@ export function GitLogPanel() {
               />
             </label>
             <button class="pill-btn log-filter" onClick={() => setFilterRev(null)} title={tr("git.gitLogPanel.branchFilter")}>
-              Branch: <b>{filterRev() ?? "All"}</b>
+              {tr("git.gitLogPanel.branchLabel")} <b>{filterRev() ?? tr("git.gitLogPanel.all")}</b>
               <ChevronDown size={12} class="muted" />
             </button>
             <button class="pill-btn log-filter" title={tr("git.gitLogPanel.userFilter")}>
-              User <ChevronDown size={12} class="muted" />
+              {tr("git.gitLogPanel.user")} <ChevronDown size={12} class="muted" />
             </button>
             <button class="pill-btn log-filter" title={tr("git.gitLogPanel.dateFilter")}>
-              Date <ChevronDown size={12} class="muted" />
+              {tr("git.gitLogPanel.date")} <ChevronDown size={12} class="muted" />
             </button>
             <Show
               when={filterPath() !== null}
               fallback={
                 <button class="pill-btn log-filter" title={tr("git.gitLogPanel.pathsFilter")}>
-                  Paths <ChevronDown size={12} class="muted" />
+                  {tr("git.gitLogPanel.paths")} <ChevronDown size={12} class="muted" />
                 </button>
               }
             >

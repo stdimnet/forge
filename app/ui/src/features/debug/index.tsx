@@ -104,8 +104,8 @@ function ListenButton() {
 function DebugStatusItem() {
   const label = () => {
     const s = activeSession();
-    if (s?.status === "paused") return `Debugging: suspended at ${s.location?.file?.split("/").pop() ?? "?"}:${s.location?.line ?? ""}`;
-    if (s?.status === "running") return "Debugging: running";
+    if (s?.status === "paused") return t("debug.main.suspendedAt", { file: s.location?.file?.split("/").pop() ?? "?", line: String(s.location?.line ?? "") });
+    if (s?.status === "running") return t("debug.main.running");
     const via = listeningVia();
     // Remote project: the host's port, forwarded over SSH (see the tooltip).
     return via ? `Xdebug: ${via.replace(/:\d+$/, "")}:${port()}` : t("debug.main.xdebugListeningOnPort", { port: port() });

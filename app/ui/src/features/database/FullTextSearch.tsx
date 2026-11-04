@@ -166,7 +166,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
             when={running()}
             fallback={
               <button class="btn-primary" disabled={!text() || !Object.keys(scope.sources).length} onClick={() => void run()} data-testid="fts-run">
-                Search
+                {tr("database.fullTextSearch.search")}
               </button>
             }
           >
@@ -189,7 +189,7 @@ export function FullTextSearchView(props: { tab: EditorTab }) {
             <input class="dsd-input dsd-port" value={limit()} inputMode="numeric" onInput={(e) => setLimit(Math.max(1, Number(e.currentTarget.value) || 100))} />
           </label>
           <label class="dsd-check fts-tables">
-            Tables
+            {tr("database.fullTextSearch.tables")}
             <input class="dsd-input" placeholder={tr("database.fullTextSearch.allOrUsersOrderAudit")} value={scope.tables} spellcheck={false} onInput={(e) => setScope("tables", e.currentTarget.value)} />
           </label>
         </div>

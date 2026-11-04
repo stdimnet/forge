@@ -107,10 +107,10 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!command() || (restore() && ds?.options.readOnly)} onClick={() => void run()} data-testid="dbo-dump-run">
-            Run
+            {tr("database.objects.dumpDialog.run")}
           </button>
         </>
       }
@@ -180,11 +180,11 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
           <Show when={req.tool !== "mysql" && req.tool !== "sqlcmd" && req.tool !== "psql"}>
             <label class="dbo-check">
               <input type="checkbox" checked={req.structure} onChange={(e) => setReq("structure", e.currentTarget.checked)} />
-              Structure
+              {tr("database.objects.dumpDialog.structure")}
             </label>
             <label class="dbo-check">
               <input type="checkbox" checked={req.data} onChange={(e) => setReq("data", e.currentTarget.checked)} />
-              Data
+              {tr("database.objects.dumpDialog.data")}
             </label>
           </Show>
           <Show when={req.tool !== "sqlite3" && req.tool !== "psql" && req.tool !== "mysql"}>

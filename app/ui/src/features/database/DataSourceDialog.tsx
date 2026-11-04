@@ -337,7 +337,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                 </div>
                 <div class="dsd-tabs" role="tablist">
                   <button class="dsd-tab" classList={{ active: tab() === "general" }} onClick={() => setTab("general")}>
-                    General
+                    {tr("database.dataSourceDialog.general")}
                   </button>
                   <Show when={d().source.driver !== "sqlite" && d().source.driver !== "ddl"}>
                     <button class="dsd-tab" classList={{ active: tab() === "ssh" }} onClick={() => setTab("ssh")} data-testid="dsd-tab-ssh">
@@ -348,7 +348,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                     {d().source.driver === "mongodb" || d().source.driver === "redis" ? tr("database.dataSourceDialog.databases") : tr("database.dataSourceDialog.schemas")}
                   </button>
                   <button class="dsd-tab" classList={{ active: tab() === "options" }} onClick={() => setTab("options")}>
-                    Options
+                    {tr("database.dataSourceDialog.options")}
                   </button>
                 </div>
                 <div class="dsd-page">
@@ -482,10 +482,10 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
           OK
         </button>
         <button class="btn-secondary" onClick={close}>
-          Cancel
+          {tr("common.cancel")}
         </button>
         <button class="btn-secondary" disabled={!dirty() || saving()} onClick={() => void apply()}>
-          Apply
+          {tr("common.apply")}
         </button>
       </div>
       <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>

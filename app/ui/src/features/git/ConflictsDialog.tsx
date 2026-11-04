@@ -190,7 +190,7 @@ export function ConflictsDialog() {
           </label>
           <span class="spacer" />
           <button class="btn-secondary" onClick={closeConflicts}>
-            Close
+            {t("common.close")}
           </button>
         </footer>
       </div>

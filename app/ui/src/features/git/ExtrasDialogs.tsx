@@ -320,7 +320,7 @@ export function CloneDialog(props: { request: CloneRequest }) {
                         data-testid="clone-url"
                       />
                       <button class="btn-secondary" disabled={!url().trim() || busy() || test()?.busy} onClick={() => void runTest()}>
-                        Test
+                        {tr("git.extrasDialogs.test")}
                       </button>
                     </div>
                   </Row>
@@ -435,10 +435,10 @@ export function CloneDialog(props: { request: CloneRequest }) {
             <span class="spacer" />
           </Show>
           <button class="btn-secondary" onClick={cancel}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!canClone()} onClick={() => void clone()} data-testid="clone-ok">
-            Clone
+            {tr("git.extrasDialogs.clone")}
           </button>
         </footer>
       </div>

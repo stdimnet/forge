@@ -116,6 +116,7 @@
   "run.runOn.projectPathOnTarget": "Project path on target",
   "run.runOn.runOn": "Run on:",
   "run.runOn.service": "Service",
+  "run.runOn.targetNote": "Runs, tests and debug runs execute there; paths in arguments, output, test results, coverage and breakpoints are mapped.",
   "run.runOn.userName": "User name",
   "run.runStore.beforeLaunchTaskFailed": "Before launch task failed",
   "run.runStore.cannotDebugName": "Cannot debug ''{name}''",

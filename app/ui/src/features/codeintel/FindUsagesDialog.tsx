@@ -161,10 +161,10 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
             {t("codeintel.findUsagesDialog.openInNewTab")}
           </label>
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={nothing()} onClick={() => void run()} ref={(el) => queueMicrotask(() => el.focus())}>
-            Find
+            {t("codeintel.findUsagesDialog.find")}
           </button>
         </div>
       </div>

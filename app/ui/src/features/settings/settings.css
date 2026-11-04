@@ -189,6 +189,7 @@
 }
 .set-reset {
   color: var(--accent);
+  white-space: nowrap;
 }
 .set-reset:hover {
   text-decoration: underline;

@@ -478,10 +478,10 @@ export function MergeWindow(props: { file: MergeFile; onClose: () => void }) {
           </button>
           <span class="spacer" />
           <button class="btn-secondary" onClick={() => void cancel()}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => void finish()}>
-            Apply
+            {tr("common.apply")}
           </button>
         </footer>
       </div>

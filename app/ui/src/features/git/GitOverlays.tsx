@@ -56,7 +56,7 @@ function Dialog(props: { d: InputDialog }) {
         </div>
         <footer class="git-dialog-actions">
           <button class="btn-secondary" onClick={() => setInputDialog(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" ref={okBtn} onClick={() => void ok()} disabled={!props.d.noInput && !props.d.optional && !value().trim()}>
             {props.d.okLabel}

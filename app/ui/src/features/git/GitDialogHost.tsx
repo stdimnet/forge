@@ -92,7 +92,7 @@ function OptionsBar(props: { options: OptionDef[]; selected: Set<string>; onChan
           )}
         </For>
         <button class="link-btn gd-modify" onClick={() => setOpen(!open())} aria-expanded={open()}>
-          Modify options <ChevronDown size={12} />
+          {t("git.gitDialogHost.modifyOptions")} <ChevronDown size={12} />
         </button>
       </div>
       <Show when={open()}>
@@ -226,7 +226,7 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
         </div>
         <div class="gd-side-buttons">
           <button class="btn-secondary" disabled={!current()} onClick={() => void view()}>
-            View
+            {t("git.gitDialogHost.view")}
           </button>
           <button
             class="btn-secondary"
@@ -236,7 +236,7 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
               if (entry && (await dropStash(entry))) await reload();
             }}
           >
-            Drop
+            {t("git.gitDialogHost.drop")}
           </button>
           <button
             class="btn-secondary"
@@ -245,7 +245,7 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
               if (await clearStashes()) await reload();
             }}
           >
-            Clear
+            {t("common.clear")}
           </button>
         </div>
       </div>
@@ -494,7 +494,7 @@ function CommitField(props: { value: string; onInput: (v: string) => void; place
         }}
       />
       <button class="btn-secondary" onClick={() => void validate()}>
-        Validate
+        {t("git.gitDialogHost.validate")}
       </button>
       <Show when={resolved() !== undefined}>
         <span class={resolved() ? "gd-valid" : "gd-invalid"}>{resolved() ? resolved()!.slice(0, 8) : t("git.gitDialogHost.notACommit")}</span>
@@ -657,7 +657,7 @@ function RemotesDialog() {
         <Frame title={f().old ? t("git.gitDialogHost.editRemote") : t("git.gitDialogHost.defineRemote")} okLabel="OK" okDisabled={!f().name.trim() || !f().url.trim()} onOk={save}
           extra={
             <button class="btn-secondary" onClick={() => setForm(null)}>
-              Back
+              {t("git.gitDialogHost.back")}
             </button>
           }
         >

@@ -74,7 +74,7 @@ function ProcessDialog() {
         <>
           <span class="muted dbg-left">{processes.loading ? t("debug.attachDialogs.collectingProcesses") : `${shown().length} processes`}</span>
           <button class="btn-secondary" onClick={() => setAttachDialog(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!selected() || !adapter() || busy()} onClick={() => attach()}>
             {busy() ? t("debug.attachDialogs.attaching") : t("debug.attachDialogs.attach")}
@@ -160,7 +160,7 @@ function ServerDialog() {
       footer={
         <>
           <button class="btn-secondary" onClick={() => setAttachDialog(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!adapter() || busy()} onClick={attach}>
             {busy() ? t("debug.attachDialogs.connecting") : t("debug.attachDialogs.attach")}
@@ -215,7 +215,7 @@ function CoreDumpDialog() {
       footer={
         <>
           <button class="btn-secondary" onClick={() => setAttachDialog(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!adapters().length || busy()} onClick={open}>
             {busy() ? t("debug.attachDialogs.opening") : "OK"}

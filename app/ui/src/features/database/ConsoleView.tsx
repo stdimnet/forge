@@ -666,7 +666,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
             <div class="db-result-tabs" role="tablist">
               <button class="db-result-tab" classList={{ active: active() === "output" }} onClick={() => setActive("output")}>
                 <ScrollText size={13} />
-                Output
+                {t("database.consoleView.output")}
               </button>
               <For each={results()}>
                 {(r, i) => (

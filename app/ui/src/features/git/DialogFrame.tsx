@@ -6,6 +6,7 @@
 import { onCleanup, onMount, type JSX } from "solid-js";
 import { suspendKeymap } from "@/keymap";
 import { closeGitDialog } from "./gitDialogs";
+import { t } from "@/i18n";
 
 /** Modal frame: title, body, footer; Escape cancels, Enter (outside text areas) confirms. */
 export function Frame(props: {
@@ -44,7 +45,7 @@ export function Frame(props: {
           {props.extra}
           <span class="spacer" />
           <button class="btn-secondary" onClick={closeGitDialog}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={props.okDisabled} onClick={ok}>
             {props.okLabel}

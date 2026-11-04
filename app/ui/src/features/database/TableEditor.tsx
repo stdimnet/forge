@@ -504,7 +504,7 @@ export function TableEditor(props: { tab: EditorTab }) {
           onClick={() => void submit()}
         >
           <Upload size={14} />
-          Submit
+          {tr("database.tableEditor.submit")}
           <Show when={changes() > 0}>
             <span class="db-badge">{changes()}</span>
           </Show>

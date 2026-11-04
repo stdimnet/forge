@@ -258,7 +258,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
                 {r().done} / {r().total}
               </span>
               <button class="btn-secondary" onClick={() => void dbObjectsApi.importCancel(r().id)}>
-                Cancel
+                {tr("common.cancel")}
               </button>
             </div>
           )}
@@ -267,10 +267,10 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Close
+            {tr("common.close")}
           </button>
           <button class="btn-primary" disabled={!ready()} onClick={() => void run()} data-testid="dbo-import-ok">
-            Import
+            {tr("database.objects.importDialog.import")}
           </button>
         </>
       }
@@ -343,11 +343,11 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             <div class="dbo-row">
               <label class="dbo-check">
                 <input type="radio" name="dbo-target" checked={target() === "existing"} onChange={() => setTarget("existing")} />
-                Existing
+                {tr("database.objects.importDialog.existing")}
               </label>
               <label class="dbo-check">
                 <input type="radio" name="dbo-target" checked={target() === "new"} onChange={() => setTarget("new")} data-testid="dbo-import-new" />
-                New
+                {tr("database.objects.importDialog.new")}
               </label>
             </div>
             <span />
@@ -446,7 +446,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             </table>
           </div>
           <div class="dbo-section-title">
-            Preview
+            {tr("database.objects.importDialog.preview")}
             <span class="muted">
               {preview() ? ` first ${Math.min(rowsShown(), preview()!.totalRows)} of ${preview()!.totalRows} rows` : ""}
             </span>

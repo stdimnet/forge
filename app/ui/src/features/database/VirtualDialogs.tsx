@@ -52,7 +52,7 @@ function Modal(props: { title: string; ok: string; okDisabled?: boolean; onOk: (
         <footer class="db-modal-actions">
           <span class="db-doc-spacer" />
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={props.okDisabled} onClick={() => props.onOk()}>
             {props.ok}

@@ -181,7 +181,7 @@ export function ExtractInterfaceDialog(props: { req: ExtractInterfaceRequest }) 
           <div class="dialog-error">{error()}</div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -229,7 +229,7 @@ export function ExtractSuperclassDialog(props: { req: ExtractSuperclassRequest }
           <div class="dialog-error">{error()}</div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -270,7 +270,7 @@ export function PullUpDialog(props: { req: PullUpRequest }) {
           onAbstract={setAbstract}
         />
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }
@@ -300,7 +300,7 @@ export function PushDownDialog(props: { req: PushDownRequest }) {
           onAbstract={setAbstract}
         />
       </div>
-      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={tr("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }

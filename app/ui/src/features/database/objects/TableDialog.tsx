@@ -278,7 +278,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
       footer={
         <>
           <button class="btn-secondary" onClick={closeObjectDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={busy() || !spec.name.trim() || !spec.columns.length || nothing()} onClick={() => void ok()} data-testid="dbo-table-ok">
             {mode() === "console" ? tr("database.objects.tableDialog.openInConsole") : "OK"}
@@ -501,7 +501,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                   <span />
                   <label class="dbo-check">
                     <input type="checkbox" checked={x().unique} onChange={(e) => setSpec("indexes", i(), "unique", e.currentTarget.checked)} />
-                    Unique
+                    {tr("database.objects.tableDialog.unique")}
                   </label>
                 </div>
               );

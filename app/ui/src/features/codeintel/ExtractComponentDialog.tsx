@@ -42,7 +42,7 @@ export function ExtractComponentDialog(props: { req: ExtractComponentRequest }) 
           <div class="dialog-error">{error()}</div>
         </Show>
       </div>
-      <Buttons ok="Refactor" disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
+      <Buttons ok={t("codeintel.refactor")} disabled={!!error()} preview={() => !error() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
   );
 }

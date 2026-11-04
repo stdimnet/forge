@@ -147,7 +147,7 @@ export function ValidationDialog() {
             {t("debug.validationDialog.debugSettings")}
           </button>
           <button class="btn-secondary" onClick={close}>
-            Close
+            {t("common.close")}
           </button>
           <button class="btn-primary" disabled={busy() || (mode() === "web" && !url().trim())} onClick={() => void validate()}>
             {busy() ? t("debug.validationDialog.validating") : t("debug.validationDialog.validate")}

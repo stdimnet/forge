@@ -147,12 +147,12 @@ function Buttons(props: { ok: string; disabled: boolean; preview?: () => void; c
     <div class="dialog-buttons">
       <Show when={props.preview}>
         <button class="btn-secondary" disabled={props.disabled} onClick={() => props.preview?.()}>
-          Preview
+          {t("codeintel.extractDialogs.preview")}
         </button>
         <span class="dialog-buttons-gap" />
       </Show>
       <button class="btn-secondary" onClick={() => props.cancel()}>
-        Cancel
+        {t("common.cancel")}
       </button>
       <button class="btn-primary" disabled={props.disabled} onClick={() => props.run()}>
         {props.ok}
@@ -392,7 +392,7 @@ export function ExtractMethodDialog(props: { req: ExtractMethodDialogRequest }) 
           <div class="refactor-signature-label">{t("codeintel.extractDialogs.signaturePreview")}</div>
           <pre class="refactor-signature">{signature()}</pre>
         </div>
-        <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+        <Buttons ok={t("codeintel.refactor")} disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
       </div>
     </div>
   );
@@ -451,7 +451,7 @@ export function InlineDialog(props: { req: InlineDialogRequest }) {
             </For>
           </div>
         </div>
-        <Buttons ok="Refactor" disabled={false} preview={() => close(true)} cancel={() => close(null)} run={() => close(false)} />
+        <Buttons ok={t("codeintel.refactor")} disabled={false} preview={() => close(true)} cancel={() => close(null)} run={() => close(false)} />
       </div>
     </div>
   );
