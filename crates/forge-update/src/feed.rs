@@ -239,7 +239,7 @@ pub fn pick_feed(
         if channel == Channel::Stable && feed.channel() == Channel::Beta {
             continue;
         }
-        if best.as_ref().map_or(true, |(_, _, v)| version > *v) {
+        if best.as_ref().is_none_or(|(_, _, v)| version > *v) {
             best = Some((endpoint, feed, version));
         }
     }

@@ -484,7 +484,10 @@ mod tests {
         assert_eq!(Channel::of_release("v0.3.0-beta.1"), Some(Channel::Beta));
         assert_eq!(Channel::of_release("1.0.0-rc.2"), Some(Channel::Beta));
         assert_eq!(Channel::of_release("beta"), None);
-        assert_eq!(Channel::from_setting(Some(Channel::Beta.as_str())), Channel::Beta);
+        assert_eq!(
+            Channel::from_setting(Some(Channel::Beta.as_str())),
+            Channel::Beta
+        );
         assert_eq!(Channel::Stable.as_str(), "stable");
     }
 

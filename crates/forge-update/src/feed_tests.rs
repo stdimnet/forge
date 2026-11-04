@@ -339,7 +339,10 @@ fn the_newest_feed_wins_and_failures_are_tolerated() {
 fn all_feeds_failing_reports_the_first_error() {
     let answers = vec![
         ("beta".to_string(), Err(UpdateError::Status(404))),
-        ("stable".to_string(), Err(UpdateError::Network("dns".into()))),
+        (
+            "stable".to_string(),
+            Err(UpdateError::Network("dns".into())),
+        ),
     ];
     assert!(matches!(
         pick_feed(Channel::Beta, answers),
