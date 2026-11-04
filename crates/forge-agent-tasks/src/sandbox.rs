@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Identity of the sandbox's own commits.
 const IDENTITY: [&str; 6] = [
@@ -159,7 +159,7 @@ pub fn create(project: &Path, dir: &Path) -> Result<Sandbox, String> {
 }
 
 /// How a file changed in the sandbox.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ChangeKind {
     Added,
@@ -168,7 +168,7 @@ pub enum ChangeKind {
 }
 
 /// One changed file of the sandbox.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileChange {
     /// Repository-relative path.
@@ -267,7 +267,7 @@ pub fn patch(sb: &Sandbox, paths: &[String]) -> Result<String, String> {
 }
 
 /// The result of applying a sandbox to the working tree.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApplyResult {
     pub applied: bool,

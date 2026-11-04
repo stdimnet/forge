@@ -119,6 +119,8 @@ pub struct TaskRequest {
     pub tests: TestChoice,
     /// Overrides `ai.agentTasks.maxSteps`.
     pub max_steps: Option<u32>,
+    /// Run the task's commands and tests in a container (`None`: on the project's machine).
+    pub container: Option<crate::container::ContainerOptions>,
 }
 
 /// How a finished run ended.
@@ -247,6 +249,13 @@ pub struct AgentTask {
     /// What applying did: the branch or commit it created.
     #[serde(default)]
     pub applied: Option<String>,
+    /// The container of a container task while it may exist (removed at the end of the
+    /// run, and again on Discard in case Forge quit meanwhile).
+    #[serde(default)]
+    pub container: Option<String>,
+    /// The sandbox lives on the remote project's host.
+    #[serde(default)]
+    pub remote: bool,
     #[serde(default)]
     pub steps: Vec<Step>,
 }
@@ -265,6 +274,8 @@ impl AgentTask {
             outcome: None,
             error: None,
             applied: None,
+            container: None,
+            remote: false,
             steps: Vec::new(),
         }
     }
@@ -406,6 +417,16 @@ mod tests {
             }
         );
         assert_eq!(AgentBackend::default().label(), "Forge agent");
+        assert_eq!(r.container, None);
+        let r: TaskRequest =
+            serde_json::from_str(r#"{"prompt":"p","container":{"network":true}}"#).unwrap();
+        assert_eq!(
+            r.container,
+            Some(crate::container::ContainerOptions {
+                network: true,
+                image: None
+            })
+        );
     }
 
     #[test]
