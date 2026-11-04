@@ -174,7 +174,9 @@ pub(crate) fn to_ui_path(root: &Path, abs: &Path) -> String {
             .map(|c| c.as_os_str().to_string_lossy())
             .collect::<Vec<_>>()
             .join("/"),
-        Err(_) => abs.display().to_string(),
+        // Windows spells one file many ways (`\\?\C:\…`, `c:\…`): compare them as text.
+        Err(_) => forge_core::paths::relative_to(&root.to_string_lossy(), &abs.to_string_lossy())
+            .unwrap_or_else(|| abs.display().to_string()),
     }
 }
 
@@ -591,6 +593,31 @@ pub fn lsp_status(
     match lsp.manager(&app, &ws) {
         Ok(m) => Ok(m.statuses()),
         // No project open yet: nothing is running.
+        Err(ForgeError::Other(_)) => Ok(vec![]),
+        Err(e) => Err(e),
+    }
+}
+
+/// The log of language server `id` (Settings | Languages & Frameworks | Language Servers):
+/// how Forge started it, its stderr and log messages, start errors and exits. The
+/// php-lsp row of that page names the PHP pack's server.
+#[tauri::command]
+pub fn lsp_server_log(
+    id: String,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<String>> {
+    if guest_session(&app).is_some() {
+        return Ok(vec![]);
+    }
+    let id = if id == forge_backend::langservers::BUILTIN_PHP_ROW {
+        crate::commands::php::PHP_SERVER_ID.to_string()
+    } else {
+        id
+    };
+    match lsp.manager(&app, &ws) {
+        Ok(m) => Ok(m.server_log(&id)),
         Err(ForgeError::Other(_)) => Ok(vec![]),
         Err(e) => Err(e),
     }

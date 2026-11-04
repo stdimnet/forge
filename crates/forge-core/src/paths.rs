@@ -78,6 +78,50 @@ pub fn simplify_verbatim(path: &str) -> Option<String> {
     Some(simple)
 }
 
+/// `abs` relative to `root` with `/` separators (`app/Models/User.php`), or `None` when it is
+/// not inside. Compares the spellings Windows mixes up: verbatim prefixes, `\` and `/`,
+/// and (for drive and UNC paths, which are case-insensitive) letter case, so a path from a
+/// language server (`c:\work\shop\a.php`) matches the project root (`C:\work\shop`).
+/// Works on any platform.
+pub fn relative_to(root: &str, abs: &str) -> Option<String> {
+    let (root, abs) = (comparable(root), comparable(abs));
+    let windows = is_windows_path(&root);
+    let root = root.trim_end_matches('/');
+    let rest = if windows {
+        let head = abs.get(..root.len())?;
+        head.eq_ignore_ascii_case(root)
+            .then(|| &abs[root.len()..])?
+    } else {
+        abs.strip_prefix(root)?
+    };
+    if rest.is_empty() {
+        return Some(String::new());
+    }
+    let rest = rest.strip_prefix('/')?;
+    Some(rest.trim_end_matches('/').to_string())
+}
+
+/// `\\?\C:\a\b` → `C:/a/b`, `\\server\share` → `//server/share`.
+fn comparable(path: &str) -> String {
+    let path = simplify_verbatim(path).unwrap_or_else(|| path.to_string());
+    if path.starts_with('/') && !path.starts_with("//") {
+        // POSIX path: backslashes are ordinary characters there.
+        return path;
+    }
+    let mut path = path.replace('\\', "/");
+    let b = path.as_bytes();
+    if b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':' {
+        let drive = path[..1].to_ascii_uppercase();
+        path.replace_range(..1, &drive);
+    }
+    path
+}
+
+fn is_windows_path(path: &str) -> bool {
+    let b = path.as_bytes();
+    path.starts_with("//") || (b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':')
+}
+
 /// Windows' reserved device names, also with an extension (`nul.txt`).
 fn is_reserved(component: &str) -> bool {
     let stem = component.split('.').next().unwrap_or(component);
@@ -145,6 +189,40 @@ mod tests {
             simplify_verbatim(r"\\?\C:\work\com0").as_deref(),
             Some(r"C:\work\com0")
         );
+    }
+
+    #[test]
+    fn relative_paths_survive_windows_spellings() {
+        let rel = |root: &str, abs: &str| relative_to(root, abs);
+        // php-lsp: lower-case drive; Forge's root: canonicalized, maybe verbatim.
+        assert_eq!(
+            rel(r"C:\work\shop", r"c:\work\shop\app\Models\User.php").as_deref(),
+            Some("app/Models/User.php")
+        );
+        assert_eq!(
+            rel(r"\\?\C:\work\shop", r"C:\work\shop\a.php").as_deref(),
+            Some("a.php")
+        );
+        assert_eq!(
+            rel(r"C:\Work\Shop\", "C:/work/shop/src/a.php").as_deref(),
+            Some("src/a.php")
+        );
+        assert_eq!(
+            rel(r"\\?\UNC\nas\www\shop", r"\\nas\www\shop\a.php").as_deref(),
+            Some("a.php")
+        );
+        assert_eq!(rel(r"C:\work\shop", r"C:\work\shop").as_deref(), Some(""));
+        // Not inside.
+        assert_eq!(rel(r"C:\work\shop", r"C:\work\shopping\a.php"), None);
+        assert_eq!(rel(r"C:\work\shop", r"D:\work\shop\a.php"), None);
+        // POSIX paths stay case-sensitive.
+        assert_eq!(
+            rel("/p/shop", "/p/shop/app/User.php").as_deref(),
+            Some("app/User.php")
+        );
+        assert_eq!(rel("/p/shop", "/p/Shop/app/User.php"), None);
+        assert_eq!(rel("/p/shop/", "/p/shop/a.php").as_deref(), Some("a.php"));
+        assert_eq!(rel("/p/shop", "/stubs/a.php"), None);
     }
 
     #[test]
