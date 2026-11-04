@@ -1,0 +1,541 @@
+//! The pinned version table of mods: per Minecraft version the Java release, Fabric API,
+//! Yarn, NeoForge and Parchment versions, plus the loader and build plugin versions.
+//! "Refresh versions" ([`crate::net::refresh_mods`]) reads newer ones from Fabric's meta API
+//! and the Fabric / NeoForge Maven repositories; the parsers live here so tests run on
+//! fixtures.
+//!
+//! From Minecraft 26.1 on, the game is no longer obfuscated: Fabric Loom (plugin
+//! `net.fabricmc.fabric-loom`) and NeoForge compile against Mojang's names directly, so
+//! there are no mappings to choose (no Yarn, no Parchment).
+
+use std::collections::BTreeMap;
+use std::sync::Mutex;
+
+use serde::{Deserialize, Serialize};
+
+use crate::versions::{compare, is_release, java_for};
+
+/// The mod loader a mod is written for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Loader {
+    Fabric,
+    Neoforge,
+}
+
+impl Loader {
+    pub const ALL: [Loader; 2] = [Loader::Fabric, Loader::Neoforge];
+
+    pub fn id(self) -> &'static str {
+        match self {
+            Loader::Fabric => "fabric",
+            Loader::Neoforge => "neoforge",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Loader::Fabric => "Fabric",
+            Loader::Neoforge => "NeoForge",
+        }
+    }
+
+    pub fn parse(id: &str) -> Option<Loader> {
+        Loader::ALL.into_iter().find(|l| l.id() == id)
+    }
+}
+
+/// A Minecraft version of the mod table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ModMcVersion {
+    pub version: &'static str,
+    pub java: u32,
+    pub fabric_api: &'static str,
+    /// `None` from 26.1 on (no obfuscation, no Yarn).
+    pub yarn: Option<&'static str>,
+    pub neoforge: &'static str,
+    /// Parchment's parameter names for NeoForge; `None` from 26.1 on.
+    pub parchment: Option<&'static str>,
+}
+
+/// Newest first; checked on 2026-11-04 against meta.fabricmc.net, maven.fabricmc.net,
+/// maven.neoforged.net and maven.parchmentmc.org.
+pub const MOD_VERSIONS: &[ModMcVersion] = &[
+    ModMcVersion {
+        version: "26.3",
+        java: 25,
+        fabric_api: "0.165.2+26.3",
+        yarn: None,
+        neoforge: "26.3.0.101",
+        parchment: None,
+    },
+    ModMcVersion {
+        version: "26.2",
+        java: 25,
+        fabric_api: "0.161.0+26.2",
+        yarn: None,
+        neoforge: "26.2.0.93",
+        parchment: None,
+    },
+    ModMcVersion {
+        version: "26.1.2",
+        java: 25,
+        fabric_api: "0.155.3+26.1.2",
+        yarn: None,
+        neoforge: "26.1.2.126",
+        parchment: None,
+    },
+    ModMcVersion {
+        version: "1.21.11",
+        java: 21,
+        fabric_api: "0.141.6+1.21.11",
+        yarn: Some("1.21.11+build.6"),
+        neoforge: "21.11.48",
+        parchment: Some("2025.12.20"),
+    },
+    ModMcVersion {
+        version: "1.21.10",
+        java: 21,
+        fabric_api: "0.138.4+1.21.10",
+        yarn: Some("1.21.10+build.3"),
+        neoforge: "21.10.64",
+        parchment: Some("2025.10.12"),
+    },
+    ModMcVersion {
+        version: "1.21.8",
+        java: 21,
+        fabric_api: "0.136.1+1.21.8",
+        yarn: Some("1.21.8+build.1"),
+        neoforge: "21.8.57",
+        parchment: Some("2025.09.14"),
+    },
+    ModMcVersion {
+        version: "1.21.4",
+        java: 21,
+        fabric_api: "0.119.4+1.21.4",
+        yarn: Some("1.21.4+build.8"),
+        neoforge: "21.4.161",
+        parchment: Some("2025.03.23"),
+    },
+    ModMcVersion {
+        version: "1.21.1",
+        java: 21,
+        fabric_api: "0.116.17+1.21.1",
+        yarn: Some("1.21.1+build.3"),
+        neoforge: "21.1.265",
+        parchment: Some("2024.11.17"),
+    },
+];
+
+pub const DEFAULT_MOD_MC_VERSION: &str = "26.3";
+/// The oldest Minecraft version the mod generator supports.
+pub const OLDEST_MOD: &str = "1.21.1";
+/// The first unobfuscated Minecraft version.
+pub const UNOBFUSCATED_FROM: &str = "26";
+
+pub const FABRIC_LOADER: &str = "0.20.1";
+/// Fabric Loom: `net.fabricmc.fabric-loom` (26.x) or the remapping `fabric-loom` (1.21.x).
+pub const LOOM: &str = "1.19.3";
+pub const FABRIC_MAVEN: &str = "https://maven.fabricmc.net/";
+/// Fabric Language Kotlin, built for [`crate::versions::KOTLIN`].
+pub const FABRIC_KOTLIN: &str = "1.14.2+kotlin.2.4.21";
+/// NeoForge's ModDevGradle (`net.neoforged.moddev`).
+pub const MODDEV: &str = "2.0.148";
+pub const NEOFORGE_MAVEN: &str = "https://maven.neoforged.net/releases/";
+
+pub const FABRIC_META: &str = "https://meta.fabricmc.net/v2/versions/";
+pub const FABRIC_API_METADATA_PATH: &str = "net/fabricmc/fabric-api/fabric-api/maven-metadata.xml";
+pub const LOOM_METADATA_PATH: &str =
+    "net/fabricmc/fabric-loom/net.fabricmc.fabric-loom.gradle.plugin/maven-metadata.xml";
+pub const NEOFORGE_METADATA_PATH: &str = "net/neoforged/neoforge/maven-metadata.xml";
+pub const MODDEV_METADATA_PATH: &str =
+    "net/neoforged/moddev/net.neoforged.moddev.gradle.plugin/maven-metadata.xml";
+
+fn at_least(mc: &str, min: &str) -> bool {
+    compare(mc, min) != std::cmp::Ordering::Less
+}
+
+/// Minecraft 26.1+ ships with Mojang's names: no mappings.
+pub fn is_unobfuscated(mc: &str) -> bool {
+    at_least(mc, UNOBFUSCATED_FROM)
+}
+
+/// What "Refresh versions" found for mods (cached by the app).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ModVersions {
+    /// Stable Minecraft releases from Fabric's meta API, newest first.
+    pub mc_versions: Vec<String>,
+    pub fabric_loader: Option<String>,
+    pub loom: Option<String>,
+    /// Minecraft version → newest version.
+    pub fabric_api: BTreeMap<String, String>,
+    pub yarn: BTreeMap<String, String>,
+    pub neoforge: BTreeMap<String, String>,
+    pub moddev: Option<String>,
+}
+
+static KNOWN: Mutex<Option<ModVersions>> = Mutex::new(None);
+
+/// Remember refreshed versions (the app loads them from its cache) for [`resolve_versions`].
+pub fn remember(versions: ModVersions) {
+    *KNOWN.lock().unwrap_or_else(|e| e.into_inner()) = Some(versions);
+}
+
+fn known() -> ModVersions {
+    KNOWN
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+        .unwrap_or_default()
+}
+
+/// The versions a generated mod uses for one Minecraft version.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Resolved {
+    pub mc_version: String,
+    pub java: u32,
+    pub fabric_loader: String,
+    pub loom: String,
+    pub fabric_api: Option<String>,
+    pub yarn: Option<String>,
+    pub neoforge: Option<String>,
+    pub parchment: Option<String>,
+    pub moddev: String,
+}
+
+/// Why `mc` cannot be used for mods, if it cannot.
+pub fn check_mc(mc: &str) -> Result<(), String> {
+    if !is_release(mc) {
+        return Err(format!("'{mc}' is not a Minecraft release version"));
+    }
+    if !at_least(mc, OLDEST_MOD) {
+        return Err(format!(
+            "The mod generator supports Minecraft {OLDEST_MOD} and newer"
+        ));
+    }
+    Ok(())
+}
+
+/// The versions of `mc`: refreshed, else pinned; newer refreshed loader / plugin versions win.
+pub fn resolve_versions(mc: &str) -> Result<Resolved, String> {
+    resolve_with(mc, &known())
+}
+
+/// [`resolve_versions`] with explicit refreshed versions `k`.
+pub fn resolve_with(mc: &str, k: &ModVersions) -> Result<Resolved, String> {
+    check_mc(mc)?;
+    let pinned = MOD_VERSIONS.iter().find(|v| v.version == mc);
+    let newer = |refreshed: &Option<String>, pinned: &str| match refreshed {
+        Some(r) if compare(r, pinned) == std::cmp::Ordering::Greater => r.clone(),
+        _ => pinned.to_string(),
+    };
+    Ok(Resolved {
+        mc_version: mc.to_string(),
+        java: pinned.map_or_else(|| java_for(mc), |p| p.java),
+        fabric_loader: newer(&k.fabric_loader, FABRIC_LOADER),
+        loom: newer(&k.loom, LOOM),
+        fabric_api: k
+            .fabric_api
+            .get(mc)
+            .cloned()
+            .or_else(|| pinned.map(|p| p.fabric_api.to_string())),
+        yarn: if is_unobfuscated(mc) {
+            None
+        } else {
+            k.yarn
+                .get(mc)
+                .cloned()
+                .or_else(|| pinned.and_then(|p| p.yarn.map(str::to_string)))
+        },
+        neoforge: k
+            .neoforge
+            .get(mc)
+            .cloned()
+            .or_else(|| pinned.map(|p| p.neoforge.to_string())),
+        parchment: pinned.and_then(|p| p.parchment.map(str::to_string)),
+        moddev: newer(&k.moddev, MODDEV),
+    })
+}
+
+/// The choices of the mod generator's "Minecraft" option: the table plus refreshed versions
+/// (given, or remembered), newest first, as (value, label) pairs.
+pub fn mod_version_choices(extra: &[String]) -> Vec<(String, String)> {
+    let mut all: Vec<String> = MOD_VERSIONS.iter().map(|v| v.version.to_string()).collect();
+    let remembered = known().mc_versions;
+    for v in extra.iter().chain(remembered.iter()) {
+        if check_mc(v).is_ok() && !all.contains(v) {
+            all.push(v.clone());
+        }
+    }
+    all.sort_by(|a, b| compare(b, a));
+    all.into_iter()
+        .map(|v| {
+            let java = MOD_VERSIONS
+                .iter()
+                .find(|m| m.version == v)
+                .map_or_else(|| java_for(&v), |m| m.java);
+            let label = format!("{v} (Java {java})");
+            (v, label)
+        })
+        .collect()
+}
+
+// ---- Parsing what "Refresh versions" reads ----------------------------------------------------
+
+#[derive(Deserialize)]
+struct MetaEntry {
+    version: String,
+    #[serde(default)]
+    stable: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct YarnEntry {
+    game_version: String,
+    version: String,
+    #[serde(default)]
+    build: u64,
+}
+
+/// The newest stable loader of `meta.fabricmc.net/v2/versions/loader`.
+pub fn fabric_loader_from_meta(json: &str) -> Option<String> {
+    let entries: Vec<MetaEntry> = serde_json::from_str(json).ok()?;
+    entries.into_iter().find(|e| e.stable).map(|e| e.version)
+}
+
+/// Stable Minecraft releases of `meta.fabricmc.net/v2/versions/game` the generator supports,
+/// newest first.
+pub fn game_versions_from_meta(json: &str) -> Vec<String> {
+    let entries: Vec<MetaEntry> = serde_json::from_str(json).unwrap_or_default();
+    let mut out: Vec<String> = entries
+        .into_iter()
+        .filter(|e| e.stable && check_mc(&e.version).is_ok())
+        .map(|e| e.version)
+        .collect();
+    out.sort_by(|a, b| compare(b, a));
+    out.dedup();
+    out
+}
+
+/// The newest Yarn build per Minecraft release of `meta.fabricmc.net/v2/versions/yarn`.
+pub fn yarn_from_meta(json: &str) -> BTreeMap<String, String> {
+    let entries: Vec<YarnEntry> = serde_json::from_str(json).unwrap_or_default();
+    let mut best: BTreeMap<String, (u64, String)> = BTreeMap::new();
+    for e in entries {
+        if !is_release(&e.game_version) {
+            continue;
+        }
+        let slot = best
+            .entry(e.game_version)
+            .or_insert((e.build, e.version.clone()));
+        if e.build > slot.0 {
+            *slot = (e.build, e.version);
+        }
+    }
+    best.into_iter().map(|(mc, (_, v))| (mc, v)).collect()
+}
+
+/// The newest Fabric API per Minecraft release (`0.165.2+26.3`) of its `maven-metadata.xml`.
+pub fn fabric_api_from_metadata(xml: &str) -> BTreeMap<String, String> {
+    let mut best: BTreeMap<String, String> = BTreeMap::new();
+    for v in crate::versions::parse_maven_metadata(xml) {
+        let Some((api, mc)) = v.split_once('+') else {
+            continue;
+        };
+        if !is_release(mc) || !api.split('.').all(|p| p.parse::<u64>().is_ok()) {
+            continue;
+        }
+        let newer = best.get(mc).is_none_or(|cur| {
+            compare(api, cur.split('+').next().unwrap_or("")) == std::cmp::Ordering::Greater
+        });
+        if newer {
+            best.insert(mc.to_string(), v.clone());
+        }
+    }
+    best
+}
+
+/// The Minecraft version of a NeoForge version: `21.1.265` → `1.21.1`, `21.11.48` →
+/// `1.21.11`, `26.3.0.101` → `26.3`, `26.1.2.126` → `26.1.2`, `26.1.0.19-beta` → `26.1`.
+/// Alphas and other oddities are `None`.
+pub fn neoforge_mc_version(v: &str) -> Option<String> {
+    let core = v.strip_suffix("-beta").unwrap_or(v);
+    let parts: Vec<u64> = core
+        .split('.')
+        .map(|p| p.parse().ok())
+        .collect::<Option<_>>()?;
+    match parts.as_slice() {
+        [year, drop, hotfix, _build] if *year >= 26 => Some(if *hotfix == 0 {
+            format!("{year}.{drop}")
+        } else {
+            format!("{year}.{drop}.{hotfix}")
+        }),
+        [minor, patch, _build] if *minor < 26 => Some(if *patch == 0 {
+            format!("1.{minor}")
+        } else {
+            format!("1.{minor}.{patch}")
+        }),
+        _ => None,
+    }
+}
+
+/// The newest NeoForge per Minecraft release of its `maven-metadata.xml`; a stable version
+/// wins over a newer beta.
+pub fn neoforge_from_metadata(xml: &str) -> BTreeMap<String, String> {
+    let mut best: BTreeMap<String, String> = BTreeMap::new();
+    for v in crate::versions::parse_maven_metadata(xml) {
+        let Some(mc) = neoforge_mc_version(&v) else {
+            continue;
+        };
+        let beta = v.ends_with("-beta");
+        let better = match best.get(&mc) {
+            None => true,
+            Some(cur) => {
+                let cur_beta = cur.ends_with("-beta");
+                match (cur_beta, beta) {
+                    (true, false) => true,
+                    (false, true) => false,
+                    _ => compare(&v, cur) == std::cmp::Ordering::Greater,
+                }
+            }
+        };
+        if better {
+            best.insert(mc, v);
+        }
+    }
+    best
+}
+
+/// The newest release (digits and dots only, no `-SNAPSHOT`, alphas or betas) of a Gradle
+/// plugin's `maven-metadata.xml` (ModDevGradle, Loom).
+pub fn newest_release(xml: &str) -> Option<String> {
+    crate::versions::parse_maven_metadata(xml)
+        .into_iter()
+        .filter(|v| !v.is_empty() && v.split('.').all(|p| p.parse::<u64>().is_ok()))
+        .max_by(|a, b| compare(a, b))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const LOADER: &str = include_str!("../../tests/fixtures/fabric-meta-loader.json");
+    const GAME: &str = include_str!("../../tests/fixtures/fabric-meta-game.json");
+    const YARN: &str = include_str!("../../tests/fixtures/fabric-meta-yarn.json");
+    const FABRIC_API: &str = include_str!("../../tests/fixtures/fabric-api-maven-metadata.xml");
+    const NEOFORGE: &str = include_str!("../../tests/fixtures/neoforge-maven-metadata.xml");
+    const MODDEV_XML: &str = include_str!("../../tests/fixtures/moddev-maven-metadata.xml");
+
+    #[test]
+    fn table_is_newest_first_and_consistent() {
+        assert!(MOD_VERSIONS
+            .windows(2)
+            .all(|w| compare(w[0].version, w[1].version) == std::cmp::Ordering::Greater));
+        assert!(MOD_VERSIONS
+            .iter()
+            .any(|v| v.version == DEFAULT_MOD_MC_VERSION));
+        assert_eq!(MOD_VERSIONS.last().unwrap().version, OLDEST_MOD);
+        for v in MOD_VERSIONS {
+            assert_eq!(v.java, java_for(v.version), "{}", v.version);
+            assert!(v.fabric_api.ends_with(&format!("+{}", v.version)));
+            assert_eq!(
+                neoforge_mc_version(v.neoforge).as_deref(),
+                Some(v.version),
+                "{}",
+                v.neoforge
+            );
+            assert_eq!(v.yarn.is_none(), is_unobfuscated(v.version));
+            assert_eq!(v.parchment.is_none(), is_unobfuscated(v.version));
+            if let Some(y) = v.yarn {
+                assert!(y.starts_with(&format!("{}+build.", v.version)));
+            }
+        }
+    }
+
+    #[test]
+    fn neoforge_versions_name_their_minecraft_version() {
+        assert_eq!(neoforge_mc_version("21.1.265").as_deref(), Some("1.21.1"));
+        assert_eq!(neoforge_mc_version("21.11.48").as_deref(), Some("1.21.11"));
+        assert_eq!(neoforge_mc_version("20.4.253").as_deref(), Some("1.20.4"));
+        assert_eq!(neoforge_mc_version("21.0.167").as_deref(), Some("1.21"));
+        assert_eq!(neoforge_mc_version("26.3.0.101").as_deref(), Some("26.3"));
+        assert_eq!(neoforge_mc_version("26.1.2.126").as_deref(), Some("26.1.2"));
+        assert_eq!(
+            neoforge_mc_version("26.1.0.19-beta").as_deref(),
+            Some("26.1")
+        );
+        assert_eq!(neoforge_mc_version("0.25w14craftmine.3-beta"), None);
+        assert_eq!(neoforge_mc_version("21.6.0-alpha.1.21.6-pre1"), None);
+    }
+
+    #[test]
+    fn reads_the_refresh_sources() {
+        assert_eq!(fabric_loader_from_meta(LOADER).as_deref(), Some("0.20.1"));
+        let games = game_versions_from_meta(GAME);
+        assert_eq!(games[0], "26.3");
+        assert!(games.contains(&"1.21.1".to_string()));
+        assert!(!games.iter().any(|g| g.contains("snapshot") || g == "1.20.6"));
+        let yarn = yarn_from_meta(YARN);
+        assert_eq!(yarn["1.21.11"], "1.21.11+build.6");
+        assert!(!yarn.contains_key("26.3"));
+        let api = fabric_api_from_metadata(FABRIC_API);
+        assert_eq!(api["26.3"], "0.165.2+26.3");
+        assert_eq!(api["1.21.11"], "0.141.6+1.21.11");
+        let neo = neoforge_from_metadata(NEOFORGE);
+        assert_eq!(neo["26.3"], "26.3.0.101");
+        assert_eq!(neo["1.21.1"], "21.1.265");
+        assert_eq!(neo["26.1"], "26.1.0.19-beta");
+        assert_eq!(neo["1.21.10"], "21.10.64");
+        assert_eq!(newest_release(MODDEV_XML).as_deref(), Some("2.0.148"));
+        assert_eq!(
+            newest_release("<version>1.19-SNAPSHOT</version><version>1.19.3</version><version>1.20.0-alpha.1</version>")
+                .as_deref(),
+            Some("1.19.3")
+        );
+    }
+
+    #[test]
+    fn resolves_pinned_and_refreshed_versions() {
+        let none = ModVersions::default();
+        let r = resolve_with("26.3", &none).unwrap();
+        assert_eq!(r.java, 25);
+        assert_eq!(r.fabric_api.as_deref(), Some("0.165.2+26.3"));
+        assert_eq!(r.yarn, None);
+        assert_eq!(r.neoforge.as_deref(), Some("26.3.0.101"));
+        let r = resolve_with("1.21.1", &none).unwrap();
+        assert_eq!(r.java, 21);
+        assert_eq!(r.parchment.as_deref(), Some("2024.11.17"));
+        assert!(resolve_with("1.20.1", &none).is_err());
+        assert!(resolve_with("26.3-rc-1", &none).is_err());
+        // Not in the table and not refreshed: no Fabric API or NeoForge known.
+        let r = resolve_with("27.1", &none).unwrap();
+        assert_eq!(r.fabric_api, None);
+        assert_eq!(r.neoforge, None);
+        assert_eq!(r.java, 25);
+        // Refreshed versions fill the gaps; older refreshed plugins do not win.
+        let k = ModVersions {
+            fabric_api: [("27.1".to_string(), "0.170.0+27.1".to_string())].into(),
+            neoforge: [("27.1".to_string(), "27.1.0.3".to_string())].into(),
+            fabric_loader: Some("0.21.0".into()),
+            moddev: Some("1.0.0".into()),
+            ..ModVersions::default()
+        };
+        let r = resolve_with("27.1", &k).unwrap();
+        assert_eq!(r.fabric_api.as_deref(), Some("0.170.0+27.1"));
+        assert_eq!(r.neoforge.as_deref(), Some("27.1.0.3"));
+        assert_eq!(r.fabric_loader, "0.21.0");
+        assert_eq!(r.moddev, MODDEV);
+    }
+
+    #[test]
+    fn version_choices_merge_refreshed_versions() {
+        let choices = mod_version_choices(&["26.4".into(), "1.20.6".into(), "1.21.5".into()]);
+        assert_eq!(choices[0], ("26.4".into(), "26.4 (Java 25)".into()));
+        assert!(choices.iter().any(|(v, _)| v == "1.21.5"));
+        assert!(!choices.iter().any(|(v, _)| v == "1.20.6"));
+        assert_eq!(choices.last().unwrap().0, OLDEST_MOD);
+    }
+}

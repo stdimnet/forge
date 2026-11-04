@@ -1,0 +1,530 @@
+[
+  {
+    "version": "26.4-snapshot-7",
+    "stable": false
+  },
+  {
+    "version": "26.4-snapshot-6",
+    "stable": false
+  },
+  {
+    "version": "26.4-snapshot-5",
+    "stable": false
+  },
+  {
+    "version": "26.4-snapshot-4",
+    "stable": false
+  },
+  {
+    "version": "26.4-snapshot-3",
+    "stable": false
+  },
+  {
+    "version": "26.4-snapshot-2",
+    "stable": false
+  },
+  {
+    "version": "26.4-snapshot-1",
+    "stable": false
+  },
+  {
+    "version": "26.3",
+    "stable": true
+  },
+  {
+    "version": "26.3-rc-3",
+    "stable": false
+  },
+  {
+    "version": "26.3-rc-2",
+    "stable": false
+  },
+  {
+    "version": "26.3-rc-1",
+    "stable": false
+  },
+  {
+    "version": "26.3-pre-3",
+    "stable": false
+  },
+  {
+    "version": "26.3-pre-2",
+    "stable": false
+  },
+  {
+    "version": "26.3-pre-1",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-10",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-9",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-8",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-7",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-6",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-5",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-4",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-3",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-2",
+    "stable": false
+  },
+  {
+    "version": "26.3-snapshot-1",
+    "stable": false
+  },
+  {
+    "version": "26.2",
+    "stable": true
+  },
+  {
+    "version": "26.2-rc-2",
+    "stable": false
+  },
+  {
+    "version": "26.2-rc-1",
+    "stable": false
+  },
+  {
+    "version": "26.2-pre-6",
+    "stable": false
+  },
+  {
+    "version": "26.2-pre-5",
+    "stable": false
+  },
+  {
+    "version": "26.2-pre-4",
+    "stable": false
+  },
+  {
+    "version": "26.2-pre-3",
+    "stable": false
+  },
+  {
+    "version": "26.2-pre-2",
+    "stable": false
+  },
+  {
+    "version": "26.2-pre-1",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-8",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-7",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-6",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-5",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-4",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-3",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-2",
+    "stable": false
+  },
+  {
+    "version": "26.1.2",
+    "stable": true
+  },
+  {
+    "version": "26.1.2-rc-1",
+    "stable": false
+  },
+  {
+    "version": "26.2-snapshot-1",
+    "stable": false
+  },
+  {
+    "version": "26.1.1",
+    "stable": true
+  },
+  {
+    "version": "26.1.1-rc-1",
+    "stable": false
+  },
+  {
+    "version": "26.1",
+    "stable": true
+  },
+  {
+    "version": "26.1-rc-3",
+    "stable": false
+  },
+  {
+    "version": "26.1-rc-2",
+    "stable": false
+  },
+  {
+    "version": "26.1-rc-1",
+    "stable": false
+  },
+  {
+    "version": "26.1-pre-3",
+    "stable": false
+  },
+  {
+    "version": "26.1-pre-2",
+    "stable": false
+  },
+  {
+    "version": "26.1-pre-1",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-11",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-10",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-9",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-8",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-7",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-6",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-5",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-4",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-3",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-2",
+    "stable": false
+  },
+  {
+    "version": "26.1-snapshot-1",
+    "stable": false
+  },
+  {
+    "version": "1.21.11",
+    "stable": true
+  },
+  {
+    "version": "1.21.11-rc3",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-rc2",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre5",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre4",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.21.10",
+    "stable": true
+  },
+  {
+    "version": "1.21.10-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.9",
+    "stable": true
+  },
+  {
+    "version": "1.21.9-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.9-pre4",
+    "stable": false
+  },
+  {
+    "version": "1.21.9-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21.9-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21.9-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.21.8",
+    "stable": true
+  },
+  {
+    "version": "1.21.8-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.7",
+    "stable": true
+  },
+  {
+    "version": "1.21.7-rc2",
+    "stable": false
+  },
+  {
+    "version": "1.21.7-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.6",
+    "stable": true
+  },
+  {
+    "version": "1.21.6-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.6-pre4",
+    "stable": false
+  },
+  {
+    "version": "1.21.6-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21.6-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21.6-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.21.5",
+    "stable": true
+  },
+  {
+    "version": "1.21.5-rc2",
+    "stable": false
+  },
+  {
+    "version": "1.21.5-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.5-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21.5-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21.5-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.21.4",
+    "stable": true
+  },
+  {
+    "version": "1.21.4-rc3",
+    "stable": false
+  },
+  {
+    "version": "1.21.4-rc2",
+    "stable": false
+  },
+  {
+    "version": "1.21.4-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.4-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21.4-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21.4-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.21.3",
+    "stable": true
+  },
+  {
+    "version": "1.21.2",
+    "stable": true
+  },
+  {
+    "version": "1.21.2-rc2",
+    "stable": false
+  },
+  {
+    "version": "1.21.2-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.2-pre5",
+    "stable": false
+  },
+  {
+    "version": "1.21.2-pre4",
+    "stable": false
+  },
+  {
+    "version": "1.21.2-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21.2-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21.2-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.21.1",
+    "stable": true
+  },
+  {
+    "version": "1.21.1-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21",
+    "stable": true
+  },
+  {
+    "version": "1.21-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21-pre4",
+    "stable": false
+  },
+  {
+    "version": "1.21-pre3",
+    "stable": false
+  },
+  {
+    "version": "1.21-pre2",
+    "stable": false
+  },
+  {
+    "version": "1.21-pre1",
+    "stable": false
+  },
+  {
+    "version": "1.20.6",
+    "stable": true
+  },
+  {
+    "version": "1.20.6-rc1",
+    "stable": false
+  },
+  {
+    "version": "1.21.11_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-rc3_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-rc2_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-rc1_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre5_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre4_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre3_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre2_unobfuscated",
+    "stable": false
+  },
+  {
+    "version": "1.21.11-pre1_unobfuscated",
+    "stable": false
+  }
+]

@@ -12,11 +12,15 @@
 //! - [`descriptor`]: the `main` class of `plugin.yml`, `paper-plugin.yml`, `bungee.yml` and
 //!   `velocity-plugin.json`: inspection and navigation.
 //! - [`markers`]: gutter markers for event handlers and the plugin's main class.
+//! - [`mods`]: Fabric and NeoForge mods: the "Minecraft Mod" generator with its own version
+//!   table, `fabric.mod.json` / mixin configuration checks and navigation, `neoforge.mods.toml`
+//!   completion and mod project detection.
 
 pub mod descriptor;
 pub mod detect;
 pub mod generate;
 pub mod markers;
+pub mod mods;
 #[cfg(feature = "net")]
 pub mod net;
 pub mod sources;
