@@ -156,7 +156,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 ## Milestone 7 — Platform and release
 
-- [ ] Plugins: Marketplace, public plugin SDK with docs and templates, settings export/import and sync
+- [x] Plugins: Marketplace, public plugin SDK with docs and templates, settings export/import and sync
 - [ ] Releases: Signed Windows (Authenticode) and macOS (notarised) builds, Flatpak and AUR packages, stable and beta channels
 - [ ] Localization: Translatable UI, German as the first translation
 - [ ] Accessibility: Screen reader support, high-contrast themes, keyboard-only navigation everywhere, Presentation Assistant

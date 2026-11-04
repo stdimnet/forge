@@ -3743,6 +3743,7 @@ dependencies = [
  "forge-mcp",
  "forge-output",
  "forge-plugin-api",
+ "forge-plugins",
  "forge-profiler",
  "forge-remote",
  "forge-runtargets",

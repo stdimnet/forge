@@ -51,13 +51,14 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-livetemplates](forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
 | [forge-localhistory](forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
-| [forge-maintenance](forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings |
+| [forge-maintenance](forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings and Settings Sync |
 | [forge-mcp](forge-mcp.md) | Forge IDE as a Model Context Protocol server: JSON-RPC, tool catalog, permissions and approvals, Streamable HTTP and SSE on loopback, the `forge --mcp-stdio` proxy |
 | [forge-markdown](forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
 | [forge-output](forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, RSpec, Minitest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
+| [forge-plugins](forge-plugins.md) | Third-party plugins: manifest validation, .forgeplugin packages, the installed plugin store, permissions and the marketplace client |
 | [forge-ports](forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-profiler](forge-profiler.md) | Profiler snapshots: Xdebug cachegrind files, php-spx reports, V8 CPU profiles with source maps, sampling heap profiles and heap snapshots with retained sizes (pure, also built to WebAssembly) |

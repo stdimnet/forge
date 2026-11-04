@@ -15,6 +15,8 @@ app/ui/            SolidJS UI
   remote host via the Forge agent), the agent protocol and its client (see "Project backends
   and remote development").
 - `forge-plugin-api` — `Plugin` trait, `PluginManifest`, `Contributions`. Packs depend only on this.
+- `forge-plugins` — third-party plugins: manifest validation, packages, the store in the user
+  data dir, permissions and the marketplace client (see "Third-party plugins and Settings Sync").
 - `forge-project` — project type detection and the New Project generators/templates.
 - `forge-testing` / `forge-runtargets` — the shared test runner and coverage model of every
   pack, and run targets ("Run on"); see "Shared test runner, coverage and run targets".
@@ -4030,6 +4032,51 @@ the keymap resolver.
 - Rendering stays in TypeScript: the block caret, search highlights (the pattern is
   translated to a regular expression valid in JavaScript and Rust), relative line numbers, the
   command line panel (`showPanel`) and the status bar widget.
+
+## Third-party plugins and Settings Sync (`forge-plugins`, `forge-maintenance::sync`)
+
+- Built-in plugins are manifests in `app/src-tauri/plugins/`; **third-party plugins** are
+  `.forgeplugin` zips with `forge-plugin.json` (format 1, `forge_plugins::manifest`), installed
+  into `<data dir>/forge/plugins/<id>` (`forge_plugins::PluginStore`, state in
+  `installed.json`, plugin data in `<data dir>/forge/plugin-data/<id>`), never into a project.
+  `AppState::new` registers them in the `PluginRegistry` (pack `thirdParty`, from
+  `store::descriptor`), so enablement (`plugins.disabled`, mirrored into the store), the
+  settings schema and Settings | Plugins treat them like built-in plugins.
+- UI side: `src/features/plugins/host.tsx` registers manifest contributions (commands, keymap
+  actions, status items, tool windows, settings pages) and loads each plugin's bundle on its
+  activation events into an `<iframe sandbox="allow-scripts">` with CSP `default-src 'none'`
+  and `runtime.js` (the `forge` API). Calls come back by `postMessage`; editor access is checked
+  in the host, everything else goes to the `plugin_host_*` commands, which check the granted
+  permissions with `forge_plugins::permissions::Guard`. Tool window HTML renders in a second
+  sandboxed frame. Native code is never loaded; `backend` (WASM / JSON-RPC) is reserved.
+- IPC (`src/ipc/plugins.ts`, `commands/third_party.rs`): `plugins_installed() ->
+  InstalledPlugin[]`, `plugin_inspect({ path }) -> Inspection` (manifest, sha256, permission
+  lines, lines an update adds), `plugin_install_file({ path, sha256 })` (refused when the file
+  changed since the prompt), `plugin_uninstall({ id })`, `plugin_bundle({ id }) -> string`
+  (refused in Safe Mode for plugins with `process` or project writes),
+  `plugin_host_read_file`, `plugin_host_write_file` (project writes refused in Safe Mode),
+  `plugin_host_fetch({ pluginId, request })`, `plugin_host_run` (always refused in Safe Mode),
+  `plugin_host_setting_get/set`, `marketplace_list({ query, refresh }) -> MarketplaceView`,
+  `marketplace_install({ id, version? })` (download, size + SHA-256 + optional Ed25519 from
+  `plugins.marketplace.trustedKeys`, listing must match the package), `marketplace_updates()`,
+  `plugins_wanted_dismiss()`; event `plugins://changed` (every window reloads its plugins).
+  The marketplace index URL is `plugins.marketplace.url`; the default
+  `https://plugins.forge.example/index.json` is a placeholder. The browser mock installs the
+  SDK example (`sdk/examples/word-count`) and evaluates a demo index with the same Rust code
+  (`forge-wasm`: `plugins_marketplace`, `plugins_permission_lines`, `plugins_validate_manifest`).
+- SDK: `sdk/plugin-api` (types of `@forge/plugin-api`), `sdk/templates/basic`,
+  `sdk/scripts/forge-plugin.mjs` (`pnpm plugin new|build|pack` in `app/ui`),
+  `sdk/scripts/pack.mjs`. Docs: `docs/guide/developer/plugins/`.
+- Export / Import Settings groups (`forge_maintenance::groups`) include Color Schemes, every
+  `*.codeStyle.*` key and `installed-plugins.json` (written from the store on export; on import
+  the missing plugins become the store's "wanted" list shown in the Marketplace tab).
+- Settings Sync (`commands/settings_sync.rs`, `forge_maintenance::sync`):
+  `settings_sync_status() -> SyncStatus`, `settings_sync_now() -> SyncResult` sync the groups in
+  `settingsSync.groups` through `settingsSync.folder` or `settingsSync.gitUrl` / `gitBranch`
+  (a clone in `<cache dir>/forge/settings-sync-git`), last writer wins per group with backups,
+  state in `<config dir>/forge/settings-sync-state.json`. `settingsSync.*` keys are never
+  synced. The UI (`features/plugins/index.tsx`) syncs at start and 30 s after setting changes
+  when `settingsSync.enabled` is on; actions `SettingsSync.Open`, `SettingsSync.SyncNow`.
 
 ## Rust computes, TypeScript renders
 

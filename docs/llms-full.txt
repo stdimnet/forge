@@ -9061,18 +9061,53 @@ open project, the Settings dialog edits these defaults as well.
 ## Export and Import Settings
 
 File | Manage IDE Settings | **Export Settings…** writes your settings to a settings archive
-(a `.zip` file). Choose the groups to export: Appearance & Behavior, Keymap, Editor, Code Style,
-File Types, File and Code Templates, Live Templates, Version Control, Languages & Frameworks,
-Tools, Plugins, Other settings, and the files Settings for New Projects, AI Providers, Data
-Sources and SSH Configurations. Only groups with changed settings are listed.
+(a `.zip` file). Choose the groups to export: Appearance & Behavior, Keymap, Editor, Color
+Schemes, Code Style (every language's code style settings), File Types, File and Code Templates,
+Live Templates, Version Control, Languages & Frameworks, Tools, Plugins (enabled and disabled
+plugins), Other settings, and the files Settings for New Projects, AI Providers, Data Sources,
+SSH Configurations and Installed Plugins (the list of installed third-party plugins, not the
+plugins themselves). Only groups with changed settings are listed.
 
 ![Export Settings](docs/screenshots/export-settings.png)
 
 **Import Settings…** reads such an archive, lists the groups it holds and imports the chosen
-ones: each imported group replaces your settings of that group. Forge then restarts.
+ones: each imported group replaces your settings of that group. Forge then restarts. Plugins of
+an imported plugin list that are not installed are named in Settings | Plugins | Marketplace.
 
 > **Note:** API keys, tokens and passwords live in the system keychain and are never part of a
 > settings archive.
+
+## Settings Sync
+
+**Settings Sync** keeps your settings in step between computers without a Forge account or
+cloud service: you provide the place they are shared through. Open it with File | Manage IDE
+Settings | **Settings Sync…** (or Settings | Settings Sync).
+
+![Settings Sync](docs/screenshots/settings-sync.png)
+
+| Option | Meaning |
+| --- | --- |
+| Sync settings across machines | Sync on start and about 30 seconds after you change a setting |
+| Sync through | **A folder**, for example in Dropbox, OneDrive, Google Drive, Nextcloud or a network share, or **a git repository** |
+| Sync folder | Forge writes a `forge-settings-sync` folder into it |
+| Git repository URL, Branch | A repository you own (SSH or HTTPS). Forge clones it into its cache folder and pushes with your git credentials |
+
+**Sync Now** (also File | Manage IDE Settings | **Sync Settings Now**) syncs immediately and
+reports what was sent and received.
+
+The synced groups are the ones of Export Settings (by default Appearance, Keymap, Editor, Color
+Schemes, Code Style, File Types, File and Code Templates, Live Templates, Plugins and the
+Installed Plugins list). Each group is synced as a whole:
+
+- changed only here → it is sent; changed only on the other computer → it is received;
+- changed on both since the last sync → the **newer** change wins (last writer wins per
+  group). The other version is not lost: a losing local version is saved in
+  `<config dir>/forge/settings-sync-backups/<time>/`, a losing shared version in
+  `forge-settings-sync/backups/<time>/` of the sync folder.
+
+The Settings Sync options themselves (folder, repository) stay on each computer. API keys,
+tokens and passwords live in the system keychain and are never synced. Received configuration
+files (AI providers, data sources, SSH configurations) take effect after a restart.
 
 ## Restore Default Settings
 
@@ -9286,7 +9321,8 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
-All plugins are built in; there is no separate download.
+The packs are built in; there is no separate download. Third-party plugins can be added from
+the [Marketplace](#marketplace) or a `.forgeplugin` file (see [Third-party plugins](#third-party-plugins)).
 
 ## When plugins are active
 
@@ -9311,9 +9347,51 @@ also disables Laravel, Symfony, Doctrine, Composer, PHPUnit and Xdebug.
 
 Disabled plugins are remembered in the user settings (`plugins.disabled`, a list of plugin ids).
 
-> **Note:** the **Marketplace** tab is not available yet, and third-party plugins cannot be
-> installed. New integrations are added to Forge itself; see
-> [Writing a plugin or pack](docs/guide/developer/plugins-and-packs.md).
+## Third-party plugins
+
+Plugins from other publishers are installed from the **Marketplace** tab or with the gear menu
+⚙ | **Install Plugin from Disk…** (a `.forgeplugin` file). They are listed under
+**Downloaded** on the Installed tab, where you can enable, disable and **Uninstall** them.
+
+![Plugin permissions](docs/screenshots/plugins-permission-prompt.png)
+
+Before a plugin is installed or updated, Forge shows what it may do, most sensitive first:
+
+| Permission | Means |
+| --- | --- |
+| Start programs | run the named programs (for example `git`) in the project folder |
+| Write files | write in the open project or only in the plugin's own data folder |
+| Connect to the internet | send requests to the named hosts only |
+| Edit the open file | change the text of the active editor |
+| Read files | read the open project (or a folder of it) or its own data folder |
+| Read and change IDE settings | the named settings; a plugin's own settings need no permission |
+| Read the open file | text, selection and file name of the active editor |
+
+An update that asks for more marks the new permissions. Forge enforces them: the plugin's code
+runs in a sandbox and every request outside of it is checked. Plugins never load native code.
+
+Third-party plugins live in Forge's data folder (`<data dir>/forge/plugins`, their data in
+`<data dir>/forge/plugin-data`), never in a project. In [Safe Mode](docs/guide/user/project-trust.md) plugins
+that may start programs or write project files are not loaded, and no plugin may start
+programs or write project files.
+
+## Marketplace
+
+![Marketplace](docs/screenshots/plugins-marketplace.png)
+
+The Marketplace tab reads a plugin index from the URL set with ⚙ | **Marketplace URL…**
+(setting `plugins.marketplace.url`). It lists the plugins with search, details, permissions,
+**Install** and **Update**; ⚙ | **Check for Updates** reports installed plugins with newer
+versions. Every download is checked against the SHA-256 checksum in the index. With trusted
+publisher keys (setting `plugins.marketplace.trustedKeys`, base64 Ed25519 public keys) a
+valid signature from one of them is required as well.
+
+> **Note:** no public Forge marketplace is live yet. The default URL
+> `https://plugins.forge.example/index.json` is a placeholder, so the tab says that no
+> marketplace is configured until you enter the URL of an index, for example one your team
+> hosts. The index format is described in [Publishing plugins](docs/guide/developer/plugins/publishing.md).
+
+To write a plugin, see the [plugin SDK](docs/guide/developer/plugins/index.md).
 
 
 ---
@@ -25123,6 +25201,7 @@ skills in [`.claude/skills/`](.claude/skills); the detailed IPC contracts are in
 | [Contribution points](docs/guide/developer/contribution-points.md) | every `register*` API of the UI with examples |
 | [IPC commands and browser mocks](docs/guide/developer/ipc-and-mocks.md) | Rust command, typed client, mock |
 | [Writing a plugin or pack](docs/guide/developer/plugins-and-packs.md) | manifest, crate, UI feature, activation — a walkthrough |
+| [Plugin SDK](docs/guide/developer/plugins/index.md) | third-party plugins: sandbox, manifest, `forge` API, permissions, marketplace index |
 | [Adding a language](docs/guide/developer/adding-a-language.md) | file types, syntax modes, template data languages, language packs |
 | [Settings](docs/guide/developer/settings.md) | declaring, reading and showing settings |
 | [Keymap actions](docs/guide/developer/keymap-actions.md) | shortcuts through the keymap engine |
@@ -26118,6 +26197,9 @@ A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`, `javaforg
 `core`). A **plugin** is a manifest, plus an optional Rust crate, plus an optional UI feature.
 Recipe: [`add-plugin-or-pack`](.claude/skills/add-plugin-or-pack/SKILL.md).
 
+This page is about plugins built into Forge. Plugins that users install themselves (a
+`.forgeplugin` file or the Marketplace) use the [Plugin SDK](docs/guide/developer/plugins/index.md) instead.
+
 This walkthrough builds a small plugin, "Makefile targets": a tool window that lists the targets
 of the project's `Makefile` and runs them.
 
@@ -26244,6 +26326,469 @@ demo `Makefile` (add one to the demo project). The feature must work in `pnpm de
 A new pack is a new `pack` value in manifests plus a folder `packs/<pack>/`. Packs appear as
 groups in Settings | Plugins, and `forge-project` maps languages to packs (`php` → `phpforge`)
 in `pack_for_language` in `detect.rs`.
+
+
+---
+
+Source: docs/guide/developer/plugins/index.md
+
+# Plugin SDK
+
+Forge's own packs are Rust crates and SolidJS features compiled into Forge (see
+[Writing a plugin or pack](docs/guide/developer/plugins-and-packs.md)). **Third-party plugins** are different:
+they are installed by users at run time, from a `.forgeplugin` file or a marketplace, and
+must not be able to harm the user or Forge. This section is the public SDK for them.
+
+| Page | Covers |
+| --- | --- |
+| [Getting started](docs/guide/developer/plugins/getting-started.md) | `pnpm plugin new`, build, pack, install, the Word Count example |
+| [API reference](docs/guide/developer/plugins/api-reference.md) | the manifest (`forge-plugin.json`) and the `forge` API |
+| [Permissions](docs/guide/developer/plugins/permissions.md) | what plugins may declare, how Forge enforces it, Safe Mode |
+| [Publishing](docs/guide/developer/plugins/publishing.md) | `.forgeplugin` packages, the marketplace index format, checksums and signatures |
+
+## How plugins run
+
+```text
+ Forge webview (main window)                     Rust backend
+ ┌──────────────────────────────────────┐        ┌───────────────────────────────┐
+ │ plugin host (features/plugins)       │  IPC   │ commands/third_party.rs       │
+ │  registers manifest contributions    │ ─────► │  plugin_host_* checked by     │
+ │  ┌──────────────────────────────┐    │        │  forge_plugins::permissions   │
+ │  │ <iframe sandbox=allow-scripts>│   │        │ forge_plugins::store          │
+ │  │  runtime.js: `forge` global   │◄──┼──msg──►│  <data dir>/forge/plugins     │
+ │  │  plugin bundle (dist/plugin.js)│  │        └───────────────────────────────┘
+ │  └──────────────────────────────┘    │
+ └──────────────────────────────────────┘
+```
+
+- A plugin's **UI bundle** is one JavaScript file (an esbuild IIFE that defines
+  `__forgePlugin` with `activate(context)`). It runs in its own `<iframe sandbox="allow-scripts">`
+  without `allow-same-origin`: an opaque origin with no access to Forge's DOM, storage, cookies
+  or Tauri IPC, and a Content Security Policy of `default-src 'none'`, so it cannot fetch or
+  load anything by itself.
+- The only way out is `postMessage` to the host through the `forge` API. The host answers UI
+  calls itself (status bar text, tool window HTML, editor text when the plugin may read it)
+  and forwards everything else to Rust (`plugin_host_read_file`, `plugin_host_fetch`,
+  `plugin_host_run`, `plugin_host_setting_*`), where `forge_plugins::permissions::Guard`
+  checks it against the permissions the user granted on install.
+- **Manifest contributions** (commands, keybindings, status items, tool windows, settings
+  pages, settings, file types) are registered from `forge-plugin.json` before any plugin code
+  runs, so Find Action, the Keymap settings and the Settings dialog know them. The code is
+  loaded on its **activation events**.
+- Rust validates manifests and packages, stores installed plugins in the user data directory
+  (never in a project), keeps their enablement and granted permissions, and runs the
+  marketplace client. All of it is in the crate [`forge-plugins`](docs/guide/developer/crates/forge-plugins.md).
+- **No native code is ever loaded.** The manifest format has no field for it, and a
+  `backend` of kind `native` does not parse.
+
+## Trade-offs
+
+| Choice | Why | Cost |
+| --- | --- | --- |
+| UI plugins as sandboxed iframes, not modules in Forge's page | a plugin cannot read Forge's state, the IPC bridge or other plugins | everything is asynchronous messages; plugins cannot add CodeMirror extensions or SolidJS components directly |
+| Declarative contributions in the manifest | listed and bindable before activation; Rust validates them | dynamic contributions (computed at run time) are not possible in API 1 |
+| Tool windows as HTML in a second sandboxed frame | any UI toolkit works inside it | no access to Forge's components; colors come as CSS variables |
+| Permissions granted as a whole on install | one clear prompt, like browser extensions | no per-call prompts; a plugin needing more must ship an update, which asks again |
+| Ids prefixed with the plugin id | plugins cannot replace built-in actions or each other's settings | slightly longer ids |
+
+## What is deferred
+
+This is the first version of the SDK. Not there yet:
+
+- **Backend logic.** The manifest reserves `backend` for a WebAssembly component
+  (`{ "kind": "wasm", "module": "…" }`, to run under a capability-based WASI host such as
+  wasmtime with the same permissions) and for an external program speaking JSON-RPC over stdio
+  (`{ "kind": "process", "command": "…" }`). Both parse and validate, but this Forge version
+  does not run them; plugins that need logic outside the UI use `forge.process.run` with the
+  `process` permission for now.
+- **Editor extensions** (decorations, completion, inspections) and **syntax highlighting**
+  for plugin languages: plugin file types get names, extensions and indentation, highlighted as
+  plain text.
+- **Project settings** of plugins: plugin settings are user settings.
+- **A public marketplace.** Forge reads any index in the documented format; none is hosted by
+  the Forge project yet, and the default URL is a placeholder.
+- Per-plugin network access from tool window frames (they have none; go through `forge.http`).
+
+
+---
+
+Source: docs/guide/developer/plugins/getting-started.md
+
+# Getting started with plugins
+
+## Scaffold a plugin
+
+From `app/ui` in the Forge repository:
+
+```sh
+pnpm plugin new ~/src/hello-forge --name "Hello Forge" --publisher Acme
+```
+
+This copies `sdk/templates/basic` into the folder and fills in the id (`acme.hello-forge`;
+pass `--id` to choose another), name, publisher and the current Forge version:
+
+```text
+hello-forge/
+  forge-plugin.json     the manifest
+  src/index.ts          activate(context)
+  package.json          build, typecheck and pack scripts (esbuild, TypeScript, @forge/plugin-api)
+  tsconfig.json
+  scripts/pack.mjs      writes the .forgeplugin file
+  README.md
+```
+
+`@forge/plugin-api` (`sdk/plugin-api`) holds the types of the `forge` global; the template
+links it with a `file:` dependency.
+
+## Build and pack
+
+```sh
+cd ~/src/hello-forge
+npm install
+npm run build     # src/index.ts → dist/plugin.js (esbuild, format iife, global name __forgePlugin)
+npm run pack      # → acme.hello-forge-0.1.0.forgeplugin and its SHA-256
+```
+
+Inside the Forge repository the same works without `npm install`:
+`pnpm plugin build <folder>` and `pnpm plugin pack <folder>` use the esbuild that comes with
+Vite.
+
+## Install it
+
+Settings | Plugins | ⚙ | **Install Plugin from Disk…**, pick the `.forgeplugin` file and accept
+its permissions. The plugin appears under **Downloaded** and starts at once; its commands are in
+Find Action (`Ctrl+Shift+A`) and the Keymap settings. Reinstalling a newer version updates it.
+
+In browser mode (`pnpm dev`) the Word Count example is installed already, and Install Plugin
+from Disk offers its version 1.1.0.
+
+## The Word Count example
+
+`sdk/examples/word-count` is a complete plugin, committed built (`dist/plugin.js`) so browser
+mode and the tests load it. After changing it, run `pnpm plugin build ../../sdk/examples/word-count`.
+
+![Word Count](docs/screenshots/plugin-word-count.png)
+
+It contributes:
+
+- a status item with the number of words of the active editor (or the selection), and a
+  tooltip with characters and lines;
+- the command **Show Word Count** (`Ctrl+Alt+Shift+W`), which shows a balloon;
+- the tool window **Word Count** with a table (words, characters, lines, reading time);
+- the settings page Tools | **Word Count** with two settings.
+
+```ts
+import type { PluginContext } from "@forge/plugin-api";
+
+export function activate(context: PluginContext): void {
+  context.subscriptions.push(
+    forge.commands.register("example.word-count.show", async () => {
+      const editor = await forge.editor.getActive();
+      await forge.window.showMessage(`${editor?.text.split(/\s+/).length ?? 0} words`);
+    }),
+    forge.editor.onDidChange((editor) => void render(editor)),
+  );
+}
+```
+
+It needs one permission, `"editor": ["read"]`.
+
+## Debugging
+
+Each plugin runs in an iframe with `data-forge-plugin="<id>"`. In the webview's developer tools
+pick that frame as the console context to see the plugin's logs and errors. An error thrown
+by `activate` shows a balloon "<name> failed to start".
+
+
+---
+
+Source: docs/guide/developer/plugins/api-reference.md
+
+# Plugin API reference
+
+The types are in [`sdk/plugin-api/index.d.ts`](sdk/plugin-api/index.d.ts)
+(`@forge/plugin-api`); Rust validates manifests in `forge_plugins::manifest`.
+
+## The manifest: `forge-plugin.json`
+
+```json
+{
+  "manifestVersion": 1,
+  "id": "acme.todo-sync",
+  "name": "TODO Sync",
+  "version": "2.3.0",
+  "publisher": "Acme",
+  "description": "Turns TODO comments into issues.",
+  "license": "MIT",
+  "homepage": "https://acme.dev/todo-sync",
+  "engines": { "forge": ">=0.1.0" },
+  "main": "dist/plugin.js",
+  "activationEvents": ["workspaceContains:.todo-sync.json", "onCommand:acme.todo-sync.push"],
+  "permissions": { "network": ["api.acme.dev"], "fs": { "read": ["${project}"] } },
+  "contributes": { "commands": [{ "id": "acme.todo-sync.push", "title": "Push TODOs" }] }
+}
+```
+
+| Field | Rules |
+| --- | --- |
+| `manifestVersion` | `1` |
+| `id` | lowercase reverse-DNS (`publisher.name`, letters, digits, `-`), at most 64 characters; `forge.*` is reserved |
+| `name` | 1 to 64 characters |
+| `version` | SemVer (`1.2.3`, `1.0.0-beta.1`) |
+| `engines.forge` | SemVer range of Forge versions (`>=0.1.0`, `^1.2`); installing on another version is refused |
+| `main` | the UI bundle, a relative `.js` path inside the package |
+| `backend` | reserved: `{ "kind": "wasm", "module" }` or `{ "kind": "process", "command", "args" }`; not run yet (see [Plugin SDK](docs/guide/developer/plugins/index.md#what-is-deferred)) |
+| `activationEvents` | when `main` is loaded, see below |
+| `permissions` | see [Permissions](docs/guide/developer/plugins/permissions.md) |
+| `contributes` | see below |
+
+Every contributed id (commands, status items, tool windows, settings pages) and setting key
+must start with the plugin id and a dot: `acme.todo-sync.push`.
+
+### Activation events
+
+| Event | Loads the plugin |
+| --- | --- |
+| `onStartup` | when Forge starts (and after install) |
+| `onCommand:<command id>` | the first time the command runs |
+| `onView:<tool window id>` | when the tool window is opened |
+| `onLanguage:<file type id>` | when a file of that type becomes the active editor (`markdown`, `php`, …) |
+| `workspaceContains:<path>` | when the open project has that file (relative path) |
+
+Commands and tool windows also load their plugin on first use without an event.
+
+### Contributions
+
+| Key | Entries |
+| --- | --- |
+| `commands` | `{ id, title, category? }`: actions in Find Action and the Keymap settings (group Plugins/<name>) |
+| `keybindings` | `{ command, key, keymap? }`: default shortcuts, e.g. `Ctrl+Alt+Shift+W`; `keymap: "macos"` or `"default"` limits one to a platform keymap |
+| `statusItems` | `{ id, alignment: "left" \| "right", order, command? }`: text set with `forge.statusBar.update`, clicking runs `command` |
+| `toolWindows` | `{ id, title, anchor: "left" \| "right" \| "bottom", icon?, order }`: content set with `forge.toolWindows.setHtml` |
+| `settingsPages` | `{ id, title }`: a page under Tools in the Settings dialog showing the plugin's settings |
+| `settings` | typed settings like the built-in ones (`key`, `title`, `description`, `type` = `bool`, `int`, `number`, `string`, `enum`, `path`, `list`, `default`, `group` = one of the plugin's pages, `order`) |
+| `languages` | file types: `{ id, name, extensions, fileNames, indentSize? }` |
+
+## The `forge` API
+
+Inside the bundle, `forge` is a global; every call returns a promise.
+
+### Lifecycle
+
+```ts
+export function activate(context: PluginContext): void | Promise<void>;
+```
+
+`context.plugin` is `{ id, name, version }`; push disposables to `context.subscriptions`.
+
+### `forge.commands`
+
+| Call | Does |
+| --- | --- |
+| `register(id, handler)` | implement a contributed command |
+| `execute(id)` | run any action: a PHPStorm action id (`ReformatCode`) or a plugin command |
+
+### `forge.statusBar`
+
+`update(id, { text, tooltip? })` sets a status item; empty text hides it.
+
+### `forge.toolWindows`
+
+| Call | Does |
+| --- | --- |
+| `setHtml(id, html)` | the tool window's content, rendered in its own sandboxed frame with `--bg`, `--fg`, `--fg-muted`, `--accent` and `--border` from the current theme |
+| `postMessage(id, data)` | send data to the frame's scripts (`forgeView.onMessage(cb)`) |
+| `onMessage(id, callback)` | receive what the frame sends with `forgeView.postMessage(data)` |
+
+### `forge.editor`
+
+| Call | Permission | Does |
+| --- | --- | --- |
+| `getActive()` | `editor: read` | `{ path, language, text, selection: { from, to } }` or `null` |
+| `onDidChange(callback)` | `editor: read` | the active editor or its text changed (debounced) |
+| `replaceSelection(text)` | `editor: write` | replace the selection of the active editor (one undo step) |
+
+### `forge.window`
+
+`showMessage(text, type?)` shows a balloon (`info`, `warning`, `error`) in the Plugins
+notification group.
+
+### `forge.settings`
+
+`get(key)`, `set(key, value)` (user settings, checked against the setting's type) and
+`onDidChange(callback)` for the plugin's own settings, or keys granted by `permissions.settings`.
+
+### `forge.workspace`
+
+`root()`: the open project's folder, or `null`.
+
+### `forge.fs`, `forge.http`, `forge.process`
+
+| Call | Permission |
+| --- | --- |
+| `fs.readFile(path)` | `fs.read` (or `fs.write`) scope covering the absolute path |
+| `fs.writeFile(path, contents)` | `fs.write` scope; in the project only outside Safe Mode |
+| `http.fetch(url, { method, headers, body })` | `network` host; redirects only to granted hosts; returns `{ status, headers, body }` |
+| `process.run(program, args)` | `process` program; runs in the project folder, never in Safe Mode; returns `{ exitCode, stdout, stderr }` |
+
+Refused calls reject with a message like
+``plugin `acme.todo-sync` has no permission to connect to evil.example``.
+
+
+---
+
+Source: docs/guide/developer/plugins/permissions.md
+
+# Plugin permissions
+
+A plugin declares everything it needs outside its sandbox in `permissions`; the user sees the
+list before installing (most sensitive first) and grants it as a whole. An update that asks for
+more marks the new entries and must be accepted again.
+
+```json
+"permissions": {
+  "fs": { "read": ["${project}"], "write": ["${pluginData}"] },
+  "network": ["api.acme.dev", "*.cdn.acme.dev"],
+  "process": ["git"],
+  "settings": ["editor.font.*", "appearance.theme"],
+  "editor": ["read", "write"]
+}
+```
+
+| Permission | Values | Prompt line | Checked by |
+| --- | --- | --- | --- |
+| `process` | program names, no paths | Start programs (high) | `plugin_host_run` |
+| `fs.write` | `${project}`, `${pluginData}`, optionally `/<sub folder>` | Write files (high in the project, low in its data folder) | `plugin_host_write_file` |
+| `network` | host names; `*.example.com` covers subdomains only | Connect to the internet (medium) | `plugin_host_fetch` (also every redirect) |
+| `editor: write` | | Edit the open file (medium) | the host |
+| `fs.read` | as `fs.write`; writable scopes are readable | Read files (medium) | `plugin_host_read_file` |
+| `settings` | keys or `prefix.*` | Read and change IDE settings (medium) | `plugin_host_setting_*` |
+| `editor: read` | | Read the open file (low) | the host |
+
+What needs no permission: the plugin's own settings (`<plugin id>.…`), its contributions,
+balloons, tool window HTML, running IDE actions with `forge.commands.execute`.
+
+## Enforcement
+
+- The plugin's code runs in a sandboxed iframe with an opaque origin and
+  `Content-Security-Policy: default-src 'none'`: it cannot reach Forge's DOM, Tauri's IPC,
+  storage or the network. Every request goes through the host by `postMessage`.
+- File paths must be absolute. Forge resolves `..` and symbolic links before comparing them
+  with the granted folders, so a link inside an allowed folder cannot point outside of it.
+- `${project}` is the open local project; without one (or for remote projects) no project
+  scope applies. `${pluginData}` is `<data dir>/forge/plugin-data/<id>`, removed on uninstall.
+- Network requests must be `http` or `https` to a granted host; IP addresses and other schemes
+  are refused.
+- Programs are found on `PATH` and run without a shell.
+- Settings writes are checked against the setting's declared type, like the Settings dialog.
+- Downloaded packages must match the permissions their marketplace listing showed, or the
+  install is refused.
+
+## Safe Mode
+
+In an untrusted project ([Project trust](docs/guide/user/project-trust.md)) Forge refuses:
+
+- loading plugins that declare `process` or a `${project}` write scope;
+- `process.run` for every plugin;
+- writing files inside the project.
+
+Reading files and the other permissions still work, as reading does not run project code.
+
+## Limits
+
+API 1 grants permissions per plugin, not per call, and cannot narrow a scope after install
+other than by uninstalling. Rust enforces file, network, program and settings access; editor
+access is enforced by the host in the webview, which is the only place that has the editor.
+
+
+---
+
+Source: docs/guide/developer/plugins/publishing.md
+
+# Publishing plugins
+
+## The package
+
+A `.forgeplugin` file is a zip archive with `forge-plugin.json` at its root and the files it
+names. `pnpm plugin pack <folder>` (or `npm run pack` in a scaffolded project) writes
+`<id>-<version>.forgeplugin` with the manifest, `dist/`, and `README.md`, `LICENSE`,
+`CHANGELOG.md` when present, and prints its SHA-256.
+
+Forge refuses packages that are larger than 64 MB (packed or unpacked), have more than 4096
+files, contain absolute paths, `..`, drive letters or symbolic links, lack the manifest or the
+`main` file, or whose manifest does not validate for the running Forge version.
+
+## The marketplace index (format 1)
+
+A marketplace is a static JSON file anyone can host (a web server, object storage, GitHub
+Pages). Forge reads it from the URL in `plugins.marketplace.url`.
+
+```json
+{
+  "formatVersion": 1,
+  "name": "Acme plugins",
+  "plugins": [
+    {
+      "id": "acme.todo-sync",
+      "name": "TODO Sync",
+      "publisher": "Acme",
+      "description": "Turns TODO comments into issues.",
+      "homepage": "https://acme.dev/todo-sync",
+      "license": "MIT",
+      "tags": ["todo", "issues"],
+      "downloads": 12400,
+      "versions": [
+        {
+          "version": "2.3.0",
+          "engines": { "forge": ">=0.1.0" },
+          "url": "files/acme.todo-sync-2.3.0.forgeplugin",
+          "size": 4211,
+          "sha256": "9f2c…(64 hex digits)",
+          "signature": "base64 Ed25519 signature of the package bytes (optional)",
+          "permissions": { "network": ["api.acme.dev"], "fs": { "read": ["${project}"] } },
+          "released": "2026-10-28",
+          "changes": "Links issues back into the comments."
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `formatVersion` | `1`. An index with a higher number is refused with "update Forge"; new optional fields may be added within format 1 |
+| `plugins[].id`, `name` | as in the manifest |
+| `versions[].url` | the package, absolute or relative to the index URL (`http`/`https` only) |
+| `versions[].sha256` | required; the download must match it |
+| `versions[].size` | optional; when set, the download must have exactly this size |
+| `versions[].signature` | optional; required when the user configured trusted keys |
+| `versions[].permissions` | must equal the package manifest's permissions; shown in the install prompt |
+| `versions[].engines` | the newest version whose range contains the running Forge is offered |
+
+Entries with an invalid id, version, range or checksum are skipped (and reported), so one
+broken entry does not hide the whole marketplace.
+
+## Updates
+
+The Marketplace tab marks installed plugins with a newer compatible version (**Update**), and
+⚙ | Check for Updates lists them. Updating installs the new package next to the old one and
+swaps it in, keeping the plugin's enablement and data.
+
+## Signatures
+
+Checksums protect against broken or swapped downloads when the index itself is trusted
+(served over HTTPS). To also protect against a compromised download host, sign each package
+with Ed25519 and publish your public key: users add it (base64, 32 bytes) to
+`plugins.marketplace.trustedKeys`. With at least one trusted key, Forge installs only packages
+whose `signature` verifies with one of them.
+
+## Testing an index locally
+
+Serve a folder with the index and the packages, for example
+`python3 -m http.server 8000`, and set the Marketplace URL to
+`http://localhost:8000/index.json`. Forge's own tests use a local mock server the same way;
+no public marketplace is involved.
 
 
 ---
@@ -27046,13 +27591,14 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
 | [forge-localhistory](docs/guide/developer/crates/forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](docs/guide/developer/crates/forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
-| [forge-maintenance](docs/guide/developer/crates/forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings |
+| [forge-maintenance](docs/guide/developer/crates/forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings and Settings Sync |
 | [forge-mcp](docs/guide/developer/crates/forge-mcp.md) | Forge IDE as a Model Context Protocol server: JSON-RPC, tool catalog, permissions and approvals, Streamable HTTP and SSE on loopback, the `forge --mcp-stdio` proxy |
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
 | [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, RSpec, Minitest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
+| [forge-plugins](docs/guide/developer/crates/forge-plugins.md) | Third-party plugins: manifest validation, .forgeplugin packages, the installed plugin store, permissions and the marketplace client |
 | [forge-ports](docs/guide/developer/crates/forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-profiler](docs/guide/developer/crates/forge-profiler.md) | Profiler snapshots: Xdebug cachegrind files, php-spx reports, V8 CPU profiles with source maps, sampling heap profiles and heap snapshots with retained sizes (pure, also built to WebAssembly) |
@@ -30271,7 +30817,7 @@ Source: docs/guide/developer/crates/forge-maintenance.md
 
 # forge-maintenance
 
-`crates/forge-maintenance` — Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings.
+`crates/forge-maintenance` — Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings and Settings Sync.
 
 ## Purpose
 
@@ -30288,13 +30834,25 @@ The logic behind PHPStorm's File | Invalidate Caches… and File | Manage IDE Se
   `<data dir>/forge/pending-maintenance.json`; `run_pending` runs it once at startup (the
   app calls it before the settings load), removing the marker first.
 - **Settings groups** (`groups`): PHPStorm's export components as setting key prefixes
-  (the longest prefix wins, the rest is "Other settings") or whole configuration files;
-  `count_groups` lists the non-empty ones for the dialogs.
+  (the longest prefix wins, every `<language>.codeStyle.*` key is Code Style, the rest is
+  "Other settings") or whole configuration files (including `installed-plugins.json`, the
+  installed third-party plugins, written by the app); `count_groups` lists the non-empty
+  ones for the dialogs.
 - **Settings archive** (`archive`): `export_settings` writes a zip with `forge-settings.json`
   (format, version, groups), the chosen keys as `settings.toml` and the chosen files;
   `read_archive` reads one back (unknown entries ignored, size-limited); `SettingsArchive::plan`
   replaces the chosen groups of the current user settings (keys the archive does not set are
   removed).
+- **Settings Sync** (`sync`): `local_components` turns the chosen groups into one blob each
+  (TOML of the group's keys, or the file; `settingsSync.*` stays local); `decide` compares
+  local, shared and last-synced hashes (one side changed → it wins; both → the newer wins);
+  `sync_folder` writes `forge-settings-sync/{sync.json,components/<id>.data}` in the user's
+  folder, backs up conflict losers (shared ones in `backups/<ms>/`, local ones in
+  `<config dir>/forge/settings-sync-backups/<ms>/`) and returns the groups to apply;
+  `apply_plan` turns them into settings changes and files like Import Settings;
+  `sync_git` does the same in a clone of the user's repository in the cache dir (fetch,
+  reset, sync, commit, push, one retry after a rejected push). `SyncState`
+  (`settings-sync-state.json`) remembers the last synced hashes.
 - **Restore Default Settings** (`restore`): `backup_settings` copies `<config dir>/forge` to
   `forge-backup-<UTC timestamp>`; `reset_settings` removes `settings.toml`,
   `new-project-settings.toml` and `dialog-windows.json` at the next start.
@@ -30315,6 +30873,9 @@ pub fn group_of_key(key: &str) -> &'static str { … }
 pub fn export_settings(values, files, groups, version) -> Result<Vec<u8>, String> { … }
 pub fn read_archive(bytes: &[u8]) -> Result<SettingsArchive, String> { … }
 pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, String> { … }
+pub fn decide(local: Option<(&str, u64)>, remote: Option<(&str, u64)>, base: Option<&str>) -> Action { … }
+pub fn sync_folder(folder: &Path, input: &SyncInput, state: &mut SyncState) -> Result<(SyncReport, Vec<Pulled>), String> { … }
+pub fn sync_git(remote: &GitRemote, clone_dir: &Path, input: &SyncInput, state: &mut SyncState) -> Result<(SyncReport, Vec<Pulled>), String> { … }
 ```
 
 ## Used by
@@ -30322,7 +30883,8 @@ pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, Strin
 - IPC: `maintenance_invalidate_model`, `maintenance_invalidate_caches`, `maintenance_restart`,
   `maintenance_rescan_indexes`, `settings_export_info`, `settings_export`,
   `settings_import_preview`, `settings_import`, `settings_restore_defaults`
-  (`app/src-tauri/src/commands/maintenance.rs`).
+  (`app/src-tauri/src/commands/maintenance.rs`); `settings_sync_status`, `settings_sync_now`
+  (`commands/settings_sync.rs`).
 - UI: `app/ui/src/features/maintenance` (Invalidate Caches dialog, Repair IDE balloons,
   Export / Import Settings chooser, Restore Default Settings).
 - Browser mode: the pure models (`caches`, `groups`) are built into `forge-wasm`
@@ -30331,11 +30893,11 @@ pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, Strin
 ## Dependencies
 
 - Workspace crates: `forge-core` (feature `disk`)
-- External: `serde`, `serde_json`, `dirs`, `zip` (MIT, deflate only; feature `disk`)
+- External: `serde`, `serde_json`, `dirs`, `zip` (MIT, deflate only), `sha2`, `hex` (feature `disk`); `git` (installed by the user) for git sync
 
 ## Tests
 
-7 source files; 9 unit tests (dialog model, cleanup plan with every option in a temporary
+8 source files; 14 unit tests (sync decisions, two machines sharing a folder with conflicts both ways, pulled groups replacing local ones, git sync through a local bare repository, dialog model, cleanup plan with every option in a temporary
 folder, the marker running once, settings groups, archive round trip and plans, foreign
 archives, UTC timestamps, backups and reset).
 
@@ -30766,6 +31328,62 @@ pub trait Plugin: Send + Sync { … }
 ```sh
 cargo test -p forge-plugin-api
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-plugins.md
+
+# forge-plugins
+
+`crates/forge-plugins` — Forge third-party plugins: manifest validation, `.forgeplugin`
+packages, the installed plugin store, permissions and the marketplace client.
+
+## Purpose
+
+Everything that decides what a third-party plugin is and may do; the UI host
+(`app/ui/src/features/plugins`) only runs the sandboxed bundles. See the
+[Plugin SDK](docs/guide/developer/plugins/index.md).
+
+| Module | Summary |
+| --- | --- |
+| `manifest` | `PluginManifest` (`forge-plugin.json`, format 1): id, version, `engines.forge`, `main`, reserved `backend` (WASM / JSON-RPC process, never native), activation events, `Permissions`, `Contributes` (commands, keybindings, status items, tool windows, settings pages, settings, languages); `validate(forge_version)` returns every `Problem` with its JSON path |
+| `package` | `Package::read`: a `.forgeplugin` zip, size and path checks, manifest validation, `main` present, SHA-256 (feature `disk`) |
+| `store` | `PluginStore` in `<data dir>/forge/plugins` (`installed.json`, one folder per plugin; data in `plugin-data/<id>`): install/update with a staged swap, uninstall, enablement, granted permissions, the installed list for exported settings and the "wanted" list of imported ones; `descriptor` turns a plugin into a `PluginRegistry` entry (pack `thirdParty`) |
+| `permissions` | `Guard`: `check_fs` (scopes `${project}` / `${pluginData}`, `..` and symlinks resolved), `check_network` (hosts, `*.domain`), `check_process`, `check_setting`, `check_editor`; `summary` (the install prompt, most dangerous first) and `added` (what an update adds) |
+| `host` | `fetch` (granted hosts, redirects re-checked, 16 MB limit) and `run` (granted programs, no shell) (feature `net`) |
+| `marketplace` | the index format 1 (`Index::parse` skips broken entries, refuses newer formats), `entries` (newest compatible version, installed version, update available, permission lines), `search`, `artifact_url`, `verify` (size, SHA-256, Ed25519 signatures from trusted keys), `find_version` and the HTTP `Client` (feature `net`) |
+
+`check_listing` makes sure a downloaded package is the listed id, version and permissions.
+
+Features: `disk` (packages and the store), `net` (implies `disk`; downloads and host calls,
+default). `forge-wasm` builds it without features for browser mode (`plugins_marketplace`,
+`plugins_permission_lines`, `plugins_validate_manifest`).
+
+## Used by
+
+- IPC (`app/src-tauri/src/commands/third_party.rs`): `plugins_installed`, `plugin_inspect`,
+  `plugin_install_file`, `plugin_uninstall`, `plugin_bundle`, `plugin_host_read_file`,
+  `plugin_host_write_file`, `plugin_host_fetch`, `plugin_host_run`,
+  `plugin_host_setting_get`, `plugin_host_setting_set`, `marketplace_list`,
+  `marketplace_install`, `marketplace_updates`, `plugins_wanted_dismiss`; event
+  `plugins://changed`.
+- `AppState::new` registers installed plugins in the `PluginRegistry`.
+- Settings Sync and Export Settings write the installed list (`commands/settings_sync.rs`).
+
+## Dependencies
+
+- Workspace crates: `forge-plugin-api`, `forge-keymap` (shortcut validation)
+- External: `serde`, `serde_json`, `semver`, `sha2`, `hex`, `base64`, `ed25519-dalek`, `url`;
+  `zip`, `dirs` (feature `disk`); `reqwest` (feature `net`)
+
+## Tests
+
+Manifest rules and every problem field, the SDK example and template manifests, package
+checks (unsafe paths, missing files, engine ranges), install/update/uninstall in a temporary
+folder, imported plugin lists, file scopes with `..` and symlinks, network/process/settings
+checks, the permission prompt, index parsing, search, update checks, URLs, checksums,
+signatures, and downloads and host fetches from a local mock server.
 
 
 ---

@@ -66,18 +66,53 @@ open project, the Settings dialog edits these defaults as well.
 ## Export and Import Settings
 
 File | Manage IDE Settings | **Export Settings…** writes your settings to a settings archive
-(a `.zip` file). Choose the groups to export: Appearance & Behavior, Keymap, Editor, Code Style,
-File Types, File and Code Templates, Live Templates, Version Control, Languages & Frameworks,
-Tools, Plugins, Other settings, and the files Settings for New Projects, AI Providers, Data
-Sources and SSH Configurations. Only groups with changed settings are listed.
+(a `.zip` file). Choose the groups to export: Appearance & Behavior, Keymap, Editor, Color
+Schemes, Code Style (every language's code style settings), File Types, File and Code Templates,
+Live Templates, Version Control, Languages & Frameworks, Tools, Plugins (enabled and disabled
+plugins), Other settings, and the files Settings for New Projects, AI Providers, Data Sources,
+SSH Configurations and Installed Plugins (the list of installed third-party plugins, not the
+plugins themselves). Only groups with changed settings are listed.
 
 ![Export Settings](../../screenshots/export-settings.png)
 
 **Import Settings…** reads such an archive, lists the groups it holds and imports the chosen
-ones: each imported group replaces your settings of that group. Forge then restarts.
+ones: each imported group replaces your settings of that group. Forge then restarts. Plugins of
+an imported plugin list that are not installed are named in Settings | Plugins | Marketplace.
 
 > **Note:** API keys, tokens and passwords live in the system keychain and are never part of a
 > settings archive.
+
+## Settings Sync
+
+**Settings Sync** keeps your settings in step between computers without a Forge account or
+cloud service: you provide the place they are shared through. Open it with File | Manage IDE
+Settings | **Settings Sync…** (or Settings | Settings Sync).
+
+![Settings Sync](../../screenshots/settings-sync.png)
+
+| Option | Meaning |
+| --- | --- |
+| Sync settings across machines | Sync on start and about 30 seconds after you change a setting |
+| Sync through | **A folder**, for example in Dropbox, OneDrive, Google Drive, Nextcloud or a network share, or **a git repository** |
+| Sync folder | Forge writes a `forge-settings-sync` folder into it |
+| Git repository URL, Branch | A repository you own (SSH or HTTPS). Forge clones it into its cache folder and pushes with your git credentials |
+
+**Sync Now** (also File | Manage IDE Settings | **Sync Settings Now**) syncs immediately and
+reports what was sent and received.
+
+The synced groups are the ones of Export Settings (by default Appearance, Keymap, Editor, Color
+Schemes, Code Style, File Types, File and Code Templates, Live Templates, Plugins and the
+Installed Plugins list). Each group is synced as a whole:
+
+- changed only here → it is sent; changed only on the other computer → it is received;
+- changed on both since the last sync → the **newer** change wins (last writer wins per
+  group). The other version is not lost: a losing local version is saved in
+  `<config dir>/forge/settings-sync-backups/<time>/`, a losing shared version in
+  `forge-settings-sync/backups/<time>/` of the sync folder.
+
+The Settings Sync options themselves (folder, repository) stay on each computer. API keys,
+tokens and passwords live in the system keychain and are never synced. Received configuration
+files (AI providers, data sources, SSH configurations) take effect after a restart.
 
 ## Restore Default Settings
 

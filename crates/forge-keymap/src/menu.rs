@@ -546,6 +546,9 @@ fn file_menu() -> MenuEntry {
                     l("ImportSettings", "_Import Settings..."),
                     l("ExportSettings", "_Export Settings..."),
                     l("RestoreDefaultSettings", "_Restore Default Settings..."),
+                    SEP,
+                    l("SettingsSync.Open", "Settings _Sync..."),
+                    l("SettingsSync.SyncNow", "Sync Settings _Now"),
                 ],
             ),
             g(
