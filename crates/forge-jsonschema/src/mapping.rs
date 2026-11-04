@@ -6,7 +6,8 @@
 //! 2. the file's own `"$schema"` (JSON), `$schema:` key or
 //!    `# yaml-language-server: $schema=…` modeline (YAML),
 //! 3. Forge's built-in mappings (composer.json, package.json, tsconfig, ESLint, Prettier,
-//!    Compose, GitHub Actions, GitLab CI) with bundled schemas,
+//!    Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors in
+//!    `src/main/resources`) with bundled schemas,
 //! 4. the SchemaStore catalog, when remote schemas are allowed.
 
 use serde::{Deserialize, Serialize};
@@ -131,6 +132,26 @@ pub static BUILTINS: &[Builtin] = &[
             "*.gitlab-ci.yml",
             "*.gitlab-ci.yaml",
         ],
+    },
+    Builtin {
+        name: "plugin.yml (Minecraft)",
+        uri: bundled::MINECRAFT_BUKKIT,
+        files: &["**/src/main/resources/plugin.yml"],
+    },
+    Builtin {
+        name: "paper-plugin.yml",
+        uri: bundled::MINECRAFT_PAPER,
+        files: &["**/src/main/resources/paper-plugin.yml"],
+    },
+    Builtin {
+        name: "velocity-plugin.json",
+        uri: bundled::MINECRAFT_VELOCITY,
+        files: &["**/src/main/resources/velocity-plugin.json"],
+    },
+    Builtin {
+        name: "bungee.yml",
+        uri: bundled::MINECRAFT_BUNGEE,
+        files: &["**/src/main/resources/bungee.yml"],
     },
 ];
 

@@ -69,6 +69,10 @@ JDT LS imports and builds projects, which runs code of the project (Gradle build
 annotation processors), so it does not start in [Safe Mode](project-trust.md). It runs for local
 projects; remote projects do not start it yet.
 
+Minecraft server and proxy plugins (Paper, Spigot, Velocity, …) have their own project
+wizard, descriptor support and Run Paper Server configuration: see
+[Minecraft plugins](minecraft.md).
+
 ## JDKs
 
 Settings | Build, Execution, Deployment | **JDKs** combines IntelliJ's SDK list and Project

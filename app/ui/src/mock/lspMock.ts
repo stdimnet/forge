@@ -27,6 +27,7 @@ import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./d
 import { cartMembers, isKotlinDemo, kotlinGlobals, orderMembers as kotlinOrderMembers } from "./demoKotlinProject";
 import { isScalaDemo } from "./demoScalaProject";
 import { isAndroidDemo } from "./demoAndroidProject";
+import { isMinecraftDemo } from "./demoMinecraftProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -121,7 +122,7 @@ const SERVER = isLuaDemo()
     ? { id: "clangd", name: "clangd" }
     : isDotnetDemo()
     ? { id: "roslyn", name: "Roslyn" }
-    : isJavaDemo()
+    : isJavaDemo() || isMinecraftDemo()
       ? { id: "jdtls", name: "Eclipse JDT LS" }
     : isKotlinDemo() || isAndroidDemo()
       ? { id: "kotlin-lsp", name: "Kotlin LSP" }
@@ -155,7 +156,7 @@ const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.s
 /** `?project=kotlin&kotlin-lsp=missing`: the Kotlin demo starts without kotlin-lsp. */
 const kotlinLspMissingAtStart = () => isKotlinDemo() && new URLSearchParams(location.search).get("kotlin-lsp") === "missing";
 let serverInstalled =
-  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isCppDemo() || isDotnetDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : true);
+  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isMinecraftDemo() || isCppDemo() || isDotnetDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : true);
 
 /** The mock install of the demo's server (JDT LS, kotlin-lsp) finished: start it for the open files. */
 export function markMockServerInstalled(): void {

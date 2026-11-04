@@ -1,6 +1,6 @@
 ---
 title: JSON Schema
-description: Validation, completion, documentation and Go to Declaration from JSON schemas in JSON, JSON5/JSONC and YAML files — built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions and GitLab CI, $schema in the file, user mappings, the status bar widget and remote schemas from SchemaStore.
+description: Validation, completion, documentation and Go to Declaration from JSON schemas in JSON, JSON5/JSONC and YAML files — built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions, GitLab CI and Minecraft plugin descriptors, $schema in the file, user mappings, the status bar widget and remote schemas from SchemaStore.
 order: 28
 tags: [editor, json, yaml, json schema, schemastore, composer.json, package.json, docker compose, github actions, gitlab ci, inspections, completion]
 ---
@@ -109,6 +109,7 @@ Forge picks the first match:
    | GitHub Workflow | `.github/workflows/*.yml`, `*.yaml` |
    | GitHub Action | `action.yml`, `action.yaml` |
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
+   | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](minecraft.md)) |
 
 4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
    hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.

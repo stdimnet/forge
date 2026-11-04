@@ -13,7 +13,7 @@ use forge_core::{ForgeError, Result};
 use serde::Serialize;
 
 use crate::generators::{plan, CreateRequest, Plan, Step};
-use crate::templates::{render_template, write_template, TemplateVars};
+use crate::templates::{render, write_template};
 
 /// Progress of a project creation, emitted as `project://create`.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -138,8 +138,7 @@ fn run_plan(
                 options,
                 sample,
             } => {
-                let vars = TemplateVars::new(name, options);
-                let rendered = render_template(template, &vars, *sample)?;
+                let rendered = render(template, name, options, *sample)?;
                 for rel in write_template(&plan.target, &rendered)? {
                     emit(CreateEvent::Output {
                         line: format!("Created {}", rel.to_string_lossy().replace('\\', "/")),

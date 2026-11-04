@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-bungee-plugin.json",
+  "title": "BungeeCord bungee.yml",
+  "type": "object",
+  "required": [
+    "name",
+    "main"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9 _.-]+$",
+      "description": "The plugin's name: letters, digits, '_', '-' and '.'."
+    },
+    "version": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "The plugin's version."
+    },
+    "main": {
+      "type": "string",
+      "pattern": "^([A-Za-z_$][A-Za-z0-9_$]*\\.)+[A-Za-z_$][A-Za-z0-9_$]*$",
+      "description": "The fully qualified name of the plugin's main class."
+    },
+    "author": {
+      "type": "string",
+      "description": "The plugin's author."
+    },
+    "description": {
+      "type": "string",
+      "description": "A short description of what the plugin does."
+    },
+    "depends": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Plugins that must load before this one."
+    },
+    "softDepends": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Plugins that load before this one when they are installed."
+    }
+  }
+}

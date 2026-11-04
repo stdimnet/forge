@@ -63,6 +63,7 @@ import "./spring";
 import "./groovy";
 import "./scala";
 import "./android";
+import "./minecraft";
 // After JavaForge: CForge wraps its Build Project (Ctrl+F9).
 import "./cpp";
 import "./dotnet";

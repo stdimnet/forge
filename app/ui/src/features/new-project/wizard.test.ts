@@ -7,6 +7,8 @@ import {
   defaultOptions,
   groupGenerators,
   initialProgress,
+  isOptionVisible,
+  withChoices,
   joinPath,
   MAX_LINES,
   nameAfterSwitch,
@@ -20,9 +22,9 @@ const gens = generatorsJson as unknown as Generator[];
 const gen = (id: string) => gens.find((g) => g.id === id)!;
 
 describe("generator list", () => {
-  it("groups by pack in PHP, Web, Lua, Ruby, .NET, Other order", () => {
+  it("groups by pack in PHP, Web, Java, Lua, Ruby, .NET, Other order", () => {
     const groups = groupGenerators(gens);
-    expect(groups.map((g) => g.group)).toEqual(["PHP", "Web", "Lua", "Ruby", ".NET", "Other"]);
+    expect(groups.map((g) => g.group)).toEqual(["PHP", "Web", "Java", "Lua", "Ruby", ".NET", "Other"]);
     expect(groups[0].items.map((g) => g.id)).toEqual([
       "empty-php",
       "laravel",
@@ -30,7 +32,8 @@ describe("generator list", () => {
       "composer-package",
       "wordpress-plugin",
     ]);
-    expect(groups[2].items.map((g) => g.name)).toEqual(["Lua Script", "LÖVE Game", "Neovim Plugin"]);
+    expect(groups[2].items.map((g) => g.name)).toEqual(["Minecraft Plugin"]);
+    expect(groups[3].items.map((g) => g.name)).toEqual(["Lua Script", "LÖVE Game", "Neovim Plugin"]);
   });
 
   it("puts unknown groups last", () => {
@@ -54,6 +57,32 @@ describe("options", () => {
     });
     // An enum value the next generator does not offer falls back to its default.
     expect(carryOptions(gen("lua-script"), { luaVersion: "6.0" }).luaVersion).toBe("5.4");
+  });
+});
+
+describe("conditional options", () => {
+  const mc = gen("minecraft-plugin");
+  const option = (id: string) => mc.options.find((o) => o.id === id)!;
+
+  it("shows options only for the platforms and builds they apply to", () => {
+    const values = defaultOptions(mc);
+    expect(isOptionVisible(option("mcVersion"), values, mc)).toBe(true);
+    expect(isOptionVisible(option("descriptor"), values, mc)).toBe(true);
+    expect(isOptionVisible(option("runPaper"), values, mc)).toBe(true);
+    const velocity = { ...values, platform: "velocity" };
+    expect(isOptionVisible(option("mcVersion"), velocity, mc)).toBe(false);
+    expect(isOptionVisible(option("descriptor"), velocity, mc)).toBe(false);
+    const maven = { ...values, buildSystem: "maven" };
+    expect(isOptionVisible(option("language"), maven, mc)).toBe(false);
+    expect(isOptionVisible(option("runPaper"), maven, mc)).toBe(false);
+    expect(isOptionVisible(option("groupId"), maven, mc)).toBe(true);
+  });
+
+  it("replaces refreshed choices", () => {
+    const next = withChoices(gens, "minecraft-plugin", "mcVersion", [{ value: "1.21.11", label: "1.21.11 (Java 21)" }]);
+    expect(next.find((g) => g.id === "minecraft-plugin")!.options.find((o) => o.id === "mcVersion")!.choices).toHaveLength(1);
+    expect(option("mcVersion").refresh).toBe("minecraft_versions_refresh");
+    expect(next.find((g) => g.id === "laravel")).toBe(gen("laravel"));
   });
 });
 

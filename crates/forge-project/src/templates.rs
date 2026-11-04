@@ -151,6 +151,37 @@ pub fn template(id: &str) -> Option<&'static Template> {
     TEMPLATES.iter().find(|t| t.id == id)
 }
 
+/// Generators whose files are computed instead of read from `templates/`.
+const COMPUTED: &[&str] = &["minecraft-plugin"];
+
+/// A built-in template or a computed generator (the Minecraft plugin).
+pub fn is_template(id: &str) -> bool {
+    template(id).is_some() || COMPUTED.contains(&id)
+}
+
+/// Render a built-in template, or compute a generator's files, for project `name`.
+pub fn render(
+    id: &str,
+    name: &str,
+    options: &BTreeMap<String, serde_json::Value>,
+    sample: bool,
+) -> Result<RenderedTemplate> {
+    if id == "minecraft-plugin" {
+        let value = serde_json::Value::Object(options.clone().into_iter().collect());
+        let opts = javaforge_minecraft::Options::from_json(&value).map_err(ForgeError::Other)?;
+        let files = javaforge_minecraft::generate(name, &opts).map_err(ForgeError::Other)?;
+        return Ok(RenderedTemplate {
+            dirs: Vec::new(),
+            files: files
+                .into_iter()
+                .map(|f| (PathBuf::from(f.path), f.contents))
+                .collect(),
+        });
+    }
+    let vars = TemplateVars::new(name, options);
+    render_template(id, &vars, sample)
+}
+
 pub fn template_ids() -> impl Iterator<Item = &'static str> {
     TEMPLATES.iter().map(|t| t.id)
 }

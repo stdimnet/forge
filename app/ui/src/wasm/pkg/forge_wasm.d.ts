@@ -1555,6 +1555,33 @@ export function markdown_parse(request_json: string): string;
 export function mcp_client_configs(request_json: string): string;
 
 /**
+ * `{ name, options }` → the generated files `[{ path, contents }]` or `{ error }`.
+ */
+export function minecraft_generate(request_json: string): string;
+
+/**
+ * `{ path, content, pos, files }` → navigation targets (`minecraft_goto`).
+ */
+export function minecraft_goto(request_json: string): string;
+
+/**
+ * `{ path, content, files }` → gutter markers (`minecraft_gutter`); the main class's marker
+ * only when the build applies run-paper.
+ */
+export function minecraft_gutter(request_json: string): string;
+
+/**
+ * `{ path, content, files }` → descriptor problems (`minecraft_inspect`).
+ */
+export function minecraft_inspect(request_json: string): string;
+
+/**
+ * `{ versions }` (refreshed Minecraft versions) → the wizard's version choices
+ * `[{ value, label }]`, the pinned table merged in (`minecraft_versions_refresh`).
+ */
+export function minecraft_version_choices(request_json: string): string;
+
+/**
  * `{ project, path, scopes, showMembers }` → `NavSegment[]`.
  */
 export function nav_bar_segments(request_json: string): string;
@@ -2920,6 +2947,11 @@ export interface InitOutput {
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly mcp_client_configs: (a: number, b: number, c: number) => void;
+    readonly minecraft_generate: (a: number, b: number, c: number) => void;
+    readonly minecraft_goto: (a: number, b: number, c: number) => void;
+    readonly minecraft_gutter: (a: number, b: number, c: number) => void;
+    readonly minecraft_inspect: (a: number, b: number, c: number) => void;
+    readonly minecraft_version_choices: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
     readonly nuget_parse_search: (a: number, b: number, c: number) => void;

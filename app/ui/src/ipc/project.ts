@@ -27,6 +27,12 @@ export interface GeneratorChoice {
 
 export type OptionValue = string | boolean;
 
+/** `option` has one of `values`. */
+export interface OptionCondition {
+  option: string;
+  values: string[];
+}
+
 export interface GeneratorOption {
   id: string;
   label: string;
@@ -34,12 +40,18 @@ export interface GeneratorOption {
   default: OptionValue;
   choices?: GeneratorChoice[];
   description?: string;
+  /** Hint in an empty text field. */
+  placeholder?: string;
+  /** Shown (and used) only while every condition holds; hidden options take their default. */
+  visibleWhen?: OptionCondition[];
+  /** IPC command returning fresh `choices` (may use the network: only on a click). */
+  refresh?: string;
 }
 
 export interface Generator {
   id: string;
   name: string;
-  group: "PHP" | "Web" | "Lua" | "Other" | string;
+  group: "PHP" | "Web" | "Java" | "Lua" | "Other" | string;
   pack: string;
   description: string;
   icon: string;
@@ -87,6 +99,8 @@ export const projectApi = {
   /** Resolves with the project root; progress arrives as `project://create` events. */
   create: (args: CreateArgs) => invoke<string>("project_create", { ...args }),
   cancel: () => invoke<void>("project_create_cancel"),
+  /** Fresh choices of an option with `refresh` (its IPC command). */
+  refreshChoices: (command: string) => invoke<GeneratorChoice[]>(command),
   onDetected: (cb: (d: Detected) => void) => listen<Detected>(DETECTED_EVENT, cb),
   onCreate: (cb: (e: CreateEvent) => void) => listen<CreateEvent>(CREATE_EVENT, cb),
 };

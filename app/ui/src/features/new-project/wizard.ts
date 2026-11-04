@@ -2,9 +2,9 @@
  * Pure state logic of the New Project wizard: grouping generators, option defaults,
  * name/location handling, the command preview and the creation progress reducer.
  */
-import type { CreateEvent, Generator, OptionValue, Plan } from "@/ipc/project";
+import type { CreateEvent, Generator, GeneratorOption, OptionValue, Plan } from "@/ipc/project";
 
-export const GROUP_ORDER = ["PHP", "Web", "Lua", "Ruby", ".NET", "Other"];
+export const GROUP_ORDER = ["PHP", "Web", "Java", "Lua", "Ruby", ".NET", "Other"];
 
 export interface GeneratorGroup {
   group: string;
@@ -38,6 +38,21 @@ export function carryOptions(next: Generator, previous: Record<string, OptionVal
     out[o.id] = v;
   }
   return out;
+}
+
+/** The option is shown: every `visibleWhen` condition holds for the current values. */
+export function isOptionVisible(option: GeneratorOption, values: Record<string, OptionValue>, gen: Generator): boolean {
+  return (option.visibleWhen ?? []).every((c) => {
+    const v = values[c.option] ?? gen.options.find((o) => o.id === c.option)?.default;
+    return typeof v === "string" && c.values.includes(v);
+  });
+}
+
+/** Replace the choices of one option (after "Refresh"), keeping everything else. */
+export function withChoices(gens: Generator[], genId: string, optionId: string, choices: GeneratorOption["choices"]): Generator[] {
+  return gens.map((g) =>
+    g.id !== genId ? g : { ...g, options: g.options.map((o) => (o.id === optionId ? { ...o, choices } : o)) },
+  );
 }
 
 /** Keep a name the user typed; replace an untouched default with the next generator's. */

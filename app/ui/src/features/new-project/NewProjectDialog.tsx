@@ -10,6 +10,7 @@ import {
   CircleHelp,
   Folder,
   LoaderCircle,
+  RefreshCw,
   TerminalSquare,
   TriangleAlert,
 } from "lucide-solid";
@@ -32,6 +33,9 @@ import {
   options,
   plan,
   progress,
+  refreshError,
+  refreshing,
+  refreshOption,
   selectGenerator,
   selected,
   selectedId,
@@ -41,7 +45,7 @@ import {
   setOption,
   useFallback,
 } from "./store";
-import { groupGenerators, joinPath, previewLines, progressPercent, toolName, validateName } from "./wizard";
+import { groupGenerators, isOptionVisible, joinPath, previewLines, progressPercent, toolName, validateName } from "./wizard";
 
 function OptionField(props: { option: GeneratorOption }) {
   const value = () => options()[props.option.id] ?? props.option.default;
@@ -70,13 +74,28 @@ function OptionField(props: { option: GeneratorOption }) {
           <Show
             when={segmented()}
             fallback={
-              <select
-                class="np-select"
-                value={String(value())}
-                onChange={(e) => setOption(props.option.id, e.currentTarget.value)}
-              >
-                <For each={props.option.choices}>{(c) => <option value={c.value}>{c.label}</option>}</For>
-              </select>
+              <div class="np-select-row">
+                <select
+                  class="np-select"
+                  value={String(value())}
+                  data-option={props.option.id}
+                  onChange={(e) => setOption(props.option.id, e.currentTarget.value)}
+                >
+                  <For each={props.option.choices}>{(c) => <option value={c.value}>{c.label}</option>}</For>
+                </select>
+                <Show when={props.option.refresh}>
+                  <button
+                    class="np-browse np-refresh"
+                    classList={{ spinning: refreshing() === props.option.id }}
+                    title={props.option.description ?? "Refresh"}
+                    aria-label={`Refresh ${props.option.label}`}
+                    disabled={!!refreshing()}
+                    onClick={() => void refreshOption(props.option.id)}
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                </Show>
+              </div>
             }
           >
             <div class="np-segmented" role="radiogroup" aria-label={props.option.label}>
@@ -95,6 +114,14 @@ function OptionField(props: { option: GeneratorOption }) {
             </div>
           </Show>
         </div>
+        <Show when={refreshError()[props.option.id]}>
+          <div class="np-row np-hint-row">
+            <span class="np-label" />
+            <span class="np-hint np-error">
+              <CircleAlert size={13} /> {refreshError()[props.option.id]}
+            </span>
+          </div>
+        </Show>
       </Match>
       <Match when={props.option.kind === "string"}>
         <div class="np-row">
@@ -102,6 +129,8 @@ function OptionField(props: { option: GeneratorOption }) {
           <input
             class="np-input"
             value={String(value())}
+            placeholder={props.option.placeholder}
+            data-option={props.option.id}
             spellcheck={false}
             onInput={(e) => setOption(props.option.id, e.currentTarget.value)}
           />
@@ -114,8 +143,12 @@ function OptionField(props: { option: GeneratorOption }) {
 function Form() {
   const nameError = () => validateName(name());
   const formError = () => nameError() ?? plan()?.error;
-  const checks = () => selected()?.options.filter((o) => o.kind === "bool") ?? [];
-  const fields = () => selected()?.options.filter((o) => o.kind !== "bool") ?? [];
+  const visible = () => {
+    const gen = selected();
+    return gen ? gen.options.filter((o) => isOptionVisible(o, options(), gen)) : [];
+  };
+  const checks = () => visible().filter((o) => o.kind === "bool");
+  const fields = () => visible().filter((o) => o.kind !== "bool");
   const missing = () => plan()?.missingTools ?? [];
   const fallbackName = () => generators().find((g) => g.id === plan()?.fallback)?.name;
   let nameEl!: HTMLInputElement;

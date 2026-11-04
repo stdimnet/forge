@@ -1,0 +1,172 @@
+==== .forge/runConfigurations.toml ====
+selected = "Run Paper Server"
+
+[[configuration]]
+name = "Run Paper Server"
+type = "gradle"
+
+[configuration.options]
+tasks = "runServer"
+==== .gitignore ====
+# Gradle and Maven
+.gradle/
+build/
+target/
+
+# The test server of run-paper (runServer)
+run/
+
+# IDEs
+.idea/
+*.iml
+out/
+.vscode/
+.DS_Store
+==== README.md ====
+# BetterChat
+
+A Purpur plugin for Minecraft 26.2, written in Java (Java 25).
+
+## Build
+
+The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer (Shadow 9 does not load on Gradle 8):
+
+```sh
+gradle wrapper
+```
+
+Then build the plugin (a missing JDK of the project's Java release is downloaded by Gradle's toolchain resolver, foojay):
+
+```sh
+./gradlew build
+```
+
+The plugin jar is `build/libs/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the `plugins/` folder of your server.
+
+## Test server
+
+`./gradlew runServer` (or the **Run Paper Server** run configuration in Forge) downloads Paper 26.2 with [run-paper](https://github.com/jpenilla/run-gradle), builds the plugin and starts a server in `run/` with the plugin installed. Accept the Minecraft EULA in `run/eula.txt` on the first start.
+
+## Structure
+
+- `src/main/java/com/example/betterchat/BetterChat.java`: the main class
+- `src/main/java/com/example/betterchat/command/HelloCommand.java`: the `/hello` command
+- `src/main/java/com/example/betterchat/listener/JoinListener.java`: greets players when they join
+- `src/main/resources/plugin.yml`: the plugin descriptor
+==== build.gradle.kts ====
+plugins {
+    java
+    id("xyz.jpenilla.run-paper") version "3.1.0"
+}
+
+group = "com.example"
+version = "1.0.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.purpurmc.org/snapshots")
+}
+
+dependencies {
+    compileOnly("org.purpurmc.purpur:purpur-api:26.2.build.+")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+}
+
+tasks {
+    compileJava {
+        options.encoding = "UTF-8"
+        options.release.set(25)
+    }
+    processResources {
+        val props = mapOf("version" to version)
+        inputs.properties(props)
+        filteringCharset = "UTF-8"
+        filesMatching("plugin.yml") {
+            expand(props)
+        }
+    }
+    runServer {
+        // The Paper version of the test server (./run).
+        minecraftVersion("26.2")
+    }
+}
+==== settings.gradle.kts ====
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+rootProject.name = "better-chat"
+==== src/main/java/com/example/betterchat/BetterChat.java ====
+package com.example.betterchat;
+
+import com.example.betterchat.command.HelloCommand;
+import com.example.betterchat.listener.JoinListener;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public final class BetterChat extends JavaPlugin {
+
+    @Override
+    public void onEnable() {
+        getServer().getPluginManager().registerEvents(new JoinListener(), this);
+        PluginCommand hello = getCommand("hello");
+        if (hello != null) {
+            hello.setExecutor(new HelloCommand());
+        }
+        getLogger().info("BetterChat enabled");
+    }
+
+    @Override
+    public void onDisable() {
+        getLogger().info("BetterChat disabled");
+    }
+}
+==== src/main/java/com/example/betterchat/command/HelloCommand.java ====
+package com.example.betterchat.command;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+
+/** {@code /hello}: greets whoever runs it. */
+public final class HelloCommand implements CommandExecutor {
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        sender.sendMessage(Component.text("Hello, " + sender.getName() + "!", NamedTextColor.GREEN));
+        return true;
+    }
+}
+==== src/main/java/com/example/betterchat/listener/JoinListener.java ====
+package com.example.betterchat.listener;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+
+public final class JoinListener implements Listener {
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        String name = event.getPlayer().getName();
+        event.getPlayer().sendMessage(Component.text("Welcome, " + name + "!", NamedTextColor.YELLOW));
+    }
+}
+==== src/main/resources/plugin.yml ====
+name: BetterChat
+version: '${version}'
+main: com.example.betterchat.BetterChat
+api-version: '26.2'
+
+commands:
+  hello:
+    description: Says hello
+    usage: /<command>

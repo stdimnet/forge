@@ -28,6 +28,7 @@ import { isJavaDemo, javaDemoFiles, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoFiles, kotlinDemoName } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoFiles, scalaDemoName } from "./demoScalaProject";
 import { androidDemoFiles, androidDemoName, isAndroidDemo } from "./demoAndroidProject";
+import { isMinecraftDemo, minecraftDemoFiles, minecraftDemoName } from "./demoMinecraftProject";
 import { cppDemoFiles, cppDemoName, isCppDemo } from "./demoCppProject";
 import { dotnetDemoFiles, dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
@@ -40,7 +41,7 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // the FastAPI service of PyForge (`?project=django` its Django bookshop), `?project=go` the
 // `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge, `?project=ruby` the `pantry` gem of RubyForge,
 // `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application), `?project=kotlin` a Gradle Kotlin service,
-// `?project=scala` an sbt build, `?project=android` a Gradle Android app.
+// `?project=scala` an sbt build, `?project=android` a Gradle Android app, `?project=minecraft` a Paper plugin.
 // `?project=cpp` the CMake project `shapes` of CForge.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
@@ -66,6 +67,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...scalaDemoFiles }
     : isAndroidDemo()
     ? { ...androidDemoFiles }
+    : isMinecraftDemo()
+    ? { ...minecraftDemoFiles }
     : isCppDemo()
     ? { ...cppDemoFiles }
     : isDotnetDemo()
@@ -99,6 +102,8 @@ export const mockProjectName = isSymfonyDemo()
     ? scalaDemoName
     : isAndroidDemo()
     ? androidDemoName
+    : isMinecraftDemo()
+    ? minecraftDemoName
     : isCppDemo()
     ? cppDemoName
     : isDotnetDemo()
