@@ -66,7 +66,10 @@ fn run(cmd: CommandLine) -> (RunningProcess, mpsc::Receiver<RunEvent>) {
     (RunningProcess::start(&cmd, sink).expect("start"), rx)
 }
 
-fn drain(rx: &mpsc::Receiver<RunEvent>) -> (String, Option<(Option<i32>, Option<i32>)>) {
+/// Exit code and signal of a run.
+type Exit = Option<(Option<i32>, Option<i32>)>;
+
+fn drain(rx: &mpsc::Receiver<RunEvent>) -> (String, Exit) {
     let mut out = String::new();
     while let Ok(e) = rx.recv_timeout(Duration::from_secs(10)) {
         match e {
