@@ -608,7 +608,7 @@ fn minecraft_options(mc_versions: &[String]) -> Vec<GeneratorOption> {
         .collect();
     let mut mc = enum_opt(
         "mcVersion",
-        "Minecraft version",
+        "Minecraft",
         versions::DEFAULT_MC_VERSION,
         versions::version_choices(mc_versions)
             .into_iter()

@@ -17,6 +17,7 @@ import { demoProjectName } from "./demoProject";
 import { setSetting } from "./settingsMock";
 import generators from "./projectGenerators.json";
 import { minecraftFiles } from "./minecraftMock";
+import { isMinecraftDemo, minecraftDemoInfo } from "./demoMinecraftProject";
 
 const gens = generators as unknown as Generator[];
 
@@ -39,7 +40,8 @@ const fw = (id: string, name: string, version: string, language: string) => ({
   language,
 });
 
-registerMock("project_detect", () => structuredClone(demoProjectInfo));
+// The Minecraft demo answers itself (minecraftMock.ts registers before this module).
+registerMock("project_detect", () => structuredClone(isMinecraftDemo() ? minecraftDemoInfo : demoProjectInfo));
 registerMock("project_generators_list", () => structuredClone(gens));
 
 /** Badges for the mocked recent projects (see workspaceMock). */

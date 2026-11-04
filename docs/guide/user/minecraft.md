@@ -24,7 +24,7 @@ project is created.
 | --- | --- |
 | Platform | Paper, Purpur, Folia, Spigot, Bukkit (servers); Velocity, BungeeCord / Waterfall (proxies) |
 | Descriptor | `plugin.yml` or `paper-plugin.yml` (Paper, Purpur and Folia; Minecraft 1.20.6 and newer) |
-| Minecraft version | The server version the plugin targets (servers only). Each version shows the Java release it needs |
+| Minecraft | The server version the plugin targets (servers only). Each version shows the Java release it needs |
 | Build system | Gradle Kotlin DSL (default), Gradle Groovy DSL or Maven |
 | Language | Java or Kotlin (Gradle builds) |
 | Group ID | The Maven group and the base package, `com.example` |
@@ -80,7 +80,7 @@ dependency:
 Folia plugins compile against the Paper API, which contains Folia's region, entity and global
 schedulers; Folia (1.20+) only loads plugins that declare `folia-supported: true`.
 
-The **Refresh** button next to **Minecraft version** reads the versions Paper publishes its API
+The **Refresh** button next to **Minecraft** (the version) reads the versions Paper publishes its API
 for from `repo.papermc.io` (paper-api's `maven-metadata.xml`) and adds the release versions the
 table does not have yet. It only runs when you click it, and the result is cached in the user
 cache directory (`<cache>/forge/minecraft/versions.json`), never in a project. New versions

@@ -13588,6 +13588,65 @@
     }
   },
   {
+    "id": "forge.minecraft",
+    "name": "Minecraft Development",
+    "version": "0.1.0",
+    "pack": "javaforge",
+    "description": "Minecraft plugins for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord: the Minecraft Plugin project wizard, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml completion and validation with a checked, navigable main class, the Run Paper Server configuration (run-paper) and gutter icons for event handlers.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.java"
+    ],
+    "required": false,
+    "projectTypes": [
+      "minecraft"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "minecraft.runServer",
+          "title": "Run Paper Server",
+          "category": "Minecraft"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "minecraft.gutterIcons",
+          "title": "Show gutter icons",
+          "description": "Event handler methods (@EventHandler, @Subscribe) show the event they listen to; the plugin's main class runs the Paper test server.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.minecraft",
+          "section": "Editor",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Minecraft",
+          "items": [
+            {
+              "type": "action",
+              "id": "minecraft.runServer",
+              "label": "_Run Paper Server"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.cpp",
     "name": "C/C++",
     "version": "0.1.0",

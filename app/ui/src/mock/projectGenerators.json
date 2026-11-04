@@ -411,6 +411,289 @@
     ]
   },
   {
+    "id": "minecraft-plugin",
+    "name": "Minecraft Plugin",
+    "group": "Java",
+    "pack": "javaforge",
+    "description": "A Paper, Purpur, Folia, Spigot, Bukkit, Velocity or BungeeCord plugin with a main class, a command, a listener and the plugin descriptor.",
+    "icon": "minecraft",
+    "defaultName": "my-plugin",
+    "tools": [],
+    "options": [
+      {
+        "id": "platform",
+        "label": "Platform",
+        "kind": "enum",
+        "default": "paper",
+        "choices": [
+          {
+            "value": "paper",
+            "label": "Paper"
+          },
+          {
+            "value": "purpur",
+            "label": "Purpur"
+          },
+          {
+            "value": "folia",
+            "label": "Folia"
+          },
+          {
+            "value": "spigot",
+            "label": "Spigot"
+          },
+          {
+            "value": "bukkit",
+            "label": "Bukkit"
+          },
+          {
+            "value": "velocity",
+            "label": "Velocity"
+          },
+          {
+            "value": "bungeecord",
+            "label": "BungeeCord / Waterfall"
+          }
+        ]
+      },
+      {
+        "id": "descriptor",
+        "label": "Descriptor",
+        "kind": "enum",
+        "default": "plugin",
+        "choices": [
+          {
+            "value": "plugin",
+            "label": "plugin.yml"
+          },
+          {
+            "value": "paper-plugin",
+            "label": "paper-plugin.yml"
+          }
+        ],
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mcVersion",
+        "label": "Minecraft",
+        "kind": "enum",
+        "default": "1.21.8",
+        "choices": [
+          {
+            "value": "1.21.10",
+            "label": "1.21.10 (Java 21)"
+          },
+          {
+            "value": "1.21.8",
+            "label": "1.21.8 (Java 21)"
+          },
+          {
+            "value": "1.21.4",
+            "label": "1.21.4 (Java 21)"
+          },
+          {
+            "value": "1.21.1",
+            "label": "1.21.1 (Java 21)"
+          },
+          {
+            "value": "1.20.6",
+            "label": "1.20.6 (Java 21)"
+          },
+          {
+            "value": "1.20.4",
+            "label": "1.20.4 (Java 17)"
+          },
+          {
+            "value": "1.20.1",
+            "label": "1.20.1 (Java 17)"
+          },
+          {
+            "value": "1.19.4",
+            "label": "1.19.4 (Java 17)"
+          },
+          {
+            "value": "1.18.2",
+            "label": "1.18.2 (Java 17)"
+          },
+          {
+            "value": "1.17.1",
+            "label": "1.17.1 (Java 16)"
+          },
+          {
+            "value": "1.16.5",
+            "label": "1.16.5 (Java 8)"
+          }
+        ],
+        "description": "Refresh reads the versions Paper publishes from repo.papermc.io.",
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia",
+              "spigot",
+              "bukkit"
+            ]
+          }
+        ],
+        "refresh": "minecraft_versions_refresh"
+      },
+      {
+        "id": "buildSystem",
+        "label": "Build system",
+        "kind": "enum",
+        "default": "gradle-kts",
+        "choices": [
+          {
+            "value": "gradle-kts",
+            "label": "Gradle Kotlin"
+          },
+          {
+            "value": "gradle-groovy",
+            "label": "Gradle Groovy"
+          },
+          {
+            "value": "maven",
+            "label": "Maven"
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "kind": "enum",
+        "default": "java",
+        "choices": [
+          {
+            "value": "java",
+            "label": "Java"
+          },
+          {
+            "value": "kotlin",
+            "label": "Kotlin"
+          }
+        ],
+        "visibleWhen": [
+          {
+            "option": "buildSystem",
+            "values": [
+              "gradle-kts",
+              "gradle-groovy"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "groupId",
+        "label": "Group ID",
+        "kind": "string",
+        "default": "com.example"
+      },
+      {
+        "id": "pluginName",
+        "label": "Plugin name",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the project name"
+      },
+      {
+        "id": "mainClass",
+        "label": "Main class",
+        "kind": "string",
+        "default": "",
+        "placeholder": "<group id>.<project>.<Project>"
+      },
+      {
+        "id": "authors",
+        "label": "Authors",
+        "kind": "string",
+        "default": "",
+        "placeholder": "Comma-separated"
+      },
+      {
+        "id": "description",
+        "label": "Description",
+        "kind": "string",
+        "default": ""
+      },
+      {
+        "id": "website",
+        "label": "Website",
+        "kind": "string",
+        "default": "",
+        "placeholder": "https://"
+      },
+      {
+        "id": "apiVersion",
+        "label": "API version",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the Minecraft version",
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia",
+              "spigot",
+              "bukkit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "runPaper",
+        "label": "Run Paper server (run-paper)",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds the runServer task and the Run Paper Server configuration.",
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia",
+              "spigot",
+              "bukkit"
+            ]
+          },
+          {
+            "option": "buildSystem",
+            "values": [
+              "gradle-kts",
+              "gradle-groovy"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "shadow",
+        "label": "Shadow jar",
+        "kind": "bool",
+        "default": false,
+        "description": "Bundles libraries into the plugin jar; always on for Kotlin."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
     "id": "lua-script",
     "name": "Lua Script",
     "group": "Lua",
