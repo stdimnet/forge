@@ -72,7 +72,10 @@ under Settings | Appearance & Behavior | System Settings | Updates:
 ![Updates settings](../../screenshots/settings-updates.png)
 
 - "Check for updates on startup" (`updates.checkOnStartup`)
-- "Update channel" (`updates.channel`): stable releases, or beta releases as well
+- "Update channel" (`updates.channel`): **Stable releases** (the default) or **Beta releases**.
+  Beta also offers pre-releases such as `0.3.0-beta.1`; when a stable release is newer than the
+  last pre-release, beta installations get that one. Going back to Stable does not downgrade:
+  Forge waits until a stable release is newer than the installed pre-release.
 - "Update feed URL" (`updates.endpoint`): another `latest.json`, e.g. a company mirror
 - a skipped version can be offered again with **Offer Again**
 

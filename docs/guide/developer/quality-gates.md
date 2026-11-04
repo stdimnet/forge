@@ -30,6 +30,7 @@ pnpm typecheck
 pnpm test        # vitest
 pnpm build
 pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
+pnpm workflows:check # release.yml runs only on `release: published`, ci.yml only manually
 ```
 
 ## Browser extension (`browser-extension`, only when it changed)

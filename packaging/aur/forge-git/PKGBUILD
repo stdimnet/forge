@@ -1,0 +1,55 @@
+# Maintainer: Forge maintainers <https://github.com/Reeperk/Forge>
+#
+# Builds Forge from the main branch. Generate .SRCINFO with `makepkg --printsrcinfo > .SRCINFO`
+# (pkgver changes with every build). Publishing to the AUR is manual:
+# docs/guide/developer/release-builds.md.
+
+pkgname=forge-git
+pkgver=0.1.0.r0.g0000000
+pkgrel=1
+pkgdesc="PHPStorm-style IDE for PHP, web and Lua projects (development version)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Reeperk/Forge"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
+makedepends=('git' 'cargo' 'nodejs' 'pnpm' 'clang')
+optdepends=('git: version control'
+            'gnome-keyring: store AI keys and passwords in the Secret Service')
+provides=('forge-ide')
+conflicts=('forge-ide' 'forge-bin')
+options=('!lto' '!debug')
+source=("forge::git+https://github.com/Reeperk/Forge.git#branch=main")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd forge
+  local version
+  version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+  printf '%s.r%s.g%s' "${version//-/_}" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+prepare() {
+  cd forge/app/ui
+  pnpm install --frozen-lockfile
+}
+
+build() {
+  cd forge/app/ui
+  export CARGO_TARGET_DIR="$srcdir/target"
+  # The plain binary; updater artifacts and bundles are not needed for a package.
+  pnpm tauri build --no-bundle
+}
+
+package() {
+  cd forge
+  install -Dm755 "$srcdir/target/release/forge" "$pkgdir/usr/bin/forge"
+  # Tauri looks for resources in /usr/lib/<productName> next to /usr/bin.
+  install -Dm644 THIRD_PARTY_NOTICES.md "$pkgdir/usr/lib/Forge/THIRD_PARTY_NOTICES.md"
+  install -Dm644 packaging/flatpak/dev.forge.ide.desktop "$pkgdir/usr/share/applications/dev.forge.ide.desktop"
+  sed -i 's/^Icon=.*/Icon=forge/' "$pkgdir/usr/share/applications/dev.forge.ide.desktop"
+  install -Dm644 packaging/flatpak/dev.forge.ide.metainfo.xml "$pkgdir/usr/share/metainfo/dev.forge.ide.metainfo.xml"
+  install -Dm644 app/src-tauri/icons/32x32.png "$pkgdir/usr/share/icons/hicolor/32x32/apps/forge.png"
+  install -Dm644 app/src-tauri/icons/128x128.png "$pkgdir/usr/share/icons/hicolor/128x128/apps/forge.png"
+  install -Dm644 app/src-tauri/icons/128x128@2x.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/forge.png"
+  install -Dm644 THIRD_PARTY_NOTICES.md "$pkgdir/usr/share/licenses/$pkgname/THIRD_PARTY_NOTICES.md"
+}

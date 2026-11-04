@@ -41,6 +41,39 @@ impl Channel {
         }
     }
 
+    /// The feeds to read, most specific first. An `updates.endpoint` override is the only
+    /// feed. The beta channel reads the beta feed and the stable feed, so a stable release
+    /// newer than the last pre-release reaches beta users too, and a missing beta feed does
+    /// not break their checks.
+    pub fn endpoints(self, setting: Option<&str>) -> Vec<String> {
+        match setting.map(str::trim) {
+            Some(url) if !url.is_empty() => vec![url.to_string()],
+            _ => match self {
+                Self::Stable => vec![DEFAULT_ENDPOINT.to_string()],
+                Self::Beta => vec![BETA_ENDPOINT.to_string(), DEFAULT_ENDPOINT.to_string()],
+            },
+        }
+    }
+
+    /// The channel a release tag or version belongs to: a pre-release label
+    /// (`v0.3.0-beta.1`) means beta. `None` for text that is no version.
+    pub fn of_release(tag: &str) -> Option<Self> {
+        let version = crate::parse_version(tag).ok()?;
+        Some(if version.pre.is_empty() {
+            Self::Stable
+        } else {
+            Self::Beta
+        })
+    }
+
+    /// The setting value (`stable`, `beta`), as feeds write it in their `channel` field.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Stable => "stable",
+            Self::Beta => "beta",
+        }
+    }
+
     /// Whether a release of this version is offered on this channel.
     pub fn accepts(self, version: &Version) -> bool {
         self == Self::Beta || version.pre.is_empty()
@@ -429,6 +462,33 @@ mod tests {
             Channel::Stable.endpoint(Some(" https://updates.example.test/latest.json ")),
             "https://updates.example.test/latest.json"
         );
+    }
+
+    #[test]
+    fn beta_reads_its_own_feed_and_the_stable_one() {
+        assert_eq!(Channel::Stable.endpoints(None), vec![DEFAULT_ENDPOINT]);
+        assert_eq!(
+            Channel::Beta.endpoints(Some("")),
+            vec![BETA_ENDPOINT, DEFAULT_ENDPOINT]
+        );
+        assert_eq!(
+            Channel::Beta.endpoints(Some("https://mirror.example.test/latest.json")),
+            vec!["https://mirror.example.test/latest.json"]
+        );
+        assert!(BETA_ENDPOINT.ends_with("/latest-beta.json"));
+    }
+
+    #[test]
+    fn release_tags_map_to_channels() {
+        assert_eq!(Channel::of_release("v0.2.0"), Some(Channel::Stable));
+        assert_eq!(Channel::of_release("v0.3.0-beta.1"), Some(Channel::Beta));
+        assert_eq!(Channel::of_release("1.0.0-rc.2"), Some(Channel::Beta));
+        assert_eq!(Channel::of_release("beta"), None);
+        assert_eq!(
+            Channel::from_setting(Some(Channel::Beta.as_str())),
+            Channel::Beta
+        );
+        assert_eq!(Channel::Stable.as_str(), "stable");
     }
 
     #[test]

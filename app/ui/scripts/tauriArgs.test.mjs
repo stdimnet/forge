@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tauriArgs } from "./tauriArgs.mjs";
+import { DEFAULT_TIMESTAMP_URL, tauriArgs, windowsSigning } from "./tauriArgs.mjs";
 
 const extra = (args) => JSON.parse(args[args.lastIndexOf("--config") + 1]);
 
@@ -28,5 +28,38 @@ describe("tauri build arguments", () => {
     const { args } = tauriArgs(["build", "--debug", "--", "--locked"], { TAURI_SIGNING_PRIVATE_KEY: " " });
     expect(args.slice(-2)).toEqual(["--", "--locked"]);
     expect(args[2]).toBe("--config");
+  });
+
+  it("signs Windows bundles only on Windows and only with signing material", () => {
+    const thumbprint = "ab12".repeat(10);
+    const env = { FORGE_WINDOWS_CERT_THUMBPRINT: thumbprint };
+    expect(extra(tauriArgs(["build"], env, "win32").args).bundle.windows).toEqual({
+      certificateThumbprint: thumbprint.toUpperCase(),
+      digestAlgorithm: "sha256",
+      timestampUrl: DEFAULT_TIMESTAMP_URL,
+    });
+    expect(extra(tauriArgs(["build"], env, "linux").args).bundle.windows).toBeUndefined();
+    const unsigned = tauriArgs(["build"], {}, "win32");
+    expect(extra(unsigned.args).bundle.windows).toBeUndefined();
+    expect(unsigned.notes.join(" ")).toContain("not Authenticode signed");
+  });
+
+  it("supports a pfx thumbprint or Azure Trusted Signing", () => {
+    expect(windowsSigning({})).toBeNull();
+    expect(windowsSigning({ FORGE_WINDOWS_CERT_THUMBPRINT: "  " })).toBeNull();
+    expect(() => windowsSigning({ FORGE_WINDOWS_CERT_THUMBPRINT: "not-hex" })).toThrow(/thumbprint/);
+    expect(
+      windowsSigning({ FORGE_WINDOWS_CERT_THUMBPRINT: "AB12".repeat(10), FORGE_WINDOWS_TIMESTAMP_URL: "http://ts.test" })
+        ?.timestampUrl,
+    ).toBe("http://ts.test");
+    const azure = {
+      FORGE_AZURE_SIGNING_ENDPOINT: "https://weu.codesigning.azure.net",
+      FORGE_AZURE_SIGNING_ACCOUNT: "forge",
+      FORGE_AZURE_SIGNING_PROFILE: "forge-public",
+    };
+    expect(windowsSigning(azure)).toEqual({
+      signCommand: "trusted-signing-cli -e https://weu.codesigning.azure.net -a forge -c forge-public -d Forge %1",
+    });
+    expect(() => windowsSigning({ FORGE_AZURE_SIGNING_ACCOUNT: "forge" })).toThrow(/Azure Trusted Signing/);
   });
 });
