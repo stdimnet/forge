@@ -156,9 +156,11 @@ mod tests {
         .await
         .unwrap_err();
         assert!(e.contains("connect to 127.0.0.1"), "{e}");
-        let mut granted = Permissions::default();
         // `127.0.0.1` is not a host pattern a manifest may use; tests grant it directly.
-        granted.network = vec!["127.0.0.1".into()];
+        let granted = Permissions {
+            network: vec!["127.0.0.1".into()],
+            ..Permissions::default()
+        };
         let r = fetch(
             "acme.x",
             &granted,
@@ -175,9 +177,18 @@ mod tests {
 
     #[test]
     fn run_needs_the_process_permission() {
-        let mut granted = Permissions::default();
-        assert!(run("acme.x", &granted, "git", &["--version".into()], None).is_err());
-        granted.process = vec!["git".into()];
+        assert!(run(
+            "acme.x",
+            &Permissions::default(),
+            "git",
+            &["--version".into()],
+            None
+        )
+        .is_err());
+        let granted = Permissions {
+            process: vec!["git".into()],
+            ..Permissions::default()
+        };
         if let Ok(out) = run("acme.x", &granted, "git", &["--version".into()], None) {
             assert!(out.stdout.contains("git version"));
         }

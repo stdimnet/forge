@@ -26,12 +26,9 @@ pub struct FsScope {
 
 impl FsScope {
     pub fn parse(s: &str) -> Option<Self> {
-        let (root, rest) = if let Some(r) = s.strip_prefix("${project}") {
-            (FsRoot::Project, r)
-        } else if let Some(r) = s.strip_prefix("${pluginData}") {
-            (FsRoot::PluginData, r)
-        } else {
-            return None;
+        let (root, rest) = match s.strip_prefix("${project}") {
+            Some(r) => (FsRoot::Project, r),
+            None => (FsRoot::PluginData, s.strip_prefix("${pluginData}")?),
         };
         let sub = match rest {
             "" | "/" => String::new(),
