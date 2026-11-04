@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, Minus, Plus, Settings2 } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
 import { openMenu } from "./PopupMenu";
 import { COMPOUND, compoundMembers, findType } from "./types";
+import { t } from "@/i18n";
 
 export function CompoundForm(props: {
   cfg: RunConfiguration;
@@ -41,20 +42,20 @@ export function CompoundForm(props: {
             iconColor: findType(c.type)?.color,
             run: () => setMembers([...members(), c.name]),
           }))
-        : [{ label: "No other configurations", disabled: true }],
+        : [{ label: t("run.compoundForm.noOtherConfigurations"), disabled: true }],
     });
   };
   return (
     <>
-      <div class="rc-group-title">Configurations</div>
+      <div class="rc-group-title">{t("run.compoundForm.configurations")}</div>
       <div class="rc-bl rc-compound" data-testid="rc-compound">
         <div class="rc-bl-tools">
-          <button class="icon-btn" title="Add" onClick={addMenu}>
+          <button class="icon-btn" title={t("common.add")} onClick={addMenu}>
             <Plus size={14} />
           </button>
           <button
             class="icon-btn"
-            title="Remove"
+            title={t("common.remove")}
             disabled={sel() === null}
             onClick={() => {
               setMembers(members().filter((_, i) => i !== sel()));
@@ -63,15 +64,15 @@ export function CompoundForm(props: {
           >
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Move Up" disabled={!sel()} onClick={() => move(-1)}>
+          <button class="icon-btn" title={t("common.moveUp")} disabled={!sel()} onClick={() => move(-1)}>
             <ArrowUp size={14} />
           </button>
-          <button class="icon-btn" title="Move Down" disabled={sel() === null || sel() === members().length - 1} onClick={() => move(1)}>
+          <button class="icon-btn" title={t("common.moveDown")} disabled={sel() === null || sel() === members().length - 1} onClick={() => move(1)}>
             <ArrowDown size={14} />
           </button>
         </div>
         <div class="rc-bl-list">
-          <For each={members()} fallback={<div class="rc-bl-empty muted">Click + to add the configurations to start together</div>}>
+          <For each={members()} fallback={<div class="rc-bl-empty muted">{t("run.compoundForm.clickToAddTheConfigurations")}</div>}>
             {(name, i) => {
               const type = () => findType(typeOf(name) ?? "");
               return (
@@ -81,10 +82,10 @@ export function CompoundForm(props: {
                   </span>
                   <span>{name}</span>
                   <Show when={!typeOf(name)}>
-                    <span class="rc-compound-missing">not found</span>
+                    <span class="rc-compound-missing">{t("run.compoundForm.notFound")}</span>
                   </Show>
                   <Show when={typeOf(name) === COMPOUND}>
-                    <span class="muted">Compound</span>
+                    <span class="muted">{t("run.compoundForm.compound")}</span>
                   </Show>
                 </div>
               );
@@ -98,7 +99,7 @@ export function CompoundForm(props: {
           checked={props.cfg.options?.allowMultipleInstances === "true"}
           onChange={(e) => props.update((c) => (c.options = { ...(c.options ?? {}), allowMultipleInstances: String(e.currentTarget.checked) }))}
         />
-        <span>Allow multiple instances</span>
+        <span>{t("run.compoundForm.allowMultipleInstances")}</span>
       </label>
     </>
   );

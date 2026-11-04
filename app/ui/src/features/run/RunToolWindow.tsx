@@ -61,6 +61,7 @@ import {
 import { openRunConfigurations } from "./dialogState";
 import { saveTemporary, isTemporary } from "./configStore";
 import { setDiffRequest } from "@/features/git/overlays";
+import { t as tr } from "@/i18n";
 
 interface SessionUi {
   scrollToEnd: boolean;
@@ -147,16 +148,16 @@ export function RunTabs() {
                 x: e.clientX,
                 y: e.clientY,
                 items: [
-                  { label: s.pinned ? "Unpin Tab" : "Pin Tab", icon: Pin, run: () => togglePin(s.id) },
-                  { label: "Rerun", icon: RotateCcw, run: () => void rerunSession(s.id) },
-                  { label: "Stop", icon: Square, disabled: !isRunning(s), run: () => void stopSession(s.id) },
+                  { label: s.pinned ? tr("run.runToolWindow.unpinTab") : tr("run.runToolWindow.pinTab"), icon: Pin, run: () => togglePin(s.id) },
+                  { label: tr("run.runToolWindow.rerun"), icon: RotateCcw, run: () => void rerunSession(s.id) },
+                  { label: tr("run.runToolWindow.stop"), icon: Square, disabled: !isRunning(s), run: () => void stopSession(s.id) },
                   { separator: true },
-                  { label: "Edit Configuration…", run: () => openRunConfigurations(s.name) },
-                  { label: "Save Configuration", disabled: !isTemporary(s.config), run: () => void saveTemporary(s.name) },
+                  { label: tr("run.runToolWindow.editConfiguration"), run: () => openRunConfigurations(s.name) },
+                  { label: tr("run.runToolWindow.saveConfiguration"), disabled: !isTemporary(s.config), run: () => void saveTemporary(s.name) },
                   { separator: true },
-                  { label: "Close Tab", icon: X, run: () => void closeSession(s.id) },
+                  { label: tr("run.runToolWindow.closeTab"), icon: X, run: () => void closeSession(s.id) },
                   {
-                    label: "Close Other Tabs",
+                    label: tr("run.runToolWindow.closeOtherTabs"),
                     disabled: sessions().length < 2,
                     run: () => sessions().filter((x) => x.id !== s.id && !x.pinned).forEach((x) => void closeSession(x.id)),
                   },
@@ -171,7 +172,7 @@ export function RunTabs() {
             </Show>
             <button
               class="run-tab-close"
-              title="Close"
+              title={tr("common.close")}
               onClick={(e) => {
                 e.stopPropagation();
                 void closeSession(s.id);
@@ -190,8 +191,8 @@ function showComparison(n: TestNode) {
   const path = n.location?.workspacePath || "Comparison Failure";
   setDiffRequest({
     path,
-    left: { title: "Expected", content: n.expected ?? "" },
-    right: { title: "Actual", content: n.actual ?? "" },
+    left: { title: tr("run.runToolWindow.expected"), content: n.expected ?? "" },
+    right: { title: tr("run.runToolWindow.actual"), content: n.actual ?? "" },
     editable: false,
   });
 }
@@ -224,7 +225,7 @@ export async function showTestHistory(x: number, y: number): Promise<void> {
               .then(openHistoryRun)
               .catch((err) => historyBalloon("Cannot open the test run", String(err))),
         }))
-      : [{ label: "No test runs yet", disabled: true }],
+      : [{ label: tr("run.runToolWindow.noTestRunsYet"), disabled: true }],
   });
 }
 
@@ -325,13 +326,13 @@ function SessionView(props: { session: RunSession }) {
         />
         <Show when={tests()}>
           <ToolButton
-            title="Rerun Failed Tests"
+            title={tr("run.runToolWindow.rerunFailedTests")}
             icon={<RefreshCcwDot size={15} />}
             disabled={running() || !tests() || tests()!.summary.counts.failed === 0}
             onClick={() => void rerunFailedTests(id())}
           />
           <ToolButton
-            title="Toggle Auto-Test"
+            title={tr("run.runToolWindow.toggleAutoTest")}
             class="run-auto-test"
             icon={<TimerReset size={15} />}
             active={!!props.session.autoTest}
@@ -340,16 +341,16 @@ function SessionView(props: { session: RunSession }) {
         </Show>
         <div class="run-tool-sep" />
         <ToolButton
-          title="Scroll to the End"
+          title={tr("run.runToolWindow.scrollToTheEnd")}
           icon={<ArrowDownToLine size={15} />}
           active={u().scrollToEnd}
           onClick={() => setUi(id(), "scrollToEnd", (v) => !v)}
         />
-        <ToolButton title="Soft-Wrap" icon={<WrapText size={15} />} active={wrap()} onClick={() => setUi(id(), "softWrap", !wrap())} />
-        <ToolButton title="Clear All" icon={<Trash2 size={15} />} onClick={() => clearConsole(id())} />
+        <ToolButton title={tr("run.runToolWindow.softWrap")} icon={<WrapText size={15} />} active={wrap()} onClick={() => setUi(id(), "softWrap", !wrap())} />
+        <ToolButton title={tr("run.runToolWindow.clearAll")} icon={<Trash2 size={15} />} onClick={() => clearConsole(id())} />
         <div class="run-tool-sep" />
         <ToolButton
-          title={props.session.pinned ? "Unpin Tab" : "Pin Tab"}
+          title={props.session.pinned ? tr("run.runToolWindow.unpinTab") : tr("run.runToolWindow.pinTab")}
           icon={<Pin size={15} />}
           active={props.session.pinned}
           onClick={() => togglePin(id())}
@@ -359,7 +360,7 @@ function SessionView(props: { session: RunSession }) {
         <Show when={panels().length}>
           <div class="run-panel-tabs" role="tablist">
             <button class="run-panel-tab" classList={{ active: !activePanel() }} onClick={() => setSessionPanel(id(), undefined)}>
-              <ScrollText size={13} /> Console
+              <ScrollText size={13} /> {tr("run.runToolWindow.console")}
             </button>
             <For each={panels()}>
               {(p) => (
@@ -405,25 +406,25 @@ function SessionView(props: { session: RunSession }) {
               <div class="run-tests">
                 <div class="run-tests-bar">
                   <div class="run-tests-tools" style={{ width: `${u().treeWidth}px` }}>
-                    <ToolButton title="Show Passed" icon={<CircleCheck size={15} />} active={view().showPassed} onClick={() => toggleView("showPassed")} />
-                    <ToolButton title="Show Ignored" icon={<Ban size={15} />} active={view().showIgnored} onClick={() => toggleView("showIgnored")} />
+                    <ToolButton title={tr("run.runToolWindow.showPassed")} icon={<CircleCheck size={15} />} active={view().showPassed} onClick={() => toggleView("showPassed")} />
+                    <ToolButton title={tr("run.runToolWindow.showIgnored")} icon={<Ban size={15} />} active={view().showIgnored} onClick={() => toggleView("showIgnored")} />
                     <div class="run-tool-sep vertical" />
                     <ToolButton
-                      title="Sort Alphabetically"
+                      title={tr("run.runToolWindow.sortAlphabetically")}
                       icon={<ArrowDownAZ size={15} />}
                       active={view().sort === "alpha"}
                       onClick={() => setUi(id(), "view", "sort", (s) => (s === "alpha" ? "none" : "alpha"))}
                     />
                     <ToolButton
-                      title="Sort by Duration"
+                      title={tr("run.runToolWindow.sortByDuration")}
                       icon={<Clock size={15} />}
                       active={view().sort === "duration"}
                       onClick={() => setUi(id(), "view", "sort", (s) => (s === "duration" ? "none" : "duration"))}
                     />
                     <div class="run-tool-sep vertical" />
-                    <ToolButton title="Expand All" icon={<ChevronsUpDown size={15} />} onClick={() => setUi(id(), "view", "collapsed", new Set())} />
+                    <ToolButton title={tr("run.runToolWindow.expandAll")} icon={<ChevronsUpDown size={15} />} onClick={() => setUi(id(), "view", "collapsed", new Set())} />
                     <ToolButton
-                      title="Collapse All"
+                      title={tr("run.runToolWindow.collapseAll")}
                       icon={<ChevronsDownUp size={15} />}
                       onClick={() => {
                         const ids = new Set<number>();
@@ -435,12 +436,12 @@ function SessionView(props: { session: RunSession }) {
                         setUi(id(), "view", "collapsed", ids);
                       }}
                     />
-                    <ToolButton title="Previous Failed Test" icon={<ArrowUp size={15} />} onClick={() => stepFailed(-1)} />
-                    <ToolButton title="Next Failed Test" icon={<ArrowDown size={15} />} onClick={() => stepFailed(1)} />
+                    <ToolButton title={tr("run.runToolWindow.previousFailedTest")} icon={<ArrowUp size={15} />} onClick={() => stepFailed(-1)} />
+                    <ToolButton title={tr("run.runToolWindow.nextFailedTest")} icon={<ArrowDown size={15} />} onClick={() => stepFailed(1)} />
                     <div class="run-tool-sep vertical" />
                     <button
                       class="icon-btn run-tool run-test-history"
-                      title="Test History"
+                      title={tr("run.runToolWindow.testHistory")}
                       onClick={(e) => {
                         const r = e.currentTarget.getBoundingClientRect();
                         void showTestHistory(r.left, r.bottom + 2);
@@ -504,11 +505,11 @@ export function RunToolWindow() {
         keyed
         fallback={
           <div class="run-empty-window muted">
-            <p>Nothing to show.</p>
+            <p>{tr("run.runToolWindow.nothingToShow")}</p>
             <p>
               Run a configuration with <b>{shortcutLabel("Run") || "Shift+F10"}</b> or open{" "}
               <button class="link-btn" onClick={() => openRunConfigurations()}>
-                Run/Debug Configurations
+                {tr("run.runToolWindow.runDebugConfigurations")}
               </button>
               .
             </p>

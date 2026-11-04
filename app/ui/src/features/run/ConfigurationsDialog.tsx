@@ -184,7 +184,7 @@ function validateAll(): string | null {
   const seen = new Set<string>();
   for (const { cfg } of state.items) {
     if (!cfg.name.trim()) return "Configuration name is empty";
-    if (seen.has(cfg.name)) return `Configuration "${cfg.name}" already exists`;
+    if (seen.has(cfg.name)) return tr("run.configurationsDialog.configurationNameAlreadyExists", { name: cfg.name });
     seen.add(cfg.name);
   }
   return null;
@@ -227,7 +227,7 @@ function PathInput(props: { value: string; placeholder?: string; directory?: boo
       />
       <button
         class="icon-btn rc-browse"
-        title={props.directory ? "Browse for a directory" : "Browse for a file"}
+        title={props.directory ? tr("run.configurationsDialog.browseForADirectory") : tr("run.configurationsDialog.browseForAFile")}
         onClick={async () => {
           const v = await browse(!!props.directory);
           if (v !== null) props.onChange(v);
@@ -394,7 +394,7 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
           <input
             class="rc-input"
             value={envText(props.cfg.env)}
-            placeholder="NAME=value;OTHER=value"
+            placeholder={"NAME=value;OTHER=value"}
             onChange={(e) =>
               update((c) => {
                 c.env = Object.fromEntries(

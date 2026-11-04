@@ -7,6 +7,7 @@ import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { runApi, type RunConfiguration } from "@/ipc/run";
 import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
+import { t as tr } from "@/i18n";
 
 const MAX_TEMPORARY = 5;
 
@@ -43,7 +44,7 @@ export async function loadConfigurations(): Promise<void> {
     setTemplates(file.templates ?? []);
     setSelectedName(file.selected ?? file.configurations[0]?.name ?? null);
   } catch (err) {
-    showBalloon("Run configurations could not be loaded", String(err));
+    showBalloon(tr("run.configStore.runConfigurationsCouldNotBe"), String(err));
   } finally {
     setLoaded(true);
   }
@@ -59,7 +60,7 @@ async function persist(): Promise<void> {
       templates: templates(),
     });
   } catch (err) {
-    showBalloon("Run configurations could not be saved", String(err));
+    showBalloon(tr("run.configStore.runConfigurationsCouldNotBe2"), String(err));
   }
 }
 

@@ -12,6 +12,7 @@ import { Box, FileCode, FlaskConical, Hexagon, Moon, Package, Play, SquareTermin
 import type { CommandLine, DebugTarget, RunConfiguration, RunRequest, RunStarted } from "@/ipc/run";
 import { settingsState } from "@/state/settings";
 import type { TestFrameworkSpec } from "@/ipc/testing";
+import { t as tr } from "@/i18n";
 
 export type FieldKind = "string" | "path" | "text" | "enum" | "bool" | "segmented";
 
@@ -148,15 +149,15 @@ export function testFrameworkType(spec: TestFrameworkSpec, pluginId: string): Ru
     fields: [
       {
         key: "scope",
-        label: "Test scope",
+        label: tr("run.types.testScope"),
         kind: "segmented",
         default: "all",
         options: scopes.map((s) => ({ value: s, label: SCOPE_LABELS[s] })),
       },
-      { key: "directory", label: "Directory", kind: "path", directory: true, required: true, visible: inScope("directory") },
-      { key: "file", label: "File", kind: "path", required: true, visible: inScope("file", "test") },
-      { key: "test", label: "Test", required: true, visible: inScope("test") },
-      { key: "pattern", label: "Pattern", required: true, visible: inScope("pattern") },
+      { key: "directory", label: tr("run.types.directory"), kind: "path", directory: true, required: true, visible: inScope("directory") },
+      { key: "file", label: tr("run.types.file"), kind: "path", required: true, visible: inScope("file", "test") },
+      { key: "test", label: tr("run.types.test"), required: true, visible: inScope("test") },
+      { key: "pattern", label: tr("run.types.pattern"), required: true, visible: inScope("pattern") },
       ...(spec.fields ?? []).map(
         (f): RunConfigField => ({
           key: f.key,
@@ -167,8 +168,8 @@ export function testFrameworkType(spec: TestFrameworkSpec, pluginId: string): Ru
           options: f.options,
         }),
       ),
-      ...(spec.fields?.some((f) => f.key === "executable") ? [] : [{ key: "executable", label: "Executable", kind: "path" as const, placeholder: spec.program }]),
-      { key: "testRunnerOptions", label: "Test runner options" },
+      ...(spec.fields?.some((f) => f.key === "executable") ? [] : [{ key: "executable", label: tr("run.types.executable"), kind: "path" as const, placeholder: spec.program }]),
+      { key: "testRunnerOptions", label: tr("run.types.testRunnerOptions") },
     ],
     suggestName: (cfg) => {
       const o = cfg.options ?? {};
@@ -204,7 +205,7 @@ const manifestTypes = createRoot(() =>
           pluginId: p.id,
           debuggable: t.debuggable,
           interpreter: t.command.includes("${interpreter}") ? "custom" : undefined,
-          argumentsLabel: t.command.includes("${arguments}") ? "Arguments" : false,
+          argumentsLabel: t.command.includes("${arguments}") ? tr("run.types.arguments") : false,
           fields: (t.fields ?? []).map((f) => ({
             key: f.key,
             label: f.label,
@@ -280,7 +281,7 @@ export function fieldValue(cfg: RunConfiguration, key: string): string {
 /** Fields that are required, visible and empty: "File is not specified". */
 export function validateConfiguration(cfg: RunConfiguration): string | null {
   const type = findType(cfg.type);
-  if (!type) return `Unknown configuration type "${cfg.type}"`;
+  if (!type) return tr("run.types.unknownConfigurationTypeType", { type: cfg.type });
   if (!cfg.name.trim()) return "Name is empty";
   for (const f of type.fields) {
     if (!f.required || (f.visible && !f.visible(cfg))) continue;

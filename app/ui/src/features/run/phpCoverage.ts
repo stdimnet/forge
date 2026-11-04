@@ -5,6 +5,7 @@
  */
 import type { RunConfiguration } from "@/ipc/run";
 import type { RunConfigField } from "./types";
+import { t } from "@/i18n";
 
 const driver = (cfg: RunConfiguration) => cfg.options?.coverageDriver ?? "";
 
@@ -13,18 +14,18 @@ export function phpCoverageFields(type: "phpunit" | "pest" | "codeception" | "be
   const fields: RunConfigField[] = [
     {
       key: "coverageDriver",
-      label: "Coverage driver",
+      label: t("run.phpCoverage.coverageDriver"),
       kind: "segmented",
       default: "",
       options: [
-        { value: "", label: "Auto" },
+        { value: "", label: t("run.phpCoverage.auto") },
         { value: "xdebug", label: "Xdebug" },
         { value: "pcov", label: "PCOV" },
       ],
     },
   ];
   if (type === "phpunit" || type === "pest")
-    fields.push({ key: "pathCoverage", label: "Branch and path coverage (Xdebug, PHPUnit 10+)", kind: "bool", visible: (c) => driver(c) !== "pcov" });
-  if (type === "phpunit" || type === "pest" || type === "codeception") fields.push({ key: "perTestCoverage", label: "Track per-test coverage", kind: "bool" });
+    fields.push({ key: "pathCoverage", label: t("run.phpCoverage.branchAndPathCoverageXdebug"), kind: "bool", visible: (c) => driver(c) !== "pcov" });
+  if (type === "phpunit" || type === "pest" || type === "codeception") fields.push({ key: "perTestCoverage", label: t("run.phpCoverage.trackPerTestCoverage"), kind: "bool" });
   return fields;
 }

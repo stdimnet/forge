@@ -159,18 +159,18 @@ cmd("ToggleAutoTestAction", "Toggle Auto-Test", () => toggleAutoTest());
 cmd("ShowTestHistory", "Test History…", () => showTestHistory(window.innerWidth / 2 - 160, window.innerHeight / 3));
 cmd("RunClass", "Run Context Configuration", () => {
   const cfg = contextConfiguration();
-  if (!cfg) return void showBalloon("Nothing to run here", "Open a PHP file or a test.");
+  if (!cfg) return void showBalloon(t("run.main.nothingToRunHere"), "Open a PHP file or a test.");
   void launch(useTemporary(cfg));
 });
 cmd("Coverage", "Run with Coverage", () => runWithCoverage());
 cmd("RunCoverage", "Run Context Configuration with Coverage", () => {
   const cfg = contextConfiguration();
-  if (!cfg) return void showBalloon("Nothing to run here", "Open a test file.");
+  if (!cfg) return void showBalloon(t("run.main.nothingToRunHere"), "Open a test file.");
   void runWithCoverage(useTemporary(cfg));
 });
 cmd("DebugClass", "Debug Context Configuration", () => {
   const cfg = contextConfiguration();
-  if (!cfg) return void showBalloon("Nothing to debug here", "Open a PHP file or a test.");
+  if (!cfg) return void showBalloon(t("run.main.nothingToDebugHere"), "Open a PHP file or a test.");
   void debugConfiguration(useTemporary(cfg));
 });
 cmd("CloseActiveTab", "Close Active Tool Window Tab", async () => {
