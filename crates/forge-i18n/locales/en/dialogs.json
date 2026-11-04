@@ -1,5 +1,6 @@
 {
-  "common.close": "Close",
+  "database.addDataSource": "Add data source",
+  "database.envFound": "Database found in {file}",
   "newProject.back": "Back",
   "newProject.browse": "Browse… ({shortcut})",
   "newProject.browseUnavailable": "Folder chooser is available in the desktop app",

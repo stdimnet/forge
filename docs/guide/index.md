@@ -52,6 +52,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Forge in German**: Settings | Appearance & Behavior | System Settings | Language switches
+  the IDE to Deutsch: main menu, actions (Find Action matches German and English names), tool
+  windows, the Settings dialog, Welcome screen, Commit window and the common dialogs
+  ([IDE language](user/languages.md), [Localization](developer/localization.md)).
 - **php-lsp is the only PHP language server**: support for Intelephense and Phpactor was
   removed (no server choice, licence key or install offer any more); old settings are ignored
   ([Language servers](user/language-servers.md#php-php-lsp)).

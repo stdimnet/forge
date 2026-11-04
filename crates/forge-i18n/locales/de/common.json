@@ -1,3 +1,16 @@
 {
-  "common.cancel": "Abbrechen"
+  "common.add": "Hinzufügen",
+  "common.apply": "Übernehmen",
+  "common.cancel": "Abbrechen",
+  "common.clear": "Leeren",
+  "common.close": "Schließen",
+  "common.collapseAll": "Alle zuklappen ({shortcut})",
+  "common.expandAll": "Alle aufklappen ({shortcut})",
+  "common.help": "Hilfe",
+  "common.moveDown": "Nach unten",
+  "common.moveUp": "Nach oben",
+  "common.nothingFound": "Nichts gefunden",
+  "common.nothingToShow": "Nichts anzuzeigen",
+  "common.ok": "OK",
+  "common.remove": "Entfernen"
 }

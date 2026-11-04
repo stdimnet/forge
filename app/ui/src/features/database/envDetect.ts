@@ -9,6 +9,7 @@ import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
 import { isCollabGuest, workspace } from "@/state/workspace";
 import { connect, revealSource, setSelectedNode } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Database");
 
@@ -38,10 +39,10 @@ export async function checkEnv(announce = true): Promise<void> {
   if (announced.has(key)) return;
   announced.add(key);
   showBalloon(
-    `Database found in ${first.origin}`,
+    t("database.envFound", { file: first.origin }),
     `${DRIVER_LABELS[first.source.driver]} · ${first.source.name}`,
     15000,
-    [{ label: "Add data source", run: () => void addFromEnv() }],
+    [{ label: t("database.addDataSource"), run: () => void addFromEnv() }],
   );
 }
 

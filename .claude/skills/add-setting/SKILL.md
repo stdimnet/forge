@@ -75,6 +75,13 @@ Open a page programmatically with `openSettings("<page id>")`
 
 ## Rules
 
+- The manifest's `title`, `description`, `section` and option labels are the English source
+  text. Their German translations go into `crates/forge-i18n/locales/de/plugins.json` under the
+  derived keys (`setting.<key>.title`, `.description`, `.option.<value>`,
+  `setting.section.<page>.<slug>`); regenerate the English file with
+  `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`. A custom page uses `t()` from `@/i18n`
+  for its own text and registers its title as `t("settings.page.<id>")`.
+
 - Secrets such as API keys, tokens and passwords never go into settings files. Store them in the
   OS keychain with the `keyring` crate, as `crates/forge-ai` does.
 - Do not keep state in `localStorage` that should persist; use settings.

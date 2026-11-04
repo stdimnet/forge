@@ -1,14 +1,15 @@
 import type { SearchStatus } from "@/ipc/search";
+import { t } from "@/i18n";
 
 export const count = (n: number) => n.toLocaleString("en-US");
 
 export function indexTooltip(s: SearchStatus, now = Date.now()): string {
-  const lines = [`Search index: ${count(s.files)} files`];
-  lines.push(`${count(s.contentFiles)} searched by content`);
-  if (s.binaryFiles) lines.push(`${count(s.binaryFiles)} binary, by name only`);
-  if (s.oversizedFiles) lines.push(`${count(s.oversizedFiles)} over the size limit, by name only`);
-  if (s.indexing) lines.push("Updating…");
-  else if (s.lastRefreshMs) lines.push(`Updated ${Math.max(0, Math.round((now - s.lastRefreshMs) / 1000))} s ago`);
+  const lines = [t("index.tooltip.files", { count: s.files })];
+  lines.push(t("index.tooltip.content", { count: s.contentFiles }));
+  if (s.binaryFiles) lines.push(t("index.tooltip.binary", { count: s.binaryFiles }));
+  if (s.oversizedFiles) lines.push(t("index.tooltip.oversized", { count: s.oversizedFiles }));
+  if (s.indexing) lines.push(t("index.tooltip.updating"));
+  else if (s.lastRefreshMs) lines.push(t("index.tooltip.updated", { seconds: Math.max(0, Math.round((now - s.lastRefreshMs) / 1000)) }));
   return lines.join("\n");
 }
 

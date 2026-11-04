@@ -2,7 +2,8 @@
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { LoaderCircle } from "lucide-solid";
 import { searchApi, type SearchStatus } from "@/ipc/search";
-import { count, indexTooltip } from "./indexTooltip";
+import { indexTooltip } from "./indexTooltip";
+import { t } from "@/i18n";
 
 const BUSY_POLL_MS = 1000;
 const IDLE_POLL_MS = 30000;
@@ -31,7 +32,7 @@ export function IndexStatus() {
           <Show when={s().indexing}>
             <LoaderCircle size={13} class="lsp-spin" />
           </Show>
-          {s().indexing ? "Indexing" : `${count(s().files)} files`}
+          {s().indexing ? t("index.indexing") : t("index.files", { count: s().files })}
         </span>
       )}
     </Show>

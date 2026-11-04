@@ -1,6 +1,4 @@
 {
-  "common.collapseAll": "Collapse All ({shortcut})",
-  "common.expandAll": "Expand All ({shortcut})",
   "vcs.advancedChecks": "Advanced Commit Checks",
   "vcs.amend": "Amend",
   "vcs.amendCommit": "Amend commit",
@@ -49,5 +47,8 @@
   "vcs.signOff": "Sign-off",
   "vcs.signOff.tooltip": "Add a Signed-off-by line (Settings | Version Control | Git)",
   "vcs.signOffCommit": "Sign-off commit",
+  "vcs.tab.changes": "Changes",
+  "vcs.tab.shelf": "Shelf",
+  "vcs.tab.stash": "Stash",
   "vcs.unversioned": "Unversioned Files"
 }

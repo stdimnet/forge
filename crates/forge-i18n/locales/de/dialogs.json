@@ -1,5 +1,6 @@
 {
-  "common.close": "Schließen",
+  "database.addDataSource": "Datenquelle hinzufügen",
+  "database.envFound": "Datenbank in {file} gefunden",
   "newProject.back": "Zurück",
   "newProject.browse": "Durchsuchen… ({shortcut})",
   "newProject.browseUnavailable": "Die Ordnerauswahl ist in der Desktop-App verfügbar",

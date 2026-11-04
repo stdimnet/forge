@@ -1,6 +1,4 @@
 {
-  "common.collapseAll": "Alle zuklappen ({shortcut})",
-  "common.expandAll": "Alle aufklappen ({shortcut})",
   "vcs.advancedChecks": "Erweiterte Commit-Prüfungen",
   "vcs.amend": "Amend",
   "vcs.amendCommit": "Amend-Commit",
@@ -49,5 +47,8 @@
   "vcs.signOff": "Sign-off",
   "vcs.signOff.tooltip": "Eine Signed-off-by-Zeile hinzufügen (Einstellungen | Versionskontrolle | Git)",
   "vcs.signOffCommit": "Commit mit Sign-off",
+  "vcs.tab.changes": "Änderungen",
+  "vcs.tab.shelf": "Zurückgestellt",
+  "vcs.tab.stash": "Stash",
   "vcs.unversioned": "Nicht versionierte Dateien"
 }

@@ -21,7 +21,7 @@ Tool windows are registered from a feature folder through `registerToolWindow`
 
    registerToolWindow({
      id: "services",          // reuse a placeholder id to replace it
-     title: "Services",
+     title: t("toolwindow.services.title"), // import { t } from "@/i18n"
      icon: Container,          // lucide-solid icon
      anchor: "bottom",         // default place: "left" | "right" | "bottom" (users can move it)
      order: 30,                // default position inside the stripe group
@@ -42,7 +42,12 @@ Tool windows are registered from a feature folder through `registerToolWindow`
 7. Styling: a `<name>.css` next to the component using only variables from
    `app/ui/src/theme/theme.css` (both themes). Reuse shared classes: `.tree-row`, `.icon-btn`,
    `.pill-btn`, `.btn-primary`, `.btn-secondary`, `.muted`, `.vcs-*`.
-8. Verify with a screenshot scenario (`verify-ui-with-screenshots` skill) and compare against
+8. Text: every label, tooltip, placeholder and message goes through `t("key")` from
+   `@/i18n`, with the English message in `crates/forge-i18n/locales/en/<area>.json` and the
+   German one in `locales/de/<area>.json` (see `docs/guide/developer/localization.md`). The
+   tool window title key is `toolwindow.<id>.title`; when the manifest declares the window,
+   its English title comes from the manifest. Run `pnpm i18n:check`.
+9. Verify with a screenshot scenario (`verify-ui-with-screenshots` skill) and compare against
    PHPStorm's New UI: same layout, wording and behaviour, Forge colors.
 
 ## Reference implementations

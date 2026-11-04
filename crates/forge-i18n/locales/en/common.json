@@ -1,3 +1,16 @@
 {
-  "common.cancel": "Cancel"
+  "common.add": "Add",
+  "common.apply": "Apply",
+  "common.cancel": "Cancel",
+  "common.clear": "Clear",
+  "common.close": "Close",
+  "common.collapseAll": "Collapse All ({shortcut})",
+  "common.expandAll": "Expand All ({shortcut})",
+  "common.help": "Help",
+  "common.moveDown": "Move Down",
+  "common.moveUp": "Move Up",
+  "common.nothingFound": "Nothing found",
+  "common.nothingToShow": "Nothing to show",
+  "common.ok": "OK",
+  "common.remove": "Remove"
 }
