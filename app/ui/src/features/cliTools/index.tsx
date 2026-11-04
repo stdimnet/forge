@@ -68,7 +68,7 @@ registerCommand({
 });
 registerCommand({
   id: "ActivateCommandLineToolsConsoleToolWindow",
-  title: t("toolwindow.command-line-tools-console.title"),
+  title: "Command Line Tools Console",
   category: "View",
   run: () => {
     if (cliToolsActive()) showToolWindow(TOOL_WINDOW_ID);

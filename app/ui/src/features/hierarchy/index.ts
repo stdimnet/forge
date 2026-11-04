@@ -27,7 +27,7 @@ registerToolWindow({
 });
 
 // PHPStorm has no default shortcut for the window itself; it is listed under View | Tool Windows.
-registerKeymapActions([{ id: "ActivateHierarchyToolWindow", title: t("toolwindow.hierarchy.title"), group: "Main Menu/View/Tool Windows" }]);
+registerKeymapActions([{ id: "ActivateHierarchyToolWindow", title: "Hierarchy", group: "Main Menu/View/Tool Windows" }]);
 
 const inEditor = (fn: (path: string, view: EditorView, pos: number) => Promise<void>) => () => {
   const a = activeView();

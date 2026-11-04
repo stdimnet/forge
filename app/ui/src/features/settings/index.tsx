@@ -68,7 +68,7 @@ registerSettingsPage({
   component: PluginsPage,
 });
 
-registerCommand({ id: "settings.open", title: t("settings.page.settings.open"), category: "File", run: () => openSettings() });
+registerCommand({ id: "settings.open", title: "Settings…", category: "File", run: () => openSettings() });
 registerCommand({
   id: "TemplateProjectProperties",
   title: "Settings for New Projects…",
