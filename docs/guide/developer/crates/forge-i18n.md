@@ -23,7 +23,8 @@ tags: [crate, rust, i18n, localization]
   mismatches (the key-parity test), plus coverage.
 - A process-wide localizer (`set_locale`, `t`, `t_args`, `t_or`) for Rust-originated text:
   the main menu and action titles (`forge-keymap`), plugin manifests (`forge-plugin-api`),
-  Settings group titles and Safe Mode refusals (`forge-trust`).
+  Settings group titles, Safe Mode refusals (`forge-trust`) and the `ForgeError` messages
+  sent to the UI (`forge-core`).
 
 See the [Localization](../localization.md) guide for the key naming and how to add strings
 and languages.

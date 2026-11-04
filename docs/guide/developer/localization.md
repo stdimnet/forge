@@ -31,6 +31,8 @@ Catalogs are flat JSON files `crates/forge-i18n/locales/<locale>/<area>.json`, o
 | `shell` | main toolbar, status bar, tool window chrome, editor tabs and menus, notifications, Problems |
 | `settings` | the Settings dialog, page titles (`settings.page.<id>`), groups, Plugins page |
 | `search`, `vcs`, `run`, `dialogs` (Project view, Rename, New Project, …), `welcome`, `errors` | their features |
+| `git`, `debug`, `database`, `codeintel` | the Git dialogs and tool window, the Debugger, the Database tools, refactorings / Find Usages / hierarchy dialogs; keys `<area>.<component>.<name>` (`git.branchesPopup.newBranch`, `database.objects.tableDialog.createTable`) |
+| `commands` | titles of Forge's own actions without a PHPStorm id (`action.NewWindow`, `action.Database.NewTable`), registered with `registerCommand` / `registerKeymapActions` in the UI |
 | `menu`, `actions`, `plugins` | **generated in English** (see below), translated by hand |
 
 A new area file must also be listed in `BUILTIN` in `crates/forge-i18n/src/catalog.rs`; a test
@@ -101,7 +103,9 @@ tOr(`search.tab.${id}`, fallback);                // a key built from data that 
   arguments and a plural. Keep keyboard shortcuts, file names and code as arguments.
 - Do not translate command titles passed to `registerCommand` or `registerKeymapActions`: they
   stay English, and the keymap (Rust) shows the `action.<id>` translation with the English
-  title as `titleEn`, which Find Action also matches.
+  title as `titleEn`, which Find Action also matches. For a new action id that is not a
+  PHPStorm action, add `action.<id>` with the English title to `locales/en/commands.json` and
+  the German one to `locales/de/commands.json`.
 - A local variable called `t` (common for "tab" or "type") shadows the import; rename the
   variable, or import `t as tr` as `features/run/ConfigurationsDialog.tsx` does.
 - In vitest, `t()` loads the WebAssembly module synchronously on first use, so components
@@ -118,6 +122,12 @@ forge_i18n::t("errors.safeMode.refused");
 forge_i18n::t_args("errors.safeMode.refused", &forge_i18n::args! { "what" => what });
 forge_i18n::t_or("menu.SaveAll", "Save _All"); // translation, or the English text from code
 ```
+
+`ForgeError` (forge-core) serializes to the UI in the selected language: `not found`, `path is
+outside of the workspace`, I/O errors and `ForgeError::no_project()` use `errors.*` keys, while
+`Display` stays English for logs. Messages of `ForgeError::Other` are shown as they are, so build
+them with `forge_i18n::t` when users commonly see them (`errors.collab.noSession`,
+`errors.noDeclaration`).
 
 The main menu and action titles (`forge-keymap`), plugin manifests
 (`forge_plugin_api::l10n::localize_plugin` / `localize_settings`, used by `plugins_list` and
@@ -161,30 +171,41 @@ the hand-written areas are fully translated.
 
 ## Current coverage
 
-`pnpm i18n:check` at the time German was added:
+`pnpm i18n:check` now (German was added in #134 with 1,711 of 3,740 keys and 4,423 hard-coded
+strings):
 
 | Measure | Value |
 | --- | --- |
-| English catalog keys | 3,740 (of which 3,094 generated: 320 menu labels, 375 action titles, 2,399 manifest texts) |
-| German translations | 1,711 (45.7 %): every hand-written key, all menu labels and PHPStorm action titles, and 370 of 2,399 manifest texts |
-| Keys used in the UI code | 579 literal keys plus 9 dynamic `t()` calls |
-| Hard-coded strings left in `.tsx` (heuristic) | 4,423 |
+| English catalog keys | 5,614 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
+| German translations | 4,416 (78.7 %): every hand-written key, all menu labels and PHPStorm action titles, and 1,226 of 2,424 manifest texts |
+| Keys used in the UI code | 2,203 literal keys plus 9 dynamic `t()` calls |
+| Hard-coded strings left in `.tsx` (heuristic) | 3,380 |
 
-Translated: the main menu, Find Action and the keymap's PHPStorm actions, tool window titles
-and chrome, the status bar file widgets, index and language server status, the Settings
-dialog (tree, page titles, buttons, search) with the Appearance, System Settings, Language,
-Editor General / Tabs / Font, Terminal, Git and Commit settings, the Plugins page, the
-Welcome screen, Search Everywhere, Find in Files, Rename, New Project, Run/Debug
-Configurations (dialog chrome) and the run widget, the Commit tool window, the Project view
-and editor tab and editor context menus, notifications, the language restart prompt and Safe
-Mode refusals.
+Translated: the main menu, Find Action and the keymap (PHPStorm actions and Forge's own
+actions), tool window titles and chrome, the status bar file widgets, index and language server
+status, the Settings dialog with the Appearance, System Settings, Language, Editor (General,
+Tabs, Font, Code Style, Inlay Hints, Live Templates, Postfix, Emmet, Reader Mode, Natural
+Languages), Version Control, Tools (Terminal, Actions on Save, AI, Code With Me, Database, MCP
+Server, Browser Companion, Search, External Tools) and Languages & Frameworks | PHP pages
+(Composer, Quality Tools, Debug, Test Frameworks, Laravel, Symfony, Doctrine, WordPress, Drupal),
+the Plugins page, the Welcome screen, Search Everywhere, Find in Files, Rename, New Project, the
+Git dialogs, Git log, file history, merge window and Branches popup, the Commit tool window, the
+Debugger tool window and dialogs, the Database tool window and dialogs, refactoring, Find Usages
+and hierarchy dialogs, the Find and Run tool windows, Run/Debug Configurations with the run
+configuration fields and types and the Run on targets, the Project view and editor tab and editor
+context menus, notifications, the language restart prompt, Safe Mode refusals and common backend
+errors (no project open, not found, I/O, outside the workspace).
 
-Still English: the other tool windows and dialogs (Database 508 strings, Git log and dialogs
-262, .NET 192, Debugger 185, code intelligence dialogs 155, C/C++ 147, code hosts 136, Code
-With Me 118, …), most settings of the language packs (2,029 manifest texts), run
-configuration fields and Run on targets, file templates and New Project generator names,
-menu entries contributed by UI features (`registerMainMenuEntries` labels) and Forge's own
-commands without a PHPStorm action id, Rust errors other than Safe Mode, the splash screen.
+Still English: the other tool windows and dialogs (.NET 192 strings, C/C++ 147, code hosts 136,
+Code With Me 118, game engines 105, Python 105, PHP tool windows 95, web tooling 93, Java 88,
+inspections 80, remote development 72, …), the settings of the other language packs (1,198
+manifest texts), file templates and New Project generator names, menu entries contributed by UI
+features (`registerMainMenuEntries` labels), most other Rust errors (git and tool output stays as
+the tools write it), the splash screen.
+
+`app/ui/scripts/scenarios/localization-dialogs.mjs` captures the translated dialogs in German
+(`i18n-*-de.png`) by running the English scenarios of the features after switching the
+language; use it to check longer German text for truncation.
 
 ## Adding a language
 

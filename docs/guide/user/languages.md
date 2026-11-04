@@ -41,16 +41,24 @@ settings, so it applies to every project.
 | Commit tool window and Commit Options | yes |
 | Project view and editor tab context menus, the editor context menu | yes |
 | Notifications tool window and the balloons of the shell | yes |
-| Safe Mode refusals from the backend | yes |
-| Other tool windows, dialogs and settings pages | not yet, they stay English |
+| Git: Branches popup, Git log and file history, Merge, Rebase, Pull, Reset, Stash, Shelf, Patch, Worktrees, Clone and the merge window | yes |
+| Debugger tool window, Breakpoints dialog, Attach to Process, Web Server Debug Validation, Servers | yes |
+| Database tool window, Data Sources and Drivers, table editor and consoles, import, dump, Modify Table, schema comparison and diagrams | yes |
+| Refactoring dialogs (Move, Copy, Safe Delete, Change Signature, Extract, Pull Members Up / Push Members Down, Extract Interface / Superclass), Find Usages and the Find tool window | yes |
+| Run tool window, run configuration fields and types, Run on targets (Docker, Docker Compose, SSH, WSL, Dev Container) | yes |
+| Forge's own actions without a PHPStorm counterpart (e.g. New Window, Code With Me, AI, Database actions) in Find Action and the keymap | yes |
+| Settings pages Languages & Frameworks \| PHP (with Composer, Quality Tools, Debug, Laravel, Symfony, Doctrine, WordPress), Editor, Version Control and Tools | yes |
+| Safe Mode refusals and common backend errors (no project open, file not found, I/O errors) | yes |
+| Other tool windows and dialogs (.NET, C/C++, code hosts, Code With Me, game engines, Python, Java, Services, …), the settings of other language packs, file templates and New Project generator names | not yet, they stay English |
 
 Untranslated text is always English, never a key or an empty label. The
 [developer guide](../developer/localization.md) explains how the coverage is measured and how
 to add translations.
 
-> **Note:** plugin names, settings and tool window titles of the bundled plugins are partly
-> translated; the rest of their settings stay English for now. Third-party plugins can ship
-> their own translations in their manifest.
+> **Note:** plugin names, settings and tool window titles of the bundled plugins are about half
+> translated: the PHP, Editor, Version Control and Tools pages are German, the settings of the
+> other language packs stay English for now. Third-party plugins can ship their own translations
+> in their manifest.
 
 ## Find Action in two languages
 
@@ -71,3 +79,7 @@ The German translation follows JetBrains' German terminology and addresses you f
 Numbers, dates and plurals follow the language: *1.234 Dateien*, *04.11.2026*.
 
 ![Commit window in German](../../screenshots/i18n-commit-de.png)
+
+![Git log in German](../../screenshots/i18n-git-log-de.png)
+
+![Run/Debug Configurations with Run on in German](../../screenshots/i18n-run-on-de.png)
