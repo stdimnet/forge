@@ -5,6 +5,7 @@ import { isTauri } from "@/ipc";
 import { suspendKeymap } from "@/keymap";
 import { version as uiVersion } from "../../../package.json";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const [aboutOpen, setAboutOpen] = createSignal(false);
 export const openAbout = () => setAboutOpen(true);
@@ -36,11 +37,7 @@ function AboutDialog() {
   const lines = () => aboutLines(version() ?? uiVersion, isTauri(), navigator.platform);
   const close = () => setAboutOpen(false);
   const copyAndClose = async () => {
-    try {
-      await navigator.clipboard.writeText(lines().join("\n"));
-    } catch {
-      // Clipboard not available: just close.
-    }
+    await writeClipboard(lines().join("\n"));
     close();
   };
   return (

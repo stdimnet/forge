@@ -44,12 +44,13 @@ import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
 import { t } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
 async function copyLink(link: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(link);
+    await writeClipboardText(link);
     return true;
   } catch {
     return false;

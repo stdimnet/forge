@@ -24,6 +24,7 @@ import { dbSchemaApi, type CompareResult, type CompareSide, type FrameworkKind, 
 import { connect, defaultSchema, introspect, openConsole, sourceById, sources, visibleSchemas } from "../store";
 import { loadSchema, nowSeconds, takeCompareStart } from "./model";
 import { t as tr } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const showBalloon = balloonsFor("Database");
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -348,7 +349,7 @@ export function CompareView(props: { tab: EditorTab }) {
             <button class="btn-secondary cmp-btn" disabled={!result() || !targetDs()} onClick={openInConsole} title={tr("database.schema.compareView.openTheScriptInA")}>
               <SquareTerminal size={13} /> {tr("database.schema.compareView.openInConsole")}
             </button>
-            <button class="btn-secondary cmp-btn" disabled={!result()} onClick={() => void navigator.clipboard?.writeText(result()?.migration.sql ?? "").then(() => showBalloon(tr("database.schema.compareView.migrationScriptCopied")))}>
+            <button class="btn-secondary cmp-btn" disabled={!result()} onClick={() => void writeClipboard(result()?.migration.sql ?? "").then((ok) => ok && showBalloon(tr("database.schema.compareView.migrationScriptCopied")))}>
               <Copy size={13} /> {tr("database.schema.compareView.copy")}
             </button>
             <For each={frameworks()}>

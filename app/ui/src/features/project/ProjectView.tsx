@@ -7,7 +7,7 @@
  */
 import { createEffect, createResource, createRoot, createSignal, For, on, Show, type Component } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { ChevronDown, ChevronRight, ChevronsDownUp, EllipsisVertical, LocateFixed } from "lucide-solid";
+import { ChevronsDownUp, EllipsisVertical, LocateFixed } from "lucide-solid";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { projectStructureApi, type TreeRow } from "@/ipc/projectStructure";
 import { onProjectSwitch, workspace } from "@/state/workspace";
@@ -15,6 +15,7 @@ import { activeTab, editor, isCustomTab } from "@/state/editor";
 import { openFileReported } from "@/features/navigation/openReported";
 import { statusOf, dirHasChanges, dirHasConflicts } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
+import { TreeArrow } from "@/shell/TreeArrow";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isToolWindowVisible } from "@/state/layout";
 import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
@@ -263,7 +264,9 @@ function MemberRows(props: { file: string; nodes: StructureNode[]; parent: strin
                   toggle(key);
                 }}
               >
-                <Show when={kids()}>{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
+                <Show when={kids()}>
+                  <TreeArrow open={open()} />
+                </Show>
               </span>
               <SymbolIcon kind={node.kind} visibility={node.visibility} modifiers={node.modifiers} />
               <span class="tree-label">{node.name}</span>
@@ -406,9 +409,11 @@ function TreeNode(props: { row: TreeRow; depth: number }) {
             toggle(props.row.path);
           }}
         >
-          <Show when={expandable()}>{isOpen() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
+          <Show when={expandable()}>
+            <TreeArrow open={isOpen()} />
+          </Show>
         </span>
-        <FileIcon name={entry().name} dir={isDir()} open={isOpen() && isDir()} dimmed={props.row.ignored} />
+        <FileIcon name={entry().name} path={props.row.path} dir={isDir()} open={isOpen() && isDir()} dimmed={props.row.ignored} />
         <span class={`tree-label ${status() ? `vcs-${status()}` : ""}`}>{props.row.name}</span>
         <Show when={decoration()?.hint}>
           <span class="tree-hint">{decoration()?.hint}</span>
@@ -554,7 +559,7 @@ export function ProjectView() {
               }}
             >
               <span class="tree-chevron">
-                <ChevronDown size={14} />
+                <TreeArrow open />
               </span>
               <FileIcon name={workspace()?.name ?? ""} dir open />
               <span class="tree-label strong">{workspace()?.name}</span>

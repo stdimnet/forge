@@ -42,6 +42,7 @@ mod filetypes;
 mod go;
 mod hierarchy;
 mod i18n;
+mod icons;
 mod injections;
 mod inspections;
 mod java;

@@ -14,6 +14,7 @@ import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
 import { copyEntries, moveEntries, safeDeleteEntries } from "@/features/codeintel/moveRefactorings";
 import { t } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
@@ -149,7 +150,7 @@ async function remove(entry: FileEntry): Promise<void> {
 
 async function copy(text: string, what: "path" | "name"): Promise<void> {
   try {
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
   } catch {
     showBalloon(t(what === "path" ? "project.copy.failed.path" : "project.copy.failed.name"), t("project.clipboardUnavailable"));
   }

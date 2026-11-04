@@ -245,7 +245,7 @@ export function RecentFilesPopup() {
                       }}
                       onClick={() => void openSelected()}
                     >
-                      <FileIcon name={f.name} size={15} />
+                      <FileIcon name={f.name} path={f.path} size={15} />
                       <span class="recent-name" classList={{ modified: !!tab() && isDirty(tab()!) }}>
                         <Highlight text={f.name} positions={f.m!.positions} />
                       </span>

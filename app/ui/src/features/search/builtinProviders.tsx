@@ -26,7 +26,7 @@ function fileItem(path: string, score: number, matches?: number[]): SearchItem {
     detail: dirOf(path),
     hint: workspace()?.name,
     kind: "file",
-    icon: () => <FileIcon name={name} size={16} />,
+    icon: () => <FileIcon name={name} path={path} size={16} />,
     score,
     run: () => openFileReported(path),
   };

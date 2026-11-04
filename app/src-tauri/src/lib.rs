@@ -53,6 +53,7 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(updater.build())
         .manage(app_state)
         .manage(startup::StartupState::default())
@@ -219,6 +220,8 @@ pub fn run() {
             commands::clipboard::clipboard_history_list,
             commands::clipboard::clipboard_history_remove,
             commands::clipboard::clipboard_history_promote,
+            commands::clipboard::clipboard_read_text,
+            commands::clipboard::clipboard_write_text,
             commands::templates::templates_list,
             commands::templates::templates_validate,
             commands::templates::templates_php_namespace,
@@ -288,6 +291,7 @@ pub fn run() {
             commands::third_party::plugin_install_file,
             commands::third_party::plugin_uninstall,
             commands::third_party::plugin_bundle,
+            commands::third_party::icon_theme_load,
             commands::third_party::plugin_host_read_file,
             commands::third_party::plugin_host_write_file,
             commands::third_party::plugin_host_fetch,

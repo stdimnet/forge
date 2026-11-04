@@ -27,6 +27,7 @@ import { refreshVimEditors, setVimHost, vimExtension } from "./extension";
 import { HandlersEditor } from "./HandlersEditor";
 import "./vim.css";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 export const VIM_ENABLED_KEY = "vim.enabled";
 const HANDLERS_KEY = "vim.shortcutHandlers";
@@ -173,7 +174,7 @@ setVimHost({
   },
   reloadRc: () => reloadVimRc(true),
   copy: (text) => {
-    void navigator.clipboard?.writeText(text).catch(() => undefined);
+    void writeClipboard(text);
     recordCopy(text);
   },
   status: onResponse,

@@ -70,6 +70,7 @@ Commands and tool windows also load their plugin on first use without an event.
 | `settingsPages` | `{ id, title }`: a page under Tools in the Settings dialog showing the plugin's settings |
 | `settings` | typed settings like the built-in ones (`key`, `title`, `description`, `type` = `bool`, `int`, `number`, `string`, `enum`, `path`, `list`, `default`, `group` = one of the plugin's pages, `order`) |
 | `languages` | file types: `{ id, name, extensions, fileNames, indentSize? }` |
+| `iconThemes` | `{ id, label, path }`: a file icon theme, `path` = an `icon-theme.json` in a folder of the package next to its SVGs; no code and no permission needed (see [Icon themes](../icon-themes.md)) |
 
 ## The `forge` API
 

@@ -8,6 +8,7 @@ import type { Cell, SortKey } from "@/ipc/db";
 import { editText, measureWidth, parseInput, rangeText, renderCell, typeLabel, type GridColumn } from "./grid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const ROW_H = 24;
 const HEAD_H = 28;
@@ -238,7 +239,7 @@ export function DataGrid(props: DataGridProps) {
     const n = norm();
     if (!n) return;
     const rows = Array.from({ length: total() }, (_, r) => props.columns.map((_, c) => valueAt(r, c) ?? null));
-    void navigator.clipboard?.writeText(rangeText(props.columns, rows, n.r0, n.r1, n.c0, n.c1, header));
+    void writeClipboard(rangeText(props.columns, rows, n.r0, n.r1, n.c0, n.c1, header));
   };
 
   const startResize = (e: MouseEvent, index: number) => {

@@ -11,6 +11,7 @@ import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow }
 import { workspace } from "@/state/workspace";
 import { applyServers, onInstallOutput } from "./store";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 type Phase = "confirm" | "running" | "done";
 
@@ -60,7 +61,7 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
   };
 
   const copy = async () => {
-    await navigator.clipboard?.writeText(option()?.command ?? "").catch(() => undefined);
+    if (!(await writeClipboard(option()?.command ?? ""))) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };

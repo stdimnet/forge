@@ -22,6 +22,7 @@ import {
   sortedMethods,
 } from "./state";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const [query, setQuery] = createSignal("");
 const [tab, setTab] = createSignal<"routes" | "models">("routes");
@@ -77,9 +78,9 @@ function routeMenu(r: RailsRoute, e: MouseEvent) {
       item("Generate HTTP Request", () => void openInHttpClient(r), undefined, { disabled: !http }),
       item("Open in Browser", () => openRouteInBrowser(r), undefined, { disabled: !sortedMethods(r).some((m) => m === "GET" || m === "ANY") }),
       separator,
-      item("Copy URL", () => void navigator.clipboard?.writeText(`${serverBase()}${r.samplePath}`)),
-      item("Copy Path", () => void navigator.clipboard?.writeText(r.path)),
-      item("Copy Helper", () => void navigator.clipboard?.writeText(`${r.name}_path`), undefined, { disabled: !r.name }),
+      item("Copy URL", () => void writeClipboard(`${serverBase()}${r.samplePath}`)),
+      item("Copy Path", () => void writeClipboard(r.path)),
+      item("Copy Helper", () => void writeClipboard(`${r.name}_path`), undefined, { disabled: !r.name }),
     ],
     e.clientX,
     e.clientY,

@@ -46,6 +46,7 @@ import { PopupHost } from "./PopupHost";
 import { focusToolWindowContent } from "@/features/accessibility/areas";
 import { t as tr } from "@/i18n";
 import "./navigation.css";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 function action(id: string, run: () => void | Promise<void>): void {
   const def = actionById(id);
@@ -201,7 +202,7 @@ action("PreviousTab", () => cycleTabs(-1));
 
 async function copy(text: string, what: string): Promise<void> {
   try {
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
     showBalloon(`${what} copied`, text);
   } catch {
     showBalloon(tr("tools.navigation.couldNotCopy", { what: what.toLowerCase() }));

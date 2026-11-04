@@ -14,6 +14,7 @@ import { ExecutionMode, ObjectModal } from "./Modal";
 import { SqlPreview } from "./SqlPreview";
 import { closeObjectDialog, runObjectScript, scriptToConsole } from "./state";
 import { t as tr } from "@/i18n";
+import { writeClipboard, writeClipboardText } from "@/features/clipboard/system";
 
 const text = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -177,7 +178,7 @@ export async function generateDdlTo(target: "clipboard" | "console" | "file", ds
     const sql = await dbObjectsApi.generateDdl(ds, objects, lastOptions);
     if (target === "console") scriptToConsole(ds, sql);
     else {
-      await navigator.clipboard?.writeText(sql);
+      await writeClipboardText(sql);
       showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), tr("tools.database.objects", { count: objects.length }));
     }
   } catch (e) {
@@ -252,7 +253,7 @@ export function GenerateDdlDialog(p: { ds: string; objects: DdlObject[] }) {
           <button class="btn-secondary" disabled={!sql()} onClick={() => void generateDdlTo("file", p.ds, selected())} title={tr("database.objects.scriptDialogs.saveToFile")}>
             <FileDown size={14} /> {tr("database.objects.scriptDialogs.file")}
           </button>
-          <button class="btn-secondary" disabled={!sql()} onClick={() => void navigator.clipboard?.writeText(sql()).then(() => showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), `${selected().length} objects`))}>
+          <button class="btn-secondary" disabled={!sql()} onClick={() => void writeClipboard(sql()).then((ok) => ok && showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), `${selected().length} objects`))}>
             <Copy size={14} /> {tr("database.objects.scriptDialogs.copy")}
           </button>
           <button

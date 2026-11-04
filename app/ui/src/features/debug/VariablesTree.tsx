@@ -22,6 +22,7 @@ import {
   type SelectedVariable,
 } from "./store";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 function TypeIcon(props: { p: Property; watch?: boolean }) {
   if (props.watch) return <Glasses size={13} class="dbg-icon dbg-icon-watch" />;
@@ -71,7 +72,7 @@ export async function copyValue(v: SelectedVariable): Promise<void> {
     const printed = await debugApi.eval(s.id, `print_r(${v.watch ?? p.fullname}, true)`, selectedFrame()?.level ?? 0).catch(() => null);
     if (printed?.value != null) text = printed.value;
   }
-  await navigator.clipboard?.writeText(text).catch(() => undefined);
+  await writeClipboard(text);
 }
 
 /** Set Value (F2) on the selected row. */
@@ -99,7 +100,7 @@ function openVariableMenu(e: MouseEvent, v: SelectedVariable, onRemove?: () => v
     items: [
       { label: t("debug.variablesTree.setValue"), icon: Pencil, shortcut: shortcutLabel("XDebugger.SetValue"), disabled: !pausedSession(), run: () => setEditingVariable(v.key) },
       { label: t("debug.variablesTree.copyValue"), icon: Copy, shortcut: shortcutLabel("XDebugger.CopyValue"), run: () => void copyValue(v) },
-      { label: t("debug.variablesTree.copyName"), run: () => void navigator.clipboard?.writeText(expr).catch(() => undefined) },
+      { label: t("debug.variablesTree.copyName"), run: () => void writeClipboard(expr) },
       { separator: true },
       { label: t("debug.variablesTree.evaluateExpression"), shortcut: shortcutLabel("EvaluateExpression"), run: () => setEvaluateRequest({ expression: expr }) },
       { label: t("debug.variablesTree.addToWatches"), icon: Eye, disabled: !!v.watch, run: () => addWatch(expr) },

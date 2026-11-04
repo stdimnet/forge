@@ -16,6 +16,7 @@ import { openInBrowser } from "@/features/run/runStore";
 import { openHttpRequest, httpEnvironment, NO_HTTP_ENV, isHttpPath } from "@/features/scratches/store";
 import { isDialogWindow } from "@/shell/window/mode";
 import { t } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 const showBalloon = balloonsFor("HTTP Client");
 
@@ -57,7 +58,7 @@ async function copyAsCurl(): Promise<void> {
   const line = state.doc.lineAt(state.selection.main.head).number - 1;
   try {
     const cmd = await httpExtrasApi.toCurl(state.doc.toString(), line, envArg(), a.path);
-    await navigator.clipboard?.writeText(cmd);
+    await writeClipboardText(cmd);
     showBalloon(t("langs.webTooling.copiedAsCurl"), cmd.split("\n")[0]);
   } catch (err) {
     showBalloon(t("langs.webTooling.cannotCopyAsCurl"), String(err));

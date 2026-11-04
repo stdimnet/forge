@@ -224,8 +224,6 @@
   "tools.clipboard.nothingWasCopiedInThis": "Nothing was copied in this session",
   "tools.clipboard.preview": "Preview",
   "tools.clipboard.enterToPasteDeleteTo": "Enter to paste · Delete to remove · type to filter",
-  "tools.clipboard.clipboardIsNotAvailable": "Clipboard is not available",
-  "tools.clipboard.useTheKeyboardShortcutInstead": "Use the keyboard shortcut instead.",
   "tools.codeStructure.breadcrumbs": "Breadcrumbs",
   "tools.codeStructure.showSiblings": "Show siblings",
   "tools.codeStructure.toggleRenderedView": "Toggle Rendered View",

@@ -6,6 +6,7 @@ import { dbObjectsApi } from "@/ipc/dbObjects";
 import { showBalloon } from "@/keymap";
 import type { MenuItem } from "./ContextMenu";
 import { t } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 const LABELS: Record<ExportFormat, string> = { csv: "CSV", json: "JSON", sql: "SQL Inserts", markdown: "Markdown" };
 const EXTENSIONS: Record<ExportFormat, string> = { csv: "csv", json: "json", sql: "sql", markdown: "md" };
@@ -46,7 +47,7 @@ export async function exportToFile(format: ExportFormat, src: ExportSource): Pro
 export async function copyAs(format: ExportFormat, src: ExportSource): Promise<void> {
   try {
     const text = await dbApi.export({ format, ...src });
-    await navigator.clipboard?.writeText(text);
+    await writeClipboardText(text);
     showBalloon(t("database.exporting.copiedPluralAsLabels", { count: src.rows.length, format: LABELS[format] }));
   } catch (e) {
     showBalloon(t("database.exporting.copyFailed"), e instanceof Error ? e.message : String(e));

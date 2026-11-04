@@ -18,6 +18,7 @@ import { getSetting } from "@/state/settings";
 import { onFileSaved } from "@/state/editor";
 import { dotnetActive, dotnetWorkspace, errorText, runDotnetCapture, runDotnetCommand, showDotnetBalloon } from "../state";
 import { t as tr } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const [model, { refetch: refetchModel }] = createRoot(() => createResource(
   () => (dotnetActive() ? dotnetWorkspace() : null),
@@ -302,7 +303,7 @@ function migrationMenu(m: Migration, ev: MouseEvent) {
       { label: tr("langs.dotnet.updateDatabaseToThisMigration"), icon: DatabaseZap, run: () => setDialog({ mode: "updateDatabase", target: m.name }) },
       { label: tr("langs.dotnet.goToMigration"), icon: FileCode, disabled: !m.file, run: () => m.file && void openFileAt(m.file, m.line + 1) },
       { separator: true },
-      { label: tr("langs.dotnet.copyMigrationId"), run: () => void navigator.clipboard?.writeText(m.id).catch(() => undefined) },
+      { label: tr("langs.dotnet.copyMigrationId"), run: () => void writeClipboard(m.id) },
     ],
   });
 }
