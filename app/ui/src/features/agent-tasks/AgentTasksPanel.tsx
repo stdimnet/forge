@@ -12,6 +12,7 @@ import {
   CircleDashed,
   CirclePause,
   CircleX,
+  Container,
   FlaskConical,
   GitBranch,
   GitCommitHorizontal,
@@ -31,6 +32,8 @@ import { aiApi } from "@/ipc/ai";
 import { runApi } from "@/ipc/run";
 import { isActive, isReviewable, type AgentTask, type Step, type TaskRequest, type TaskStatus, type TestChoice } from "@/ipc/agentTasks";
 import { setInputDialog } from "@/features/git/overlays";
+import { t as tr } from "@/i18n";
+import { getSetting } from "@/state/settings";
 import {
   applyAnswer,
   applyTask,
@@ -128,6 +131,9 @@ function NewTaskForm() {
   const [agent, setAgent] = createSignal("builtin:");
   const [tests, setTests] = createSignal("none");
   const [command, setCommand] = createSignal("");
+  const [inContainer, setInContainer] = createSignal(getSetting<boolean>("ai.agentTasks.container.enabled", false));
+  const [network, setNetwork] = createSignal(getSetting<boolean>("ai.agentTasks.container.network", false));
+  const [image, setImage] = createSignal("");
   const [providers] = createResource(() => aiApi.providers().catch(() => null));
   const [configs] = createResource(() => runApi.loadConfigurations().catch(() => null));
   let area!: HTMLTextAreaElement;
@@ -146,6 +152,7 @@ function NewTaskForm() {
         .filter(Boolean),
       backend: kind === "cli" ? { kind: "cli", agentId: id } : { kind: "builtin", provider: id || null },
       tests: choice,
+      container: inContainer() ? { network: network(), image: image().trim() || null } : null,
     };
     void createTask(request);
   };
@@ -199,6 +206,30 @@ function NewTaskForm() {
       </select>
       <Show when={tests() === "command"}>
         <input class="at-input" placeholder="vendor/bin/phpunit" value={command()} onInput={(e) => setCommand(e.currentTarget.value)} />
+      </Show>
+      <label class="at-check" title={tr("agentTasks.form.containerHint")}>
+        <input type="checkbox" data-testid="at-container" checked={inContainer()} onChange={(e) => setInContainer(e.currentTarget.checked)} />
+        <Container size={13} />
+        {tr("agentTasks.form.container")}
+      </label>
+      <Show when={inContainer()}>
+        <div class="at-container-options">
+          <label class="at-check">
+            <input type="checkbox" data-testid="at-network" checked={network()} onChange={(e) => setNetwork(e.currentTarget.checked)} />
+            {tr("agentTasks.form.network")}
+          </label>
+          <label class="at-label" for="at-image">
+            {tr("agentTasks.form.image")}
+          </label>
+          <input
+            id="at-image"
+            class="at-input"
+            placeholder={tr("agentTasks.form.imagePlaceholder", { image: getSetting<string>("ai.agentTasks.container.image", "php:8.3-cli") })}
+            value={image()}
+            onInput={(e) => setImage(e.currentTarget.value)}
+          />
+          <p class="at-hint muted">{tr("agentTasks.form.containerHint")}</p>
+        </div>
       </Show>
       <p class="at-hint muted">
         The agent works in a copy of the project (a git worktree in Forge's cache folder). Your files change only when you apply its diff.
@@ -413,6 +444,13 @@ function Details(props: { task: AgentTask }) {
         <span>
           <FlaskConical size={11} /> {testsLabel(t().request.tests)}
         </span>
+        <Show when={t().request.container}>
+          {(c) => (
+            <span title={tr("agentTasks.form.containerHint")}>
+              <Container size={11} /> {c().network ? tr("agentTasks.meta.containerNetwork") : tr("agentTasks.meta.container")}
+            </span>
+          )}
+        </Show>
         <Show when={t().request.scope.length}>
           <span>Scope: {t().request.scope.join(", ")}</span>
         </Show>

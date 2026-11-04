@@ -48,6 +48,32 @@ describe("browser-mode agent tasks", () => {
     agentTaskMockTiming.scale = 1;
   });
 
+  it("runs container tasks in a container that is removed at the end", async () => {
+    agentTaskMockTiming.scale = 0;
+    let latest: AgentTask | null = null;
+    await agentTasksApi.onChanged((t) => (latest = t));
+    const t = await agentTasksApi.create({
+      prompt: "Fix it in a container",
+      scope: [],
+      backend: { kind: "builtin" },
+      tests: { kind: "none" },
+      container: { network: true, image: "php:8.4-cli" },
+    });
+    const pending = await waitFor(() => {
+      const cur = latest as AgentTask | null;
+      return cur?.id === t.id && cur.steps.find((s) => s.kind === "approval" && s.state === "pending");
+    });
+    await agentTasksApi.approve(t.id, pending.index, false);
+    const done = await waitFor(() => {
+      const cur = latest as AgentTask | null;
+      return cur?.id === t.id && cur.status === "needsReview" && cur;
+    });
+    const infos = done.steps.flatMap((s) => (s.kind === "info" ? [s.text] : []));
+    expect(infos.some((x) => x.includes("from php:8.4-cli (network allowed"))).toBe(true);
+    expect(infos.some((x) => x.startsWith("Removed container forge-agent-"))).toBe(true);
+    agentTaskMockTiming.scale = 1;
+  });
+
   it("refuses tasks when AI is off for the project", async () => {
     setSetting("ai.enabled", false, "project");
     await expect(agentTasksApi.create({ prompt: "x", scope: [], backend: { kind: "builtin" }, tests: { kind: "none" } })).rejects.toThrow(

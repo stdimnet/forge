@@ -1,4 +1,11 @@
 {
+  "agentTasks.form.container": "Run in container",
+  "agentTasks.form.containerHint": "Commands and tests run in a Docker or Podman container that mounts only the task's sandbox. The image comes from the project's devcontainer.json, else from the settings.",
+  "agentTasks.form.image": "Image",
+  "agentTasks.form.imagePlaceholder": "devcontainer.json or {image}",
+  "agentTasks.form.network": "Allow network (every command asks first)",
+  "agentTasks.meta.container": "Container, no network",
+  "agentTasks.meta.containerNetwork": "Container with network",
   "database.addDataSource": "Add data source",
   "database.envFound": "Database found in {file}",
   "newProject.back": "Back",
