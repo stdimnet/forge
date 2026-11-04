@@ -80,7 +80,7 @@ export default {
       await i18n.setLocale?.("de");
     });
     await open(page);
-    await page.click('.tool-window [title="New Agent Task"]');
+    await page.click('[data-testid="at-new"]');
     await page.waitForSelector(".at-form textarea");
     await page.check('[data-testid="at-container"]');
     await page.waitForTimeout(300);

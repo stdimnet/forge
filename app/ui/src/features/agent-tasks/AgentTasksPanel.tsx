@@ -111,7 +111,7 @@ function testsLabel(c: TestChoice): string {
 /** Header buttons of the tool window. */
 export function AgentTasksActions() {
   return (
-    <button class="icon-btn" title={tr("tools.agentTasks.new")} onClick={() => setFormOpen(true)}>
+    <button class="icon-btn" data-testid="at-new" title={tr("tools.agentTasks.new")} onClick={() => setFormOpen(true)}>
       <Plus size={15} />
     </button>
   );

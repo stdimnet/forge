@@ -328,6 +328,8 @@ a Git repository with at least one commit.
 With **Run in container** the agent still edits the sandbox worktree, but `run_command` and
 `run_tests` (and the tests Forge runs between CLI turns) run inside a container:
 
+![Run in container](../../screenshots/agent-tasks-container.png)
+
 - **Image**: the one entered in the form; else the project's `.devcontainer/devcontainer.json`
   (or `.devcontainer.json`): its `image`, or the image built from its Dockerfile (`docker build`,
   tagged like the Dev Containers feature, with its `containerEnv`); else **Container image** of
@@ -346,6 +348,8 @@ With **Run in container** the agent still edits the sandbox worktree, but `run_c
 - It is started when the task starts (`docker run`, named `forge-agent-<task>`) and removed
   (`docker rm --force`) when the task finishes, fails or is stopped; Discard removes it too if
   Forge quit while it ran.
+
+![Container steps in the log](../../screenshots/agent-tasks-container-log.png)
 
 The engine is **Container engine** of the settings, else the Docker executable of Settings |
 Build, Execution, Deployment | Docker. Git does not work inside the container (the worktree's
