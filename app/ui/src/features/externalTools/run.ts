@@ -15,6 +15,7 @@ import { refreshDirs } from "@/features/project/ProjectView";
 import { Wrench } from "lucide-solid";
 import { findTool, toolRef } from "./model";
 import { t as tr } from "@/i18n";
+import { readClipboard } from "@/features/clipboard/system";
 
 const showBalloon = balloonsFor("External Tools");
 
@@ -83,7 +84,7 @@ const promptCount = (tool: ExternalTool) =>
  */
 export async function runExternalTool(tool: ExternalTool, path?: string): Promise<RunHandle | null> {
   const context = currentContext(path);
-  if (uses(tool, "ClipboardContent")) context.clipboard = await navigator.clipboard?.readText().catch(() => "");
+  if (uses(tool, "ClipboardContent")) context.clipboard = (await readClipboard()) ?? "";
   const prompts: string[] = [];
   for (let i = promptCount(tool); i > 0; i--) {
     const answer = await askName({ title: "Enter Parameters", label: "Enter parameters:", initial: "", confirm: "OK" });

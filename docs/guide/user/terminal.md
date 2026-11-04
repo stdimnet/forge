@@ -30,6 +30,11 @@ reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**.
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
 and **Clear Buffer**.
 
+Paste reads the system clipboard natively in the desktop app, so `Ctrl+Shift+V` also works on
+Linux, where WebKitGTK does not let web pages read the clipboard. When the shell turns on
+bracketed paste mode, the pasted text is wrapped in its markers, so a multi-line paste is not
+run line by line. When the clipboard cannot be read, a balloon says why.
+
 On Windows, the arrow next to **+** also offers `WSL: <distro>` for every WSL distribution: a
 shell in that distribution, in the project folder (see
 [Dev Containers and WSL](dev-containers-and-wsl.md#terminal--wsl)). In projects opened in a dev

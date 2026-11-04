@@ -8,6 +8,7 @@ import { askConfirm } from "@/features/contextMenu/dialogs";
 import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { askCustomPermissions } from "./CustomPermissions";
 import { applySession, isHost, refreshSession, session } from "./store";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
@@ -66,7 +67,7 @@ export async function removeGuest(guest: Participant): Promise<void> {
 
 async function copy(text: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
     return true;
   } catch {
     return false;

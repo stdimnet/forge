@@ -15,6 +15,7 @@ import { notify, reloadOpenFiles, repositoryChanged } from "./store";
 import { setDiffRequest, toggleAnnotate } from "./overlays";
 import { revisionPath } from "./revisionFiles";
 import { t as tr } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 export const shortSha = (sha: string) => sha.slice(0, 8);
 const nameOf = (path: string) => path.split("/").pop() || path;
@@ -148,7 +149,7 @@ export const checkoutRevision = (sha: string) => checkout(sha);
 /** Copy Revision Number: the full hash. */
 export async function copyRevisionNumber(sha: string): Promise<void> {
   try {
-    await navigator.clipboard.writeText(sha);
+    await writeClipboardText(sha);
     notify("info", tr("git.history.copiedSha", { sha: shortSha(sha) }));
   } catch {
     notify("error", tr("git.history.clipboardIsNotAvailable"));

@@ -8,12 +8,12 @@ import { render } from "solid-js/web";
 import { EditorView } from "@codemirror/view";
 import { registerEditorExtension } from "@/editor/extensions";
 import { activeView } from "@/editor/views";
-import { actionById, showBalloon } from "@/keymap";
+import { actionById } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { copiedFrom, needsCaretPaste, pasteInto, recordCopy, setLastCopy } from "./clipboard";
 import { PasteFromHistoryHost, choosePasteContent } from "./PasteFromHistory";
-import { t as tr } from "@/i18n";
 import "./clipboard.css";
+import { readClipboard, writeClipboard } from "@/features/clipboard/system";
 
 registerEditorExtension(() => [
   // Observers run before CodeMirror's own copy/cut handler, so the selection is still there.
@@ -83,7 +83,7 @@ async function pasteFromHistory(): Promise<void> {
   }
   setLastCopy(entry);
   // The chosen entry becomes the clipboard content, like in PHPStorm.
-  void navigator.clipboard?.writeText(entry.text).catch(() => undefined);
+  void writeClipboard(entry.text);
   refocus(target);
   if ("view" in target) {
     pasteInto(target.view, entry.text, entry.carets);
@@ -100,13 +100,8 @@ registerCommand({ id: "PasteMultiple", title: actionById("PasteMultiple")?.title
 export async function pasteClipboard(): Promise<void> {
   const view = activeView();
   if (!view) return;
-  let text: string;
-  try {
-    text = await navigator.clipboard.readText();
-  } catch {
-    showBalloon(tr("tools.clipboard.clipboardIsNotAvailable"), tr("tools.clipboard.useTheKeyboardShortcutInstead"));
-    return;
-  }
+  const text = await readClipboard();
+  if (text === null) return;
   pasteInto(view, text);
   view.focus();
 }

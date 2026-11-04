@@ -112,6 +112,7 @@ import { openFullTextSearch } from "./FullTextSearch";
 import { openCompare, openDiagram } from "./schema/model";
 import { multi, objectMenu, ObjectDialogs, setMulti } from "./objects";
 import { t as tr } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 type Kind =
   | "ds"
@@ -765,7 +766,7 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   if (row.kind === "rkey") {
     items.push(
       { label: tr("database.databaseView.openValue"), hint: tr("tools.database.enter"), icon: <KeySquare size={13} />, run: () => openRedisKey(row.ds, row.schema!, row.table!) },
-      { label: tr("database.databaseView.copyKey"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
+      { label: tr("database.databaseView.copyKey"), icon: <Copy size={13} />, run: () => void writeClipboard(row.table!) },
       { separator: true, label: "" },
     );
   }
@@ -775,7 +776,7 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   if (row.kind === "collection" || (ds && modelOf(ds.driver) === "document" && row.kind === "view")) {
     items.push(
       { label: tr("database.databaseView.openDocuments"), hint: tr("tools.database.enter"), icon: <FileJson size={13} />, run: () => openCollection(row.ds, row.schema!, row.table!) },
-      { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
+      { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void writeClipboard(row.table!) },
       { separator: true, label: "" },
     );
   } else if (row.kind === "table" || row.kind === "view" || row.kind === "matview") {
@@ -790,7 +791,7 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
             .then((ddl) => openConsole(row.ds, ddl))
             .catch((e) => showBalloon(tr("database.databaseView.noDdl"), String(e))),
       },
-      { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
+      { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void writeClipboard(row.table!) },
     );
     if (row.kind === "table" && relational) items.push({ label: tr("database.databaseView.addVirtualColumn"), icon: <Sigma size={13} />, run: () => openVirtualDialog({ kind: "column", ds: row.ds, schema: row.schema!, table: row.table! }) });
     items.push({ separator: true, label: "" });

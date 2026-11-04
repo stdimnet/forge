@@ -1,11 +1,17 @@
 //! Clipboard history for Paste from History (`forge_editing::clipboard`). The history lives
 //! in memory for the session; the UI passes the configured limit
 //! (`editor.clipboard.maxContents`) with every call.
+//!
+//! Also the system clipboard itself (`clipboard_read_text`, `clipboard_write_text`): the
+//! WebView's `navigator.clipboard` is unreliable (WebKitGTK refuses `readText()` outside a
+//! native paste event), so the desktop app reads and writes it natively.
 
 use std::sync::Mutex;
 
+use forge_core::{ForgeError, Result};
 use forge_editing::{ClipEntry, ClipItem, ClipboardHistory};
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_clipboard_manager::ClipboardExt;
 
 #[derive(Default)]
 pub struct ClipboardState(Mutex<ClipboardHistory>);
@@ -53,4 +59,31 @@ pub fn clipboard_history_promote(
     state: State<'_, ClipboardState>,
 ) -> Option<ClipEntry> {
     state.with(None, |h| h.promote(index))
+}
+
+/// The text on the system clipboard ("" when it holds no text).
+#[tauri::command]
+pub fn clipboard_read_text(app: AppHandle) -> Result<String> {
+    match app.clipboard().read_text() {
+        Ok(text) => Ok(text),
+        Err(e) => {
+            let msg = e.to_string();
+            // An empty clipboard or one holding only an image is not an error for paste.
+            if msg.contains("empty") || msg.contains("not available in the requested format") {
+                Ok(String::new())
+            } else {
+                Err(ForgeError::Other(format!(
+                    "Cannot read the clipboard: {msg}"
+                )))
+            }
+        }
+    }
+}
+
+/// Put `text` on the system clipboard.
+#[tauri::command]
+pub fn clipboard_write_text(text: String, app: AppHandle) -> Result<()> {
+    app.clipboard()
+        .write_text(text)
+        .map_err(|e| ForgeError::Other(format!("Cannot write the clipboard: {e}")))
 }

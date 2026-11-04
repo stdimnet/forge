@@ -5,7 +5,7 @@
 import { EditorSelection } from "@codemirror/state";
 import { EditorView, ViewPlugin } from "@codemirror/view";
 import { registerEditorExtension } from "@/editor/extensions";
-import { actionById, showBalloon } from "@/keymap";
+import { actionById } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { activeView } from "@/features/navigation/editorCommands";
 import { copiedFrom, recordCopy } from "@/features/clipboard/clipboard";
@@ -13,6 +13,7 @@ import { pasteClipboard } from "@/features/clipboard";
 import { action, menuEntries, providedEntries, registerContextMenu, separator, showContextMenu, submenu } from "./state";
 import "./contextMenu.css";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 function command(id: string, run: () => void | Promise<void>): void {
   registerCommand({ id, title: actionById(id)?.title ?? id, run });
@@ -24,12 +25,7 @@ async function copy(cut: boolean): Promise<void> {
   // The selections, or the caret lines without one (PHPStorm copies the whole line).
   const copied = copiedFrom(view.state);
   if (!copied.text) return;
-  try {
-    await navigator.clipboard.writeText(copied.linewise ? copied.text + view.state.lineBreak : copied.text);
-  } catch {
-    showBalloon(t("editor.clipboardUnavailable"), t("editor.useShortcut"));
-    return;
-  }
+  if (!(await writeClipboard(copied.linewise ? copied.text + view.state.lineBreak : copied.text))) return;
   recordCopy(copied.text, copied.linewise ? [] : copied.carets);
   if (cut) view.dispatch({ changes: copied.ranges, userEvent: "delete.cut" });
   view.focus();
