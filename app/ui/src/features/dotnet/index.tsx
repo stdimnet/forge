@@ -104,7 +104,7 @@ const profileOptions = () => {
   for (const p of runnableProjects())
     for (const x of p.launchProfiles ?? [])
       if ((x.commandName === "Project" || x.commandName === "Executable") && !out.has(x.name)) out.set(x.name, `${x.name}${x.applicationUrl ? ` (${x.applicationUrl.split(";")[0]})` : ""}`);
-  return [{ value: "", label: "Default (the first profile)" }, ...[...out].map(([value, label]) => ({ value, label })), { value: "none", label: "None (--no-launch-profile)" }];
+  return [{ value: "", label: t("langs.dotnet.defaultTheFirstProfile") }, ...[...out].map(([value, label]) => ({ value, label })), { value: "none", label: t("langs.dotnet.noneNoLaunchProfile") }];
 };
 
 /** Build the solution first (`dotnet.build.beforeRun`), so its problems reach the Build tool window. */
@@ -405,10 +405,10 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           void refreshDotnetStatus().then((s) => {
             if (!s || s.remote) return;
             if (!s.host || !s.sdks.length)
-              showDotnetBalloon("No .NET SDK found", "Building and running .NET projects needs the .NET SDK.", 12000, [{ label: "Install .NET SDK…", run: () => void installSdk() }]);
+              showDotnetBalloon("No .NET SDK found", "Building and running .NET projects needs the .NET SDK.", 12000, [{ label: t("langs.dotnet.installNetSdkEllipsis"), run: () => void installSdk() }]);
             else if (!s.roslyn && getSetting<string>("dotnet.roslyn.autoInstall", "ask") === "ask" && !safeMode())
               showDotnetBalloon("C# language server is not installed", "Code completion, navigation and refactorings for C# need the Roslyn language server.", 12000, [
-                { label: "Download…", run: () => void installRoslyn() },
+                { label: t("common.downloadEllipsis"), run: () => void installRoslyn() },
               ]);
           });
         },

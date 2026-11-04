@@ -8,6 +8,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import type { ToolKind } from "@/ipc/cliTools";
 import { openRunCommand, SETTINGS_PAGE } from "./CommandPopup";
 import { loadTools, tools } from "./store";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("Command Line Tools");
 
@@ -18,5 +19,5 @@ export async function openToolConsole(kind: ToolKind, label: string, missing: st
     openRunCommand(`${tool.alias} `);
     return;
   }
-  showBalloon(`${label} is not configured`, missing, 8000, [{ label: "Configure…", run: () => openSettings(SETTINGS_PAGE) }]);
+  showBalloon(tr("tools.cliTools.isNotConfigured", { label }), missing, 8000, [{ label: "Configure…", run: () => openSettings(SETTINGS_PAGE) }]);
 }

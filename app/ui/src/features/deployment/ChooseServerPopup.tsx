@@ -4,6 +4,7 @@ import { Settings } from "lucide-solid";
 import type { ServerView } from "@/ipc/deployment";
 import { choice, openDeploymentSettings, type ServerChoice } from "./store";
 import { KindIcon, KIND_LABELS } from "./DeploymentPage";
+import { t } from "@/i18n";
 
 export function ChooseServerHost() {
   return <Show when={choice()}>{(c) => <ChooseServerPopup choice={c()} />}</Show>;
@@ -63,7 +64,7 @@ function ChooseServerPopup(props: { choice: ServerChoice }) {
               openDeploymentSettings();
             }}
           >
-            <Settings size={13} /> Configure Servers…
+            <Settings size={13} /> {t("tools.deployment.configureServersEllipsis")}
           </button>
         </div>
       </div>

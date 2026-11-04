@@ -82,7 +82,7 @@ function PipelineStatus() {
           onClick={() => (p().webUrl ? window.open(p().webUrl!, "_blank") : showToolWindow("pull-requests"))}
         >
           <CiIcon status={p().status} size={12} />
-          CI: {ciLabels[p().status]}
+          {t("tools.forges.ci", { value: ciLabels[p().status] })}
         </button>
       )}
     </Show>

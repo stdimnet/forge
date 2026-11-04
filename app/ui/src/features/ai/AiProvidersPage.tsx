@@ -28,6 +28,7 @@ import {
   type TestResult,
 } from "@/ipc/ai";
 import { KindIcon } from "./kinds";
+import { t as tr } from "@/i18n";
 import "./ai.css";
 
 type TestState = { running: true } | ({ running: false } & TestResult);
@@ -177,22 +178,22 @@ export function AiProvidersPage() {
   return (
     <div class="ai-settings">
       <p class="ai-settings-intro muted">
-        Connect Forge to cloud or local language models. API keys are kept in the system keychain, never in settings files.
+        {tr("tools.ai.connectForgeToCloudOr")}
       </p>
 
       <div class="ai-master-detail">
         {/* Provider list */}
         <div class="ai-list-pane">
           <div class="ai-list-toolbar">
-            <button class="icon-btn" title="Add Provider" data-testid="ai-add-provider" onClick={() => setPickerOpen((v) => !v)}>
+            <button class="icon-btn" title={tr("tools.ai.addProvider")} data-testid="ai-add-provider" onClick={() => setPickerOpen((v) => !v)}>
               <Plus size={16} />
             </button>
-            <button class="icon-btn" title="Remove Provider" disabled={!selectedId()} onClick={remove}>
+            <button class="icon-btn" title={tr("tools.ai.removeProvider")} disabled={!selectedId()} onClick={remove}>
               <Minus size={16} />
             </button>
             <button
               class="icon-btn"
-              title="Set as Default Provider"
+              title={tr("tools.ai.setAsDefaultProvider")}
               disabled={!selected() || selected()!.isDefault}
               onClick={() => selected() && setDefaultProvider(selected()!.id)}
             >
@@ -217,16 +218,16 @@ export function AiProvidersPage() {
               <div class="ai-row selected">
                 <KindIcon kind={draft.kind} size={26} />
                 <div class="ai-row-text">
-                  <div class="ai-row-title">{draft.name || "New provider"}</div>
-                  <div class="ai-row-sub muted">Not saved yet</div>
+                  <div class="ai-row-title">{draft.name || tr("tools.ai.newProvider")}</div>
+                  <div class="ai-row-sub muted">{tr("common.notSavedYet")}</div>
                 </div>
               </div>
             </Show>
             <Show when={!providers().length && !isNew() && !state.loading}>
               <div class="ai-empty muted">
-                No providers yet.
+                {tr("tools.ai.noProvidersYet")}
                 <button class="ai-link" onClick={() => setPickerOpen(true)}>
-                  Add provider…
+                  {tr("tools.ai.addProviderEllipsis")}
                 </button>
               </div>
             </Show>
@@ -235,22 +236,22 @@ export function AiProvidersPage() {
 
         {/* Provider details */}
         <div class="ai-detail-pane">
-          <Show when={selectedId()} fallback={<div class="ai-empty muted">Select a provider to configure it.</div>}>
+          <Show when={selectedId()} fallback={<div class="ai-empty muted">{tr("tools.ai.selectAProviderToConfigure")}</div>}>
             <div class="ai-detail-header">
               <KindIcon kind={draft.kind} size={32} />
               <div>
                 <div class="ai-detail-title">{draft.name || preset().name}</div>
                 <div class="muted ai-detail-sub">
-                  {draft.kind === "anthropic" ? "Anthropic Messages API" : `${preset().name === "OpenAI-compatible" ? "Custom" : preset().name} · OpenAI-compatible API`}
+                  {draft.kind === "anthropic" ? tr("tools.ai.anthropicMessagesApi") : tr("tools.ai.openaiCompatibleApi", { value: preset().name === "OpenAI-compatible" ? "Custom" : preset().name })}
                 </div>
               </div>
             </div>
 
             <div class="ai-form">
-              <label for="ai-name">Name:</label>
+              <label for="ai-name">{tr("common.nameLabel")}</label>
               <input id="ai-name" value={draft.name} onInput={(e) => update("name", e.currentTarget.value)} />
 
-              <label for="ai-url">Base URL:</label>
+              <label for="ai-url">{tr("tools.ai.baseUrlLabel")}</label>
               <input
                 id="ai-url"
                 class="mono"
@@ -259,7 +260,7 @@ export function AiProvidersPage() {
                 onInput={(e) => update("baseUrl", e.currentTarget.value)}
               />
 
-              <label for="ai-key">API key:</label>
+              <label for="ai-key">{tr("tools.ai.apiKeyLabel")}</label>
               <div class="ai-field">
                 <div class="ai-key-input">
                   <KeyRound size={14} class="ai-key-icon" />
@@ -267,7 +268,7 @@ export function AiProvidersPage() {
                     id="ai-key"
                     type="password"
                     autocomplete="off"
-                    placeholder={selected()?.hasApiKey ? "••••••••••••••••••••" : preset().needsKey ? "Paste API key" : "Not required"}
+                    placeholder={selected()?.hasApiKey ? "••••••••••••••••••••" : preset().needsKey ? tr("tools.ai.pasteApiKey") : tr("tools.ai.notRequired")}
                     value={apiKey() ?? ""}
                     onInput={(e) => {
                       setApiKey(e.currentTarget.value);
@@ -278,42 +279,42 @@ export function AiProvidersPage() {
                 <div class="ai-hint muted">{keyHint()}</div>
               </div>
 
-              <label for="ai-model">Default model:</label>
+              <label for="ai-model">{tr("tools.ai.defaultModelLabel")}</label>
               <div class="ai-field">
                 <div class="ai-inline">
                   <ModelCombo
                     id="ai-model"
                     value={draft.defaultModel ?? ""}
                     models={models[draft.id] ?? []}
-                    placeholder={preset().local ? "Fetch models from the running server" : "Model id"}
+                    placeholder={preset().local ? tr("tools.ai.fetchModelsFromTheRunning") : tr("tools.ai.modelId")}
                     onChange={(m) => update("defaultModel", m)}
                   />
                   <button class="btn-secondary" onClick={fetchDraftModels} disabled={modelsLoading() !== null}>
                     <Show when={modelsLoading() !== null} fallback={<RefreshCw size={14} />}>
                       <LoaderCircle size={14} class="spin" />
                     </Show>
-                    Fetch Models
+                    {tr("tools.ai.fetchModels")}
                   </button>
                 </div>
                 <Show when={modelsError()}>
                   <div class="ai-hint ai-error-text">{modelsError()}</div>
                 </Show>
                 <Show when={!modelsError() && models[draft.id]}>
-                  <div class="ai-hint muted">{models[draft.id]!.length} models available</div>
+                  <div class="ai-hint muted">{tr("tools.ai.modelsAvailable", { count: models[draft.id]!.length })}</div>
                 </Show>
               </div>
 
               <span />
               <label class="ai-check">
                 <input type="checkbox" checked={draft.enabled} onChange={(e) => update("enabled", e.currentTarget.checked)} />
-                Enabled
+                {tr("common.enabled")}
               </label>
             </div>
 
             <div class="ai-actions">
               <button class="btn-secondary" data-testid="ai-test" onClick={test} disabled={tests[draft.id]?.running}>
                 <Plug size={14} />
-                Test Connection
+                {tr("common.testConnection")}
               </button>
               <TestChip test={tests[draft.id]} />
               <span class="ai-spacer" />
@@ -321,10 +322,10 @@ export function AiProvidersPage() {
                 <span class="ai-error-text">{saveError()}</span>
               </Show>
               <button class="btn-secondary" disabled={!dirty() || isNew()} onClick={() => selectedId() && select(selectedId()!)}>
-                Reset
+                {tr("common.reset")}
               </button>
               <button class="btn-primary" disabled={!dirty()} onClick={save}>
-                Apply
+                {tr("common.apply")}
               </button>
             </div>
           </Show>
@@ -333,11 +334,11 @@ export function AiProvidersPage() {
 
       {/* Per-feature models */}
       <div class="ai-section-title">
-        <span>Models per feature</span>
+        <span>{tr("tools.ai.modelsPerFeature")}</span>
         <span class="ai-section-line" />
       </div>
       <div class="ai-feature-grid">
-        <label>Default provider:</label>
+        <label>{tr("tools.ai.defaultProviderLabel")}</label>
         <select
           value={state()?.defaultProvider ?? ""}
           onChange={(e) => setDefaultProvider(e.currentTarget.value)}
@@ -345,7 +346,7 @@ export function AiProvidersPage() {
         >
           <For each={enabledProviders()}>{(p) => <option value={p.id}>{p.name}</option>}</For>
         </select>
-        <span class="ai-hint muted">Used by features without their own selection and by plugins.</span>
+        <span class="ai-hint muted">{tr("tools.ai.usedByFeaturesWithoutTheir")}</span>
 
         <For each={featureRows}>
           {(row) => (
@@ -396,7 +397,7 @@ function ProviderRow(props: { provider: ProviderInfo; selected: boolean; test?: 
         <div class="ai-row-title">
           {p().name}
           <Show when={p().isDefault}>
-            <span class="ai-badge accent">Default</span>
+            <span class="ai-badge accent">{tr("common.default")}</span>
           </Show>
         </div>
         <div class="ai-row-sub muted">{sub()}</div>
@@ -404,16 +405,16 @@ function ProviderRow(props: { provider: ProviderInfo; selected: boolean; test?: 
       <div class="ai-row-badges">
         <Switch>
           <Match when={!p().enabled}>
-            <span class="ai-badge">Disabled</span>
+            <span class="ai-badge">{tr("tools.ai.disabled")}</span>
           </Match>
           <Match when={preset().local}>
-            <span class="ai-badge">Local</span>
+            <span class="ai-badge">{tr("tools.ai.local")}</span>
           </Match>
           <Match when={preset().needsKey && !p().hasApiKey}>
-            <span class="ai-badge warn">No key</span>
+            <span class="ai-badge warn">{tr("tools.ai.noKey")}</span>
           </Match>
           <Match when={p().keySource === "env"}>
-            <span class="ai-badge" title={`Key from $${preset().envVar}`}>
+            <span class="ai-badge" title={tr("tools.ai.keyFrom", { envVar: preset().envVar })}>
               env
             </span>
           </Match>
@@ -422,7 +423,7 @@ function ProviderRow(props: { provider: ProviderInfo; selected: boolean; test?: 
           <span
             class="ai-dot"
             classList={{ ok: (props.test as TestResult).ok, bad: !(props.test as TestResult).ok }}
-            title={(props.test as TestResult).ok ? "Connected" : (props.test as TestResult).error ?? "Failed"}
+            title={(props.test as TestResult).ok ? tr("tools.ai.connected") : (props.test as TestResult).error ?? tr("tools.ai.failed")}
           />
         </Show>
       </div>
@@ -437,20 +438,20 @@ function TestChip(props: { test?: TestState }) {
         <Switch>
           <Match when={t().running}>
             <span class="ai-chip" data-testid="ai-test-result">
-              <LoaderCircle size={13} class="spin" /> Testing…
+              <LoaderCircle size={13} class="spin" /> {tr("tools.ai.testingEllipsis")}
             </span>
           </Match>
           <Match when={!t().running && (t() as TestResult).ok}>
             <span class="ai-chip ok" data-testid="ai-test-result">
               <CircleCheck size={13} />
-              Connected · {(t() as TestResult).latencyMs} ms
-              <Show when={(t() as TestResult).modelCount != null}> · {(t() as TestResult).modelCount} models</Show>
+              {tr("tools.ai.connectedMs", { latencyMs: (t() as TestResult).latencyMs })}
+              <Show when={(t() as TestResult).modelCount != null}> {tr("tools.ai.models", { modelCount: (t() as TestResult).modelCount })}</Show>
             </span>
           </Match>
           <Match when={!t().running}>
             <span class="ai-chip bad" data-testid="ai-test-result" title={(t() as TestResult).error ?? ""}>
               <CircleX size={13} />
-              <span class="ai-chip-text">{(t() as TestResult).error ?? "Connection failed"}</span>
+              <span class="ai-chip-text">{(t() as TestResult).error ?? tr("tools.ai.connectionFailed")}</span>
             </span>
           </Match>
         </Switch>
@@ -486,9 +487,9 @@ function PresetPicker(props: { onPick: (p: ProviderPreset) => void; onClose: () 
   );
   return (
     <div class="ai-picker" ref={ref} data-testid="ai-preset-picker">
-      <div class="ai-picker-group">Cloud</div>
+      <div class="ai-picker-group">{tr("tools.ai.cloud")}</div>
       <For each={group(false)}>{item}</For>
-      <div class="ai-picker-group">Local</div>
+      <div class="ai-picker-group">{tr("tools.ai.local")}</div>
       <For each={group(true)}>{item}</For>
       <div class="ai-picker-sep" />
       {item(presetFor("custom"))}
@@ -523,7 +524,7 @@ function ModelCombo(props: {
         spellcheck={false}
         onInput={(e) => props.onChange(e.currentTarget.value)}
       />
-      <button class="ai-combo-btn" title="Show models" disabled={!props.models.length} onClick={() => setOpen((v) => !v)}>
+      <button class="ai-combo-btn" title={tr("tools.ai.showModels")} disabled={!props.models.length} onClick={() => setOpen((v) => !v)}>
         <ChevronDown size={14} />
       </button>
       <Show when={open() && props.models.length}>
@@ -589,12 +590,12 @@ function FeatureRow(props: {
         <ModelCombo
           value={model()}
           models={props.models[providerId()] ?? []}
-          placeholder="Provider default"
+          placeholder={tr("tools.ai.providerDefault")}
           onChange={commitModel}
         />
         <button
           class="icon-btn"
-          title="Fetch Models"
+          title={tr("tools.ai.fetchModels")}
           disabled={!providerId() || props.loading !== null}
           onClick={() => props.onFetch(providerId())}
         >

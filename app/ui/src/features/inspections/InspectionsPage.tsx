@@ -24,6 +24,7 @@ import { takePageArgs } from "@/features/settings/dialogState";
 import { scopeEntries } from "@/features/scopes/model";
 import { beginDraft, change, draft, INSPECTIONS_PAGE } from "./draft";
 import { profileText, profileView, selectedProfile, severities, severityName, specOf } from "./model";
+import { t as tr } from "@/i18n";
 
 const [query, setQuery] = createSignal("");
 const [selected, setSelected] = createSignal<string | null>(null);
@@ -47,7 +48,7 @@ function nameProblem(name: string, except?: string): string | null {
 }
 
 const askProfileName = (title: string, initial: string, confirm: string, except?: string) =>
-  askName({ title, label: "Name:", initial, confirm, validate: (n) => nameProblem(n, except) });
+  askName({ title, label: tr("common.nameLabel"), initial, confirm, validate: (n) => nameProblem(n, except) });
 
 async function exportProfile(format: "xml" | "json"): Promise<void> {
   const p = current();
@@ -59,7 +60,7 @@ async function exportProfile(format: "xml" | "json"): Promise<void> {
       const path = await save({ defaultPath: file, filters: [{ name: format === "xml" ? "Inspection profile XML" : "Forge inspection profile JSON", extensions: [format] }] });
       if (!path) return;
       await inspectionsApi.exportProfile(p, format, path);
-      showBalloon(`Profile "${p.name}" exported`, path);
+      showBalloon(tr("tools.inspections.profileExported", { name: p.name }), path);
       return;
     }
     const url = URL.createObjectURL(new Blob([profileText(p, format)], { type: format === "xml" ? "application/xml" : "application/json" }));
@@ -68,9 +69,9 @@ async function exportProfile(format: "xml" | "json"): Promise<void> {
     a.download = file;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon(`Profile "${p.name}" exported`, file);
+    showBalloon(tr("tools.inspections.profileExported", { name: p.name }), file);
   } catch (e) {
-    showBalloon("Export failed", e instanceof Error ? e.message : String(e));
+    showBalloon(tr("common.exportFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -102,23 +103,23 @@ async function importProfile(): Promise<void> {
       source = { text };
     }
     const profile = await inspectionsApi.importProfile(source);
-    if (change({ op: "add", profile })) showBalloon(`Profile "${profile.name}" imported`, "Apply the settings to keep it.");
+    if (change({ op: "add", profile })) showBalloon(tr("tools.inspections.profileImported", { name: profile.name }), tr("tools.inspections.applyTheSettingsToKeep"));
   } catch (e) {
-    showBalloon("Import failed", e instanceof Error ? e.message : String(e));
+    showBalloon(tr("common.importFailed"), e instanceof Error ? e.message : String(e));
   }
 }
 
 async function addSeverity(): Promise<void> {
-  const name = await askName({ title: "New Highlighting Severity", label: "Name:", initial: "", confirm: "OK", validate: (n) => (n.trim() ? null : "The name is empty") });
+  const name = await askName({ title: tr("tools.inspections.newHighlightingSeverity"), label: tr("common.nameLabel"), initial: "", confirm: "OK", validate: (n) => (n.trim() ? null : "The name is empty") });
   if (!name) return;
   const look = await askChoice({
-    title: "New Highlighting Severity",
-    message: `Highlight "${name}" problems in the editor like:`,
+    title: tr("tools.inspections.newHighlightingSeverity"),
+    message: tr("tools.inspections.highlightProblemsInTheEditorLabel", { name }),
     choices: [
-      { id: "info", label: "Info" },
-      { id: "weak", label: "Weak Warning" },
-      { id: "warning", label: "Warning" },
-      { id: "error", label: "Error" },
+      { id: "info", label: tr("tools.inspections.info") },
+      { id: "weak", label: tr("tools.inspections.weakWarning") },
+      { id: "warning", label: tr("tools.inspections.warning") },
+      { id: "error", label: tr("tools.inspections.error") },
     ],
   });
   if (!look) return;
@@ -145,7 +146,7 @@ function profileMenu(): MenuEntry[] {
     item(
       "Delete",
       () =>
-        void askConfirm({ title: "Delete Profile", message: `Delete the profile "${p.name}"?`, confirm: "Delete" }).then(
+        void askConfirm({ title: tr("tools.inspections.deleteProfile"), message: tr("tools.inspections.deleteTheProfile", { name: p.name }), confirm: tr("common.delete") }).then(
           (ok) => ok && change({ op: "delete", name: p.name }),
         ),
       undefined,
@@ -235,7 +236,7 @@ function SeveritySelect(props: { value: string | null | undefined; allowReported
   return (
     <select class="set-input set-select insp-severity" value={props.value ?? ""} aria-label={props.label} onChange={(e) => props.onChange(e.currentTarget.value)}>
       <Show when={props.allowReported}>
-        <option value="">As reported by the tool</option>
+        <option value="">{tr("tools.inspections.asReportedByTheTool")}</option>
       </Show>
       <For each={severities(draft()?.severities ?? [])}>{(s) => <option value={s.id}>{s.name}</option>}</For>
     </select>
@@ -314,37 +315,37 @@ function Details(props: { id: string }) {
             <code>{s().id}</code>
             <span>{s().group.replace(/\//g, " | ")}</span>
             <Show when={s().external}>
-              <span class="insp-tag">External tool</span>
+              <span class="insp-tag">{tr("tools.inspections.externalTool")}</span>
             </Show>
             <Show when={s().cleanup}>
-              <span class="insp-tag">Code Cleanup</span>
+              <span class="insp-tag">{tr("tools.inspections.codeCleanup")}</span>
             </Show>
             <Show when={s().batch === false}>
-              <span class="insp-tag">Editor only</span>
+              <span class="insp-tag">{tr("tools.inspections.editorOnly")}</span>
             </Show>
           </div>
           <div class="insp-row-form">
             <label class="insp-enabled">
               <input type="checkbox" checked={enabled()} onChange={(e) => edit({ op: "setEnabled", ids: [s().id], enabled: e.currentTarget.checked })} />
-              Enabled
+              {tr("common.enabled")}
             </label>
-            <span class="insp-form-label">Severity:</span>
+            <span class="insp-form-label">{tr("tools.inspections.severityLabel")}</span>
             <SeveritySelect
               value={level()}
               allowReported={!!s().external}
-              label="Severity"
+              label={tr("tools.inspections.severity")}
               onChange={(v) => (v ? edit({ op: "setSeverity", ids: [s().id], severity: v }) : edit({ op: "reset", ids: [s().id] }))}
             />
             <Show when={current()?.tools[s().id]}>
               <button class="link-btn insp-reset" onClick={() => edit({ op: "reset", ids: [s().id] })}>
-                Reset to default
+                {tr("tools.inspections.resetToDefault")}
               </button>
             </Show>
           </div>
           <div class="insp-section">
             <div class="insp-section-head">
-              <span>Scopes</span>
-              <button class="icon-btn" title="Add Scope" aria-label="Add Scope" onClick={addScope}>
+              <span>{tr("tools.inspections.scopes")}</span>
+              <button class="icon-btn" title={tr("tools.inspections.addScope")} aria-label={tr("tools.inspections.addScope")} onClick={addScope}>
                 <Plus size={14} />
               </button>
             </div>
@@ -357,7 +358,7 @@ function Details(props: { id: string }) {
                         <input
                           type="checkbox"
                           checked={sc.enabled}
-                          aria-label={`Enabled in ${sc.scope}`}
+                          aria-label={tr("tools.inspections.enabledIn", { scope: sc.scope })}
                           onChange={(e) => setScopes(scopes().map((x, j) => (j === i() ? { ...x, enabled: e.currentTarget.checked } : x)))}
                         />
                       </td>
@@ -366,12 +367,12 @@ function Details(props: { id: string }) {
                         <SeveritySelect
                           value={sc.severity ?? level()}
                           allowReported={!!s().external}
-                          label={`Severity in ${sc.scope}`}
+                          label={tr("tools.inspections.severityIn", { scope: sc.scope })}
                           onChange={(v) => setScopes(scopes().map((x, j) => (j === i() ? { ...x, severity: v || undefined } : x)))}
                         />
                       </td>
                       <td>
-                        <button class="icon-btn" title="Remove Scope" aria-label={`Remove ${sc.scope}`} onClick={() => setScopes(scopes().filter((_, j) => j !== i()))}>
+                        <button class="icon-btn" title={tr("tools.inspections.removeScope")} aria-label={`Remove ${sc.scope}`} onClick={() => setScopes(scopes().filter((_, j) => j !== i()))}>
                           <Trash2 size={13} />
                         </button>
                       </td>
@@ -380,9 +381,9 @@ function Details(props: { id: string }) {
                 </For>
                 <tr class="insp-everywhere">
                   <td>
-                    <input type="checkbox" checked={enabled()} aria-label="Enabled everywhere else" onChange={(e) => edit({ op: "setEnabled", ids: [s().id], enabled: e.currentTarget.checked })} />
+                    <input type="checkbox" checked={enabled()} aria-label={tr("tools.inspections.enabledEverywhereElse")} onChange={(e) => edit({ op: "setEnabled", ids: [s().id], enabled: e.currentTarget.checked })} />
                   </td>
-                  <td class="insp-scope-name">{scopes().length ? "Everywhere else" : "In All Scopes"}</td>
+                  <td class="insp-scope-name">{scopes().length ? tr("tools.inspections.everywhereElse") : tr("tools.inspections.inAllScopes")}</td>
                   <td>{severityName(level(), draft()?.severities)}</td>
                   <td />
                 </tr>
@@ -392,7 +393,7 @@ function Details(props: { id: string }) {
           <Show when={options().length}>
             <div class="insp-section">
               <div class="insp-section-head">
-                <span>Options</span>
+                <span>{tr("tools.inspections.options")}</span>
               </div>
               <For each={options()}>{(o) => <OptionEditor id={s().id} option={o.option} value={o.value} />}</For>
             </div>
@@ -400,7 +401,7 @@ function Details(props: { id: string }) {
           <Show when={s().description}>
             <div class="insp-section">
               <div class="insp-section-head">
-                <span>Description</span>
+                <span>{tr("common.description")}</span>
               </div>
               <p class="insp-description">{s().description}</p>
             </div>
@@ -431,7 +432,7 @@ export function InspectionsPage() {
     <div class="settings-page insp-page" data-page={INSPECTIONS_PAGE}>
       <div class="insp-profile-bar">
         <label class="insp-form-label" for="insp-profile">
-          Profile:
+          {tr("tools.inspections.profileLabel")}
         </label>
         <select
           id="insp-profile"
@@ -440,16 +441,16 @@ export function InspectionsPage() {
           onChange={(e) => change({ op: "select", name: e.currentTarget.value })}
         >
           <Show when={project().length}>
-            <optgroup label="Stored in Project">
+            <optgroup label={tr("tools.inspections.storedInProject")}>
               <For each={project()}>{(p) => <option value={p.name}>{p.name}</option>}</For>
             </optgroup>
           </Show>
-          <optgroup label="Stored in IDE">
+          <optgroup label={tr("tools.inspections.storedInIde")}>
             <For each={ide()}>{(p) => <option value={p.name}>{p.name}</option>}</For>
           </optgroup>
         </select>
         <Show when={current()}>{(p) => <span class="insp-level">{levelLabel(p())}</span>}</Show>
-        <button class="icon-btn insp-gear" title="Show Profile Actions" aria-label="Show Profile Actions" onClick={(e) => showContextMenu(profileMenu(), e.clientX, e.clientY)}>
+        <button class="icon-btn insp-gear" title={tr("tools.inspections.showProfileActions")} aria-label={tr("tools.inspections.showProfileActions")} onClick={(e) => showContextMenu(profileMenu(), e.clientX, e.clientY)}>
           <Settings size={15} />
         </button>
       </div>
@@ -457,16 +458,16 @@ export function InspectionsPage() {
         <div class="insp-left">
           <div class="insp-search">
             <Search size={13} />
-            <input class="insp-search-input" placeholder="Search inspections" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
+            <input class="insp-search-input" placeholder={tr("tools.inspections.searchInspections")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
           </div>
           <div class="insp-tree" role="tree">
-            <Show when={tree()} fallback={<div class="insp-empty">Loading…</div>}>
+            <Show when={tree()} fallback={<div class="insp-empty">{tr("common.loadingEllipsis")}</div>}>
               {(t) => (
                 <>
                   <For each={t().groups}>{(g) => <Group group={g} depth={0} />}</For>
                   <For each={t().inspections}>{(l) => <Leaf leaf={l} depth={-1} />}</For>
                   <Show when={!t().groups.length && !t().inspections.length}>
-                    <div class="insp-empty">Nothing found</div>
+                    <div class="insp-empty">{tr("common.nothingFound")}</div>
                   </Show>
                 </>
               )}
@@ -474,7 +475,7 @@ export function InspectionsPage() {
           </div>
         </div>
         <div class="insp-right">
-          <Show when={selected()} fallback={<div class="insp-empty">Select an inspection to see its description and settings.</div>}>
+          <Show when={selected()} fallback={<div class="insp-empty">{tr("tools.inspections.selectAnInspectionToSee")}</div>}>
             {(id) => <Details id={id()} />}
           </Show>
         </div>

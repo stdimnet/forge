@@ -8,6 +8,7 @@ import { Boxes, Coffee, FlaskConical, Hammer, Plug, TestTubeDiagonal } from "luc
 import type { RunConfiguration } from "@/ipc/run";
 import { baseName, registerRunConfigurationType, type RunConfigField } from "@/features/run/types";
 import { jdkChoices } from "./store";
+import { t } from "@/i18n";
 
 export const PLUGIN_ID = "forge.java";
 export const APPLICATION = "java-application";
@@ -26,7 +27,7 @@ const jdkField: RunConfigField = {
   key: "jdk",
   label: "JDK",
   kind: "enum",
-  options: () => [{ value: "", label: "Project JDK" }, ...jdkChoices()],
+  options: () => [{ value: "", label: t("langs.java.projectJdk") }, ...jdkChoices()],
 };
 
 const moduleField: RunConfigField = { key: "module", label: "Module", placeholder: "app (empty: the root project)" };

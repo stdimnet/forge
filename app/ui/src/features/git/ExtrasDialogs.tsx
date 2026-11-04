@@ -97,10 +97,10 @@ function TargetRow(props: { target: CloneTarget; onChange: (t: CloneTarget) => v
         <select class="gd-select" value={value()} disabled={props.disabled} onChange={(e) => void pick(e.currentTarget.value)} data-testid="clone-target">
           <option value="local">{tr("git.extrasDialogs.thisComputer")}</option>
           <Show when={props.target.connectionId}>
-            <option value={`conn:${props.target.connectionId}`}>{props.target.label} (SSH)</option>
+            <option value={`conn:${props.target.connectionId}`}>{tr("tools.git.ssh", { label: props.target.label })}</option>
           </Show>
           <For each={(configs() ?? []).filter((c) => c.label !== props.target.label)}>
-            {(c) => <option value={`cfg:${c.id}`}>{c.name || c.label} (SSH)</option>}
+            {(c) => <option value={`cfg:${c.id}`}>{tr("tools.git.ssh2", { value: c.name || c.label })}</option>}
           </For>
         </select>
         <Show when={connecting()}>

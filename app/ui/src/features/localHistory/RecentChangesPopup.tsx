@@ -11,6 +11,7 @@ import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { shortcutLabel } from "@/keymap";
 import { historyDate, historyRevision, nameOf, openHistoryTab, setRecentChangesOpen } from "./actions";
 import { KIND_ICONS } from "./LocalHistoryView";
+import { t } from "@/i18n";
 
 const summary = (c: LhRecentChange) => {
   if (c.kind === "label") return "Label";
@@ -70,9 +71,9 @@ export function RecentChangesPopup() {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div class="popup recent-popup recent-changes-popup" tabIndex={-1} ref={root} role="dialog" aria-label="Recent Changes" onKeyDown={onKeyDown}>
+      <div class="popup recent-popup recent-changes-popup" tabIndex={-1} ref={root} role="dialog" aria-label={t("tools.localHistory.recentChanges")} onKeyDown={onKeyDown}>
         <div class="recent-header">
-          <span class="recent-title">Recent Changes</span>
+          <span class="recent-title">{t("tools.localHistory.recentChanges")}</span>
           <Show when={query()}>
             <span class="speed-search">
               <Search size={12} />
@@ -81,7 +82,7 @@ export function RecentChangesPopup() {
           </Show>
         </div>
         <div class="recent-changes-list">
-          <Show when={shown().length} fallback={<div class="se-empty">{changes.loading ? "Loading…" : query() ? "Nothing found" : "No changes recorded yet"}</div>}>
+          <Show when={shown().length} fallback={<div class="se-empty">{changes.loading ? t("common.loadingEllipsis") : query() ? t("common.nothingFound") : t("tools.localHistory.noChangesRecordedYet")}</div>}>
             <For each={shown()}>
               {(c, i) => (
                 <div
@@ -94,7 +95,7 @@ export function RecentChangesPopup() {
                 >
                   <Dynamic component={KIND_ICONS[c.kind]} size={15} class={`lh-kind lh-kind-${c.kind}`} />
                   <span class="rc-text">
-                    <span class="recent-name">{c.name || "Change"}</span>
+                    <span class="recent-name">{c.name || t("tools.localHistory.change")}</span>
                     <span class="rc-files">{summary(c)}</span>
                   </span>
                   <span class="rc-time">{historyDate(c.time)}</span>
@@ -104,7 +105,7 @@ export function RecentChangesPopup() {
           </Show>
         </div>
         <div class="se-footer">
-          Enter to show the change and revert it · type to search · {shortcutLabel("RecentChanges") || "Alt+Shift+C"} to close
+          {t("tools.localHistory.enterToShowTheChange", { value: shortcutLabel("RecentChanges") || "Alt+Shift+C" })}
         </div>
       </div>
     </div>

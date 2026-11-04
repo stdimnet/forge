@@ -35,6 +35,7 @@ import { useTemporary } from "@/features/run/configStore";
 import { debugConfiguration, launch } from "@/features/run/runStore";
 import { getSetting, saveSettings } from "@/state/settings";
 import { cargoLoading, cargoWorkspace, cargoWorkspaceError, refreshCargo, runRustCommand, showRustBalloon } from "./state";
+import { t as tr } from "@/i18n";
 import "./cargo.css";
 
 const KIND_LABEL: Record<CargoTarget["kind"], string> = {
@@ -193,7 +194,7 @@ export function CargoToolWindow() {
       out.push({ key: pk, depth: 0, label: pkg.name, detail: pkg.version, icon: Package, iconClass: "cargo-member", children: true, pkg });
       if (!isOpen(pk)) return;
       const tk = `${pk}/targets`;
-      out.push({ key: tk, depth: 1, label: "Targets", icon: Hammer, iconClass: "muted", children: pkg.targets.length > 0 });
+      out.push({ key: tk, depth: 1, label: tr("langs.rust.targets"), icon: Hammer, iconClass: "muted", children: pkg.targets.length > 0 });
       if (isOpen(tk))
         for (const t of pkg.targets)
           out.push({
@@ -208,7 +209,7 @@ export function CargoToolWindow() {
           });
       if (pkg.features.length) {
         const fk = `${pk}/features`;
-        out.push({ key: fk, depth: 1, label: "Features", icon: CircleCheck, iconClass: "muted", children: true });
+        out.push({ key: fk, depth: 1, label: tr("langs.rust.features"), icon: CircleCheck, iconClass: "muted", children: true });
         if (isOpen(fk))
           for (const f of pkg.features)
             out.push({
@@ -223,7 +224,7 @@ export function CargoToolWindow() {
       const tree = ws.trees[i];
       if (tree?.children?.length) {
         const dk = `${pk}/deps`;
-        out.push({ key: dk, depth: 1, label: "Dependencies", icon: Network, iconClass: "muted", children: true });
+        out.push({ key: dk, depth: 1, label: tr("common.dependencies"), icon: Network, iconClass: "muted", children: true });
         if (isOpen(dk)) for (const c of tree.children) dependencyRows(c, dk, 2, isOpen, out);
       }
     });
@@ -249,41 +250,41 @@ export function CargoToolWindow() {
   return (
     <div class="cargo-tw">
       <div class="cargo-toolbar">
-        <button class="icon-btn" title="Reload Cargo Project" data-action="cargo-reload" onClick={() => void refreshCargo(true)}>
+        <button class="icon-btn" title={tr("langs.rust.reloadCargoProject")} data-action="cargo-reload" onClick={() => void refreshCargo(true)}>
           <RefreshCw size={14} classList={{ "cargo-spin": cargoLoading() }} />
         </button>
         <span class="cargo-sep" />
-        <button class="icon-btn" title="Run" disabled={!selectedConfig()} onClick={() => run(selectedConfig())}>
+        <button class="icon-btn" title={tr("common.run2")} disabled={!selectedConfig()} onClick={() => run(selectedConfig())}>
           <Play size={14} class="cargo-run" />
         </button>
-        <button class="icon-btn" title="Debug" disabled={!selectedConfig()} onClick={() => debug(selectedConfig())}>
+        <button class="icon-btn" title={tr("common.debug2")} disabled={!selectedConfig()} onClick={() => debug(selectedConfig())}>
           <Bug size={14} class="cargo-run" />
         </button>
         <span class="cargo-sep" />
-        <button class="icon-btn" title="Build (cargo build)" data-action="cargo-build" onClick={() => action("build")}>
+        <button class="icon-btn" title={tr("langs.rust.buildCargoBuild")} data-action="cargo-build" onClick={() => action("build")}>
           <Hammer size={14} />
         </button>
-        <button class="icon-btn" title="Check (cargo check)" onClick={() => action("check")}>
+        <button class="icon-btn" title={tr("langs.rust.checkCargoCheck")} onClick={() => action("check")}>
           <CircleCheck size={14} />
         </button>
-        <button class="icon-btn" title="Documentation (cargo doc)" onClick={() => action("doc")}>
+        <button class="icon-btn" title={tr("langs.rust.documentationCargoDoc")} onClick={() => action("doc")}>
           <BookOpen size={14} />
         </button>
-        <button class="icon-btn" title="Clean (cargo clean)" onClick={() => action("clean")}>
+        <button class="icon-btn" title={tr("langs.rust.cleanCargoClean")} onClick={() => action("clean")}>
           <Trash2 size={14} />
         </button>
-        <button class="icon-btn" title="Update Dependencies (cargo update)" onClick={() => void cargoAction("update")}>
+        <button class="icon-btn" title={tr("langs.rust.updateDependenciesCargoUpdate")} onClick={() => void cargoAction("update")}>
           <Network size={14} />
         </button>
       </div>
       <Show when={cargoWorkspaceError() && !cargoWorkspace()}>
         <div class="cargo-message">
-          <div>Cannot load the Cargo project</div>
+          <div>{tr("langs.rust.cannotLoadTheCargoProject")}</div>
           <div class="muted">{cargoWorkspaceError()}</div>
         </div>
       </Show>
       <Show when={!cargoWorkspace() && !cargoWorkspaceError()}>
-        <div class="cargo-message muted">{cargoLoading() ? "Loading cargo metadata…" : "No Cargo project"}</div>
+        <div class="cargo-message muted">{cargoLoading() ? tr("langs.rust.loadingCargoMetadataEllipsis") : tr("langs.rust.noCargoProject")}</div>
       </Show>
       <div class="cargo-tree" role="tree">
         <For each={rows()}>

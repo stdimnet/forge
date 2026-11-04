@@ -39,7 +39,7 @@ import { PeripheralsView, setSessionSvd, svdOf } from "./PeripheralsView";
 import { PlatformIOToolWindow } from "./PlatformIOToolWindow";
 import { buildFirst, cppActive, executableTargets, runTool, showCppBalloon } from "./state";
 import "./embedded.css";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const [info, setInfo] = createSignal<EmbeddedInfo | null>(null);
 export { info as embeddedInfo };
@@ -123,10 +123,10 @@ function chooseBoard(then?: (board: string) => void): void {
   const z = info()?.zephyr;
   const known = z?.localBoards ?? [];
   setInputDialog({
-    title: "Zephyr Board",
-    label: `Board to build for${known.length ? ` (this application: ${known.join(", ")})` : ""}:`,
+    title: tr("langs.cpp.zephyrBoard"),
+    label: tr("langs.cpp.boardToBuildForLabel", { value: known.length ? ` (this application: ${known.join(", ")})` : "" }),
     value: z?.board ?? known[0] ?? "nrf52840dk/nrf52840",
-    okLabel: "Select",
+    okLabel: tr("langs.cpp.select"),
     onOk: (value) => {
       const board = value.trim();
       if (!board) return;

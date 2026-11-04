@@ -121,7 +121,7 @@ function BranchTree(props: { branches: Branches | undefined }) {
       style={{ "padding-left": `${8 + p.depth * 16}px` }}
       onClick={() => setFilterRev(p.rev)}
       onDblClick={() => p.rev && p.icon === "branch" && !p.current && void checkout(p.rev, p.remote)}
-      title={p.rev ?? "Show all branches"}
+      title={p.rev ?? tr("tools.git.showAllBranches")}
     >
       <span class="tree-chevron" />
       <Show when={p.icon === "head"} fallback={p.icon === "tag" ? <Tag size={14} class="muted" /> : <GitBranch size={14} class="muted" />}>
@@ -186,14 +186,14 @@ function Details(props: { sha: string | null; commit: Commit | undefined }) {
             <>
               <div class="log-files">
                 <div class="log-files-title">
-                  {d().files.length} file{d().files.length === 1 ? "" : "s"} changed
+                  {tr("common.filesChanged", { count: d().files.length })}
                 </div>
                 <For each={d().files}>
                   {(f) => (
                     <div
                       class="tree-row"
                       style={{ "padding-left": "10px" }}
-                      title={`${f.path} — double-click to show diff`}
+                      title={tr("tools.git.doubleClickToShowDiff", { path: f.path })}
                       onDblClick={() => void showCommitDiff(d().sha, d().parents[0], f.path)}
                     >
                       <FileIcon name={f.path.split("/").pop()!} />
@@ -210,7 +210,7 @@ function Details(props: { sha: string | null; commit: Commit | undefined }) {
                 </Show>
                 <div class="log-meta">
                   <span class="log-sha">{d().sha.slice(0, 8)}</span> {d().author}{" "}
-                  <span class="muted">&lt;{d().email}&gt;</span> on {fullDate(d().time)}
+                  <span class="muted">{tr("tools.git.ltGt", { email: d().email })}</span> on {fullDate(d().time)}
                 </div>
                 <Show when={d().signature && d().signature !== "none"}>
                   <div class="log-meta log-signed" data-testid="log-signer">
@@ -363,8 +363,8 @@ export function GitLogPanel() {
                 </button>
               }
             >
-              <button class="pill-btn log-filter" title={`Paths: ${filterPath() || "/"} (click to clear)`} onClick={() => setFilterPath(null)}>
-                Paths: <b>{filterPath()!.split("/").pop() || "/"}</b>
+              <button class="pill-btn log-filter" title={tr("tools.git.pathsClickToClear", { value: filterPath() || "/" })} onClick={() => setFilterPath(null)}>
+                {tr("tools.git.pathsLabel")} <b>{filterPath()!.split("/").pop() || "/"}</b>
                 <X size={12} class="muted" />
               </button>
             </Show>

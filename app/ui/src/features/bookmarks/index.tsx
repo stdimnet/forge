@@ -81,7 +81,7 @@ action("ToggleBookmarkWithMnemonic", () =>
 action("EditBookmark", () =>
   withCaret(async ({ path, line }) => {
     const b = bookmarkAt(path, line);
-    if (!b) return void showBalloon("No bookmark on this line", "Press F11 to add one.");
+    if (!b) return void showBalloon(t("tools.bookmarks.noBookmarkOnThisLine"), t("tools.bookmarks.pressF11ToAddOne"));
     await editDescription(b);
   }),
 );
@@ -97,7 +97,7 @@ for (let d = 0; d <= 9; d++) {
   action(`GotoBookmark${m}`, async () => {
     await flushEdits();
     const b = bookmarkByMnemonic(m);
-    if (!b) return void showBalloon(`Bookmark ${m} is not set`, "Set it with Ctrl+Shift+" + m + " or Ctrl+F11.");
+    if (!b) return void showBalloon(t("tools.bookmarks.bookmarkIsNotSet", { m }), "Set it with Ctrl+Shift+" + m + " or Ctrl+F11.");
     await openFileAt(b.path, b.line + 1);
   });
 }

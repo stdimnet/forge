@@ -17,6 +17,7 @@ import { allConfigurations, useTemporary } from "@/features/run/configStore";
 import { launch, openInBrowser, runningFor, stopConfiguration } from "@/features/run/runStore";
 import { getSetting } from "@/state/settings";
 import { dotnetActive, dotnetWorkspace, PLUGIN, projectByPath, showDotnetBalloon } from "../state";
+import { t } from "@/i18n";
 
 const [hosts, { refetch }] = createRoot(() => createResource(
   () => (dotnetActive() ? dotnetWorkspace() : null),
@@ -51,7 +52,7 @@ async function track(runId: string, project: string): Promise<void> {
         if (aspire.dashboardUrl && !notified) {
           notified = true;
           if (getSetting<boolean>("dotnet.aspire.openDashboard", false)) openInBrowser(aspire.dashboardUrl);
-          else showDotnetBalloon("Aspire dashboard", aspire.dashboardUrl.replace(/\?.*$/, ""), 12000, [{ label: "Open Dashboard", run: () => openInBrowser(aspire.dashboardUrl!) }]);
+          else showDotnetBalloon("Aspire dashboard", aspire.dashboardUrl.replace(/\?.*$/, ""), 12000, [{ label: t("langs.dotnet.openDashboard"), run: () => openInBrowser(aspire.dashboardUrl!) }]);
         }
       });
     } else if (e.type === "exited") {
@@ -96,7 +97,7 @@ registerRunConfigurationType({
         for (const h of hosts() ?? [])
           for (const p of projectByPath(h.path)?.launchProfiles ?? [])
             if (p.commandName === "Project" && !seen.has(p.name)) seen.set(p.name, `${p.name}${p.applicationUrl ? ` (${p.applicationUrl.split(";")[0]})` : ""}`);
-        return [{ value: "", label: "Default (the first profile)" }, ...[...seen].map(([value, label]) => ({ value, label }))];
+        return [{ value: "", label: t("langs.dotnet.defaultTheFirstProfile") }, ...[...seen].map(([value, label]) => ({ value, label }))];
       },
     },
     {
@@ -182,14 +183,14 @@ function details(nodeId: string): ServiceDetails | null {
     tabs: ["dashboard"],
     sections: [
       {
-        title: "AppHost",
+        title: t("langs.dotnet.apphost"),
         rows: [
-          { label: "Status", value: up ? (running()[host.path]?.started ? "Running" : "Starting") : "Not started", status: up ? "running" : "stopped" },
-          { label: "Dashboard", value: url ? url.replace(/\?.*$/, "") : up ? "Waiting for the dashboard URL…" : "Starts with the AppHost", url: url ?? undefined },
-          { label: "Project", value: host.path },
+          { label: t("common.status"), value: up ? (running()[host.path]?.started ? "Running" : "Starting") : "Not started", status: up ? "running" : "stopped" },
+          { label: t("langs.dotnet.dashboard"), value: url ? url.replace(/\?.*$/, "") : up ? "Waiting for the dashboard URL…" : "Starts with the AppHost", url: url ?? undefined },
+          { label: t("common.project"), value: host.path },
         ],
       },
-      { title: "Resources", table: { columns: ["Name", "Type", "Details", "References", "External"], rows } },
+      { title: t("langs.dotnet.resources"), table: { columns: ["Name", "Type", "Details", "References", "External"], rows } },
     ],
     actions: up ? ["stop", "restart"] : ["start"],
   };

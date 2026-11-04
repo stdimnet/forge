@@ -17,6 +17,7 @@ import { workspace } from "@/state/workspace";
 import { execute, history, loadHistory } from "./actions";
 import { collectProviderCommands } from "./providers";
 import { closeRunAnything, raQuery, setRaQuery } from "./state";
+import { t } from "@/i18n";
 
 const ICONS: Record<string, IconComponent> = {
   recent: History,
@@ -145,14 +146,14 @@ export function RunAnything() {
         class="popup se-popup ra-popup"
         classList={{ debug: debug() }}
         role="dialog"
-        aria-label="Run Anything"
+        aria-label={t("tools.runAnything.runAnything")}
         onKeyDown={onKeyDown}
         onKeyUp={(e) => e.key === "Shift" && setDebug(false)}
       >
         <div class="ra-header">
-          <span class="ra-title">{debug() ? "Debug Anything" : "Run Anything"}</span>
-          <span class="ra-context muted" title="Commands run in the project directory">
-            {workspace()?.name ?? "Project"}
+          <span class="ra-title">{debug() ? t("tools.runAnything.debugAnything") : t("tools.runAnything.runAnything")}</span>
+          <span class="ra-context muted" title={t("tools.runAnything.commandsRunInTheProject")}>
+            {workspace()?.name ?? t("common.project")}
           </span>
         </div>
         <div class="se-search ra-search">
@@ -163,7 +164,7 @@ export function RunAnything() {
             value={raQuery()}
             spellcheck={false}
             autocomplete="off"
-            placeholder="Run any command, configuration or script"
+            placeholder={t("tools.runAnything.runAnyCommandConfigurationOr")}
             onInput={(e) => setRaQuery(e.currentTarget.value)}
             onBlur={() => setDebug(false)}
           />
@@ -200,9 +201,9 @@ export function RunAnything() {
           </Show>
         </div>
         <div class="se-footer ra-footer">
-          <span>{debug() ? "Release Shift to run" : "Press Shift to debug"}</span>
+          <span>{debug() ? t("tools.runAnything.releaseShiftToRun") : t("tools.runAnything.pressShiftToDebug")}</span>
           <span class="ra-footer-sep">·</span>
-          <span>Type ? for help</span>
+          <span>{t("tools.runAnything.typeForHelp")}</span>
         </div>
       </div>
     </div>

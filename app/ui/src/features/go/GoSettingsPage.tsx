@@ -13,6 +13,7 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { LanguageServersPage } from "@/features/langservers/LanguageServersPage";
 import { downloadSdk } from "./sdk";
 import { installTool, refreshGoStatus } from "./state";
+import { t as tr } from "@/i18n";
 import "./go.css";
 
 export function GoSettingsPage() {
@@ -24,7 +25,7 @@ export function GoSettingsPage() {
   };
   return (
     <div class="go-settings">
-      <h3 class="set-section-title">GOROOT</h3>
+      <h3 class="set-section-title">{tr("langs.go.goroot")}</h3>
       <div class="go-sdk-row">
         <select
           data-testid="go-sdk"
@@ -37,7 +38,7 @@ export function GoSettingsPage() {
           <For each={status()?.sdks ?? []}>
             {(s) => (
               <option value={s.root}>
-                Go {s.version} — {s.root} ({s.source})
+                {tr("langs.go.go", { version: s.version, root: s.root, source: s.source })}
               </option>
             )}
           </For>
@@ -46,14 +47,14 @@ export function GoSettingsPage() {
           </Show>
         </select>
         <button class="btn-secondary" onClick={() => void downloadSdk().then(() => refetch())}>
-          <Download size={13} /> Download…
+          <Download size={13} /> {tr("common.downloadEllipsis")}
         </button>
-        <button class="icon-btn" title="Detect SDKs again" onClick={() => void refetch()}>
+        <button class="icon-btn" title={tr("langs.go.detectSdksAgain")} onClick={() => void refetch()}>
           <RefreshCw size={13} />
         </button>
       </div>
 
-      <h3 class="set-section-title">Tools</h3>
+      <h3 class="set-section-title">{tr("common.tools")}</h3>
       <table class="go-tools">
         <tbody>
           <For each={status()?.tools ?? []}>
@@ -61,13 +62,13 @@ export function GoSettingsPage() {
               <tr>
                 <td>{t.label}</td>
                 <td class="go-tool-path" classList={{ "go-missing": !t.path }}>
-                  {t.path ?? "not found"}
+                  {t.path ?? tr("common.notFound")}
                 </td>
                 <td class="muted">{t.licence}</td>
                 <td>
                   <Show when={t.install}>
-                    <button class="pill-btn" title={`go install ${t.install}`} onClick={() => void install(t.tool)}>
-                      {t.path ? "Reinstall" : "Install"}
+                    <button class="pill-btn" title={tr("langs.go.goInstall", { install: t.install })} onClick={() => void install(t.tool)}>
+                      {t.path ? tr("langs.go.reinstall") : tr("common.install")}
                     </button>
                   </Show>
                 </td>
@@ -77,7 +78,7 @@ export function GoSettingsPage() {
         </tbody>
       </table>
       <SchemaPage pageId="lang.go" />
-      <h3 class="set-section-title">Language Server</h3>
+      <h3 class="set-section-title">{tr("common.languageServer")}</h3>
       <LanguageServersPage groups={["Go"]} />
     </div>
   );

@@ -4,6 +4,7 @@ import { Hammer } from "lucide-solid";
 import { isTauri } from "@/ipc";
 import { suspendKeymap } from "@/keymap";
 import { version as uiVersion } from "../../../package.json";
+import { t } from "@/i18n";
 
 const [aboutOpen, setAboutOpen] = createSignal(false);
 export const openAbout = () => setAboutOpen(true);
@@ -47,7 +48,7 @@ function AboutDialog() {
       <div
         class="dialog about-dialog"
         role="dialog"
-        aria-label="About Forge"
+        aria-label={t("tools.mainMenu.aboutForge")}
         tabindex="-1"
         ref={(el) => queueMicrotask(() => el.focus())}
         onKeyDown={(e) => {
@@ -63,21 +64,21 @@ function AboutDialog() {
           </div>
           <div class="about-text">
             <div class="about-name">Forge</div>
-            <div class="about-version">Version {version() ?? uiVersion}</div>
+            <div class="about-version">{t("tools.mainMenu.version", { value: version() ?? uiVersion })}</div>
             <div class="about-lines">
               <div>{lines()[1]}</div>
               <div>{lines()[2]}</div>
               <div>{lines()[3]}</div>
             </div>
-            <div class="about-tagline">A PHPStorm-style IDE for PHP, web and Lua projects.</div>
+            <div class="about-tagline">{t("tools.mainMenu.aPhpstormStyleIdeFor")}</div>
           </div>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={() => void copyAndClose()}>
-            Copy and Close
+            {t("tools.mainMenu.copyAndClose")}
           </button>
           <button class="btn-primary" onClick={close}>
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

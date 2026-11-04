@@ -10,7 +10,7 @@ import type { FilePreview, PreviewRow, RenameConflict, UsagesAnswer } from "@/ip
 import { openFileAt } from "@/editor/views";
 import { countLabel, openInFindWindow } from "./usages";
 import type { PreviewRequest, RenameDialogRequest } from "./rename";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const fileName = (p: string) => p.split("/").pop() ?? p;
 const dirName = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
@@ -199,8 +199,8 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
             </div>
           </Show>
           <div class="preview-summary">
-            {props.req.title}: {countLabel(total(), "occurrence")} in {countLabel(files(), "file")}
-            <Show when={a().skipped}>, {countLabel(a().skipped, "dynamic usage")} not renamed</Show>
+            {tr("tools.codeintel.in", { title: props.req.title, value: countLabel(total(), "occurrence"), value2: countLabel(files(), "file") })}
+            <Show when={a().skipped}>{tr("tools.codeintel.notRenamed", { value: countLabel(a().skipped, "dynamic usage") })}</Show>
           </div>
           <div class="preview-files">
             <For each={a().preview}>{(f) => <FileBlock file={f} />}</For>

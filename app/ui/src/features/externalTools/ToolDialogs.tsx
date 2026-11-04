@@ -11,6 +11,7 @@ import { runToolsApi, type ExternalTool, type MacroInfo } from "@/ipc/runTools";
 import { workspace } from "@/state/workspace";
 import { currentContext } from "./run";
 import { DEFAULT_GROUP } from "./model";
+import { t as tr } from "@/i18n";
 
 /** Filter macros, as the Output filters hint lists them. */
 const FILTER_MACROS = ["$FILE_PATH$", "$LINE$", "$COLUMN$"];
@@ -30,7 +31,7 @@ function InsertMacroDialog(props: { onInsert: (name: string) => void; onClose: (
       <div
         class="popup et-dialog et-macros"
         role="dialog"
-        aria-label="Macros"
+        aria-label={tr("tools.externalTools.macros")}
         onKeyDown={(e) => {
           const n = macros()?.length ?? 0;
           if (e.key === "Escape") props.onClose();
@@ -43,7 +44,7 @@ function InsertMacroDialog(props: { onInsert: (name: string) => void; onClose: (
           list.querySelector(".et-macro.selected")?.scrollIntoView({ block: "nearest" });
         }}
       >
-        <div class="et-title">Macros</div>
+        <div class="et-title">{tr("tools.externalTools.macros")}</div>
         <div class="et-macro-list" tabIndex={0} ref={list}>
           <For each={macros() ?? []}>
             {(m, i) => (
@@ -54,17 +55,17 @@ function InsertMacroDialog(props: { onInsert: (name: string) => void; onClose: (
             )}
           </For>
         </div>
-        <div class="et-preview-label">Macro preview:</div>
+        <div class="et-preview-label">{tr("tools.externalTools.macroPreviewLabel")}</div>
         <div class="et-preview" data-testid="et-macro-preview">
-          {current()?.preview ?? (current()?.name === "$Prompt$" ? "Asks for a value when the tool runs" : "No value here")}
+          {current()?.preview ?? (current()?.name === "$Prompt$" ? tr("tools.externalTools.asksForAValueWhen") : tr("tools.externalTools.noValueHere"))}
         </div>
         <div class="dialog-buttons et-buttons">
           <span class="et-spacer" />
           <button class="btn-primary" disabled={!current()} onClick={insert}>
-            Insert
+            {tr("common.insert")}
           </button>
           <button class="btn-secondary" onClick={props.onClose}>
-            Cancel
+            {tr("common.cancel")}
           </button>
         </div>
       </div>
@@ -124,8 +125,8 @@ export function EditToolDialog(props: {
   };
 
   const MacroButton = (p: { field: MacroField }) => (
-    <button class="btn-secondary et-macro-btn" title="Insert Macro…" onClick={() => setMacroFor(p.field)}>
-      <Plus size={13} /> Insert Macro…
+    <button class="btn-secondary et-macro-btn" title={tr("tools.externalTools.insertMacroEllipsis")} onClick={() => setMacroFor(p.field)}>
+      <Plus size={13} /> {tr("tools.externalTools.insertMacroEllipsis")}
     </button>
   );
 
@@ -134,7 +135,7 @@ export function EditToolDialog(props: {
       <div
         class="popup et-dialog"
         role="dialog"
-        aria-label={props.creating ? "Create Tool" : "Edit Tool"}
+        aria-label={props.creating ? tr("tools.externalTools.createTool") : tr("tools.externalTools.editTool")}
         onKeyDown={(e) => {
           if (macroFor()) return;
           if (e.key === "Escape") {
@@ -148,15 +149,15 @@ export function EditToolDialog(props: {
           }
         }}
       >
-        <div class="et-title">{props.creating ? "Create Tool" : "Edit Tool"}</div>
+        <div class="et-title">{props.creating ? tr("tools.externalTools.createTool") : tr("tools.externalTools.editTool")}</div>
         <div class="et-form">
           <div class="et-row">
             <label class="et-label" for="et-name">
-              Name:
+              {tr("common.nameLabel")}
             </label>
             <input id="et-name" class="set-input et-grow" value={tool().name} onInput={(e) => set({ name: e.currentTarget.value })} />
             <label class="et-label et-group-label" for="et-group">
-              Group:
+              {tr("tools.externalTools.groupLabel")}
             </label>
             <input
               id="et-group"
@@ -172,14 +173,14 @@ export function EditToolDialog(props: {
           </div>
           <div class="et-row">
             <label class="et-label" for="et-desc">
-              Description:
+              {tr("common.descriptionLabel")}
             </label>
             <input id="et-desc" class="set-input et-grow" value={tool().description} onInput={(e) => set({ description: e.currentTarget.value })} />
           </div>
-          <div class="et-section">Tool Settings</div>
+          <div class="et-section">{tr("tools.externalTools.toolSettings")}</div>
           <div class="et-row">
             <label class="et-label" for="et-program">
-              Program:
+              {tr("tools.externalTools.programLabel")}
             </label>
             <div class="et-path">
               <input
@@ -192,7 +193,7 @@ export function EditToolDialog(props: {
               />
               <button
                 class="icon-btn"
-                title="Browse for a file"
+                title={tr("tools.externalTools.browseForAFile")}
                 onClick={async () => {
                   const v = await browse(false);
                   if (v) set({ program: v });
@@ -205,21 +206,21 @@ export function EditToolDialog(props: {
           </div>
           <div class="et-row">
             <label class="et-label" for="et-args">
-              Arguments:
+              {tr("common.argumentsLabel")}
             </label>
             <input
               id="et-args"
               ref={(el) => (inputs.arguments = el)}
               class="set-input et-mono et-grow"
               value={tool().arguments}
-              placeholder="analyse $FilePath$"
+              placeholder={tr("tools.externalTools.analyseFilepath")}
               onInput={(e) => set({ arguments: e.currentTarget.value })}
             />
             <MacroButton field="arguments" />
           </div>
           <div class="et-row">
             <label class="et-label" for="et-wd">
-              Working directory:
+              {tr("tools.externalTools.workingDirectoryLabel")}
             </label>
             <div class="et-path">
               <input
@@ -227,12 +228,12 @@ export function EditToolDialog(props: {
                 ref={(el) => (inputs.workingDirectory = el)}
                 class="set-input et-mono"
                 value={tool().workingDirectory}
-                placeholder="$ProjectFileDir$"
+                placeholder={tr("tools.externalTools.projectfiledir")}
                 onInput={(e) => set({ workingDirectory: e.currentTarget.value })}
               />
               <button
                 class="icon-btn"
-                title="Browse for a directory"
+                title={tr("tools.externalTools.browseForADirectory")}
                 onClick={async () => {
                   const v = await browse(true);
                   if (v) set({ workingDirectory: v });
@@ -244,17 +245,17 @@ export function EditToolDialog(props: {
             <MacroButton field="workingDirectory" />
           </div>
           <button class="et-section et-toggle" onClick={() => setAdvanced((a) => !a)}>
-            {advanced() ? <ChevronDown size={14} /> : <ChevronRight size={14} />} Advanced Options
+            {advanced() ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {tr("tools.externalTools.advancedOptions")}
           </button>
           <Show when={advanced()}>
             <div class="et-advanced">
               <label class="set-check">
                 <input type="checkbox" checked={tool().synchronize} onChange={(e) => set({ synchronize: e.currentTarget.checked })} />
-                <span>Synchronize files after execution</span>
+                <span>{tr("tools.externalTools.synchronizeFilesAfterExecution")}</span>
               </label>
               <label class="set-check">
                 <input type="checkbox" checked={tool().openConsole} onChange={(e) => set({ openConsole: e.currentTarget.checked })} />
-                <span>Open console for tool output</span>
+                <span>{tr("tools.externalTools.openConsoleForToolOutput")}</span>
               </label>
               <label class="set-check et-indent" classList={{ disabled: !tool().openConsole }}>
                 <input
@@ -263,7 +264,7 @@ export function EditToolDialog(props: {
                   checked={tool().activateOnStdout}
                   onChange={(e) => set({ activateOnStdout: e.currentTarget.checked })}
                 />
-                <span>Make console active on message in stdout</span>
+                <span>{tr("tools.externalTools.makeConsoleActiveOnMessage")}</span>
               </label>
               <label class="set-check et-indent" classList={{ disabled: !tool().openConsole }}>
                 <input
@@ -272,17 +273,17 @@ export function EditToolDialog(props: {
                   checked={tool().activateOnStderr}
                   onChange={(e) => set({ activateOnStderr: e.currentTarget.checked })}
                 />
-                <span>Make console active on message in stderr</span>
+                <span>{tr("tools.externalTools.makeConsoleActiveOnMessage2")}</span>
               </label>
               <label class="et-label et-filters-label" for="et-filters">
-                Output filters:
+                {tr("tools.externalTools.outputFiltersLabel")}
               </label>
               <textarea
                 id="et-filters"
                 class="set-input et-mono et-filters"
                 rows={3}
                 value={tool().outputFilters.join("\n")}
-                placeholder="$FILE_PATH$:$LINE$:$COLUMN$"
+                placeholder={tr("tools.externalTools.filePathLineColumn")}
                 onInput={(e) =>
                   set({
                     outputFilters: e.currentTarget.value.split("\n"),
@@ -290,7 +291,7 @@ export function EditToolDialog(props: {
                 }
               />
               <div class="set-desc">
-                One regular expression per line. Use {FILTER_MACROS.join(", ")} to turn matches into links, e.g.{" "}
+                {tr("tools.externalTools.oneRegularExpressionPerLine", { FILTER_MACROS: FILTER_MACROS.join(", ") })}
                 <code>$FILE_PATH$:$LINE$</code>.
               </div>
             </div>
@@ -307,7 +308,7 @@ export function EditToolDialog(props: {
             OK
           </button>
           <button class="btn-secondary" onClick={() => props.onDone(null)}>
-            Cancel
+            {tr("common.cancel")}
           </button>
         </div>
       </div>

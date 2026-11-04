@@ -83,7 +83,7 @@ async function runWith(tool: NativeTool, cfg: RunConfiguration | undefined = sel
   }
   if (info && !(tool === "perf" ? info.perf : info.valgrind)) {
     showCppBalloon(`${tool === "perf" ? "perf" : "Valgrind"} is not installed`, `Install it with your package manager or choose it in Settings | Build, Execution, Deployment | Dynamic Analysis Tools.`, 8000, [
-      { label: "Open Settings", run: () => openSettings("build.analysis") },
+      { label: t("langs.cpp.openSettings"), run: () => openSettings("build.analysis") },
     ]);
     return;
   }

@@ -17,6 +17,7 @@ import {
   type BuildState,
   type DevContainerDialogRequest,
 } from "./store";
+import { t } from "@/i18n";
 
 export function DevContainerDialog() {
   return <Show when={devContainerDialog()}>{(req) => <Dialog request={req()} />}</Show>;
@@ -93,19 +94,19 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
       >
         <div class="ssh-titlebar">
           <span>{title()}</span>
-          <button class="icon-btn" title="Close" onClick={close}>
+          <button class="icon-btn" title={t("common.close")} onClick={close}>
             <X size={15} />
           </button>
         </div>
         <div class="ssh-body devc-body">
           <div class="devc-row">
-            <span class="devc-label">Sources</span>
+            <span class="devc-label">{t("tools.devenv.sources")}</span>
             <span class="mono devc-value">{props.request.folder}</span>
           </div>
           <Switch>
             <Match when={configs.loading}>
               <div class="muted">
-                <LoaderCircle size={14} class="ssh-spin" /> Looking for devcontainer.json…
+                <LoaderCircle size={14} class="ssh-spin" /> {t("tools.devenv.lookingForDevcontainerJsonEllipsis")}
               </div>
             </Match>
             <Match when={configs.error}>
@@ -113,13 +114,12 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
             </Match>
             <Match when={configs() && configs()!.length === 0}>
               <div class="ssh-error">
-                No devcontainer.json in this folder. Add <span class="mono">.devcontainer/devcontainer.json</span> to
-                describe the container.
+                {t("tools.devenv.noDevcontainerJsonInThis")} <span class="mono">.devcontainer/devcontainer.json</span> {t("tools.devenv.toDescribeTheContainer")}
               </div>
             </Match>
             <Match when={state() === "idle" || (state() === "failed" && buildLog().length === 0)}>
               <div class="devc-row">
-                <span class="devc-label">Configuration</span>
+                <span class="devc-label">{t("tools.devenv.configuration")}</span>
                 <select
                   class="ssh-input devc-select"
                   value={selected() ?? ""}
@@ -133,20 +133,20 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
               <Show when={current()?.config}>
                 {(c) => (
                   <dl class="devc-summary" data-testid="devcontainer-summary">
-                    <dt>Container</dt>
+                    <dt>{t("tools.devenv.container")}</dt>
                     <dd>{current()?.source}</dd>
-                    <dt>Workspace</dt>
+                    <dt>{t("tools.devenv.workspace")}</dt>
                     <dd class="mono">{c().workspaceFolder}</dd>
-                    <dt>Remote user</dt>
-                    <dd>{c().remoteUser ?? "(the image's user)"}</dd>
+                    <dt>{t("tools.devenv.remoteUser")}</dt>
+                    <dd>{c().remoteUser ?? t("tools.devenv.theImageSUser")}</dd>
                     <Show when={c().forwardPorts.length}>
-                      <dt>Forwarded ports</dt>
+                      <dt>{t("tools.devenv.forwardedPorts")}</dt>
                       <dd>{c().forwardPorts.map((p) => (p.host ? `${p.host}:${p.port}` : p.port)).join(", ")}</dd>
                     </Show>
                     <Show when={lifecycle(c().postCreateCommand)}>
                       {(cmd) => (
                         <>
-                          <dt>postCreateCommand</dt>
+                          <dt>{t("tools.devenv.postcreatecommand")}</dt>
                           <dd class="mono">{cmd()}</dd>
                         </>
                       )}
@@ -154,24 +154,22 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
                     <Show when={lifecycle(c().postStartCommand)}>
                       {(cmd) => (
                         <>
-                          <dt>postStartCommand</dt>
+                          <dt>{t("tools.devenv.poststartcommand")}</dt>
                           <dd class="mono">{cmd()}</dd>
                         </>
                       )}
                     </Show>
                     <Show when={c().features.length}>
-                      <dt>Features</dt>
+                      <dt>{t("tools.devenv.features")}</dt>
                       <dd>
-                        {c().features.map((f) => f.id).join(", ")} <span class="muted">(listed, not installed by Forge)</span>
+                        {c().features.map((f) => f.id).join(", ")} <span class="muted">{t("tools.devenv.listedNotInstalledByForge")}</span>
                       </dd>
                     </Show>
                   </dl>
                 )}
               </Show>
               <p class="muted devc-note">
-                Forge builds the image with the Docker CLI, mounts the sources and starts its agent in the container:
-                indexing, language servers, terminals and run configurations work inside it. The build and the lifecycle
-                commands run the project's code.
+                {t("tools.devenv.forgeBuildsTheImageWith")}
               </p>
             </Match>
             <Match when={true}>
@@ -201,13 +199,13 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
                 <LoaderCircle size={13} class="ssh-spin" /> {[...buildLog()].reverse().find((l) => l.kind === "step")?.text ?? "Starting…"}
               </Match>
               <Match when={state() === "opening"}>
-                <LoaderCircle size={13} class="ssh-spin" /> Starting the Forge agent in the container…
+                <LoaderCircle size={13} class="ssh-spin" /> {t("tools.devenv.startingTheForgeAgentInEllipsis")}
               </Match>
               <Match when={state() === "done"}>
-                <CircleCheck size={13} /> Dev container is ready
+                <CircleCheck size={13} /> {t("tools.devenv.devContainerIsReady")}
               </Match>
               <Match when={state() === "failed"}>
-                <CircleAlert size={13} /> Failed
+                <CircleAlert size={13} /> {t("tools.devenv.failed")}
               </Match>
               <Match when={true}>
                 <Box size={13} /> Docker
@@ -215,7 +213,7 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
             </Switch>
           </span>
           <button class="btn-secondary" onClick={close}>
-            {state() === "building" ? "Stop" : "Cancel"}
+            {state() === "building" ? t("common.stop") : t("common.cancel")}
           </button>
           <Show when={state() === "idle" || state() === "failed"}>
             <button
@@ -224,7 +222,7 @@ function Dialog(props: { request: DevContainerDialogRequest }) {
               onClick={() => void build()}
               data-testid="devcontainer-build"
             >
-              {state() === "failed" ? "Retry" : props.request.rebuild ? "Rebuild Container" : "Build Container and Continue"}
+              {state() === "failed" ? t("common.retry") : props.request.rebuild ? t("tools.devenv.rebuildContainer") : t("tools.devenv.buildContainerAndContinue")}
             </button>
           </Show>
         </div>

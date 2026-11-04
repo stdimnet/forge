@@ -47,6 +47,7 @@ import {
   refreshSolution,
   runBuild,
 } from "./state";
+import { t } from "@/i18n";
 import "./dotnet.css";
 
 type Icon = (p: { size?: number; class?: string }) => JSX.Element;
@@ -122,7 +123,7 @@ function SolutionTree(props: { selected: string | null; onSelect: (key: string, 
         out.push({ key: `${k}/profile:${pr.name}`, depth: depth + 1, label: pr.name, detail: pr.applicationUrl?.split(";")[0] ?? "launch profile", icon: Play, iconClass: "dn-app", children: false, project: p, profile: pr.name });
       if (p.packages.length) {
         const pk = `${k}/packages`;
-        out.push({ key: pk, depth: depth + 1, label: "Packages", icon: Package, iconClass: "muted", children: true, project: p });
+        out.push({ key: pk, depth: depth + 1, label: t("langs.dotnet.packages"), icon: Package, iconClass: "muted", children: true, project: p });
         if (isOpen(pk))
           for (const r of p.packages)
             out.push({ key: `${pk}/${r.id}`, depth: depth + 2, label: r.id, detail: r.version || "implicit", icon: Package, iconClass: "dn-pkg", children: false, project: p });
@@ -130,7 +131,7 @@ function SolutionTree(props: { selected: string | null; onSelect: (key: string, 
     };
     if (sln) {
       const rootKey = `s:${sln.path}`;
-      out.push({ key: rootKey, depth: 0, label: `Solution '${sln.name}'`, detail: `${sln.projects.length} project${sln.projects.length === 1 ? "" : "s"}`, icon: FileCode, iconClass: "dn-sln", children: true });
+      out.push({ key: rootKey, depth: 0, label: t("langs.dotnet.solution", { name: sln.name }), detail: t("langs.dotnet.projects", { count: sln.projects.length }), icon: FileCode, iconClass: "dn-sln", children: true });
       if (!isOpen(rootKey)) return out;
       const walk = (folder: string, depth: number) => {
         for (const f of sln.folders.filter((x) => (x.includes("/") ? x.slice(0, x.lastIndexOf("/")) : "") === folder)) {
@@ -237,17 +238,17 @@ function BuildResults(props: { showOutput: boolean }) {
         }
       >
         <div class="dn-problems problems-tree" data-testid="dotnet-build-problems">
-          <Show when={buildReport()} fallback={<div class="problems-empty">Build the solution (Ctrl+F9) to see its compiler, NuGet and MSBuild messages</div>}>
-            <Show when={groups().length} fallback={<div class="problems-empty">No errors or warnings</div>}>
+          <Show when={buildReport()} fallback={<div class="problems-empty">{t("langs.dotnet.buildTheSolutionCtrlF9")}</div>}>
+            <Show when={groups().length} fallback={<div class="problems-empty">{t("langs.dotnet.noErrorsOrWarnings")}</div>}>
               <For each={groups()}>
                 {([file, list]) => (
                   <>
                     <div class="tree-row dn-file-row" title={file}>
                       <FileCode size={14} class="dn-icon muted" />
-                      <span class="dn-label">{file.split("/").pop() || "Build"}</span>
+                      <span class="dn-label">{file.split("/").pop() || t("langs.dotnet.build")}</span>
                       <span class="muted dn-detail">{file.includes("/") ? file.slice(0, file.lastIndexOf("/")) : ""}</span>
                       <span class="muted dn-detail">
-                        {list.length} problem{list.length === 1 ? "" : "s"}
+                        {t("langs.dotnet.problems", { count: list.length })}
                       </span>
                     </div>
                     <For each={list}>
@@ -301,37 +302,37 @@ export function BuildToolWindow() {
   return (
     <div class="dn-tw" data-testid="dotnet-build-window">
       <div class="dn-toolbar">
-        <button class="icon-btn" title={project() ? `Build ${project()!.name}` : "Build Solution"} data-action="dotnet-build" disabled={!!dotnetBuilding()} onClick={() => action("build")}>
+        <button class="icon-btn" title={project() ? `Build ${project()!.name}` : t("langs.dotnet.buildSolution")} data-action="dotnet-build" disabled={!!dotnetBuilding()} onClick={() => action("build")}>
           <Hammer size={14} />
         </button>
-        <button class="icon-btn" title={project() ? `Rebuild ${project()!.name}` : "Rebuild Solution"} disabled={!!dotnetBuilding()} onClick={() => action("rebuild")}>
+        <button class="icon-btn" title={project() ? `Rebuild ${project()!.name}` : t("langs.dotnet.rebuildSolution")} disabled={!!dotnetBuilding()} onClick={() => action("rebuild")}>
           <Wrench size={14} />
         </button>
-        <button class="icon-btn" title={project() ? `Clean ${project()!.name}` : "Clean Solution"} disabled={!!dotnetBuilding()} onClick={() => action("clean")}>
+        <button class="icon-btn" title={project() ? `Clean ${project()!.name}` : t("langs.dotnet.cleanSolution")} disabled={!!dotnetBuilding()} onClick={() => action("clean")}>
           <Eraser size={14} />
         </button>
-        <button class="icon-btn" title="Restore NuGet Packages" disabled={!!dotnetBuilding()} onClick={() => action("restore")}>
+        <button class="icon-btn" title={t("langs.dotnet.restoreNugetPackages")} disabled={!!dotnetBuilding()} onClick={() => action("restore")}>
           <Package size={14} />
         </button>
         <span class="dn-sep" />
-        <button class="icon-btn" title="Run" disabled={!selectedRun()} onClick={() => selectedRun() && void launch(useTemporary(selectedRun()!))}>
+        <button class="icon-btn" title={t("common.run2")} disabled={!selectedRun()} onClick={() => selectedRun() && void launch(useTemporary(selectedRun()!))}>
           <Play size={14} class="dn-run" />
         </button>
-        <button class="icon-btn" title="Debug" disabled={!selectedRun()} onClick={() => selectedRun() && void debugConfiguration(useTemporary(selectedRun()!))}>
+        <button class="icon-btn" title={t("common.debug2")} disabled={!selectedRun()} onClick={() => selectedRun() && void debugConfiguration(useTemporary(selectedRun()!))}>
           <Bug size={14} class="dn-run" />
         </button>
         <span class="dn-sep" />
-        <button class="icon-btn" title="Reload Solution" data-action="dotnet-reload" onClick={() => void refreshSolution(true)}>
+        <button class="icon-btn" title={t("langs.dotnet.reloadSolution")} data-action="dotnet-reload" onClick={() => void refreshSolution(true)}>
           <RefreshCw size={14} classList={{ "dn-spin": dotnetLoading() }} />
         </button>
-        <button class="icon-btn" classList={{ active: showOutput() }} title="Show Build Output" data-action="dotnet-output" onClick={() => setShowOutput((v) => !v)}>
+        <button class="icon-btn" classList={{ active: showOutput() }} title={t("langs.dotnet.showBuildOutput")} data-action="dotnet-output" onClick={() => setShowOutput((v) => !v)}>
           <ScrollText size={14} />
         </button>
         <span class="dn-spacer" />
         <Show when={(ws()?.solutions.length ?? 0) > 1}>
           <select
             class="dn-select"
-            title="Solution"
+            title={t("langs.dotnet.solution2")}
             value={ws()?.solution ?? ""}
             onChange={(e) => void saveSettings({ "dotnet.solution": e.currentTarget.value }).then(() => refreshSolution(true))}
           >
@@ -340,7 +341,7 @@ export function BuildToolWindow() {
         </Show>
         <select
           class="dn-select"
-          title="Build configuration"
+          title={t("langs.dotnet.buildConfiguration")}
           data-testid="dotnet-configuration"
           value={configuration()}
           onChange={(e) => void saveSettings({ "dotnet.configuration": e.currentTarget.value }).then(() => refreshSolution(true))}
@@ -354,12 +355,12 @@ export function BuildToolWindow() {
         <div class="dn-left">
           <Show when={dotnetWorkspaceError() && !ws()}>
             <div class="dn-message">
-              <div>Cannot load the solution</div>
+              <div>{t("langs.dotnet.cannotLoadTheSolution")}</div>
               <div class="muted">{dotnetWorkspaceError()}</div>
             </div>
           </Show>
           <Show when={!ws() && !dotnetWorkspaceError()}>
-            <div class="dn-message muted">{dotnetLoading() ? "Loading the solution…" : "No solution or project"}</div>
+            <div class="dn-message muted">{dotnetLoading() ? t("langs.dotnet.loadingTheSolutionEllipsis") : t("langs.dotnet.noSolutionOrProject")}</div>
           </Show>
           <SolutionTree
             selected={selected()}

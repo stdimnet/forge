@@ -83,7 +83,7 @@ export function RefactorThisPopup(props: { req: RefactorThisRequest }) {
       </div>
       <Show when={query()}>
         <div class="refactor-this-search">
-          Search for: <mark>{query()}</mark>
+          {t("tools.codeintel.searchForLabel")} <mark>{query()}</mark>
         </div>
       </Show>
     </div>

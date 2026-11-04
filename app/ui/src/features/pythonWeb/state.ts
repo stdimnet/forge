@@ -14,6 +14,7 @@ import { configurations } from "@/features/run/configStore";
 import { openScratch, refreshScratches } from "@/features/scratches/store";
 import { showBalloon } from "@/keymap";
 import { isPluginActive } from "@/state/project";
+import { t } from "@/i18n";
 
 export const webActive = () => isPluginActive("forge.python-web");
 export const djangoActive = () => isPluginActive("forge.django");
@@ -77,7 +78,7 @@ export async function openInHttpClient(r: WebRoute): Promise<void> {
     await refreshScratches();
     await openScratch(file);
   } catch (e) {
-    showBalloon("Cannot open the HTTP client", String(e));
+    showBalloon(t("langs.pythonWeb.cannotOpenTheHttpClient"), String(e));
   }
 }
 

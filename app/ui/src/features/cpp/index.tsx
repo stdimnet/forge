@@ -56,7 +56,7 @@ import {
   buildFirst,
   showCppBalloon,
 } from "./state";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -238,10 +238,10 @@ registerDebugLauncher({
 function buildTarget(): void {
   const targets = executableTargets().map((t) => t.name);
   setInputDialog({
-    title: "Build Target",
-    label: `CMake target${targets.length ? ` (${targets.join(", ")})` : ""}:`,
+    title: tr("langs.cpp.buildTarget"),
+    label: tr("langs.cpp.cmakeTargetLabel", { value: targets.length ? ` (${targets.join(", ")})` : "" }),
     value: targets[0] ?? "",
-    okLabel: "Build",
+    okLabel: tr("langs.cpp.build2"),
     onOk: (value) => void runBuild("build", [value.trim()]),
   });
 }

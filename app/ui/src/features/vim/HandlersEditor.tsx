@@ -10,6 +10,7 @@ import type { VimHandler, VimHandlerOverride, VimHandlerRow } from "@/ipc/vim";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { Hl } from "@/features/settings/dialogSearch";
 import { vimEngine, vimReady } from "./engine";
+import { t } from "@/i18n";
 
 type ModeKey = "normal" | "insert" | "visual";
 const MODES: { key: ModeKey; title: string }[] = [
@@ -44,20 +45,20 @@ export function HandlersEditor(props: { spec: SettingSpec }) {
     <div class="vim-handlers">
       <div class="vim-handlers-toolbar">
         <button class="btn-secondary" onClick={() => setAll("vim")}>
-          All Vim
+          {t("tools.vim.allVim")}
         </button>
         <button class="btn-secondary" onClick={() => setAll("ide")}>
-          All IDE
+          {t("tools.vim.allIde")}
         </button>
         <button class="btn-secondary" onClick={() => setDraft(props.spec.key, [])}>
-          Defaults
+          {t("tools.vim.defaults")}
         </button>
       </div>
       <table class="vim-handlers-table">
         <thead>
           <tr>
-            <th>Shortcut</th>
-            <th>Vim action</th>
+            <th>{t("tools.vim.shortcut")}</th>
+            <th>{t("tools.vim.vimAction")}</th>
             <For each={MODES}>{(m) => <th>{m.title}</th>}</For>
           </tr>
         </thead>
@@ -68,7 +69,7 @@ export function HandlersEditor(props: { spec: SettingSpec }) {
                 <td class="vim-handlers-key">
                   <Hl text={row.shortcut} />
                   <Show when={row.fromRc}>
-                    <span class="vim-handlers-rc" title="Set by sethandler in ~/.ideavimrc">
+                    <span class="vim-handlers-rc" title={t("tools.vim.setBySethandlerInIdeavimrc")}>
                       .ideavimrc
                     </span>
                   </Show>
@@ -85,7 +86,7 @@ export function HandlersEditor(props: { spec: SettingSpec }) {
                           class="set-input set-select"
                           value={row[m.key]}
                           disabled={row.fromRc}
-                          title={action() ? `Vim: ${action()}` : "Vim does nothing with this shortcut in this mode"}
+                          title={action() ? `Vim: ${action()}` : t("tools.vim.vimDoesNothingWithThis")}
                           onChange={(e) => set(row, m.key, e.currentTarget.value as VimHandler)}
                         >
                           <option value="vim">Vim</option>

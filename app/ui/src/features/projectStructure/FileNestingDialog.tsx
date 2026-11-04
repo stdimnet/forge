@@ -12,6 +12,7 @@ import { getSetting, saveSettings } from "@/state/settings";
 import type { SettingValue } from "@/ipc/settings";
 import type { NestingRule } from "@/ipc/projectStructure";
 import { defaultNestingRules, storedNestingRules, VIEW_KEYS } from "./model";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 
@@ -67,30 +68,30 @@ function FileNestingDialog() {
 
   return (
     <div class="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div class="git-dialog file-nesting-dialog" role="dialog" aria-label="File Nesting" tabIndex={-1} ref={dialog} onKeyDown={onKeyDown}>
+      <div class="git-dialog file-nesting-dialog" role="dialog" aria-label={t("tools.projectStructure.fileNesting")} tabIndex={-1} ref={dialog} onKeyDown={onKeyDown}>
         <header class="dialog-title">
-          <span>File Nesting</span>
+          <span>{t("tools.projectStructure.fileNesting")}</span>
         </header>
         <div class="git-dialog-body">
           <label class="nesting-enable">
             <input type="checkbox" checked={enabled()} onChange={(e) => setEnabled(e.currentTarget.checked)} />
-            <span>Enable file nesting</span>
+            <span>{t("tools.projectStructure.enableFileNesting")}</span>
           </label>
           <p class="nesting-hint">
-            Files with the same name as a parent file and one of its child suffixes are shown below it in the Project view.
+            {t("tools.projectStructure.filesWithTheSameName")}
           </p>
           <div class="nesting-table" classList={{ disabled: !enabled() }}>
             <div class="nesting-toolbar">
-              <button class="icon-btn" title="Add" aria-label="Add" disabled={!enabled()} onClick={add}>
+              <button class="icon-btn" title={t("common.add")} aria-label={t("common.add")} disabled={!enabled()} onClick={add}>
                 <Plus size={14} />
               </button>
-              <button class="icon-btn" title="Remove" aria-label="Remove" disabled={!enabled() || selected() == null} onClick={remove}>
+              <button class="icon-btn" title={t("common.remove")} aria-label={t("common.remove")} disabled={!enabled() || selected() == null} onClick={remove}>
                 <Minus size={14} />
               </button>
               <button
                 class="icon-btn"
-                title="Restore Defaults"
-                aria-label="Restore Defaults"
+                title={t("tools.projectStructure.restoreDefaults")}
+                aria-label={t("tools.projectStructure.restoreDefaults")}
                 disabled={!enabled() || same(rules(), defaultNestingRules())}
                 onClick={() => {
                   setRules(defaultNestingRules());
@@ -101,8 +102,8 @@ function FileNestingDialog() {
               </button>
             </div>
             <div class="nesting-head">
-              <span>Parent file suffix</span>
-              <span>Child file suffix</span>
+              <span>{t("tools.projectStructure.parentFileSuffix")}</span>
+              <span>{t("tools.projectStructure.childFileSuffix")}</span>
             </div>
             <div class="nesting-rows">
               <For each={rules()}>
@@ -126,14 +127,14 @@ function FileNestingDialog() {
                 )}
               </For>
               <Show when={!rules().length}>
-                <div class="nesting-empty">No rules</div>
+                <div class="nesting-empty">{t("tools.projectStructure.noRules")}</div>
               </Show>
             </div>
           </div>
         </div>
         <footer class="git-dialog-actions">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => void ok()}>
             OK

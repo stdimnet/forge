@@ -9,6 +9,7 @@ import { fileRows, type MatchRows } from "./contextRows";
 import { formatDuration } from "./duration";
 import { ReplaceBar } from "./ReplaceBar";
 import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, resultsStale, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
+import { t } from "@/i18n";
 
 const ROW_HEIGHT = 24;
 const OVERSCAN = 12;
@@ -127,24 +128,24 @@ export function FindWindow() {
       <div class="fw-toolbar">
         <input
           class="fw-pattern"
-          placeholder="Text to find"
+          placeholder={t("tools.find.textToFind")}
           value={findForm.query}
           spellcheck={false}
           onInput={(e) => setFindForm("query", e.currentTarget.value)}
           onKeyDown={onEnter}
         />
-        <Toggle title="Match case" active={findForm.caseSensitive} onClick={flip("caseSensitive")}>
+        <Toggle title={t("tools.find.matchCase")} active={findForm.caseSensitive} onClick={flip("caseSensitive")}>
           <CaseSensitive size={15} />
         </Toggle>
-        <Toggle title="Words" active={findForm.wholeWords} onClick={flip("wholeWords")}>
+        <Toggle title={t("tools.find.words")} active={findForm.wholeWords} onClick={flip("wholeWords")}>
           <WholeWord size={15} />
         </Toggle>
-        <Toggle title="Regex" active={findForm.regex} onClick={flip("regex")}>
+        <Toggle title={t("tools.find.regex")} active={findForm.regex} onClick={flip("regex")}>
           <Regex size={15} />
         </Toggle>
         <input
           class="fw-mask"
-          placeholder="File mask: *.php, !*.min.js"
+          placeholder={t("tools.find.fileMaskPhpMinJs")}
           value={findForm.fileMask}
           spellcheck={false}
           onInput={(e) => setFindForm("fileMask", e.currentTarget.value)}
@@ -152,7 +153,7 @@ export function FindWindow() {
         />
         <input
           class="fw-dir"
-          placeholder="Directory"
+          placeholder={t("tools.find.directory")}
           value={findForm.directory}
           spellcheck={false}
           onInput={(e) => setFindForm("directory", e.currentTarget.value)}
@@ -169,63 +170,62 @@ export function FindWindow() {
         />
         <select
           class="fw-context-select"
-          title="Order of the files"
+          title={t("tools.find.orderOfTheFiles")}
           value={findForm.sort}
           onChange={(e) => {
             setFindForm("sort", e.currentTarget.value as FindSort);
             void runFindWindow();
           }}
         >
-          <option value="path">By path</option>
-          <option value="matches">By matches</option>
-          <option value="modified">By modified</option>
+          <option value="path">{t("tools.find.byPath")}</option>
+          <option value="matches">{t("tools.find.byMatches")}</option>
+          <option value="modified">{t("tools.find.byModified")}</option>
         </select>
         <select
           class="fw-context-select"
-          title="Lines of context"
+          title={t("tools.find.linesOfContext")}
           value={String(findForm.context)}
           onChange={(e) => {
             setFindForm("context", Number(e.currentTarget.value));
             void runFindWindow();
           }}
         >
-          <For each={[0, 1, 2, 3, 5]}>{(n) => <option value={String(n)}>{n === 0 ? "No context" : `${n} line${n > 1 ? "s" : ""} of context`}</option>}</For>
+          <For each={[0, 1, 2, 3, 5]}>{(n) => <option value={String(n)}>{n === 0 ? t("tools.find.noContext") : t("tools.find.lineOfContext", { n, value: n > 1 ? "s" : "" })}</option>}</For>
         </select>
-        <Toggle title="Search again" onClick={() => void runFindWindow()}>
+        <Toggle title={t("tools.find.searchAgain")} onClick={() => void runFindWindow()}>
           <RefreshCw size={14} />
         </Toggle>
-        <Toggle title="Expand all" onClick={() => foldAll(false)}>
+        <Toggle title={t("tools.find.expandAll")} onClick={() => foldAll(false)}>
           <ChevronsUpDown size={14} />
         </Toggle>
-        <Toggle title="Collapse all" onClick={() => foldAll(true)}>
+        <Toggle title={t("tools.find.collapseAll")} onClick={() => foldAll(true)}>
           <ChevronsDownUp size={14} />
         </Toggle>
       </div>
       <ReplaceBar />
       <Show
         when={findResults().searched}
-        fallback={<div class="placeholder-panel">Search with Ctrl+Shift+F, then press "Open in Find Window" to list every match here.</div>}
+        fallback={<div class="placeholder-panel">{t("tools.find.searchWithCtrlShiftF")}</div>}
       >
         <div class="fw-summary">
-          <Show when={!findResults().busy} fallback={<span>Searching…</span>}>
+          <Show when={!findResults().busy} fallback={<span>{t("common.searchingEllipsis")}</span>}>
             <span>
-              {findResults().matchCount}
-              {findResults().truncated ? "+" : ""} matches in {findResults().fileCount} files in {formatDuration(findResults().tookMs)}
+              {t("tools.find.matchesInFilesIn", { matchCount: findResults().matchCount, value: findResults().truncated ? "+" : "", fileCount: findResults().fileCount, value2: formatDuration(findResults().tookMs) })}
             </span>
           </Show>
           <Show when={resultsStale()}>
             <span class="fw-note" data-testid="results-stale">
-              Files changed since this search.{" "}
+              {t("tools.find.filesChangedSinceThisSearch")}
               <a href="#" onClick={(e) => (e.preventDefault(), void runFindWindow())}>
-                Search again
+                {t("tools.find.searchAgain")}
               </a>
             </span>
           </Show>
           <Show when={findResults().indexing}>
-            <span class="fw-note">Indexing, results may be incomplete</span>
+            <span class="fw-note">{t("tools.find.indexingResultsMayBeIncomplete")}</span>
           </Show>
           <Show when={findResults().truncated}>
-            <span class="fw-note">Stopped at the match limit (Settings, Tools, Search)</span>
+            <span class="fw-note">{t("tools.find.stoppedAtTheMatchLimit")}</span>
           </Show>
         </div>
         <Show when={findResults().error}>
@@ -248,7 +248,7 @@ export function FindWindow() {
             </div>
           </div>
           <Show when={!findResults().busy && !findResults().error && files().length === 0}>
-            <div class="placeholder-panel">Nothing found.</div>
+            <div class="placeholder-panel">{t("tools.find.nothingFound")}</div>
           </Show>
         </div>
       </Show>

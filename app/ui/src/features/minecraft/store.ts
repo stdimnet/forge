@@ -5,6 +5,7 @@ import { useTemporary } from "@/features/run/configStore";
 import { launch } from "@/features/run/runStore";
 import { GRADLE } from "@/features/java/runTypes";
 import { isPluginActive, usesFramework } from "@/state/project";
+import { t } from "@/i18n";
 
 export const PLUGIN_ID = "forge.minecraft";
 
@@ -23,7 +24,7 @@ export const runServerConfiguration = (): RunConfiguration =>
 /** Build the plugin and start a Paper server with it (refused in Safe Mode by the backend). */
 export async function runPaperServer(): Promise<void> {
   if (!minecraftActive()) {
-    showBalloon("Run Paper Server", "The project is not a Minecraft plugin with a Gradle build.");
+    showBalloon(t("langs.minecraft.runPaperServer"), t("langs.minecraft.theProjectIsNotA"));
     return;
   }
   await launch(runServerConfiguration());

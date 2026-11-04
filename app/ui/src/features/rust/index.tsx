@@ -34,7 +34,7 @@ import { RustSettingsPage } from "./RustSettingsPage";
 import { isRustPath, runClippy } from "./editor";
 import { downloadAnalyzer, installAnalyzer, installToolchain } from "./install";
 import { PLUGIN, refreshCargo, refreshRustStatus, runRustCommand, rustActive, showRustBalloon } from "./state";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -257,7 +257,7 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
               showRustBalloon("No Rust toolchain found", "Install Rust with rustup (rustup.rs), then reload the project.", 10000);
             else if (!s.tools.find((t) => t.tool === "rust-analyzer")?.path)
               showRustBalloon("rust-analyzer is not installed", "Code insight for Rust needs rust-analyzer.", 10000, [
-                { label: s.rustup ? "Install with rustup" : "Download…", run: () => void installAnalyzer() },
+                { label: s.rustup ? tr("langs.rust.installWithRustup") : tr("common.downloadEllipsis"), run: () => void installAnalyzer() },
               ]);
           });
         },

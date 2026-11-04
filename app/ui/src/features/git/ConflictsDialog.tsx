@@ -109,7 +109,7 @@ export function ConflictsDialog() {
           <span>{t("git.conflictsDialog.conflicts")}</span>
         </header>
         <div class="conflicts-body">
-          <div class="conflicts-description">{set()?.description ?? "Loading conflicts…"}</div>
+          <div class="conflicts-description">{set()?.description ?? t("tools.git.loadingConflictsEllipsis")}</div>
           <div class="conflicts-main">
             <div
               class="conflicts-table"
@@ -136,7 +136,7 @@ export function ConflictsDialog() {
                       <span>
                         <ChevronDown size={13} class="muted" />
                         <Folder size={14} stroke-width={1.75} class="muted" />
-                        {row.dir || "(project root)"}
+                        {row.dir || t("common.projectRoot")}
                       </span>
                       <span />
                       <span />

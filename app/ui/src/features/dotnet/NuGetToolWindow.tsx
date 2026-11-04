@@ -10,6 +10,7 @@ import { ArrowUp, BadgeCheck, ExternalLink, Package, RefreshCw, Search, Triangle
 import { dotnetApi, type NuGetPackage, type PackageUpdate } from "@/ipc/dotnet";
 import { getSetting } from "@/state/settings";
 import { dotnetWorkspace, errorText, refreshSolution, runDotnetCommand, showDotnetBalloon } from "./state";
+import { t } from "@/i18n";
 import "./dotnet.css";
 
 interface Entry {
@@ -167,7 +168,7 @@ export function NuGetToolWindow() {
           <Search size={13} class="muted" />
           <input
             value={query()}
-            placeholder="Search nuget.org"
+            placeholder={t("langs.dotnet.searchNugetOrg")}
             spellcheck={false}
             data-testid="nuget-search"
             onInput={(e) => onInput(e.currentTarget.value)}
@@ -183,18 +184,18 @@ export function NuGetToolWindow() {
               void search();
             }}
           />
-          Prerelease
+          {t("langs.dotnet.prerelease")}
         </label>
-        <button class="icon-btn" title="Refresh" onClick={() => void Promise.all([search(), refreshUpdates()])}>
+        <button class="icon-btn" title={t("common.refresh")} onClick={() => void Promise.all([search(), refreshUpdates()])}>
           <RefreshCw size={14} classList={{ "dn-spin": searching() }} />
         </button>
         <span class="dn-sep" />
         <div class="nuget-tabs" role="tablist">
           <button role="tab" classList={{ active: tab() === "packages" }} onClick={() => setTab("packages")}>
-            Packages
+            {t("langs.dotnet.packages")}
           </button>
           <button role="tab" data-testid="nuget-updates-tab" classList={{ active: tab() === "updates" }} onClick={() => setTab("updates")}>
-            Updates
+            {t("langs.dotnet.updates")}
             <Show when={updates().length}>
               <span class="nuget-count">{updates().length}</span>
             </Show>
@@ -204,17 +205,17 @@ export function NuGetToolWindow() {
       <div class="dn-split">
         <div class="dn-left nuget-list" data-testid="nuget-list">
           <div class="nuget-heading muted">
-            {tab() === "updates" ? "Upgrades" : results() ? `${total().toLocaleString()} packages on the feed` : "Installed in the solution"}
+            {tab() === "updates" ? t("langs.dotnet.upgrades") : results() ? t("langs.dotnet.packagesOnTheFeed2", { total: total().toLocaleString() }) : t("langs.dotnet.installedInTheSolution")}
             <Show when={tab() === "updates" && updates().length}>
               <button class="link-btn" disabled={busy()} onClick={() => void upgradeAll()}>
-                Upgrade All
+                {t("langs.dotnet.upgradeAll")}
               </button>
             </Show>
           </div>
           <Show when={error()}>
             <div class="dn-message dn-warning">{error()}</div>
           </Show>
-          <For each={entries()} fallback={<div class="dn-message muted">{tab() === "updates" ? "Every package is up to date" : searching() ? "Searching…" : "No packages"}</div>}>
+          <For each={entries()} fallback={<div class="dn-message muted">{tab() === "updates" ? t("langs.dotnet.everyPackageIsUpTo") : searching() ? t("common.searchingEllipsis") : t("langs.dotnet.noPackages")}</div>}>
             {(e) => (
               <div class="nuget-item" classList={{ selected: selectedId() === e.id }} data-package={e.id} onClick={() => setSelectedId(e.id)}>
                 <Package size={16} class="nuget-icon" />
@@ -222,18 +223,18 @@ export function NuGetToolWindow() {
                   <div class="nuget-item-head">
                     <span class="nuget-id">{e.id}</span>
                     <Show when={e.verified}>
-                      <span title="The id prefix is reserved by its owner">
+                      <span title={t("langs.dotnet.theIdPrefixIsReserved")}>
                         <BadgeCheck size={12} class="nuget-verified" />
                       </span>
                     </Show>
                     <Show when={e.deprecated || e.vulnerable}>
-                      <span title={e.vulnerable ? "Has known vulnerabilities" : "Deprecated"}>
+                      <span title={e.vulnerable ? t("langs.dotnet.hasKnownVulnerabilities") : t("langs.dotnet.deprecated")}>
                         <TriangleAlert size={12} class="dn-warn-icon" />
                       </span>
                     </Show>
                     <span class="dn-spacer" />
                     <Show when={updateOf(e.id) && tab() === "packages"}>
-                      <span class="nuget-upgrade" title={`Upgrade to ${updateOf(e.id)!.latest}`}>
+                      <span class="nuget-upgrade" title={t("langs.dotnet.upgradeTo", { latest: updateOf(e.id)!.latest })}>
                         <ArrowUp size={11} />
                         {updateOf(e.id)!.latest}
                       </span>
@@ -243,7 +244,7 @@ export function NuGetToolWindow() {
                   <Show when={e.description || e.downloads}>
                     <div class="muted nuget-desc">
                       {e.description}
-                      <Show when={e.downloads}> · {shortCount(e.downloads)} downloads</Show>
+                      <Show when={e.downloads}> {t("langs.dotnet.downloads", { value: shortCount(e.downloads) })}</Show>
                     </div>
                   </Show>
                 </div>
@@ -252,7 +253,7 @@ export function NuGetToolWindow() {
           </For>
         </div>
         <div class="nuget-details" data-testid="nuget-details">
-          <Show when={selected()} fallback={<div class="dn-message muted">Select a package to see its versions and the projects that use it</div>}>
+          <Show when={selected()} fallback={<div class="dn-message muted">{t("langs.dotnet.selectAPackageToSee")}</div>}>
             {(s) => (
               <>
                 <div class="nuget-title">
@@ -273,7 +274,7 @@ export function NuGetToolWindow() {
                   <p class="nuget-about">{s().description}</p>
                 </Show>
                 <div class="nuget-version-row">
-                  <span class="muted">Version</span>
+                  <span class="muted">{t("langs.dotnet.version")}</span>
                   <select value={version()} data-testid="nuget-version" onChange={(e) => setVersion(e.currentTarget.value)}>
                     <For each={versions().length ? versions() : [s().version]}>{(v) => <option value={v}>{v}</option>}</For>
                   </select>
@@ -291,18 +292,18 @@ export function NuGetToolWindow() {
                               when={row.ref}
                               fallback={
                                 <button class="pill-btn" disabled={busy() || !version()} onClick={() => void run("add", row.project.path, s().id, version())}>
-                                  Install
+                                  {t("common.install")}
                                 </button>
                               }
                             >
                               <Show when={row.ref!.version !== version() && row.ref!.source !== "implicit"}>
                                 <button class="pill-btn" disabled={busy()} onClick={() => void run("add", row.project.path, s().id, version())}>
-                                  {updateOf(s().id)?.latest === version() ? "Upgrade" : `Use ${version()}`}
+                                  {updateOf(s().id)?.latest === version() ? t("langs.dotnet.upgrade") : `Use ${version()}`}
                                 </button>
                               </Show>
                               <Show when={row.ref!.source !== "implicit" && row.ref!.source !== "props"}>
                                 <button class="pill-btn" disabled={busy()} onClick={() => void run("remove", row.project.path, s().id)}>
-                                  Remove
+                                  {t("common.remove")}
                                 </button>
                               </Show>
                             </Show>

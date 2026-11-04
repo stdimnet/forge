@@ -320,7 +320,7 @@ export function TableEditor(props: { tab: EditorTab }) {
     if (!c) return [];
     const col = columns()[c.col]?.name;
     return keysOf(col).map((fk) => ({
-      label: `Go to ${fk.refTable} (${fk.columns.join(", ")})${fk.virtual ? " · virtual" : ""}`,
+      label: tr("tools.database.goTo", { refTable: fk.refTable, columns: fk.columns.join(", "), value: fk.virtual ? " · virtual" : "" }),
       hint: shortcutLabel("Console.TableResult.GotoReferencedData"),
       run: () => void navigate(fk, "referenced", { schema: loc.schema, table: loc.table }),
     }));
@@ -340,7 +340,7 @@ export function TableEditor(props: { tab: EditorTab }) {
 
   const gotoReferenced = () => {
     const items = referencedItems();
-    if (!items.length) return showBalloon(tr("database.tableEditor.noForeignKey"), "The column of this cell is not part of a foreign key.");
+    if (!items.length) return showBalloon(tr("database.tableEditor.noForeignKey"), tr("tools.database.theColumnOfThisCell"));
     if (items.length === 1) return items[0].run?.();
     setMenu({ ...cellPoint(), items });
   };
@@ -483,14 +483,14 @@ export function TableEditor(props: { tab: EditorTab }) {
           <RefreshCw size={15} />
         </Tool>
         <span class="db-sep" />
-        <Tool title={`Add Row (${shortcutLabel("Console.TableResult.AddRow")})`} disabled={!editable()} onClick={addRow}>
+        <Tool title={tr("tools.database.addRow", { value: shortcutLabel("Console.TableResult.AddRow") })} disabled={!editable()} onClick={addRow}>
           <Plus size={16} />
         </Tool>
-        <Tool title={`Delete Rows (${shortcutLabel("Console.TableResult.DeleteRows")})`} disabled={!editable()} onClick={deleteRows}>
+        <Tool title={tr("tools.database.deleteRows", { value: shortcutLabel("Console.TableResult.DeleteRows") })} disabled={!editable()} onClick={deleteRows}>
           <Minus size={16} />
         </Tool>
         <span class="db-sep" />
-        <Tool title={`Revert (${shortcutLabel("Console.TableResult.Revert")})`} disabled={!changes()} onClick={revert}>
+        <Tool title={tr("tools.database.revert", { value: shortcutLabel("Console.TableResult.Revert") })} disabled={!changes()} onClick={revert}>
           <Undo2 size={15} />
         </Tool>
         <Tool title={tr("database.tableEditor.previewPendingChanges")} disabled={!changes()} active={showPending()} onClick={() => setShowPending((v) => !v)}>
@@ -500,7 +500,7 @@ export function TableEditor(props: { tab: EditorTab }) {
           class="db-submit"
           classList={{ active: changes() > 0 }}
           disabled={!changes()}
-          title={`Submit (${shortcutLabel("Console.TableResult.SubmitChanges")})`}
+          title={tr("tools.database.submit", { value: shortcutLabel("Console.TableResult.SubmitChanges") })}
           onClick={() => void submit()}
         >
           <Upload size={14} />
@@ -513,7 +513,7 @@ export function TableEditor(props: { tab: EditorTab }) {
         <Tool title={tr("database.tableEditor.transpose")} active={transposed()} onClick={toggleTransposed}>
           <ArrowRightLeft size={15} />
         </Tool>
-        <Tool title={`Value Editor (${shortcutLabel("Database.Properties")})`} active={side() === "value"} onClick={editValue}>
+        <Tool title={tr("tools.database.valueEditor", { value: shortcutLabel("Database.Properties") })} active={side() === "value"} onClick={editValue}>
           <PanelRight size={15} />
         </Tool>
         <Tool title={tr("database.tableEditor.aggregateView")} active={side() === "aggregate"} onClick={() => setSide((s) => (s === "aggregate" ? null : "aggregate"))}>
@@ -563,7 +563,7 @@ export function TableEditor(props: { tab: EditorTab }) {
         </label>
         <label class="db-filter-field">
           <ArrowDownUp size={13} class="muted" />
-          <span class="db-filter-kw">{"ORDER BY"}</span>
+          <span class="db-filter-kw">{tr("tools.database.orderBy")}</span>
           <input
             class="db-filter-input"
             placeholder={tr("database.tableEditor.columnDesc")}

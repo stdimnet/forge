@@ -156,7 +156,7 @@ function Control(props: { spec: SettingSpec }) {
           aria-describedby={spec.description ? settingDescId(spec.key) : undefined}
           spellcheck={false}
           value={draftValue<string>(spec.key)}
-          placeholder={spec.type === "path" ? "Default" : undefined}
+          placeholder={spec.type === "path" ? t("common.default") : undefined}
           onInput={(e) => setDraft(spec.key, e.currentTarget.value)}
         />
       </Match>
@@ -254,8 +254,8 @@ export function SchemaPage(props: {
         fallback={
           <div class="set-empty">
             {settingsState.loaded
-              ? "No settings to show. The plugin that provides this page may be disabled."
-              : "Loading…"}
+              ? t("tools.settings.noSettingsToShowThe")
+              : t("common.loadingEllipsis")}
           </div>
         }
       >

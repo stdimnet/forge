@@ -10,6 +10,7 @@ import type { JSX } from "solid-js";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { injectionsApi, type InjectionRule } from "@/ipc/injections";
 import { DISABLED_KEY, UNINJECTED_KEY } from "./highlight";
+import { t } from "@/i18n";
 
 const ICONS: Record<string, (p: { size: number }) => JSX.Element> = {
   sql: Database,
@@ -45,16 +46,15 @@ export function InjectionsPage() {
   return (
     <div class="inj-page">
       <div class="set-desc inj-intro">
-        Strings that get another language's highlighting and editing. A <code>// language=SQL</code> comment before a
-        string always injects; Alt+Enter in a string offers Inject language or reference.
+        {t("tools.injections.stringsThatGetAnotherLanguage")} <code>// language=SQL</code> {t("tools.injections.commentBeforeAStringAlways")}
       </div>
       <div class="set-list inj-table-box">
         <table class="set-table inj-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Language</th>
-              <th>Scope</th>
+              <th>{t("common.name")}</th>
+              <th>{t("common.language")}</th>
+              <th>{t("common.scope")}</th>
             </tr>
           </thead>
           <tbody>
@@ -85,7 +85,7 @@ export function InjectionsPage() {
                             <span>{rule.name}</span>
                           </td>
                           <td>{rule.languageLabel}</td>
-                          <td class="inj-scope">Built-in</td>
+                          <td class="inj-scope">{t("tools.injections.builtIn")}</td>
                         </tr>
                       );
                     }}
@@ -97,7 +97,7 @@ export function InjectionsPage() {
         </table>
       </div>
       <div class="inj-details">
-        <Show when={current()} fallback={<span class="set-desc">Select a rule to see where it applies.</span>}>
+        <Show when={current()} fallback={<span class="set-desc">{t("tools.injections.selectARuleToSee")}</span>}>
           {(r) => (
             <>
               <div class="inj-details-title">
@@ -111,12 +111,12 @@ export function InjectionsPage() {
       <div class="inj-uninjected">
         <span class="set-desc">
           {uninjected().length
-            ? `${uninjected().length} string${uninjected().length === 1 ? "" : "s"} un-injected in this project`
-            : "No strings un-injected in this project"}
+            ? t("tools.injections.stringsUnInjectedInThis", { count: uninjected().length })
+            : t("tools.injections.noStringsUnInjectedIn")}
         </span>
         <Show when={uninjected().length}>
           <button class="set-link inj-restore" onClick={() => setDraft(UNINJECTED_KEY, [])}>
-            Restore All
+            {t("tools.injections.restoreAll")}
           </button>
         </Show>
       </div>

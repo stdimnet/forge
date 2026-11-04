@@ -13,6 +13,7 @@ import { applyExpansion, expandTemplate, setUnwrapHighlight } from "./editor";
 import { docRequest, envFor, PAGE_ID } from "./model";
 import { openPopup, type PopupItem } from "./Popup";
 import { emmetSurroundItem } from "@/features/emmet/actions";
+import { t as tr } from "@/i18n";
 
 /** The active file editor, if any. */
 function target(): { path: string; view: EditorView } | null {
@@ -27,7 +28,7 @@ export async function insertLiveTemplate(): Promise<void> {
   const { path, view } = t;
   const result = await liveTemplatesApi.applicable({ ...docRequest(path, view), offset: view.state.selection.main.head });
   if (!result.items.length) {
-    showBalloon("No applicable live templates");
+    showBalloon(tr("tools.liveTemplates.noApplicableLiveTemplates"));
     return;
   }
   openPopup(view, {
@@ -58,7 +59,7 @@ export async function surroundWith(templatesOnly = false): Promise<void> {
   // In markup files Surround with Live Template offers Emmet first, as in PHPStorm.
   const emmet = templatesOnly ? emmetSurroundItem(path, view) : null;
   if (!items.length && !emmet) {
-    showBalloon(templatesOnly ? "No applicable live templates" : "Nothing to surround with here");
+    showBalloon(templatesOnly ? tr("tools.liveTemplates.noApplicableLiveTemplates") : tr("tools.liveTemplates.nothingToSurroundWithHere"));
     return;
   }
   const firstTemplate = items.findIndex((i) => i.kind === "template");
@@ -91,7 +92,7 @@ export async function unwrapRemove(): Promise<void> {
     languageId: docRequest(path, view).languageId,
   });
   if (!options.length) {
-    showBalloon("Nothing to unwrap or remove here");
+    showBalloon(tr("tools.liveTemplates.nothingToUnwrapOrRemove"));
     return;
   }
   const highlight = (h: Parameters<typeof setUnwrapHighlight.of>[0]) => view.dispatch({ effects: setUnwrapHighlight.of(h) });
@@ -141,7 +142,7 @@ export async function saveAsLiveTemplate(): Promise<void> {
   const { path, view } = t;
   const { from, to } = view.state.selection.main;
   if (from === to) {
-    showBalloon("Select the text to save as a live template");
+    showBalloon(tr("tools.liveTemplates.selectTheTextToSave"));
     return;
   }
   const result = await liveTemplatesApi.applicable({ ...docRequest(path, view), offset: from });

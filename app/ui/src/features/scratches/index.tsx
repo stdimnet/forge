@@ -43,8 +43,8 @@ function openHttpRunMenu(e: MouseEvent, name: string, run: (debug: boolean) => P
     x: e.clientX,
     y: e.clientY,
     items: [
-      { label: `Run '${name}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void run(false) },
-      { label: `Debug '${name}' with Xdebug`, icon: Bug, iconColor: "var(--info)", shortcut: shortcutLabel("DebugClass"), run: () => void run(true) },
+      { label: t("common.run", { name }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void run(false) },
+      { label: t("tools.scratches.debugWithXdebug", { name }), icon: Bug, iconColor: "var(--info)", shortcut: shortcutLabel("DebugClass"), run: () => void run(true) },
     ],
   });
 }

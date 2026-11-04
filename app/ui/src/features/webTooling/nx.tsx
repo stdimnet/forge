@@ -16,7 +16,7 @@ import { registerKeymapActions } from "@/keymap";
 import { toggleToolWindow } from "@/state/layout";
 import { openFileAt } from "@/editor/views";
 import { isPluginActive } from "@/state/project";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const active = () => isPluginActive("forge.nx");
 
@@ -96,7 +96,7 @@ function ProjectNode(props: { p: NxProject }) {
           )}
         </For>
         <Show when={props.p.dependencies.length}>
-          <div class="tree-row wt-row wt-child muted">depends on {props.p.dependencies.join(", ")}</div>
+          <div class="tree-row wt-row wt-child muted">{tr("langs.webTooling.dependsOn", { dependencies: props.p.dependencies.join(", ") })}</div>
         </Show>
       </Show>
     </>
@@ -148,13 +148,13 @@ function NxView() {
     <div class="wt-tool" data-testid="nx-window">
       <div class="wt-tabs">
         <button classList={{ active: view() === "projects" }} onClick={() => setView("projects")}>
-          Projects
+          {tr("langs.webTooling.projects")}
         </button>
         <button classList={{ active: view() === "graph" }} onClick={() => setView("graph")}>
-          Project Graph
+          {tr("langs.webTooling.projectGraph")}
         </button>
       </div>
-      <Show when={(workspaceData()?.projects.length ?? 0) > 0} fallback={<div class="set-list-empty">{workspaceData.loading ? "Reading the workspace…" : "No Nx projects found."}</div>}>
+      <Show when={(workspaceData()?.projects.length ?? 0) > 0} fallback={<div class="set-list-empty">{workspaceData.loading ? tr("langs.webTooling.readingTheWorkspaceEllipsis") : tr("langs.webTooling.noNxProjectsFound")}</div>}>
         <Show when={view() === "projects"} fallback={<Graph />}>
           <For each={workspaceData()!.projects}>{(p) => <ProjectNode p={p} />}</For>
         </Show>
@@ -166,10 +166,10 @@ function NxView() {
 function NxActions() {
   return (
     <>
-      <button class="icon-btn" title="Reload Nx Workspace" aria-label="Reload Nx Workspace" onClick={() => void refetch()}>
+      <button class="icon-btn" title={tr("langs.webTooling.reloadNxWorkspace")} aria-label={tr("langs.webTooling.reloadNxWorkspace")} onClick={() => void refetch()}>
         <RefreshCw size={14} />
       </button>
-      <button class="icon-btn" title="Open nx.json" aria-label="Open nx.json" onClick={() => void openFileAt("nx.json", 1)}>
+      <button class="icon-btn" title={tr("langs.webTooling.openNxJson")} aria-label={tr("langs.webTooling.openNxJson")} onClick={() => void openFileAt("nx.json", 1)}>
         <SquareArrowOutUpRight size={14} />
       </button>
     </>

@@ -17,7 +17,7 @@ import { focusSession, revealTerminalTab, setSshHostKeyResolver } from "./sessio
 import { chooseSshSession, confirmSshHostKey, setSshTabOpener } from "./ssh";
 import { progressLabel } from "./osc";
 import { ProgressRing } from "./ProgressRing";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 /** Stripe marker while the Terminal is hidden: combined progress, else a bell dot. */
 function TerminalStripeBadge() {
@@ -39,7 +39,7 @@ function TerminalProgressStatus() {
           class="status-item term-status"
           classList={{ [t().progress!.state]: true }}
           data-status="terminal-progress"
-          title={`${displayTitle(t())}: ${progressLabel(t().progress!)}\nClick to show the terminal tab`}
+          title={tr("tools.terminal.clickToShowTheTerminal", { value: displayTitle(t()), value2: progressLabel(t().progress!) })}
           onClick={() => revealTerminalTab(t().id)}
         >
           <ProgressRing progress={t().progress!} size={12} />
@@ -67,7 +67,7 @@ registerToolWindow({
 /** Open a new terminal tab in `dir` (relative to the project root), e.g. "Open In > Terminal". */
 export function openTerminalAt(dir?: string): void {
   const blocked = newTabBlocked();
-  if (blocked) return void showBalloon("Terminal", blocked);
+  if (blocked) return void showBalloon(tr("tools.terminal.terminal"), blocked);
   const tab = newTab(dir);
   showToolWindow("terminal");
   requestAnimationFrame(() => focusSession(tab.id));

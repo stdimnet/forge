@@ -17,6 +17,7 @@ import { raOpen, toggleRunAnything } from "./state";
 import "./runAnything.css";
 
 export { registerRunAnythingProvider, type RunAnythingProvider } from "./providers";
+import { t as tr } from "@/i18n";
 export { toggleRunAnything } from "./state";
 
 registerCommand({
@@ -24,7 +25,7 @@ registerCommand({
   title: "Run Anything",
   category: "Tools",
   run: () => {
-    if (!workspace()) return void showBalloon("Run Anything", "Open a project first.");
+    if (!workspace()) return void showBalloon(tr("tools.runAnything.runAnything"), tr("tools.runAnything.openAProjectFirst"));
     toggleRunAnything();
   },
 });

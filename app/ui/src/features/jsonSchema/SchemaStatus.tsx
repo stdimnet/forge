@@ -13,10 +13,11 @@ import { activeTab } from "@/state/editor";
 import { saveSetting } from "@/state/settings";
 import { assignSchema } from "./mappings";
 import { active, MAPPINGS_KEY, mappings, schemaLanguage, schemas } from "./state";
+import { t as tr } from "@/i18n";
 
 function choose(path: string, name: string, schema: string): void {
   void saveSetting(MAPPINGS_KEY, assignSchema(mappings(), path, { name, schema }), "project").catch((e) =>
-    showBalloon("Cannot change the JSON schema", String(e instanceof Error ? e.message : e), 6000),
+    showBalloon(tr("tools.jsonSchema.cannotChangeTheJsonSchema"), String(e instanceof Error ? e.message : e), 6000),
   );
 }
 
@@ -50,7 +51,7 @@ export function JsonSchemaStatus() {
       entries.push({ kind: "action", label: i.name, checkable: true, checked: true, run: () => undefined }, "separator");
     }
     entries.push(
-      { kind: "action", label: "No JSON schema", checkable: true, checked: !!i && !i.uri, run: () => choose(p, "No JSON schema", "") },
+      { kind: "action", label: tr("tools.jsonSchema.noJsonSchema"), checkable: true, checked: !!i && !i.uri, run: () => choose(p, "No JSON schema", "") },
       "separator",
     );
     const seen = new Set<string>();
@@ -75,7 +76,7 @@ export function JsonSchemaStatus() {
         run: () => choose(p, b.name, b.uri),
       });
     }
-    entries.push("separator", { kind: "action", label: "Edit Schema Mappings…", run: () => openSettings("lang.json-schema") });
+    entries.push("separator", { kind: "action", label: tr("tools.jsonSchema.editSchemaMappingsEllipsis"), run: () => openSettings("lang.json-schema") });
     const r = el.getBoundingClientRect();
     showResolvedMenu(entries, r.left, r.top - 2, { above: true, class: "status-popup" });
   };

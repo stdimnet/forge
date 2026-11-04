@@ -18,6 +18,7 @@ import { showBalloon } from "@/keymap";
 import { chrome } from "@/shell/window/chrome";
 import { workspace } from "@/state/workspace";
 import { commandName, emptyInterpreter, KIND_LABELS, labelOf, runCommandLine } from "./state";
+import { t as tr } from "@/i18n";
 
 type Target = "local" | "docker" | "compose" | "ssh" | "wsl";
 
@@ -175,7 +176,7 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
       // Reload: the version, where Docker / SSH can answer.
       setBusy("Checking the interpreter…");
       const info = await pythonApi.info(add).catch((e) => {
-        showBalloon(`Python interpreter '${name}'`, `Saved without checking it: ${String(e)}`, 5000);
+        showBalloon(tr("langs.python.pythonInterpreter", { name }), tr("langs.python.savedWithoutCheckingIt", { value: String(e) }), 5000);
         return null;
       });
       if (info) add.version = info.version;
@@ -205,7 +206,7 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
             e.stopPropagation();
           }}
         >
-          <div class="dialog-title">Add Python Interpreter</div>
+          <div class="dialog-title">{tr("langs.python.addPythonInterpreter")}</div>
           <div class="py-dialog-body">
             <div class="py-dialog-targets">
               <For each={TARGETS}>
@@ -214,7 +215,7 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
                     class="tree-row py-dialog-target"
                     classList={{ selected: target() === t.id, disabled: t.id === "wsl" && !windows() }}
                     disabled={t.id === "wsl" && !windows()}
-                    title={t.id === "wsl" && !windows() ? "WSL is available on Windows" : undefined}
+                    title={t.id === "wsl" && !windows() ? tr("langs.python.wslIsAvailableOnWindows") : undefined}
                     onClick={() => setTarget(t.id)}
                   >
                     {t.icon({ size: 14 })}
@@ -229,19 +230,19 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
                   <div class="py-radios">
                     <label>
                       <input type="radio" name="py-env-mode" checked={mode() === "new"} onChange={() => setMode("new")} />
-                      Generate new
+                      {tr("langs.python.generateNew")}
                     </label>
                     <label>
                       <input type="radio" name="py-env-mode" checked={mode() === "existing"} onChange={() => setMode("existing")} />
-                      Select existing
+                      {tr("langs.python.selectExisting")}
                     </label>
                   </div>
                   <Show
                     when={mode() === "new"}
                     fallback={
-                      <Row label="Interpreter:" for="py-existing">
+                      <Row label={tr("langs.python.interpreterLabel")} for="py-existing">
                         <select id="py-existing" value={local.existing} onChange={(e) => setLocal("existing", e.currentTarget.value)}>
-                          <option value="">Choose an interpreter…</option>
+                          <option value="">{tr("langs.python.chooseAnInterpreterEllipsis")}</option>
                           <For each={detected() ?? []}>
                             {(d) => (
                               <option value={d.path}>
@@ -253,94 +254,94 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
                         <input
                           type="text"
                           class="py-path-input"
-                          placeholder="or the path of a python executable"
+                          placeholder={tr("langs.python.orThePathOfA")}
                           value={local.existing}
                           onInput={(e) => setLocal("existing", e.currentTarget.value)}
                         />
                       </Row>
                     }
                   >
-                    <Row label="Type:" for="py-new-kind">
+                    <Row label={tr("common.typeLabel")} for="py-new-kind">
                       <select id="py-new-kind" value={local.kind} onChange={(e) => setLocal("kind", e.currentTarget.value as EnvKind)}>
                         <For each={NEW_KINDS}>{(k) => <option value={k.id}>{k.label}</option>}</For>
                       </select>
                     </Row>
                     <Show when={local.kind !== "conda"}>
-                      <Row label="Base python:" for="py-base">
+                      <Row label={tr("langs.python.basePythonLabel")} for="py-base">
                         <select id="py-base" value={local.base} onChange={(e) => setLocal("base", e.currentTarget.value)}>
-                          <option value="">{local.kind === "uv" ? "uv's default Python" : "python3"}</option>
+                          <option value="">{local.kind === "uv" ? tr("langs.python.uvSDefaultPython") : "python3"}</option>
                           <For each={bases()}>{(d) => <option value={d.path}>{detectedLabel(d)}</option>}</For>
                         </select>
                       </Row>
                     </Show>
                     <Show when={local.kind === "conda" || (local.kind === "uv" && !local.base)}>
-                      <Row label="Python version:" for="py-version">
+                      <Row label={tr("langs.python.pythonVersionLabel")} for="py-version">
                         <input id="py-version" type="text" placeholder="3.12" value={local.pythonVersion} onInput={(e) => setLocal("pythonVersion", e.currentTarget.value)} />
                       </Row>
                     </Show>
-                    <Show when={local.kind !== "poetry"} fallback={<div class="py-note muted">Poetry creates the environment in its own folder (or .venv with virtualenvs.in-project).</div>}>
-                      <Row label="Location:" for="py-location">
+                    <Show when={local.kind !== "poetry"} fallback={<div class="py-note muted">{tr("langs.python.poetryCreatesTheEnvironmentIn")}</div>}>
+                      <Row label={tr("langs.python.locationLabel")} for="py-location">
                         <input id="py-location" type="text" value={local.location} onInput={(e) => setLocal("location", e.currentTarget.value)} />
                       </Row>
                       <div class="py-note muted">{local.location.startsWith("/") || /^[A-Za-z]:/.test(local.location) ? local.location : `${root()}/${local.location}`}</div>
                     </Show>
                     <label class="py-check">
                       <input type="checkbox" checked={local.installDependencies} onChange={(e) => setLocal("installDependencies", e.currentTarget.checked)} />
-                      Install the project's dependencies (requirements.txt, pyproject.toml)
+                      {tr("langs.python.installTheProjectSDependencies")}
                     </label>
                   </Show>
                 </Match>
                 <Match when={target() === "docker"}>
-                  <Row label="Image name:" for="py-image">
+                  <Row label={tr("langs.python.imageNameLabel")} for="py-image">
                     <input id="py-image" type="text" placeholder="python:3.12-slim" value={remote.image} onInput={(e) => setRemote("image", e.currentTarget.value)} />
                   </Row>
-                  <div class="py-note muted">The project is mounted at /opt/project.</div>
+                  <div class="py-note muted">{tr("langs.python.theProjectIsMountedAt")}</div>
                 </Match>
                 <Match when={target() === "compose"}>
-                  <Row label="Configuration files:" for="py-compose-files">
+                  <Row label={tr("langs.python.configurationFilesLabel")} for="py-compose-files">
                     <input id="py-compose-files" type="text" placeholder="./compose.yaml" value={remote.composeFiles} onChange={(e) => setRemote("composeFiles", e.currentTarget.value)} />
                   </Row>
-                  <Row label="Service:" for="py-service">
+                  <Row label={tr("langs.python.serviceLabel")} for="py-service">
                     <select id="py-service" value={remote.service} onChange={(e) => setRemote("service", e.currentTarget.value)}>
-                      <option value="">{(services() ?? []).length ? "Choose a service…" : "No services found"}</option>
+                      <option value="">{(services() ?? []).length ? tr("langs.python.chooseAServiceEllipsis") : tr("langs.python.noServicesFound")}</option>
                       <For each={services() ?? []}>{(s) => <option value={s}>{s}</option>}</For>
                     </select>
                   </Row>
-                  <Row label="Lifecycle:">
+                  <Row label={tr("langs.python.lifecycleLabel")}>
                     <div class="py-radios column">
                       <label>
                         <input type="radio" name="py-lifecycle" checked={remote.lifecycle === "run"} onChange={() => setRemote("lifecycle", "run")} />
-                        Always start a new container ('docker compose run')
+                        {tr("langs.python.alwaysStartANewContainer")}
                       </label>
                       <label>
                         <input type="radio" name="py-lifecycle" checked={remote.lifecycle === "exec"} onChange={() => setRemote("lifecycle", "exec")} />
-                        Connect to existing container ('docker compose exec')
+                        {tr("langs.python.connectToExistingContainerDocker")}
                       </label>
                     </div>
                   </Row>
                 </Match>
                 <Match when={target() === "ssh"}>
-                  <Row label="SSH configuration:" for="py-ssh">
+                  <Row label={tr("common.sshConfigurationLabel")} for="py-ssh">
                     <select id="py-ssh" value={remote.sshConfig} onChange={(e) => setRemote("sshConfig", e.currentTarget.value)}>
-                      <option value="">{(ssh() ?? []).length ? "Choose a configuration…" : "No SSH configurations (Settings | Tools | SSH Configurations)"}</option>
+                      <option value="">{(ssh() ?? []).length ? tr("langs.python.chooseAConfigurationEllipsis") : tr("langs.python.noSshConfigurationsSettingsTools")}</option>
                       <For each={ssh() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
                     </select>
                   </Row>
                 </Match>
                 <Match when={target() === "wsl"}>
-                  <Row label="Linux distribution:" for="py-wsl">
+                  <Row label={tr("langs.python.linuxDistributionLabel")} for="py-wsl">
                     <select id="py-wsl" value={remote.distribution} onChange={(e) => setRemote("distribution", e.currentTarget.value)}>
-                      <option value="">Default</option>
+                      <option value="">{tr("common.default")}</option>
                       <For each={distributions() ?? []}>{(d) => <option value={d}>{d}</option>}</For>
                     </select>
                   </Row>
                 </Match>
               </Switch>
               <Show when={target() !== "local"}>
-                <Row label="Python interpreter path:" for="py-remote-path">
+                <Row label={tr("langs.python.pythonInterpreterPathLabel")} for="py-remote-path">
                   <input id="py-remote-path" type="text" placeholder="python3" value={remote.path} onInput={(e) => setRemote("path", e.currentTarget.value)} />
                 </Row>
-                <Row label="Name:" for="py-remote-name">
+                <Row label={tr("common.nameLabel")} for="py-remote-name">
                   <input id="py-remote-name" type="text" placeholder={remoteName()} value={remote.name} onInput={(e) => setRemote("name", e.currentTarget.value)} />
                 </Row>
               </Show>
@@ -354,7 +355,7 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
               <span class="muted py-busy">{busy()}</span>
             </Show>
             <button class="btn-secondary" disabled={!!busy()} onClick={props.onClose}>
-              Cancel
+              {tr("common.cancel")}
             </button>
             <button class="btn-primary" disabled={!valid()} onClick={() => void ok()} data-testid="python-add-interpreter-ok">
               OK

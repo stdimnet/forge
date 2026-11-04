@@ -51,6 +51,7 @@ import {
   tabTitleOf,
   type HistoryTarget,
 } from "./actions";
+import { t as tr } from "@/i18n";
 
 /** The icon of a change kind. */
 export const KIND_ICONS: Record<ChangeKind, (p: { size?: number; class?: string }) => JSX.Element> = {
@@ -116,7 +117,7 @@ function RevisionRow(props: {
     >
       <div class="history-subject">
         <Dynamic component={KIND_ICONS[props.rev.kind]} size={14} class={`lh-kind lh-kind-${props.rev.kind}`} />
-        <span class="lh-name">{props.rev.name || "Change"}</span>
+        <span class="lh-name">{props.rev.name || tr("tools.localHistory.change")}</span>
         <Show when={props.hint}>
           <span class="history-renamed">{props.hint}</span>
         </Show>
@@ -130,11 +131,11 @@ function Filter(props: { value: string; onInput: (v: string) => void }) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   onCleanup(() => clearTimeout(timer));
   return (
-    <label class="lh-filter" title="Show revisions whose name or content contains the text">
+    <label class="lh-filter" title={tr("tools.localHistory.showRevisionsWhoseNameOr")}>
       <Search size={13} class="muted" />
       <input
         type="text"
-        placeholder="Filter by text"
+        placeholder={tr("tools.localHistory.filterByText")}
         value={props.value}
         spellcheck={false}
         onInput={(e) => {
@@ -259,31 +260,31 @@ function PathHistoryView(props: { target: Extract<HistoryTarget, { kind: "file" 
     <div class="file-history local-history" onFocusIn={() => (focusedShowDiff = showDiff)} data-testid="local-history">
       <div class="file-history-main">
         <div class="panel-toolbar history-toolbar">
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <button class="icon-btn" title={tr("common.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={15} />
           </button>
-          <button class="icon-btn" title="Revert" disabled={!current()} onClick={revert}>
+          <button class="icon-btn" title={tr("tools.localHistory.revert")} disabled={!current()} onClick={revert}>
             <Undo2 size={15} />
           </button>
-          <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!file()} onClick={showDiff}>
+          <button class="icon-btn" title={tr("tools.localHistory.showDiffCtrlD")} disabled={!file()} onClick={showDiff}>
             <Columns2 size={15} />
           </button>
-          <button class="icon-btn" title="Create Patch…" disabled={!current()} onClick={patch}>
+          <button class="icon-btn" title={tr("tools.localHistory.createPatchEllipsis")} disabled={!current()} onClick={patch}>
             <FileDiff size={15} />
           </button>
-          <button class="icon-btn" title="Put Label…" onClick={() => void putLabel()}>
+          <button class="icon-btn" title={tr("tools.localHistory.putLabelEllipsis")} onClick={() => void putLabel()}>
             <Tag size={15} />
           </button>
           <span class="toolbar-sep" />
           <Filter value={filter()} onInput={setFilter} />
           <span class="spacer" />
           <span class="history-path" title={props.target.path}>
-            {props.target.path || "Project"}
+            {props.target.path || tr("common.project")}
           </span>
         </div>
         <div class="history-columns lh-columns">
-          <div>Change</div>
-          <div>Date</div>
+          <div>{tr("tools.localHistory.change")}</div>
+          <div>{tr("tools.localHistory.date")}</div>
         </div>
         <div
           class="log-list history-list"
@@ -331,7 +332,7 @@ function PathHistoryView(props: { target: Extract<HistoryTarget, { kind: "file" 
         <Show when={folder()}>
           <div class="history-details">
             <div class="lh-details-title">
-              {current() ? `Files that differ from the current version (${changes()?.length ?? 0})` : "Select a revision"}
+              {current() ? tr("tools.localHistory.filesThatDifferFromThe", { value: changes()?.length ?? 0 }) : tr("tools.localHistory.selectARevision")}
             </div>
             <div class="history-files">
               <For each={changes() ?? []}>
@@ -353,7 +354,7 @@ function PathHistoryView(props: { target: Extract<HistoryTarget, { kind: "file" 
                 }}
               </For>
               <Show when={current() && changes() && !changes()!.length}>
-                <div class="commit-empty">No differences: the files are as they were</div>
+                <div class="commit-empty">{tr("tools.localHistory.noDifferencesTheFilesAre")}</div>
               </Show>
             </div>
           </div>
@@ -364,7 +365,7 @@ function PathHistoryView(props: { target: Extract<HistoryTarget, { kind: "file" 
         keyed
         fallback={
           <div class="inline-diff">
-            <div class="commit-empty">{current() ? (folder() && !file() ? "No differences" : "Loading…") : "Select a revision to view the changes"}</div>
+            <div class="commit-empty">{current() ? (folder() && !file() ? tr("tools.localHistory.noDifferences") : tr("common.loadingEllipsis")) : tr("tools.localHistory.selectARevisionToView")}</div>
           </div>
         }
       >
@@ -372,7 +373,7 @@ function PathHistoryView(props: { target: Extract<HistoryTarget, { kind: "file" 
           <InlineDiff
             path={file() ?? props.target.path}
             left={{ title: revisionTitle(t.r, t.then.state), content: t.then.text }}
-            right={{ title: t.now.exists ? "Current version" : "Current version (deleted)", content: t.now.text }}
+            right={{ title: t.now.exists ? tr("tools.localHistory.currentVersion") : tr("tools.localHistory.currentVersionDeleted"), content: t.now.text }}
             empty={t.then.state === "unknown" ? "The content of this revision was not recorded (file too large, binary or never opened)" : undefined}
           />
         )}
@@ -405,8 +406,8 @@ function SelectionHistoryView(props: { target: Extract<HistoryTarget, { kind: "s
     if (!r || !h) return;
     setDiffRequest({
       path: props.target.path,
-      left: { title: `${revisionTitle(r, "file")}, from line ${r.startLine}`, content: r.text },
-      right: { title: `Current version, ${lines()}`, content: h.current },
+      left: { title: tr("tools.localHistory.fromLine", { value: revisionTitle(r, "file"), startLine: r.startLine }), content: r.text },
+      right: { title: tr("tools.localHistory.currentVersion2", { lines: lines() }), content: h.current },
       editable: false,
     });
   };
@@ -415,10 +416,10 @@ function SelectionHistoryView(props: { target: Extract<HistoryTarget, { kind: "s
     <div class="file-history local-history" onFocusIn={() => (focusedShowDiff = showDiff)}>
       <div class="file-history-main">
         <div class="panel-toolbar history-toolbar">
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <button class="icon-btn" title={tr("common.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={15} />
           </button>
-          <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!current()} onClick={showDiff}>
+          <button class="icon-btn" title={tr("tools.localHistory.showDiffCtrlD")} disabled={!current()} onClick={showDiff}>
             <Columns2 size={15} />
           </button>
           <span class="spacer" />
@@ -427,20 +428,20 @@ function SelectionHistoryView(props: { target: Extract<HistoryTarget, { kind: "s
           </span>
         </div>
         <div class="history-columns lh-columns">
-          <div>Change</div>
-          <div>Date</div>
+          <div>{tr("tools.localHistory.change")}</div>
+          <div>{tr("tools.localHistory.date")}</div>
         </div>
         <div class="log-list history-list" tabIndex={0} ref={list} onKeyDown={listKeys(() => (history()?.revisions ?? []).map((r) => r.id), selected, setSelected as (id: never) => void, () => list)}>
           <For each={history()?.revisions ?? []}>
             {(r) => (
-              <RevisionRow rev={r} selected={selected() === r.id} hint={r.text ? `line ${r.startLine}` : "lines did not exist"} onSelect={() => setSelected(r.id)} onOpen={showDiff} />
+              <RevisionRow rev={r} selected={selected() === r.id} hint={r.text ? `line ${r.startLine}` : tr("tools.localHistory.linesDidNotExist")} onSelect={() => setSelected(r.id)} onOpen={showDiff} />
             )}
           </For>
           <Show when={history.error}>
             <div class="commit-empty">{errorText(history.error)}</div>
           </Show>
           <Show when={history() && !history()!.revisions.length}>
-            <div class="commit-empty">No local changes recorded for the selected lines</div>
+            <div class="commit-empty">{tr("tools.localHistory.noLocalChangesRecordedFor")}</div>
           </Show>
         </div>
       </div>
@@ -448,14 +449,14 @@ function SelectionHistoryView(props: { target: Extract<HistoryTarget, { kind: "s
         when={current() && history()}
         fallback={
           <div class="inline-diff">
-            <div class="commit-empty">Select a revision to view how the lines changed</div>
+            <div class="commit-empty">{tr("tools.localHistory.selectARevisionToView2")}</div>
           </div>
         }
       >
         <InlineDiff
           path={props.target.path}
-          left={{ title: `${revisionTitle(current()!, "file")}, from line ${current()!.startLine}`, content: current()!.text }}
-          right={{ title: `Current version, ${lines()}`, content: history()!.current }}
+          left={{ title: tr("tools.localHistory.fromLine", { value: revisionTitle(current()!, "file"), startLine: current()!.startLine }), content: current()!.text }}
+          right={{ title: tr("tools.localHistory.currentVersion2", { lines: lines() }), content: history()!.current }}
         />
       </Show>
     </div>
@@ -499,13 +500,13 @@ function ChangeView(props: { target: Extract<HistoryTarget, { kind: "change" }> 
     <div class="file-history local-history" onFocusIn={() => (focusedShowDiff = showDiff)}>
       <div class="file-history-main">
         <div class="panel-toolbar history-toolbar">
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <button class="icon-btn" title={tr("common.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={15} />
           </button>
-          <button class="icon-btn" title="Revert" disabled={!files()?.length} onClick={() => void revertChange(props.target)}>
+          <button class="icon-btn" title={tr("tools.localHistory.revert")} disabled={!files()?.length} onClick={() => void revertChange(props.target)}>
             <Undo2 size={15} />
           </button>
-          <button class="icon-btn" title="Show Diff (Ctrl+D)" disabled={!current()} onClick={showDiff}>
+          <button class="icon-btn" title={tr("tools.localHistory.showDiffCtrlD")} disabled={!current()} onClick={showDiff}>
             <Columns2 size={15} />
           </button>
           <span class="spacer" />
@@ -514,7 +515,7 @@ function ChangeView(props: { target: Extract<HistoryTarget, { kind: "change" }> 
         <div class="lh-change-header">
           <span class="lh-name">{props.target.name}</span>
           <span class="muted">
-            {files()?.length ?? 0} file{files()?.length === 1 ? "" : "s"}
+            {tr("tools.localHistory.files", { count: files()?.length, value: files()?.length ?? 0 })}
           </span>
         </div>
         <div class="history-files lh-change-files">
@@ -525,7 +526,7 @@ function ChangeView(props: { target: Extract<HistoryTarget, { kind: "change" }> 
                 <FileRow
                   path={f.path}
                   status={status}
-                  title={f.from ? `Moved from ${f.from}` : status === "added" ? "Created by this change" : status === "deleted" ? "Deleted by this change" : "Changed"}
+                  title={f.from ? tr("tools.localHistory.movedFrom", { from: f.from }) : status === "added" ? tr("tools.localHistory.createdByThisChange") : status === "deleted" ? tr("tools.localHistory.deletedByThisChange") : tr("tools.localHistory.changed")}
                   selected={selected() === f.path}
                   onSelect={() => setSelected(f.path)}
                   onOpen={() => {
@@ -546,7 +547,7 @@ function ChangeView(props: { target: Extract<HistoryTarget, { kind: "change" }> 
         keyed
         fallback={
           <div class="inline-diff">
-            <div class="commit-empty">{files() && !files()!.length ? "This change has no files" : "Select a file"}</div>
+            <div class="commit-empty">{files() && !files()!.length ? tr("tools.localHistory.thisChangeHasNoFiles") : tr("tools.localHistory.selectAFile")}</div>
           </div>
         }
       >
@@ -582,7 +583,7 @@ setHistoryTabOpener((target) =>
   openCustomTab({
     id: tabIdOf(target),
     title: tabTitleOf(target),
-    tooltip: target.kind === "change" ? `${target.name}, ${historyDate(target.time)}` : target.path || "Project",
+    tooltip: target.kind === "change" ? `${target.name}, ${historyDate(target.time)}` : target.path || tr("common.project"),
     icon: History,
     component: () => <LocalHistoryView target={target} />,
   }),

@@ -32,6 +32,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { openFileAt } from "@/editor/views";
 import { saveSetting } from "@/state/settings";
 import { cmakeLog, cmakeProfiles, cmakeState, cmakeTargets, refreshCMake, refreshProfiles, reloadCMake, runBuild } from "./state";
+import { t as tr } from "@/i18n";
 import "./cpp.css";
 
 const KIND_LABEL: Record<CMakeTarget["kind"], string> = {
@@ -76,14 +77,14 @@ function TargetRow(props: { t: CMakeTarget }) {
       <span class="tree-label">{t().name}</span>
       <span class="tree-hint">{KIND_LABEL[t().kind]}</span>
       <span class="cmake-row-actions">
-        <button class="icon-btn" title={`Build '${t().name}'`} onClick={(e) => (e.stopPropagation(), void runBuild("build", [t().name]))}>
+        <button class="icon-btn" title={tr("langs.cpp.build", { name: t().name })} onClick={(e) => (e.stopPropagation(), void runBuild("build", [t().name]))}>
           <Hammer size={13} />
         </button>
         <Show when={exe()}>
-          <button class="icon-btn" title={`Run '${t().name}'`} onClick={(e) => (e.stopPropagation(), void launch(appConfiguration(t())))}>
+          <button class="icon-btn" title={tr("common.run", { name: t().name })} onClick={(e) => (e.stopPropagation(), void launch(appConfiguration(t())))}>
             <Play size={13} />
           </button>
-          <button class="icon-btn" title={`Debug '${t().name}'`} onClick={(e) => (e.stopPropagation(), void debugConfiguration(appConfiguration(t())))}>
+          <button class="icon-btn" title={tr("common.debug", { name: t().name })} onClick={(e) => (e.stopPropagation(), void debugConfiguration(appConfiguration(t())))}>
             <Bug size={13} />
           </button>
         </Show>
@@ -96,9 +97,9 @@ function Targets() {
   const groups = createMemo(() => {
     const list = cmakeTargets();
     return [
-      { title: "Executables", items: list.filter((t) => t.kind === "executable") },
-      { title: "Libraries", items: list.filter((t) => t.kind.endsWith("Library")) },
-      { title: "Utilities", items: list.filter((t) => t.kind === "utility") },
+      { title: tr("langs.cpp.executables"), items: list.filter((t) => t.kind === "executable") },
+      { title: tr("langs.cpp.libraries"), items: list.filter((t) => t.kind.endsWith("Library")) },
+      { title: tr("langs.cpp.utilities"), items: list.filter((t) => t.kind === "utility") },
     ].filter((g) => g.items.length);
   });
   const project = () => cmakeState()?.model?.configurations[0]?.projects[0] ?? "";
@@ -108,7 +109,7 @@ function Targets() {
         when={groups().length}
         fallback={
           <div class="muted cmake-pad">
-            {cmakeState()?.status === "noCMake" ? "The project has no CMakeLists.txt." : cmakeState()?.status === "loading" ? "Loading the CMake project…" : "No targets: reload the CMake project."}
+            {cmakeState()?.status === "noCMake" ? tr("langs.cpp.theProjectHasNoCmakelists") : cmakeState()?.status === "loading" ? tr("langs.cpp.loadingTheCmakeProjectEllipsis") : tr("langs.cpp.noTargetsReloadTheCmake")}
           </div>
         }
       >
@@ -169,7 +170,7 @@ function Log() {
                 <a
                   class="cmake-link"
                   href="#"
-                  title={`Open ${m()!.file}:${m()!.line ?? 1}`}
+                  title={tr("langs.cpp.open", { file: m()!.file, value: m()!.line ?? 1 })}
                   onClick={(e) => {
                     e.preventDefault();
                     void openFileAt(m()!.file!, m()!.line ?? 1);
@@ -194,13 +195,13 @@ function Summary() {
   return (
     <div class="cmake-summary" data-testid="cmake-summary">
       <Show when={s()?.status === "loading"}>
-        <LoaderCircle size={13} class="lsp-spin" /> Loading CMake project…
+        <LoaderCircle size={13} class="lsp-spin" /> {tr("langs.cpp.loadingCmakeProjectEllipsis")}
       </Show>
       <Show when={s()?.status === "loaded"}>
-        <span class="cmake-ok">[Finished]</span> {s()?.model?.cmakeVersion ? `CMake ${s()!.model!.cmakeVersion}` : ""}
+        <span class="cmake-ok">{tr("langs.cpp.finished")}</span> {s()?.model?.cmakeVersion ? `CMake ${s()!.model!.cmakeVersion}` : ""}
       </Show>
       <Show when={s()?.status === "failed"}>
-        <span class="cmake-failed">[Failed to reload]</span>
+        <span class="cmake-failed">{tr("langs.cpp.failedToReload")}</span>
       </Show>
       <Show when={errors()}>
         <span class="cmake-count">
@@ -237,20 +238,20 @@ export function CMakeToolWindow() {
   return (
     <div class="cmake-tw" data-testid="cmake-tool-window">
       <div class="cmake-side-toolbar">
-        <button class="icon-btn" title="Reload CMake Project" disabled={loading()} data-testid="cmake-reload" onClick={() => void reloadCMake()}>
+        <button class="icon-btn" title={tr("langs.cpp.reloadCmakeProject")} disabled={loading()} data-testid="cmake-reload" onClick={() => void reloadCMake()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn" title="Reset Cache and Reload Project" disabled={loading()} onClick={() => void reloadCMake(true)}>
+        <button class="icon-btn" title={tr("langs.cpp.resetCacheAndReloadProject")} disabled={loading()} onClick={() => void reloadCMake(true)}>
           <RotateCcw size={14} />
         </button>
-        <button class="icon-btn" title="Stop" disabled={!loading()} onClick={() => void cppApi.cancel()}>
+        <button class="icon-btn" title={tr("common.stop")} disabled={!loading()} onClick={() => void cppApi.cancel()}>
           <Square size={13} />
         </button>
         <div class="cmake-sep" />
-        <button class="icon-btn" title="Clean" onClick={() => void runBuild("clean")}>
+        <button class="icon-btn" title={tr("langs.cpp.clean")} onClick={() => void runBuild("clean")}>
           <Eraser size={14} />
         </button>
-        <button class="icon-btn" title="CMake Settings" onClick={() => openSettings("build.cmake")}>
+        <button class="icon-btn" title={tr("langs.cpp.cmakeSettings")} onClick={() => openSettings("build.cmake")}>
           <Settings size={14} />
         </button>
       </div>

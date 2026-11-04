@@ -274,7 +274,7 @@ export async function showLine(path: string, line: number): Promise<void> {
   try {
     await openFile(path);
   } catch {
-    showBalloon(t("debug.store.sourceNotFound"), `${path} is not available in the project.`);
+    showBalloon(t("debug.store.sourceNotFound"), t("tools.debug.isNotAvailableInThe", { path }));
     return;
   }
   for (let i = 0; i < 60; i++) {
@@ -569,7 +569,7 @@ export async function addWatchpoint(property: Property): Promise<void> {
   if (!s?.adapter || property.container == null) return;
   try {
     const bp = await dapApi.dataBreakpoint(s.id, property.container, property.name);
-    showBalloon(t("debug.store.watchpointAdded"), `Suspends when ${bp.description ?? property.name} changes.`, 3000);
+    showBalloon(t("debug.store.watchpointAdded"), t("tools.debug.suspendsWhenChanges", { value: bp.description ?? property.name }), 3000);
   } catch (e) {
     showBalloon(t("debug.store.cannotAddAWatchpoint"), String(e).replace(/^Error: /, ""), 5000);
   }

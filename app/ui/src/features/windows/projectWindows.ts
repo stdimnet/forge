@@ -14,6 +14,7 @@ import { showBalloon } from "@/keymap";
 import { askChoiceWithCheckbox } from "@/features/contextMenu/dialogs";
 import { action, registerMainMenuDynamic, registerMainMenuEntries } from "@/features/mainMenu/model";
 import { registerKeymapActions } from "@/keymap/store";
+import { t } from "@/i18n";
 
 export const OPEN_PROJECT_IN = "system.openProjectIn";
 export type OpenProjectIn = "ask" | "newWindow" | "thisWindow";
@@ -54,7 +55,7 @@ export async function openProject(path: string, what = "the project"): Promise<v
     try {
       await projectWindowsApi.open(path);
     } catch (e) {
-      showBalloon("Cannot open a new window", String((e as Error)?.message ?? e));
+      showBalloon(t("tools.windows.cannotOpenANewWindow"), String((e as Error)?.message ?? e));
     }
   }
 }
@@ -65,7 +66,7 @@ async function cycle(delta: 1 | -1): Promise<void> {
   try {
     await projectWindowsApi.cycle(delta);
   } catch (e) {
-    showBalloon("Cannot switch the project window", String((e as Error)?.message ?? e));
+    showBalloon(t("tools.windows.cannotSwitchTheProjectWindow"), String((e as Error)?.message ?? e));
   }
 }
 
@@ -74,7 +75,7 @@ async function newWindow(): Promise<void> {
   try {
     await projectWindowsApi.openEmpty();
   } catch (e) {
-    showBalloon("Cannot open a new window", String((e as Error)?.message ?? e));
+    showBalloon(t("tools.windows.cannotOpenANewWindow"), String((e as Error)?.message ?? e));
   }
 }
 
@@ -94,7 +95,7 @@ registerMainMenuDynamic("projectWindows", async () => {
     detail: w.root ?? undefined,
     checked: w.current,
     run: () => {
-      if (!w.current) void projectWindowsApi.focus(w.id).catch((e) => showBalloon("Cannot switch the project window", String(e)));
+      if (!w.current) void projectWindowsApi.focus(w.id).catch((e) => showBalloon(t("tools.windows.cannotSwitchTheProjectWindow"), String(e)));
     },
   }));
 });

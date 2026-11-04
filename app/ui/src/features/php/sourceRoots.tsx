@@ -192,19 +192,13 @@ function DirectoriesPage() {
   return (
     <div class="php-settings php-dirs">
       <section>
-        <h3>Content Root</h3>
+        <h3>{t("langs.php.contentRoot")}</h3>
         <div class="php-dirs-root">
           <FolderOpen size={14} />
           <span>{workspace()?.root ?? ""}</span>
         </div>
         <p class="php-hint">
-          Folders marked as sources or test sources and their package prefix
-          (the namespace of the folder). They start from the PSR-4 rules of
-          composer.json; New PHP Class, Move Class and the namespace inspection
-          follow them. Resource, test resource and excluded folders are stored
-          in the project too; excluded folders are left out of the indexes,
-          searches, inspections and local history. In the Project view:
-          right-click a folder › Mark Directory as.
+          {t("langs.php.foldersMarkedAsSourcesOr")}
         </p>
       </section>
       <For each={["source", "test", "none"] as Kind[]}>
@@ -215,7 +209,7 @@ function DirectoriesPage() {
               <div class="php-list php-dirs-list" data-kind={k}>
                 <For
                   each={of(k)}
-                  fallback={<div class="php-hint">Nothing to show</div>}
+                  fallback={<div class="php-hint">{t("common.nothingToShow")}</div>}
                 >
                   {(e) => (
                     <div class="php-list-row php-dirs-row" data-path={e.path}>
@@ -223,8 +217,8 @@ function DirectoriesPage() {
                       <input
                         class="php-dirs-prefix"
                         type="text"
-                        placeholder="Package prefix"
-                        title="Package prefix"
+                        placeholder={t("langs.php.packagePrefix")}
+                        title={t("langs.php.packagePrefix")}
                         disabled={k === "none"}
                         value={e.prefix}
                         onChange={(ev) =>
@@ -242,7 +236,7 @@ function DirectoriesPage() {
                       <span class="php-hint php-dirs-origin">
                         {e.origin === "composer"
                           ? e.overridden
-                            ? "composer.json, changed"
+                            ? t("langs.php.composerJsonChanged")
                             : "composer.json"
                           : "added"}
                       </span>
@@ -252,7 +246,7 @@ function DirectoriesPage() {
                           fallback={
                             <button
                               class="icon-btn"
-                              title="Mark Again"
+                              title={t("langs.php.markAgain")}
                               onClick={() =>
                                 set(upsertRoot(overrides(), e.path, null))
                               }
@@ -264,7 +258,7 @@ function DirectoriesPage() {
                           <Show when={e.overridden}>
                             <button
                               class="icon-btn"
-                              title="Reset to composer.json"
+                              title={t("langs.php.resetToComposerJson")}
                               onClick={() =>
                                 set(upsertRoot(overrides(), e.path, null))
                               }
@@ -274,7 +268,7 @@ function DirectoriesPage() {
                           </Show>
                           <button
                             class="icon-btn"
-                            title="Unmark"
+                            title={t("langs.php.unmark")}
                             onClick={() =>
                               set(
                                 markChange(
@@ -301,18 +295,18 @@ function DirectoriesPage() {
       </For>
       <ProjectStructureSections />
       <section>
-        <h3>Add Folder</h3>
+        <h3>{t("langs.php.addFolder")}</h3>
         <div class="php-dirs-add">
           <input
             type="text"
-            placeholder="src/Domain"
+            placeholder={t("langs.php.srcDomain")}
             value={path()}
             onInput={(e) => setPath(e.currentTarget.value)}
             onKeyDown={(e) => e.key === "Enter" && add()}
           />
           <input
             type="text"
-            placeholder="Package prefix"
+            placeholder={t("langs.php.packagePrefix")}
             disabled={kind() !== "source" && kind() !== "test"}
             value={prefix()}
             onInput={(e) => setPrefix(e.currentTarget.value)}
@@ -326,13 +320,13 @@ function DirectoriesPage() {
               )
             }
           >
-            <option value="source">Sources</option>
-            <option value="test">Tests</option>
-            <option value="resource">Resources</option>
-            <option value="testResource">Test Resources</option>
-            <option value="excluded">Excluded</option>
+            <option value="source">{t("langs.php.sources")}</option>
+            <option value="test">{t("langs.php.tests")}</option>
+            <option value="resource">{t("langs.php.resources")}</option>
+            <option value="testResource">{t("langs.php.testResources")}</option>
+            <option value="excluded">{t("langs.php.excluded")}</option>
           </select>
-          <button class="icon-btn" title="Add" onClick={add}>
+          <button class="icon-btn" title={t("common.add")} onClick={add}>
             <Plus size={14} />
           </button>
         </div>

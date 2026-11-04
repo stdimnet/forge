@@ -10,6 +10,7 @@ import { FileInput } from "lucide-solid";
 import type { CoverageSuite } from "@/ipc/testing";
 import { activeSuite, setCoverageVisible, showSuites, suites, visible } from "./store";
 import { importReport } from "./actions";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 let mounted = false;
@@ -46,14 +47,14 @@ function Dialog() {
     <dialog
       ref={dialog}
       class="coverage-suites-dialog"
-      aria-label="Choose Coverage Suite to Display"
+      aria-label={t("tools.coverage.chooseCoverageSuiteToDisplay")}
       onCancel={(e) => (e.preventDefault(), close())}
       onMouseDown={(e) => e.target === dialog && close()}
     >
       <form method="dialog" onSubmit={(e) => (e.preventDefault(), void showChecked())}>
-        <header class="coverage-dialog-title">Choose Coverage Suite to Display</header>
+        <header class="coverage-dialog-title">{t("tools.coverage.chooseCoverageSuiteToDisplay")}</header>
         <div class="coverage-suites-list" role="list">
-          <Show when={suites().length} fallback={<div class="coverage-empty muted">No coverage data yet. Run tests with coverage or import a report.</div>}>
+          <Show when={suites().length} fallback={<div class="coverage-empty muted">{t("tools.coverage.noCoverageDataYetRun")}</div>}>
             <For each={suites()}>
               {(s) => (
                 <label class="coverage-suite-item" role="listitem" data-suite={s.id}>
@@ -61,8 +62,7 @@ function Dialog() {
                   <span class="coverage-suite-name">
                     <span>{s.name}</span>
                     <span class="muted">
-                      {s.format} · {s.files} file{s.files === 1 ? "" : "s"}
-                      {s.perTest ? " · per test" : ""}
+                      {t("tools.coverage.files", { count: s.files, format: s.format, value: s.perTest ? t("tools.coverage.perTest") : "" })}
                     </span>
                   </span>
                   <span class="coverage-suite-pct">{s.lineText}</span>
@@ -73,21 +73,21 @@ function Dialog() {
           </Show>
         </div>
         <Show when={checked().size > 1}>
-          <div class="coverage-suites-note muted">The {checked().size} suites are merged into one.</div>
+          <div class="coverage-suites-note muted">{t("tools.coverage.theSuitesAreMergedInto", { size: checked().size })}</div>
         </Show>
         <footer class="coverage-dialog-actions">
           <button type="button" class="btn-secondary coverage-dialog-import" onClick={() => (close(), void importReport())}>
-            <FileInput size={14} /> Import…
+            <FileInput size={14} /> {t("tools.coverage.importEllipsis")}
           </button>
           <span class="coverage-spacer" />
           <button type="button" class="btn-secondary" onClick={() => (close(), setCoverageVisible(false))}>
-            No Coverage
+            {t("tools.coverage.noCoverage")}
           </button>
           <button type="button" class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button type="submit" class="btn-primary" ref={ok} disabled={!checked().size}>
-            Show Selected
+            {t("tools.coverage.showSelected")}
           </button>
         </footer>
       </form>

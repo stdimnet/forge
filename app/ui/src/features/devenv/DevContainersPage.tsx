@@ -10,12 +10,13 @@ import { devcontainerApi, type DevContainerInstance } from "@/ipc/devenv";
 import { connecting } from "@/features/remote/store";
 import { askConfirm } from "@/features/contextMenu/dialogs";
 import { createDevContainer, openDevContainer } from "./store";
+import { t } from "@/i18n";
 
 /** Ask for a local folder (browser mode: the demo project). */
 async function pickFolder(): Promise<string | null> {
   if (!isTauri()) return (await devcontainerApi.configs()).at(0)?.config?.localFolder ?? null;
   const { open } = await import("@tauri-apps/plugin-dialog");
-  const dir = await open({ directory: true, multiple: false, title: "Choose the Project Folder with a devcontainer.json" });
+  const dir = await open({ directory: true, multiple: false, title: t("tools.devenv.chooseTheProjectFolderWith") });
   return typeof dir === "string" ? dir : null;
 }
 
@@ -29,9 +30,9 @@ export function DevContainersPage(props: { onError: (message: string) => void })
     if (
       action === "remove" &&
       !(await askConfirm({
-        title: "Delete Dev Container",
-        message: `Delete the dev container "${c.name}" (${c.containerName})? The sources stay on this machine.`,
-        confirm: "Delete",
+        title: t("tools.devenv.deleteDevContainer"),
+        message: t("tools.devenv.deleteTheDevContainerThe", { name: c.name, containerName: c.containerName }),
+        confirm: t("common.delete"),
       }))
     )
       return;
@@ -60,22 +61,20 @@ export function DevContainersPage(props: { onError: (message: string) => void })
   return (
     <div class="welcome-remote" data-testid="welcome-devcontainers">
       <div class="welcome-remote-head">
-        <h2>Dev Containers</h2>
+        <h2>{t("tools.devenv.devContainers")}</h2>
         <p class="muted">
-          Develop inside a container described by the project's <span class="mono">devcontainer.json</span>. Forge builds
-          it with the local Docker CLI, mounts the sources and starts its agent inside, so indexing, language servers,
-          terminals and run configurations use the container's tools.
+          {t("tools.devenv.developInsideAContainerDescribed")} <span class="mono">devcontainer.json</span>{t("tools.devenv.forgeBuildsItWithThe")}
         </p>
       </div>
       <div class="welcome-remote-section">
         <div class="welcome-remote-section-title">
           <Box size={15} />
-          <span>Containers</span>
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <span>{t("tools.devenv.containers")}</span>
+          <button class="icon-btn" title={t("common.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={13} />
           </button>
           <button class="btn-primary welcome-remote-new" onClick={() => void create()} data-testid="devcontainer-new">
-            <Plus size={14} /> New Dev Container
+            <Plus size={14} /> {t("tools.devenv.newDevContainer")}
           </button>
         </div>
         <Show when={connecting()}>
@@ -87,11 +86,11 @@ export function DevContainersPage(props: { onError: (message: string) => void })
         </Show>
         <Show when={list.loading && !list()}>
           <div class="muted devc-loading">
-            <LoaderCircle size={14} class="ssh-spin" /> Asking Docker…
+            <LoaderCircle size={14} class="ssh-spin" /> {t("tools.devenv.askingDockerEllipsis")}
           </div>
         </Show>
         <Show when={list() && !list()!.available}>
-          <div class="ssh-error">Docker is not available: {list()!.error ?? "the Docker CLI did not answer"}</div>
+          <div class="ssh-error">{t("tools.devenv.dockerIsNotAvailable", { value: list()!.error ?? t("tools.devenv.theDockerCliDidNot") })}</div>
         </Show>
         <Show
           when={list()?.containers.length}
@@ -99,9 +98,9 @@ export function DevContainersPage(props: { onError: (message: string) => void })
             <Show when={list()?.available}>
               <div class="welcome-remote-empty">
                 <Box size={30} class="muted" />
-                <p>No dev containers yet.</p>
+                <p>{t("tools.devenv.noDevContainersYet")}</p>
                 <button class="btn-secondary" onClick={() => void create()}>
-                  Create Dev Container…
+                  {t("tools.devenv.createDevContainerEllipsis")}
                 </button>
               </div>
             </Show>
@@ -115,7 +114,7 @@ export function DevContainersPage(props: { onError: (message: string) => void })
                   classList={{ stopped: c.state !== "running" }}
                   role="button"
                   tabIndex={0}
-                  title={c.state === "running" ? `Open ${c.workspaceFolder} in ${c.name}` : `Start ${c.name} and open it`}
+                  title={c.state === "running" ? t("tools.devenv.openIn", { workspaceFolder: c.workspaceFolder, name: c.name }) : t("tools.devenv.startAndOpenIt", { name: c.name })}
                   onClick={() => open(c)}
                   data-container={c.containerId}
                 >
@@ -126,7 +125,7 @@ export function DevContainersPage(props: { onError: (message: string) => void })
                     <span class="welcome-project-name">
                       {c.name}
                       <span class="devc-state" data-state={c.state}>
-                        {c.state === "running" ? "Running" : c.state === "exited" ? "Stopped" : c.state}
+                        {c.state === "running" ? t("tools.devenv.running") : c.state === "exited" ? t("tools.devenv.stopped") : c.state}
                       </span>
                     </span>
                     <span class="welcome-project-path">
@@ -143,23 +142,23 @@ export function DevContainersPage(props: { onError: (message: string) => void })
                     <Show
                       when={c.state === "running"}
                       fallback={
-                        <button class="icon-btn" title="Start" onClick={() => void act(c, "start")}>
+                        <button class="icon-btn" title={t("tools.devenv.start")} onClick={() => void act(c, "start")}>
                           <Play size={14} />
                         </button>
                       }
                     >
-                      <button class="icon-btn" title="Stop" onClick={() => void act(c, "stop")}>
+                      <button class="icon-btn" title={t("common.stop")} onClick={() => void act(c, "stop")}>
                         <Square size={13} />
                       </button>
                     </Show>
                     <button
                       class="icon-btn"
-                      title="Rebuild"
+                      title={t("tools.devenv.rebuild")}
                       onClick={() => createDevContainer({ folder: c.localFolder, configPath: c.configFile, rebuild: true })}
                     >
                       <Hammer size={14} />
                     </button>
-                    <button class="icon-btn" title="Delete" onClick={() => void act(c, "remove")}>
+                    <button class="icon-btn" title={t("common.delete")} onClick={() => void act(c, "remove")}>
                       <Trash2 size={14} />
                     </button>
                   </span>

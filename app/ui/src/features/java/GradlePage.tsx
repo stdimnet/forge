@@ -9,6 +9,7 @@ import { CircleCheck, LoaderCircle, ShieldAlert, ShieldCheck, TriangleAlert } fr
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { javaApi, type WrapperChecksum } from "@/ipc/java";
 import { refreshBuild, refreshModel } from "./store";
+import { t } from "@/i18n";
 
 const CHECKS: Record<WrapperChecksum, { text: string; ok: boolean }> = {
   matches: { text: "matches the checksum Gradle publishes", ok: true },
@@ -56,7 +57,7 @@ export function GradlePage() {
         {(i) => (
           <div class="java-status java-wrapper" data-testid="gradle-wrapper">
             <div class="java-status-row">
-              <b>Gradle wrapper</b>
+              <b>{t("langs.java.gradleWrapper")}</b>
               <span class="java-value">Gradle {i().wrapper.version || "?"}</span>
               <span class="muted">({i().wrapper.distributionType})</span>
             </div>
@@ -72,26 +73,26 @@ export function GradlePage() {
                 </Show>
               </Show>
               <span>
-                distributionSha256Sum{" "}
+                {t("langs.java.distributionsha256sum")}
                 {check() ? CHECKS[check()!].text : i().wrapper.sha256 ? <span class="java-mono muted">{i().wrapper.sha256!.slice(0, 16)}…</span> : CHECKS.notSet.text}
               </span>
               <button class="link-btn" disabled={!!busy() || !i().wrapper.sha256} onClick={() => void verify()}>
-                Verify
+                {t("langs.java.verify")}
               </button>
             </div>
             <div class="java-form-row">
-              <label for="gradle-wrapper-version">Update wrapper to</label>
+              <label for="gradle-wrapper-version">{t("langs.java.updateWrapperTo")}</label>
               <input
                 id="gradle-wrapper-version"
                 class="java-input"
-                placeholder="newest release"
+                placeholder={t("langs.java.newestRelease")}
                 value={version()}
                 spellcheck={false}
                 onInput={(e) => setVersion(e.currentTarget.value)}
               />
               <button class="btn-secondary" disabled={!!busy()} data-testid="gradle-update-wrapper" onClick={() => void update()}>
                 <Show when={busy() === "update"} fallback="Update Wrapper">
-                  <LoaderCircle size={13} class="lsp-spin" /> Updating…
+                  <LoaderCircle size={13} class="lsp-spin" /> {t("langs.java.updatingEllipsis")}
                 </Show>
               </button>
             </div>

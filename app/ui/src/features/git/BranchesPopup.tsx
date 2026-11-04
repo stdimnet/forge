@@ -109,12 +109,12 @@ export function BranchesPopup() {
         </span>
         <span class="popup-label">{p.b.name}</span>
         <Show when={p.b.ahead > 0}>
-          <span class="branch-track outgoing" title={`${p.b.ahead} outgoing commits`}>
+          <span class="branch-track outgoing" title={tr("tools.git.outgoingCommits", { ahead: p.b.ahead })}>
             ↑{p.b.ahead}
           </span>
         </Show>
         <Show when={p.b.behind > 0}>
-          <span class="branch-track incoming" title={`${p.b.behind} incoming commits`}>
+          <span class="branch-track incoming" title={tr("tools.git.incomingCommits", { behind: p.b.behind })}>
             ↓{p.b.behind}
           </span>
         </Show>

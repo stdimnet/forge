@@ -59,7 +59,7 @@ registerCommand({
   run: () => {
     const a = activeView();
     const file = a && openApiFiles().find((f) => f.path === a.path);
-    if (!a || !file) return void showBalloon("Generate HTTP Request", "Put the caret on an operation of an OpenAPI file.");
+    if (!a || !file) return void showBalloon(t("common.generateHttpRequest"), t("langs.webTooling.putTheCaretOnAn"));
     const line = a.view.state.doc.lineAt(a.view.state.selection.main.head).number - 1;
     // The operation whose method key is on or above the caret.
     const ep = [...file.endpoints].reverse().find((e) => e.line <= line) ?? file.endpoints[0];

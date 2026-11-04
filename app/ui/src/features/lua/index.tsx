@@ -41,7 +41,7 @@ import { isPluginActive } from "@/state/project";
 import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { hitDetail, isLuaPath, markerConfiguration, SEARCH_KIND, STRUCTURE_KIND, toStructureNode } from "./model";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const active = () => isPluginActive("forge.lua");
 
@@ -62,7 +62,7 @@ async function reindex(): Promise<void> {
   try {
     await luaApi.indexWorkspace();
   } catch (e) {
-    showBalloon("Lua indexing failed", String(e));
+    showBalloon(tr("langs.lua.luaIndexingFailed"), String(e));
   }
 }
 
@@ -187,7 +187,7 @@ registerLineMarkerProvider({
     return markers.map((m) => ({
       line: m.line,
       icon: Play,
-      title: `Run '${m.name}'`,
+      title: tr("common.run", { name: m.name }),
       className: "marker-run",
       onClick: (_view, e) =>
         openMenu({
@@ -195,7 +195,7 @@ registerLineMarkerProvider({
           y: e.clientY + 6,
           items: [
             {
-              label: `Run '${m.name}'`,
+              label: tr("common.run", { name: m.name }),
               icon: Play,
               iconColor: "var(--success)",
               shortcut: shortcutLabel("RunClass"),
@@ -203,7 +203,7 @@ registerLineMarkerProvider({
             },
             { separator: true },
             {
-              label: "Modify Run Configuration…",
+              label: tr("common.modifyRunConfigurationEllipsis"),
               icon: Settings2,
               run: () => openRunConfigurations(useTemporary(markerConfiguration(m)).name),
             },
@@ -237,7 +237,7 @@ registerFormatProvider(async (path, text) => {
     // null: StyLua is turned off or not installed; the language server formats then.
     return await luaApi.format(path, text);
   } catch (e) {
-    showBalloon("StyLua failed", String(e));
+    showBalloon(tr("langs.lua.styluaFailed"), String(e));
     return text;
   }
 });

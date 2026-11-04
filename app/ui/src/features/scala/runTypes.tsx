@@ -8,6 +8,7 @@ import { FlaskConical, SquareTerminal, TestTubes } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
 import { registerRunConfigurationType, type RunConfigField } from "@/features/run/types";
 import { PLUGIN_ID } from "./store";
+import { t } from "@/i18n";
 
 export const SBT_TASK = "sbt-task";
 export const SCALATEST = "scalatest";
@@ -48,21 +49,21 @@ function testFields(): RunConfigField[] {
   return [
     {
       key: "scope",
-      label: "Test kind",
+      label: t("langs.scala.testKind"),
       kind: "segmented",
       default: "class",
       options: [
-        { value: "all", label: "All in project" },
-        { value: "package", label: "Package" },
-        { value: "class", label: "Suite" },
-        { value: "test", label: "Test" },
-        { value: "pattern", label: "Suites" },
+        { value: "all", label: t("langs.scala.allInProject") },
+        { value: "package", label: t("common.package") },
+        { value: "class", label: t("langs.scala.suite") },
+        { value: "test", label: t("common.test") },
+        { value: "pattern", label: t("langs.scala.suites") },
       ],
     },
-    { key: "package", label: "Package", required: true, placeholder: "com.acme.shop", visible: inScope("package") },
-    { key: "class", label: "Suite", required: true, placeholder: "com.acme.shop.CartSpec", visible: inScope("class", "test") },
-    { key: "test", label: "Test name", required: true, placeholder: "A Cart should add items", visible: inScope("test") },
-    { key: "tests", label: "Suites", kind: "text", required: true, placeholder: "com.acme.shop.CartSpec (one per line)", visible: inScope("pattern") },
+    { key: "package", label: t("common.package"), required: true, placeholder: "com.acme.shop", visible: inScope("package") },
+    { key: "class", label: t("langs.scala.suite"), required: true, placeholder: "com.acme.shop.CartSpec", visible: inScope("class", "test") },
+    { key: "test", label: t("langs.scala.testName"), required: true, placeholder: t("langs.scala.aCartShouldAddItems"), visible: inScope("test") },
+    { key: "tests", label: t("langs.scala.suites"), kind: "text", required: true, placeholder: "com.acme.shop.CartSpec (one per line)", visible: inScope("pattern") },
     { key: "project", label: "sbt project", placeholder: "core (empty: the root project)" },
     { key: "sbtOptions", label: "sbt options", placeholder: "-J-Xmx2g" },
   ];

@@ -12,6 +12,7 @@ import { phpApi, type DetectedServers } from "./api";
 import { decodeInterpreters, encodeInterpreters, findInterpreter, GLOBAL_KEY, interpreterDetail, levelForVersion, PROJECT_KEY, type PhpInterpreter } from "./interpreters";
 import { InterpretersDialog } from "./InterpretersDialog";
 import { LANGUAGE_LEVELS, LEVEL_FROM_INTERPRETER, PHP_SETTING_KEYS as KEYS } from "./settings";
+import { t } from "@/i18n";
 
 /** phpstorm-stubs used for PHP's own symbols (Go to Declaration on `\Throwable`). */
 const STUBS_PATH_KEY = "php.stubs.path";
@@ -39,11 +40,11 @@ function CliInterpreterRow() {
   return (
     <>
       <div class="php-field">
-        <label for="php-cli">CLI Interpreter:</label>
+        <label for="php-cli">{t("langs.php.cliInterpreterLabel")}</label>
         <div class="php-interp-picker">
           <select id="php-cli" value={selected()} onChange={(e) => setDraft(KEYS.cliInterpreter, e.currentTarget.value)}>
             <Show when={!current()}>
-              <option value={selected()}>{selected() === "php" ? "php (from PATH)" : selected()}</option>
+              <option value={selected()}>{selected() === "php" ? t("langs.php.phpFromPath") : selected()}</option>
             </Show>
             <For each={list()}>
               {(i) => (
@@ -54,7 +55,7 @@ function CliInterpreterRow() {
               )}
             </For>
           </select>
-          <button class="btn-secondary php-interp-more" title="CLI Interpreters" data-testid="php-interpreters-open" onClick={() => setDialog(true)}>
+          <button class="btn-secondary php-interp-more" title={t("langs.php.cliInterpreters")} data-testid="php-interpreters-open" onClick={() => setDialog(true)}>
             …
           </button>
         </div>
@@ -64,10 +65,10 @@ function CliInterpreterRow() {
           <div class="php-field">
             <span />
             <span class="php-hint" data-testid="php-interp-summary">
-              {i().version ? `PHP ${i().version}` : "Version not detected"}
-              {i().xdebug ? ` · Xdebug ${i().xdebug === "unknown" ? "" : i().xdebug}` : ""}
+              {i().version ? `PHP ${i().version}` : t("langs.php.versionNotDetected")}
+              {i().xdebug ? t("langs.php.xdebug", { value: i().xdebug === "unknown" ? "" : i().xdebug }) : ""}
               {i().configFile ? ` · ${i().configFile}` : ""}
-              {i().project ? " · visible only for this project" : ""}
+              {i().project ? t("langs.php.visibleOnlyForThisProject2") : ""}
             </span>
           </div>
         )}
@@ -101,9 +102,9 @@ export function PhpSettingsPage() {
   return (
     <div class="php-settings">
       <section>
-        <h3>Development environment</h3>
+        <h3>{t("langs.php.developmentEnvironment")}</h3>
         <div class="php-field">
-          <label for="php-level">PHP language level:</label>
+          <label for="php-level">{t("langs.php.phpLanguageLevelLabel")}</label>
           <select id="php-level" value={draftValue<string>(KEYS.languageLevel)} onChange={(e) => setDraft(KEYS.languageLevel, e.currentTarget.value)}>
             <For each={[...LANGUAGE_LEVELS]}>{(v) => <option value={v}>{levelLabel(v)}</option>}</For>
             <option value={LEVEL_FROM_INTERPRETER}>{interpreterLevelLabel()}</option>
@@ -112,27 +113,26 @@ export function PhpSettingsPage() {
         <CliInterpreterRow />
       </section>
       <section>
-        <h3>Language server</h3>
+        <h3>{t("langs.php.languageServer")}</h3>
         <div class="php-field" data-testid="php-server">
-          <span>php-lsp (built-in)</span>
+          <span>{t("langs.php.phpLspBuiltIn")}</span>
           <span class="php-hint">{serverHint()}</span>
         </div>
         <Show when={findSpec(MAX_FILE_SIZE_KEY)}>{(spec) => <SettingRow spec={spec()} />}</Show>
         <p class="php-hint">
-          php-lsp is built into Forge and free (MIT OR Apache-2.0): completion, navigation, diagnostics, rename, code actions, type hierarchy and formatting need nothing else. It starts when a PHP
-          project opens and restarts when these settings change.
+          {t("langs.php.phpLspIsBuiltInto")}
         </p>
       </section>
       <section>
-        <h3>Include Path</h3>
+        <h3>{t("langs.php.includePath")}</h3>
         <div class="php-list">
-          <For each={includePaths()} fallback={<div class="php-hint">Nothing to show</div>}>
+          <For each={includePaths()} fallback={<div class="php-hint">{t("common.nothingToShow")}</div>}>
             {(p) => (
               <div class="php-list-row">
                 <span>{p}</span>
                 <button
                   class="icon-btn"
-                  title="Remove"
+                  title={t("common.remove")}
                   onClick={() => setDraft(KEYS.includePaths, includePaths().filter((x) => x !== p))}
                 >
                   <Minus size={14} />
@@ -149,13 +149,13 @@ export function PhpSettingsPage() {
             onInput={(e) => setNewPath(e.currentTarget.value)}
             onKeyDown={(e) => e.key === "Enter" && addPath()}
           />
-          <button class="icon-btn" title="Add" onClick={addPath}>
+          <button class="icon-btn" title={t("common.add")} onClick={addPath}>
             <Plus size={14} />
           </button>
         </div>
       </section>
       <section>
-        <h3>PHP Runtime</h3>
+        <h3>{t("langs.php.phpRuntime")}</h3>
         <Show when={findSpec(STUBS_PATH_KEY)}>{(spec) => <SettingRow spec={spec()} />}</Show>
       </section>
     </div>

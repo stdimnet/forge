@@ -20,6 +20,7 @@ import { highlightFence } from "./highlight";
 import { imageSource, lineAnchor, linkTarget } from "./links";
 import { renderMermaid } from "./mermaid";
 import { previewToEditor, editorToPreview } from "./syncScroll";
+import { t as tr } from "@/i18n";
 
 /** What the components below need from the preview they are in. */
 interface Ctx {
@@ -148,12 +149,12 @@ function Mermaid(props: { code: string }) {
   });
   return (
     <div class="mdp-mermaid">
-      <Switch fallback={<span class="mdp-muted">Rendering diagram…</span>}>
-        <Match when={state().url}>{(url) => <img src={url()} alt="Mermaid diagram" draggable={false} />}</Match>
+      <Switch fallback={<span class="mdp-muted">{tr("tools.markdown.renderingDiagramEllipsis")}</span>}>
+        <Match when={state().url}>{(url) => <img src={url()} alt={tr("tools.markdown.mermaidDiagram")} draggable={false} />}</Match>
         <Match when={state().error}>
           {(err) => (
             <div class="mdp-mermaid-error">
-              <div class="mdp-mermaid-error-title">Mermaid: {err().split("\n")[0]}</div>
+              <div class="mdp-mermaid-error-title">{tr("tools.markdown.mermaid", { value: err().split("\n")[0] })}</div>
               <CodeFence lang="" text={props.code} />
             </div>
           )}
@@ -452,7 +453,7 @@ export function MarkdownPreview(props: { tab: EditorTab; editorView: () => Edito
           </section>
         </Show>
         <Show when={doc() && !doc()!.blocks.length && !frontMatter()}>
-          <div class="mdp-empty mdp-muted">Nothing to preview</div>
+          <div class="mdp-empty mdp-muted">{tr("tools.markdown.nothingToPreview")}</div>
         </Show>
       </div>
     </div>

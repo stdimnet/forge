@@ -57,7 +57,7 @@ for (const a of ACTIONS) {
     category: "Composer",
     run: () => {
       if (!composerActive()) {
-        showBalloon("Composer is not used in this project", "Open a project with a composer.json, or enable the Composer plugin.");
+        showBalloon(t("langs.composer.composerIsNotUsedIn"), t("langs.composer.openAProjectWithA"));
         return;
       }
       void a.run();

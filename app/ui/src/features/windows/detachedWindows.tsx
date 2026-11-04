@@ -43,6 +43,7 @@ import {
   registerDialog,
 } from "@/shell/window/dialogs";
 import { dialogBoot, isDialogWindow } from "@/shell/window/mode";
+import { t as tr } from "@/i18n";
 
 // ---- Editor tabs in their own window ---------------------------------------------------
 
@@ -124,7 +125,7 @@ export function canDetach(id: string): boolean {
 /** Window | Editor Tabs | Open in New Window (Shift+F4): move a tab into a new window. */
 export function openTabInNewWindow(group: number, id: string): void {
   if (isDialogWindow()) return;
-  if (!canDetach(id)) return void showBalloon("This tab cannot open in a new window", "Only project files can move into their own window.");
+  if (!canDetach(id)) return void showBalloon(tr("tools.windows.thisTabCannotOpenIn"), tr("tools.windows.onlyProjectFilesCanMove"));
   const tab = editor.tabs.find((t) => t.path === id)!;
   const window = instanceId("editor", `${Date.now().toString(36)}${counter++}`);
   const files: DetachedFile[] = [isDirty(tab) ? { path: id, content: tab.content } : { path: id }];
@@ -150,7 +151,7 @@ function ToolWindowWindow(props: { props: ToolWindowWindowProps }) {
     onCleanup(() => setOpenFileForwarder(null));
   }
   return (
-    <Show when={tw()} fallback={<div class="wf-missing">This tool window is not available.</div>}>
+    <Show when={tw()} fallback={<div class="wf-missing">{tr("tools.windows.thisToolWindowIsNot")}</div>}>
       {(w) => (
         <section class="tool-window detached-tool-window" data-tool-window-panel={w().id}>
           <Show when={w().headerContent || w().actions}>

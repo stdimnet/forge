@@ -40,7 +40,7 @@ import { askForProfile, openProfile, ProfilerActions, ProfilerView } from "./Pro
 import { isGoPath, runGenerate, runLint } from "./editor";
 import { downloadSdk } from "./sdk";
 import { goActive, installTool, PLUGIN, refreshGoStatus, runGoCommand, showGoBalloon } from "./state";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -191,11 +191,11 @@ async function ensureDelve(): Promise<boolean> {
   if (!status.install) return false;
   installing ??= (async () => {
     const ok = await confirmDialog({
-      title: "Install Delve",
-      message: "Debugging Go uses Delve (MIT licence), which is not installed. Forge installs it with your Go toolchain (go install, verified by the Go checksum database) into Forge's tools folder.",
+      title: tr("langs.go.installDelve"),
+      message: tr("langs.go.debuggingGoUsesDelveMit"),
       detail: `go install ${status.install}`,
       question: "Install it now?",
-      okLabel: "Install",
+      okLabel: tr("common.install"),
     });
     return ok && (await installTool("dlv"));
   })().finally(() => (installing = null));
@@ -231,10 +231,10 @@ async function moduleCommand(action: "tidy" | "download" | "get", arg?: string):
 
 function addDependency(): void {
   setInputDialog({
-    title: "Add Dependency",
-    label: "Module path, optionally with @version (go get):",
+    title: tr("langs.go.addDependency"),
+    label: tr("langs.go.modulePathOptionallyWithVersionLabel"),
     value: "github.com/",
-    okLabel: "Add",
+    okLabel: tr("common.add"),
     onOk: (value) => moduleCommand("get", value.trim()),
   });
 }
@@ -316,7 +316,7 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           void refreshGoStatus().then((s) => {
             if (s && !s.sdk)
               showGoBalloon("No Go SDK found", "Install Go, choose an SDK in Settings | Go, or download one.", 10000, [
-                { label: "Download Go SDK…", run: () => void downloadSdk() },
+                { label: tr("langs.go.downloadGoSdkEllipsis"), run: () => void downloadSdk() },
               ]);
           });
         },

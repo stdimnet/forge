@@ -8,6 +8,7 @@ import { CircleAlert, CircleCheck } from "lucide-solid";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { activeInstall, javaStatus, jdkLabel, refreshStatus } from "./store";
 import { installLanguageServer } from "./install";
+import { t } from "@/i18n";
 import "./java.css";
 
 export function JavaPage() {
@@ -29,8 +30,8 @@ export function JavaPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            Eclipse JDT Language Server:{" "}
-            <b>{javaStatus()?.jdtls ?? "not installed"}</b>
+            {t("langs.java.eclipseJdtLanguageServerLabel")}
+            <b>{javaStatus()?.jdtls ?? t("common.notInstalled2")}</b>
           </span>
         </div>
         <div class="java-status-row">
@@ -38,13 +39,13 @@ export function JavaPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            Debugger (java-debug): <b>{javaStatus()?.javaDebug ? "installed" : "not installed"}</b>
+            {t("langs.java.debuggerJavaDebugLabel")} <b>{javaStatus()?.javaDebug ? "installed" : t("common.notInstalled2")}</b>
           </span>
         </div>
         <div class="java-status-row">
           <span class="java-status-pad" />
           <span>
-            Runs on: <b>{javaStatus()?.serverJdk ? jdkLabel(javaStatus()!.serverJdk!) : "no JDK 21+ found"}</b>
+            {t("langs.java.runsOnLabel")} <b>{javaStatus()?.serverJdk ? jdkLabel(javaStatus()!.serverJdk!) : t("langs.java.noJdk21Found")}</b>
           </span>
         </div>
         <Show when={javaStatus()?.problems.length}>
@@ -60,12 +61,11 @@ export function JavaPage() {
         </Show>
         <div class="java-buttons java-buttons-left">
           <button class="btn-secondary" disabled={busy()} onClick={() => void install()}>
-            {javaStatus()?.jdtls ? "Update JDT LS and java-debug" : "Install JDT LS and java-debug"}
+            {javaStatus()?.jdtls ? t("langs.java.updateJdtLsAndJava") : t("langs.java.installJdtLsAndJava")}
           </button>
         </div>
         <p class="muted java-hint">
-          Downloaded with your consent from download.eclipse.org (EPL-2.0, SHA-256 checked) and Maven Central (java-debug, EPL-1.0, checksum checked) into
-          Forge's data directory. Workspace data lives in the user cache directory, never in the project.
+          {t("langs.java.downloadedWithYourConsentFrom")}
         </p>
       </div>
       <SchemaPage pageId="lang.java" />

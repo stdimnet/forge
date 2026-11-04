@@ -122,22 +122,22 @@ function ServerToken() {
   };
   return (
     <div class="nb-settings-token">
-      <h3 class="set-section-title">Server Token</h3>
-      <p class="muted">Stored in the operating system's keychain, never in settings files. Apply the URL above first.</p>
+      <h3 class="set-section-title">{t("langs.jupyter.serverToken")}</h3>
+      <p class="muted">{t("langs.jupyter.storedInTheOperatingSystem")}</p>
       <div class="nb-settings-row">
         <input
           type="password"
           class="input"
-          placeholder="Token (or paste a URL with ?token= above)"
+          placeholder={t("langs.jupyter.tokenOrPasteAUrl")}
           value={token()}
           onInput={(e) => setToken(e.currentTarget.value)}
-          aria-label="Jupyter server token"
+          aria-label={t("langs.jupyter.jupyterServerToken")}
         />
         <button class="pill-btn" disabled={!url()} onClick={() => void test()}>
-          Test Connection
+          {t("common.testConnection")}
         </button>
         <button class="pill-btn" disabled={!url()} onClick={() => void jupyterApi.serverForgetToken(url()).then(() => setResult({ ok: true, text: "Token removed" }))}>
-          Forget Token
+          {t("langs.jupyter.forgetToken")}
         </button>
       </div>
       <Show when={result()}>{(r) => <div class={r().ok ? "nb-settings-ok" : "nb-settings-error"}>{r().text}</div>}</Show>

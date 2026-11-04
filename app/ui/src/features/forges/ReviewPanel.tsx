@@ -9,6 +9,7 @@ import type { AiInfo, CachedSummary, Finding, FindingsView, ReviewEvent } from "
 import { openSettings } from "@/features/settings/dialogState";
 import { Markdown } from "./Thread";
 import { FindingCard, InlineCode, ProviderLine, SeverityIcon } from "./ReviewCards";
+import { t as tr } from "@/i18n";
 
 const eventLabels: Record<ReviewEvent, { label: string; hint: string }> = {
   comment: { label: "Comment", hint: "Submit general feedback without explicit approval." },
@@ -24,10 +25,10 @@ export function AiProviderBar(props: { ai: AiInfo }) {
       fallback={
         <div class="fg-ai-bar fg-ai-bar-problem" data-ai-problem>
           <ShieldAlert size={14} />
-          <span>{props.ai.problem}. Nothing is sent to an AI provider.</span>
+          <span>{tr("tools.forges.nothingIsSentToAn", { problem: props.ai.problem })}</span>
           <span class="spacer" />
           <button class="btn-secondary fg-small-btn" onClick={() => openSettings("tools.ai-providers")}>
-            AI Providers…
+            {tr("tools.forges.aiProvidersEllipsis")}
           </button>
         </div>
       }
@@ -35,13 +36,13 @@ export function AiProviderBar(props: { ai: AiInfo }) {
       <div class="fg-ai-bar" data-ai-bar>
         <Sparkles size={14} />
         <span>
-          Provider: <b>{props.ai.provider}</b>
+          {tr("tools.forges.providerLabel")} <b>{props.ai.provider}</b>
           <Show when={props.ai.model}> · {props.ai.model}</Show>
         </span>
-        <span class="fg-ai-where muted fg-small">{props.ai.local ? "runs on this machine" : "the diff is sent to this provider"}</span>
+        <span class="fg-ai-where muted fg-small">{props.ai.local ? tr("tools.forges.runsOnThisMachine") : tr("tools.forges.theDiffIsSentTo")}</span>
         <span class="spacer" />
-        <button class="btn-secondary fg-small-btn" title="AI Assistant Settings" onClick={() => openSettings("tools.ai-assistant")}>
-          Settings…
+        <button class="btn-secondary fg-small-btn" title={tr("tools.forges.aiAssistantSettings")} onClick={() => openSettings("tools.ai-assistant")}>
+          {tr("tools.forges.settingsEllipsis")}
         </button>
       </div>
     </Show>
@@ -54,11 +55,11 @@ function NotSent(props: { excluded: string[]; omitted: string[] }) {
       <Show when={props.excluded.length}>
         <div class="fg-not-sent muted fg-small" data-not-sent>
           <ShieldAlert size={12} />
-          Not sent (excluded by .aiignore): {props.excluded.join(", ")}
+          {tr("tools.forges.notSentExcludedByAiignore", { excluded: props.excluded.join(", ") })}
         </div>
       </Show>
       <Show when={props.omitted.length}>
-        <div class="fg-not-sent muted fg-small">Diff not sent (generated or too large): {props.omitted.join(", ")}</div>
+        <div class="fg-not-sent muted fg-small">{tr("tools.forges.diffNotSentGeneratedOr", { omitted: props.omitted.join(", ") })}</div>
       </Show>
     </>
   );
@@ -86,26 +87,26 @@ export function AiReviewView(props: {
           <Show when={props.summarizing} fallback={<Sparkles size={14} />}>
             <LoaderCircle size={14} class="spin" />
           </Show>
-          {props.summary ? "Regenerate Summary" : "Summarize PR"}
+          {props.summary ? tr("tools.forges.regenerateSummary") : tr("tools.forges.summarizePr")}
         </button>
         <button class="btn-secondary" disabled={disabled() || props.reviewing} onClick={() => props.review(!!props.findings)} data-action="ai-review">
           <Show when={props.reviewing} fallback={<ListChecks size={14} />}>
             <LoaderCircle size={14} class="spin" />
           </Show>
-          {props.findings ? "Run AI Review Again" : "AI Review"}
+          {props.findings ? tr("tools.forges.runAiReviewAgain") : tr("tools.forges.aiReview")}
         </button>
-        <span class="muted fg-small">Results are kept for commit {props.headSha.slice(0, 8)}. Nothing is posted without your action.</span>
+        <span class="muted fg-small">{tr("tools.forges.resultsAreKeptForCommit", { headSha: props.headSha.slice(0, 8) })}</span>
       </div>
 
       <div class="fg-ai-columns">
         <section class="fg-card fg-ai-summary">
-          <div class="fg-section-title">Summary</div>
-          <Show when={s()} fallback={<div class="muted fg-small">{props.summarizing ? "Summarizing the changes…" : "Summarize PR writes an overview, the risk areas, a summary per file and a test plan."}</div>}>
+          <div class="fg-section-title">{tr("tools.forges.summary")}</div>
+          <Show when={s()} fallback={<div class="muted fg-small">{props.summarizing ? tr("tools.forges.summarizingTheChangesEllipsis") : tr("tools.forges.summarizePrWritesAnOverview")}</div>}>
             {(sum) => (
               <>
                 <Markdown text={sum().overview} class="fg-ai-overview" />
                 <Show when={sum().risks.length}>
-                  <div class="fg-ai-sub">Risk areas</div>
+                  <div class="fg-ai-sub">{tr("tools.forges.riskAreas")}</div>
                   <For each={sum().risks}>
                     {(r) => (
                       <div class="fg-risk">
@@ -130,7 +131,7 @@ export function AiReviewView(props: {
                   </For>
                 </Show>
                 <Show when={sum().files.length}>
-                  <div class="fg-ai-sub">Files</div>
+                  <div class="fg-ai-sub">{tr("tools.forges.files")}</div>
                   <For each={sum().files}>
                     {(f) => (
                       <div class="fg-ai-file" onClick={() => props.openFile(f.path)}>
@@ -142,7 +143,7 @@ export function AiReviewView(props: {
                   </For>
                 </Show>
                 <Show when={sum().testPlan.length}>
-                  <div class="fg-ai-sub">Suggested test plan</div>
+                  <div class="fg-ai-sub">{tr("tools.forges.suggestedTestPlan")}</div>
                   <ul class="fg-test-plan">
                     <For each={sum().testPlan}>
                       {(t) => (
@@ -163,19 +164,19 @@ export function AiReviewView(props: {
 
         <section class="fg-card fg-ai-findings">
           <div class="fg-section-title">
-            Findings
+            {tr("tools.forges.findings")}
             <Show when={props.findings}>
               <span class="fg-count">{props.findings!.findings.length}</span>
             </Show>
           </div>
-          <Show when={props.findings} fallback={<div class="muted fg-small">{props.reviewing ? "Reviewing the changes…" : "AI Review proposes inline comments. Add them to your review as drafts or dismiss them."}</div>}>
+          <Show when={props.findings} fallback={<div class="muted fg-small">{props.reviewing ? tr("tools.forges.reviewingTheChangesEllipsis") : tr("tools.forges.aiReviewProposesInlineComments")}</div>}>
             {(fv) => (
               <>
                 <For
                   each={fv().findings}
                   fallback={
                     <div class="muted fg-small">
-                      {fv().total ? "All findings were added to the review or dismissed." : "No problems found in the changes that were sent."}
+                      {fv().total ? tr("tools.forges.allFindingsWereAddedTo") : tr("tools.forges.noProblemsFoundInThe")}
                     </div>
                   }
                 >
@@ -213,15 +214,15 @@ export function SubmitReview(props: { pending: number; events: ReviewEvent[]; su
     <div class="fg-submit-wrap">
       <button class="btn-primary fg-small-btn" onClick={() => setOpen((o) => !o)} data-action="submit-review">
         <Send size={13} />
-        Submit Review
+        {tr("tools.forges.submitReview")}
         <Show when={props.pending}>
           <span class="fg-count fg-count-on-primary">{props.pending}</span>
         </Show>
       </button>
       <Show when={open()}>
         <div class="popup fg-submit-popup" data-submit-popup>
-          <div class="fg-submit-title">Finish your review</div>
-          <textarea rows={4} placeholder="Leave a comment (optional for Approve)…" value={body()} onInput={(e) => setBody(e.currentTarget.value)} />
+          <div class="fg-submit-title">{tr("tools.forges.finishYourReview")}</div>
+          <textarea rows={4} placeholder={tr("tools.forges.leaveACommentOptionalForEllipsis")} value={body()} onInput={(e) => setBody(e.currentTarget.value)} />
           <For each={props.events}>
             {(ev) => (
               <label class="fg-submit-option">
@@ -235,22 +236,22 @@ export function SubmitReview(props: { pending: number; events: ReviewEvent[]; su
           </For>
           <Show when={!props.events.includes("requestChanges")}>
             <div class="muted fg-small fg-submit-note">
-              <TriangleAlert size={11} /> This host has no "Request changes" through its API.
+              <TriangleAlert size={11} /> {tr("tools.forges.thisHostHasNoRequest")}
             </div>
           </Show>
           <div class="fg-editor-actions">
             <span class="muted fg-small">
-              {props.pending} pending comment{props.pending === 1 ? "" : "s"}
+              {tr("tools.forges.pendingComments", { count: props.pending })}
             </span>
             <span class="spacer" />
             <button class="btn-secondary" onClick={() => setOpen(false)}>
-              Cancel
+              {tr("common.cancel")}
             </button>
             <button class="btn-primary" disabled={busy()} onClick={() => void send()} data-action="submit-review-confirm">
               <Show when={busy()}>
                 <LoaderCircle size={13} class="spin" />
               </Show>
-              Submit Review
+              {tr("tools.forges.submitReview")}
             </button>
           </div>
         </div>

@@ -26,6 +26,7 @@ import { fullDate } from "@/features/git/format";
 import { showBalloon } from "@/keymap";
 import { compareApi, type DiffStatus, type DirCompare, type DirDiffEntry } from "./api";
 import { compareFiles, readText } from "./state";
+import { t } from "@/i18n";
 
 const join = (root: string, rel: string) => (root ? `${root}/${rel}` : rel);
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -127,7 +128,7 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
     const right = join(props.right, e.path);
     if (e.status !== "leftOnly" && e.status !== "rightOnly") return compareFiles(left, right);
     const text = (await readText(e.status === "leftOnly" ? left : right)) ?? "";
-    const empty = { title: "Does not exist", content: "" };
+    const empty = { title: t("tools.compare.doesNotExist"), content: "" };
     setDiffRequest({
       path: e.status === "leftOnly" ? left : right,
       left: e.status === "leftOnly" ? { title: left, content: text } : empty,
@@ -154,16 +155,16 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
     const replaces = e.status === "different";
     if (replaces) {
       const ok = await askConfirm({
-        title: toRight ? "Copy to Right" : "Copy to Left",
-        message: `Replace ${to} with ${from}?`,
-        confirm: "Replace",
+        title: toRight ? t("tools.compare.copyToRight") : t("tools.compare.copyToLeft"),
+        message: t("tools.compare.replaceWith", { to, from }),
+        confirm: t("tools.compare.replace"),
       });
       if (!ok) return;
     }
     try {
       await compareApi.copy(from, to, e.dir);
     } catch (err) {
-      return showBalloon("Copy failed", String(err instanceof Error ? err.message : err));
+      return showBalloon(t("tools.compare.copyFailed"), String(err instanceof Error ? err.message : err));
     }
     refreshDirs([parentOf(to), to]);
     await reloadOpenFiles();
@@ -224,17 +225,17 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
   return (
     <div class="dir-diff" onFocusIn={() => (focusedDiff = () => void openDiff(current()))}>
       <div class="panel-toolbar dir-diff-toolbar">
-        <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+        <button class="icon-btn" title={t("common.refresh")} onClick={() => void refetch()}>
           <RefreshCw size={15} />
         </button>
-        <button class="icon-btn" title="Compare Contents (Ctrl+D)" disabled={!current() || current()!.dir} onClick={() => void openDiff(current())}>
+        <button class="icon-btn" title={t("tools.compare.compareContentsCtrlD")} disabled={!current() || current()!.dir} onClick={() => void openDiff(current())}>
           <Columns2 size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title={props.source?.copyTitles.toRight ?? "Copy to Right"} disabled={!canCopy(true)} onClick={() => void copy(true)}>
+        <button class="icon-btn" title={props.source?.copyTitles.toRight ?? t("tools.compare.copyToRight")} disabled={!canCopy(true)} onClick={() => void copy(true)}>
           <ArrowRightToLine size={15} />
         </button>
-        <button class="icon-btn" title={props.source?.copyTitles.toLeft ?? "Copy to Left"} disabled={!canCopy(false)} onClick={() => void copy(false)}>
+        <button class="icon-btn" title={props.source?.copyTitles.toLeft ?? t("tools.compare.copyToLeft")} disabled={!canCopy(false)} onClick={() => void copy(false)}>
           <ArrowLeftToLine size={15} />
         </button>
         <div class="toolbar-sep" />
@@ -258,9 +259,9 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
         <span class="diff-count">
           <Show when={data()} fallback={data.error ? "Comparison failed" : "Comparing…"}>
             {counts().different + counts().leftOnly + counts().rightOnly === 0
-              ? "No differences"
-              : `${counts().different} different, ${counts().leftOnly} only on the left, ${counts().rightOnly} only on the right`}
-            {data()?.truncated ? " (too many files, partially compared)" : ""}
+              ? t("tools.compare.noDifferences")
+              : t("tools.compare.differentOnlyOnTheLeft", { different: counts().different, leftOnly: counts().leftOnly, rightOnly: counts().rightOnly })}
+            {data()?.truncated ? t("tools.compare.tooManyFilesPartiallyCompared") : ""}
           </Show>
         </span>
       </div>
@@ -274,13 +275,13 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
         </div>
       </div>
       <div class="dir-diff-columns">
-        <div>Name</div>
-        <div>Size</div>
-        <div>Date</div>
+        <div>{t("common.name")}</div>
+        <div>{t("tools.compare.size")}</div>
+        <div>{t("tools.compare.date")}</div>
         <div />
-        <div>Name</div>
-        <div>Size</div>
-        <div>Date</div>
+        <div>{t("common.name")}</div>
+        <div>{t("tools.compare.size")}</div>
+        <div>{t("tools.compare.date")}</div>
       </div>
       <div class="dir-diff-list" tabIndex={0} ref={list} onKeyDown={onKeyDown}>
         <Show when={data.error}>
@@ -307,7 +308,7 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
           }}
         </For>
         <Show when={data() && !rows().length}>
-          <div class="commit-empty">{entries().length ? "No files match the filters" : "Both folders are empty"}</div>
+          <div class="commit-empty">{entries().length ? t("tools.compare.noFilesMatchTheFilters") : t("tools.compare.bothFoldersAreEmpty")}</div>
         </Show>
       </div>
     </div>

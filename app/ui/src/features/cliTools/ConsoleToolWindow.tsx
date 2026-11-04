@@ -30,6 +30,7 @@ import {
   toolWindowRuns,
   type ConsoleRun,
 } from "./store";
+import { t as tr } from "@/i18n";
 
 /** Tabs in the tool window header. */
 export function ConsoleTabs() {
@@ -55,7 +56,7 @@ export function ConsoleTabs() {
             <span class="run-tab-title">{r.input}</span>
             <button
               class="run-tab-close"
-              title="Close"
+              title={tr("common.close")}
               onClick={(e) => {
                 e.stopPropagation();
                 void closeRun(r.id);
@@ -74,10 +75,10 @@ export function ConsoleTabs() {
 export function ConsoleActions() {
   return (
     <>
-      <button class="icon-btn" title="Reload Command Lists" onClick={() => void reloadAll()}>
+      <button class="icon-btn" title={tr("tools.cliTools.reloadCommandLists")} onClick={() => void reloadAll()}>
         <RefreshCw size={14} />
       </button>
-      <button class="icon-btn" title="Command Line Tool Support Settings" onClick={() => openSettings(SETTINGS_PAGE)}>
+      <button class="icon-btn" title={tr("tools.cliTools.commandLineToolSupportSettings")} onClick={() => openSettings(SETTINGS_PAGE)}>
         <Settings size={14} />
       </button>
     </>
@@ -88,16 +89,15 @@ function Welcome() {
   return (
     <div class="cli-welcome muted">
       <p>
-        Type a command as <code>alias command [arguments]</code>, e.g. <code>c install</code> or <code>a make:model Order -m</code>.
-        Tab completes, ↑↓ browse the history.
+        {tr("tools.cliTools.typeACommandAs")} <code>alias command [arguments]</code>, e.g. <code>c install</code> or <code>a make:model Order -m</code>{tr("tools.cliTools.tabCompletesBrowseTheHistory")}
       </p>
       <Show
         when={enabledTools().length}
         fallback={
           <p>
-            No command line tools are configured.{" "}
+            {tr("tools.cliTools.noCommandLineToolsAre")}
             <button class="link-btn" onClick={() => openSettings(SETTINGS_PAGE)}>
-              Add a tool…
+              {tr("tools.cliTools.addAToolEllipsis")}
             </button>
           </p>
         }
@@ -119,7 +119,7 @@ function Welcome() {
         </table>
       </Show>
       <p>
-        Open the console from anywhere with <b>{shortcutLabel("CommandLineToolsAction") || "Ctrl+Shift+X"}</b>.
+        {tr("tools.cliTools.openTheConsoleFromAnywhere")} <b>{shortcutLabel("CommandLineToolsAction") || "Ctrl+Shift+X"}</b>.
       </p>
     </div>
   );
@@ -147,25 +147,25 @@ export function ConsoleToolWindow() {
     <div class="run-window cli-window" data-testid="cli-console">
       <div class="run-session">
         <div class="run-toolbar" role="toolbar" aria-orientation="vertical">
-          <button class="icon-btn run-tool" title="Rerun" disabled={!current()} onClick={() => void rerun(current()?.id)}>
+          <button class="icon-btn run-tool" title={tr("tools.cliTools.rerun")} disabled={!current()} onClick={() => void rerun(current()?.id)}>
             <RotateCcw size={15} />
           </button>
           <button
             class="icon-btn run-tool run-stop"
-            title="Stop (Ctrl+C)"
+            title={tr("tools.cliTools.stopCtrlC")}
             disabled={!isLive(current())}
             onClick={() => void stopRun(current()?.id)}
           >
             <Square size={13} fill="currentColor" />
           </button>
           <div class="run-tool-sep" />
-          <button class="icon-btn run-tool" classList={{ active: scrollToEnd() }} title="Scroll to the End" onClick={() => setScrollToEnd((v) => !v)}>
+          <button class="icon-btn run-tool" classList={{ active: scrollToEnd() }} title={tr("common.scrollToTheEnd")} onClick={() => setScrollToEnd((v) => !v)}>
             <ArrowDownToLine size={15} />
           </button>
-          <button class="icon-btn run-tool" classList={{ active: softWrap() }} title="Soft-Wrap" onClick={() => setSoftWrap((v) => !v)}>
+          <button class="icon-btn run-tool" classList={{ active: softWrap() }} title={tr("tools.cliTools.softWrap")} onClick={() => setSoftWrap((v) => !v)}>
             <WrapText size={15} />
           </button>
-          <button class="icon-btn run-tool" title="Clear All" disabled={!current()} onClick={() => clearRun(current()?.id)}>
+          <button class="icon-btn run-tool" title={tr("common.clearAll")} disabled={!current()} onClick={() => clearRun(current()?.id)}>
             <Trash2 size={15} />
           </button>
         </div>

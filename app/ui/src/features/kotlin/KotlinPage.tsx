@@ -9,6 +9,7 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import type { ToolInfo } from "@/ipc/kotlin";
 import { activeInstall, kotlinStatus, megabytes, refreshStatus } from "./store";
 import { installLanguageServer, installLinters } from "./install";
+import { t } from "@/i18n";
 import "./kotlin.css";
 
 const SOURCES: Record<string, string> = {
@@ -25,7 +26,7 @@ function ToolRow(props: { label: string; tool: ToolInfo | null | undefined }) {
         <CircleCheck size={14} class="java-ok" />
       </Show>
       <span>
-        {props.label}: <b>{props.tool ? SOURCES[props.tool.source] ?? props.tool.source : "not found"}</b>
+        {props.label}: <b>{props.tool ? SOURCES[props.tool.source] ?? props.tool.source : t("common.notFound")}</b>
         <Show when={props.tool?.path}>
           <span class="muted kotlin-path"> {props.tool!.path}</span>
         </Show>
@@ -55,7 +56,7 @@ export function KotlinPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            {serverLabel()}: <b>{s()?.serverPath ? (s()?.serverVersion ?? "installed") : "not installed"}</b>
+            {serverLabel()}: <b>{s()?.serverPath ? (s()?.serverVersion ?? "installed") : t("common.notInstalled2")}</b>
             <Show when={s()?.serverPath}>
               <span class="muted kotlin-path"> {s()!.serverPath}</span>
             </Show>
@@ -63,7 +64,7 @@ export function KotlinPage() {
         </div>
         <ToolRow label="ktlint" tool={s()?.ktlint} />
         <ToolRow label="detekt" tool={s()?.detekt} />
-        <ToolRow label="Kotlin compiler (kotlinc)" tool={s()?.kotlinc ? { source: "path", path: s()!.kotlinc! } : null} />
+        <ToolRow label={t("langs.kotlin.kotlinCompilerKotlinc")} tool={s()?.kotlinc ? { source: "path", path: s()!.kotlinc! } : null} />
         <Show when={s()?.problems.length}>
           <p class="java-error">{s()!.problems.join(" ")}</p>
         </Show>
@@ -78,17 +79,15 @@ export function KotlinPage() {
         <div class="java-buttons java-buttons-left">
           <Show when={s()?.server !== "kotlin-language-server"}>
             <button class="btn-secondary" disabled={busy()} onClick={() => void run(installLanguageServer)}>
-              {s()?.serverPath ? `Reinstall kotlin-lsp ${s()?.pinnedVersion ?? ""}` : `Install kotlin-lsp ${s()?.pinnedVersion ?? ""}`}
+              {s()?.serverPath ? t("langs.kotlin.reinstallKotlinLsp", { value: s()?.pinnedVersion ?? "" }) : t("langs.kotlin.installKotlinLsp", { value: s()?.pinnedVersion ?? "" })}
             </button>
           </Show>
           <button class="btn-secondary" disabled={busy()} onClick={() => void run(installLinters)}>
-            Download ktlint and detekt
+            {t("langs.kotlin.downloadKtlintAndDetekt")}
           </button>
         </div>
         <p class="muted java-hint">
-          kotlin-lsp comes from download.jetbrains.com ({megabytes(s()?.downloadSize) || "about 360 MB"}, pinned version, SHA-256 checked); its repository is Apache-2.0 and the
-          server build contains closed JetBrains components, so Forge never bundles it. ktlint (MIT) and detekt (Apache-2.0) come from Maven Central, pinned and SHA-256
-          checked. Everything goes into Forge's data directory, never into the project.
+          {t("langs.kotlin.kotlinLspComesFromDownload", { value: megabytes(s()?.downloadSize) || t("langs.kotlin.about360Mb") })}
         </p>
       </div>
       <SchemaPage pageId="lang.kotlin" />

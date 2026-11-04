@@ -18,6 +18,7 @@ import { activeTab, saveAll } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { isTauri } from "@/ipc";
 import { showBalloon } from "@/keymap";
+import { t as tr } from "@/i18n";
 
 /** What a Local History tab shows. */
 export type HistoryTarget =
@@ -166,9 +167,9 @@ export async function putLabel(): Promise<void> {
     // Unsaved edits belong before the label.
     await saveAll("plain");
     await localHistoryApi.putLabel(name.trim());
-    notifyInfo(`Label "${name.trim()}" was put`);
+    notifyInfo(tr("tools.localHistory.labelWasPut", { name: name.trim() }));
   } catch (e) {
-    notifyError("Put Label failed", e);
+    notifyError(tr("tools.localHistory.putLabelFailed"), e);
   }
 }
 
@@ -187,13 +188,13 @@ async function runRevert(target: LhRevertTarget, name: string): Promise<boolean>
       await reloadOpenFiles(result.changed);
       refreshDirs([...new Set(result.changed.map(parentOf))]);
     }
-    if (result.failed.length) notifyError("Revert failed for some files", result.failed.join(", "));
-    else if (result.skipped.length) notifyInfo("Some files were not reverted", `Their content was not recorded: ${result.skipped.join(", ")}`);
-    else if (!result.changed.length) notifyInfo("Nothing to revert", "The files are already as they were.");
-    else notifyInfo(name, `${result.changed.length} file${result.changed.length === 1 ? "" : "s"} reverted`);
+    if (result.failed.length) notifyError(tr("tools.localHistory.revertFailedForSomeFiles"), result.failed.join(", "));
+    else if (result.skipped.length) notifyInfo(tr("tools.localHistory.someFilesWereNotReverted"), tr("tools.localHistory.theirContentWasNotRecorded", { skipped: result.skipped.join(", ") }));
+    else if (!result.changed.length) notifyInfo(tr("tools.localHistory.nothingToRevert"), tr("tools.localHistory.theFilesAreAlreadyAs"));
+    else notifyInfo(name, tr("tools.localHistory.filesReverted", { count: result.changed.length }));
     return true;
   } catch (e) {
-    notifyError("Revert failed", e);
+    notifyError(tr("tools.localHistory.revertFailed"), e);
     return false;
   }
 }
@@ -202,7 +203,7 @@ async function runRevert(target: LhRevertTarget, name: string): Promise<boolean>
 export async function revertTo(target: Extract<HistoryTarget, { kind: "file" | "folder" }>, rev: LhRevision): Promise<void> {
   if (target.kind === "folder") {
     const changes = await localHistoryApi.folderChanges(target.path, rev.id);
-    if (!changes.length) return notifyInfo("Nothing to revert", "The files are already as they were.");
+    if (!changes.length) return notifyInfo(tr("tools.localHistory.nothingToRevert"), tr("tools.localHistory.theFilesAreAlreadyAs"));
     const ok = await askConfirm({
       title: "Revert",
       message: `Revert ${changes.length} file${changes.length === 1 ? "" : "s"} in ${target.path || workspace()?.name || "the project"} to ${historyDate(rev.time)}? Files created since are deleted, deleted files are recreated.`,
@@ -246,9 +247,9 @@ export async function createPatch(target: Extract<HistoryTarget, { kind: "file" 
   try {
     patch = await localHistoryApi.patch(target.path, target.kind === "folder", rev.path, rev.id);
   } catch (e) {
-    return notifyError("Create Patch failed", e);
+    return notifyError(tr("tools.localHistory.createPatchFailed"), e);
   }
-  if (!patch.trim()) return notifyInfo("No changes to create a patch from");
+  if (!patch.trim()) return notifyInfo(tr("tools.localHistory.noChangesToCreateA"));
   const how = await askChoice({
     title: "Create Patch",
     message: `Patch of the changes since ${historyDate(rev.time)}${rev.name ? ` (${rev.name})` : ""}.`,
@@ -261,7 +262,7 @@ export async function createPatch(target: Extract<HistoryTarget, { kind: "file" 
   try {
     if (how === "clipboard") {
       await navigator.clipboard.writeText(patch);
-      return notifyInfo("Patch copied to clipboard");
+      return notifyInfo(tr("tools.localHistory.patchCopiedToClipboard"));
     }
     const base = `${nameOf(target.path || workspace()?.name || "project")}-local-history.patch`;
     const file = isTauri()
@@ -269,8 +270,8 @@ export async function createPatch(target: Extract<HistoryTarget, { kind: "file" 
       : await askName({ title: "Save Patch", label: "File (project-relative):", initial: base, confirm: "Save" });
     if (!file) return;
     await changesApi.writePatch(file, patch);
-    notifyInfo("Patch created", file);
+    notifyInfo(tr("tools.localHistory.patchCreated"), file);
   } catch (e) {
-    notifyError("Create Patch failed", e);
+    notifyError(tr("tools.localHistory.createPatchFailed"), e);
   }
 }

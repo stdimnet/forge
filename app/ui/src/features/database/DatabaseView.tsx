@@ -509,7 +509,7 @@ function buildRows(): Row[] {
       continue;
     }
     if (st.status === "error") {
-      out.push({ key: `status:${id}`, depth: 1, kind: "status", label: st.error ?? "Connection failed", expandable: false, icon: () => <Unplug size={13} />, ds: id, cls: "db-row-error", tint });
+      out.push({ key: `status:${id}`, depth: 1, kind: "status", label: st.error ?? tr("tools.database.connectionFailed"), expandable: false, icon: () => <Unplug size={13} />, ds: id, cls: "db-row-error", tint });
       continue;
     }
     // Engines with databases above schemas show the connected one as a node.
@@ -522,7 +522,7 @@ function buildRows(): Row[] {
         depth: 1,
         kind: "catalog",
         label: st.catalog,
-        hint: (st.catalogs?.length ?? 0) > 1 ? `${st.catalogs!.length - 1} more on the server` : undefined,
+        hint: (st.catalogs?.length ?? 0) > 1 ? tr("tools.database.moreOnTheServer", { value: st.catalogs!.length - 1 }) : undefined,
         expandable: true,
         icon: () => <Database size={14} class="db-ic-schema" />,
         ds: id,
@@ -727,16 +727,16 @@ export function DatabaseActions() {
   };
   return (
     <>
-      <button class="icon-btn" title={`New (${shortcutLabel("Console.TableResult.AddRow")})`} onClick={(e) => open(e, newDataSourceMenu())}>
+      <button class="icon-btn" title={tr("tools.database.new", { value: shortcutLabel("Console.TableResult.AddRow") })} onClick={(e) => open(e, newDataSourceMenu())}>
         <Plus size={16} />
       </button>
       <button class="icon-btn" title={tr("database.databaseView.refresh")} disabled={!current()} onClick={() => current() && void refresh(current()!.id)}>
         <RefreshCw size={14} />
       </button>
-      <button class="icon-btn" title={`Data Source Properties (${shortcutLabel("Database.Properties")})`} onClick={() => openDataSources({ select: current()?.id })}>
+      <button class="icon-btn" title={tr("tools.database.dataSourceProperties", { value: shortcutLabel("Database.Properties") })} onClick={() => openDataSources({ select: current()?.id })}>
         <Settings2 size={15} />
       </button>
-      <button class="icon-btn" title={`Jump to Query Console (${shortcutLabel("Database.OpenConsole")})`} disabled={!current()} onClick={() => current() && openConsole(current()!.id)}>
+      <button class="icon-btn" title={tr("tools.database.jumpToQueryConsole", { value: shortcutLabel("Database.OpenConsole") })} disabled={!current()} onClick={() => current() && openConsole(current()!.id)}>
         <SquareTerminal size={15} />
       </button>
       <button class="icon-btn" title={tr("database.databaseView.collapseAll")} onClick={() => [...expanded()].forEach((k) => setNodeOpen(k, false))}>
@@ -764,7 +764,7 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   const live = !!ds && ds.driver !== "ddl";
   if (row.kind === "rkey") {
     items.push(
-      { label: tr("database.databaseView.openValue"), hint: "Enter", icon: <KeySquare size={13} />, run: () => openRedisKey(row.ds, row.schema!, row.table!) },
+      { label: tr("database.databaseView.openValue"), hint: tr("tools.database.enter"), icon: <KeySquare size={13} />, run: () => openRedisKey(row.ds, row.schema!, row.table!) },
       { label: tr("database.databaseView.copyKey"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
       { separator: true, label: "" },
     );
@@ -774,12 +774,12 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   }
   if (row.kind === "collection" || (ds && modelOf(ds.driver) === "document" && row.kind === "view")) {
     items.push(
-      { label: tr("database.databaseView.openDocuments"), hint: "Enter", icon: <FileJson size={13} />, run: () => openCollection(row.ds, row.schema!, row.table!) },
+      { label: tr("database.databaseView.openDocuments"), hint: tr("tools.database.enter"), icon: <FileJson size={13} />, run: () => openCollection(row.ds, row.schema!, row.table!) },
       { label: tr("database.databaseView.copyName"), icon: <Copy size={13} />, run: () => void navigator.clipboard?.writeText(row.table!) },
       { separator: true, label: "" },
     );
   } else if (row.kind === "table" || row.kind === "view" || row.kind === "matview") {
-    if (live) items.push({ label: tr("database.databaseView.editData"), hint: "Enter", icon: <Table2 size={13} />, run: () => openTable(row.ds, row.schema!, row.table!) });
+    if (live) items.push({ label: tr("database.databaseView.editData"), hint: tr("tools.database.enter"), icon: <Table2 size={13} />, run: () => openTable(row.ds, row.schema!, row.table!) });
     items.push(
       {
         label: tr("database.databaseView.goToDdl"),

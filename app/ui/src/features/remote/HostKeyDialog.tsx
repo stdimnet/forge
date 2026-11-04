@@ -7,6 +7,7 @@ import { Match, Show, Switch } from "solid-js";
 import { ShieldAlert, ShieldQuestion } from "lucide-solid";
 import type { HostKeyInfo } from "@/ipc/remote";
 import { hostKeyQuestion } from "./store";
+import { t as tr } from "@/i18n";
 
 /** `ssh-ed25519` → `ED25519`, `ecdsa-sha2-nistp256` → `ECDSA`, `ssh-rsa` → `RSA`. */
 export function keyTypeLabel(keyType: string): string {
@@ -29,12 +30,12 @@ export function HostKeyDialog() {
               class="ssh-dialog ssh-hostkey"
               classList={{ danger: changed() }}
               role="alertdialog"
-              aria-label={changed() ? "Host Key Has Changed" : "Unknown Host"}
+              aria-label={changed() ? tr("tools.remote.hostKeyHasChanged") : tr("tools.remote.unknownHost")}
               data-testid="ssh-hostkey"
               onKeyDown={(e) => e.key === "Escape" && q().answer(false)}
             >
               <div class="ssh-titlebar">
-                <span>{changed() ? "Host Key Has Changed" : "Unknown Host"}</span>
+                <span>{changed() ? tr("tools.remote.hostKeyHasChanged") : tr("tools.remote.unknownHost")}</span>
               </div>
               <div class="ssh-hostkey-body">
                 <Switch>
@@ -48,19 +49,17 @@ export function HostKeyDialog() {
                 <div class="ssh-hostkey-text">
                   <Switch>
                     <Match when={changed()}>
-                      <p class="ssh-hostkey-lead">The host key of '{hostName(info())}' has changed!</p>
+                      <p class="ssh-hostkey-lead">{tr("tools.remote.theHostKeyOfHas", { value: hostName(info()) })}</p>
                       <p>
-                        Someone could be eavesdropping on you right now (man-in-the-middle attack), or the host key has
-                        just been changed. Only accept the new key if the administrator of the host confirmed it.
+                        {tr("tools.remote.someoneCouldBeEavesdroppingOn")}
                       </p>
                     </Match>
                     <Match when={true}>
-                      <p class="ssh-hostkey-lead">The authenticity of host '{hostName(info())}' can't be established.</p>
+                      <p class="ssh-hostkey-lead">{tr("tools.remote.theAuthenticityOfHostCan", { value: hostName(info()) })}</p>
                     </Match>
                   </Switch>
                   <p>
-                    {changed() ? "New " : ""}
-                    {keyTypeLabel(info().keyType)} key fingerprint is:
+                    {tr("tools.remote.keyFingerprintIsLabel", { value: changed() ? tr("tools.remote.new") : "", value2: keyTypeLabel(info().keyType) })}
                   </p>
                   <code class="ssh-fingerprint" data-testid="ssh-fingerprint">
                     {info().fingerprint}
@@ -68,13 +67,13 @@ export function HostKeyDialog() {
                   <Show when={info().status === "changed" && (info() as Extract<HostKeyInfo, { status: "changed" }>)}>
                     {(c) => (
                       <p class="muted ssh-small">
-                        Old fingerprint: <code>{c().oldFingerprint}</code>
+                        {tr("tools.remote.oldFingerprintLabel")} <code>{c().oldFingerprint}</code>
                         <br />
-                        Offending key in ~/.ssh/known_hosts:{c().line + 1}
+                        {tr("tools.remote.offendingKeyInSshKnown", { value: c().line + 1 })}
                       </p>
                     )}
                   </Show>
-                  <p>{changed() ? "Do you want to replace the stored key?" : "Are you sure you want to continue connecting?"}</p>
+                  <p>{changed() ? tr("tools.remote.doYouWantToReplace") : tr("tools.remote.areYouSureYouWant")}</p>
                 </div>
               </div>
               <div class="ssh-footer">
@@ -82,18 +81,18 @@ export function HostKeyDialog() {
                 <Switch>
                   <Match when={changed()}>
                     <button class="btn-secondary" onClick={() => q().answer(false)} autofocus>
-                      Cancel
+                      {tr("common.cancel")}
                     </button>
                     <button class="btn-primary ssh-danger-btn" onClick={() => q().answer(true)}>
-                      Accept New Key
+                      {tr("tools.remote.acceptNewKey")}
                     </button>
                   </Match>
                   <Match when={true}>
                     <button class="btn-secondary" onClick={() => q().answer(false)}>
-                      No
+                      {tr("tools.remote.no")}
                     </button>
                     <button class="btn-primary" onClick={() => q().answer(true)} autofocus data-testid="ssh-hostkey-yes">
-                      Yes
+                      {tr("tools.remote.yes")}
                     </button>
                   </Match>
                 </Switch>

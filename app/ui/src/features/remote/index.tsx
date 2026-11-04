@@ -82,7 +82,7 @@ registerCommand({
     try {
       await remoteApi.reconnect();
     } catch (e) {
-      showBalloon("Cannot reconnect", String((e as Error)?.message ?? e));
+      showBalloon(t("tools.remote.cannotReconnect"), String((e as Error)?.message ?? e));
     }
   },
 });

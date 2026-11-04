@@ -11,31 +11,32 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { LanguageServersPage } from "@/features/langservers/LanguageServersPage";
 import { installNetcoredbg, installRoslyn, installSdk } from "./install";
 import { refreshDotnetStatus } from "./state";
+import { t } from "@/i18n";
 import "./dotnet.css";
 
 export function DotnetSettingsPage() {
   const [status, { refetch }] = createResource(() => refreshDotnetStatus(true));
   return (
     <div class="dn-settings" data-testid="dotnet-settings">
-      <h3 class="set-section-title">.NET SDK</h3>
+      <h3 class="set-section-title">{t("langs.dotnet.netSdk")}</h3>
       <Show when={status()}>
         {(s) => (
           <>
             <div class="dn-facts">
               <span>dotnet</span>
               <span class="dn-mono" classList={{ "dn-missing": !s().host }}>
-                {s().host ? `${s().host!.path} (${s().host!.source})` : "not found"}
+                {s().host ? `${s().host!.path} (${s().host!.source})` : t("common.notFound")}
               </span>
-              <span>SDK in use</span>
+              <span>{t("langs.dotnet.sdkInUse")}</span>
               <span class="dn-mono" classList={{ "dn-missing": !s().sdk }}>
-                {s().sdk ?? (s().requestedSdk ? `${s().requestedSdk} (global.json) is not installed` : "none")}
+                {s().sdk ?? (s().requestedSdk ? t("langs.dotnet.globalJsonIsNotInstalled", { requestedSdk: s().requestedSdk }) : "none")}
                 <Show when={s().requestedSdk && s().sdk}>
-                  <span class="muted"> (global.json asks for {s().requestedSdk})</span>
+                  <span class="muted"> {t("langs.dotnet.globalJsonAsksFor", { requestedSdk: s().requestedSdk })}</span>
                 </Show>
               </span>
-              <span>SDKs</span>
+              <span>{t("langs.dotnet.sdks")}</span>
               <span class="dn-mono">{s().sdks.map((x) => x.version).join(", ") || "none"}</span>
-              <span>Runtimes</span>
+              <span>{t("langs.dotnet.runtimes")}</span>
               <span class="dn-mono">{[...new Set(s().runtimes.map((r) => `${r.name.replace(/^Microsoft\./, "")} ${r.version}`))].join(", ") || "none"}</span>
             </div>
             <For each={s().problems}>{(p) => <div class="dn-missing dn-problem-line">{p}</div>}</For>
@@ -44,26 +45,26 @@ export function DotnetSettingsPage() {
       </Show>
       <div class="dn-row-buttons">
         <button class="btn-secondary" onClick={() => void installSdk()}>
-          <Download size={13} /> Install .NET SDK…
+          <Download size={13} /> {t("langs.dotnet.installNetSdkEllipsis")}
         </button>
-        <button class="icon-btn" title="Detect again" onClick={() => void refetch()}>
+        <button class="icon-btn" title={t("common.detectAgain")} onClick={() => void refetch()}>
           <RefreshCw size={13} />
         </button>
       </div>
 
-      <h3 class="set-section-title">Tools</h3>
+      <h3 class="set-section-title">{t("common.tools")}</h3>
       <table class="dn-tools">
         <tbody>
           <tr>
-            <td>Roslyn language server</td>
+            <td>{t("langs.dotnet.roslynLanguageServer")}</td>
             <td class="dn-tool-path" classList={{ "dn-missing": !status()?.roslyn }} data-testid="dotnet-roslyn-status">
-              {status()?.roslyn ? `${status()!.roslyn!.path}${status()!.roslyn!.version ? ` (${status()!.roslyn!.version})` : ""}` : (status()?.roslynProblem ?? "not installed")}
+              {status()?.roslyn ? `${status()!.roslyn!.path}${status()!.roslyn!.version ? ` (${status()!.roslyn!.version})` : ""}` : (status()?.roslynProblem ?? t("common.notInstalled2"))}
             </td>
             <td class="muted">MIT</td>
             <td>
               <Show when={!status()?.roslyn && !status()?.remote}>
                 <button class="pill-btn" onClick={() => void installRoslyn().then(() => refetch())}>
-                  Download…
+                  {t("common.downloadEllipsis")}
                 </button>
               </Show>
             </td>
@@ -71,13 +72,13 @@ export function DotnetSettingsPage() {
           <tr>
             <td>netcoredbg</td>
             <td class="dn-tool-path" classList={{ "dn-missing": !status()?.netcoredbg }} data-testid="dotnet-netcoredbg-status">
-              {status()?.netcoredbg ? status()!.netcoredbg!.path : (status()?.netcoredbgProblem ?? "not installed")}
+              {status()?.netcoredbg ? status()!.netcoredbg!.path : (status()?.netcoredbgProblem ?? t("common.notInstalled2"))}
             </td>
             <td class="muted">MIT</td>
             <td>
               <Show when={!status()?.netcoredbg && !status()?.remote}>
                 <button class="pill-btn" onClick={() => void installNetcoredbg().then(() => refetch())}>
-                  Download…
+                  {t("common.downloadEllipsis")}
                 </button>
               </Show>
             </td>
@@ -85,7 +86,7 @@ export function DotnetSettingsPage() {
         </tbody>
       </table>
       <SchemaPage pageId="lang.dotnet" />
-      <h3 class="set-section-title">Language Servers</h3>
+      <h3 class="set-section-title">{t("langs.dotnet.languageServers")}</h3>
       <LanguageServersPage groups={["C#", "F#"]} />
     </div>
   );

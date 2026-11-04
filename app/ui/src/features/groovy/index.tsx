@@ -58,8 +58,8 @@ function GroovyPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            Groovy SDK:{" "}
-            <b>{status()?.groovy ? `Groovy ${status()?.version ?? ""} (${SOURCES[status()?.source ?? ""] ?? status()?.source})`.replace("  ", " ") : "not found"}</b>
+            {t("langs.groovy.groovySdkLabel")}
+            <b>{status()?.groovy ? `Groovy ${status()?.version ?? ""} (${SOURCES[status()?.source ?? ""] ?? status()?.source})`.replace("  ", " ") : t("common.notFound")}</b>
             <Show when={status()?.groovy}>
               <span class="scala-path"> {status()!.groovy}</span>
             </Show>
@@ -68,14 +68,14 @@ function GroovyPage() {
         <div class="java-status-row">
           <CircleCheck size={14} class="java-ok" />
           <span>
-            Scripts run with <b>{status()?.runner === "gradle" ? "Gradle (the project's class path)" : "groovy"}</b>
+            {t("langs.groovy.scriptsRunWith")} <b>{status()?.runner === "gradle" ? t("langs.groovy.gradleTheProjectSClass") : "groovy"}</b>
             <Show when={status()?.gradleGroovy}>
-              <span class="muted"> · the Gradle build applies the groovy plugin</span>
+              <span class="muted"> {t("langs.groovy.theGradleBuildAppliesThe")}</span>
             </Show>
           </span>
         </div>
         <Show when={status() && !status()!.groovy && !status()!.gradleGroovy}>
-          <p class="muted java-hint">Install a Groovy SDK with SDKMAN! (sdk install groovy) or from groovy-lang.org, or apply Gradle's groovy plugin to run scripts with the project's class path.</p>
+          <p class="muted java-hint">{t("langs.groovy.installAGroovySdkWith")}</p>
         </Show>
       </div>
       <SchemaPage pageId="lang.groovy" />
@@ -111,9 +111,9 @@ registerRunConfigurationType({
       label: "Run with",
       kind: "enum",
       options: () => [
-        { value: "", label: "Settings | Groovy (default)" },
+        { value: "", label: t("langs.groovy.settingsGroovyDefault") },
         { value: "groovy", label: "groovy (Groovy SDK)" },
-        { value: "gradle", label: "Gradle (project class path)" },
+        { value: "gradle", label: t("langs.groovy.gradleProjectClassPath") },
       ],
     },
     { key: "groovy", label: "Groovy launcher", placeholder: "Empty: the Groovy SDK from Settings | Groovy" },
@@ -188,9 +188,9 @@ function runMenu(label: string, cfg: () => ReturnType<typeof useTemporary>): Lin
       x: e.clientX,
       y: e.clientY + 6,
       items: [
-        { label: `Run '${label}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
+        { label: t("common.run3", { label }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
         { separator: true },
-        { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(cfg().name) },
+        { label: t("common.modifyRunConfigurationEllipsis"), icon: Settings2, run: () => openRunConfigurations(cfg().name) },
       ],
     });
 }
@@ -204,8 +204,8 @@ registerLineMarkerProvider({
     if (!active()) return [];
     const r = await runnableOf(text);
     const name = baseName(path) ?? path;
-    if (r.script) return [{ line: 0, icon: Play, title: `Run '${name}'`, className: "marker-run", onClick: runMenu(name, () => scriptConfiguration(path)) }];
-    return r.mains.map((m) => ({ line: m.line, icon: Play, title: `Run '${m.name}'`, className: "marker-run", onClick: runMenu(m.name, () => scriptConfiguration(path)) }));
+    if (r.script) return [{ line: 0, icon: Play, title: t("common.run", { name }), className: "marker-run", onClick: runMenu(name, () => scriptConfiguration(path)) }];
+    return r.mains.map((m) => ({ line: m.line, icon: Play, title: t("common.run", { name: m.name }), className: "marker-run", onClick: runMenu(m.name, () => scriptConfiguration(path)) }));
   },
 });
 

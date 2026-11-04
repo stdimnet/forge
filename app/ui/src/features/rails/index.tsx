@@ -96,7 +96,7 @@ registerRunConfigurationType({
 export async function openRailsConsole(kind: "console" | "dbconsole"): Promise<void> {
   try {
     const cmd = await railsApi.consoleCommand(kind);
-    openTerminalWith({ title: kind === "console" ? "Rails Console" : "Rails DB Console", program: cmd.program, args: cmd.args, env: Object.entries(cmd.env ?? {}) });
+    openTerminalWith({ title: kind === "console" ? t("langs.rails.railsConsole") : t("langs.rails.railsDbConsole"), program: cmd.program, args: cmd.args, env: Object.entries(cmd.env ?? {}) });
   } catch (e) {
     showRailsBalloon(`Cannot start the Rails ${kind === "console" ? "console" : "database console"}`, errorText(e), 8000);
   }
@@ -196,7 +196,7 @@ async function offerDataSources(): Promise<void> {
     "Databases found in config/database.yml",
     missing.map((d) => `${d.environment}: ${d.driver === "sqlite" ? d.file : `${d.database}@${d.host || "localhost"}`}`).join(", "),
     15000,
-    [{ label: "Add data sources", run: () => void addRailsDataSources(missing.map((d) => d.environment)) }],
+    [{ label: t("langs.rails.addDataSources"), run: () => void addRailsDataSources(missing.map((d) => d.environment)) }],
   );
 }
 

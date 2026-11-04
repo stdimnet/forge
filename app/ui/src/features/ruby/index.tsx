@@ -55,7 +55,7 @@ import {
   showRubyBalloon,
 } from "./state";
 import "./ruby.css";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const baseName = (p: string) => p.replace(/\\/g, "/").split("/").pop() ?? p;
@@ -76,7 +76,7 @@ function RubyStatusItem() {
     <button
       class="status-item"
       data-status="ruby-interpreter"
-      title={rubyStatus()?.chosen ? `${rubyStatus()!.chosen!.interpreter.path}. Click to configure the Ruby SDK` : "No Ruby interpreter. Click to configure"}
+      title={rubyStatus()?.chosen ? tr("langs.ruby.clickToConfigureTheRuby", { path: rubyStatus()!.chosen!.interpreter.path }) : tr("langs.ruby.noRubyInterpreterClickTo")}
       onClick={() => openSettings("lang.ruby")}
     >
       <Gem size={12} />
@@ -253,10 +253,10 @@ registerCommand({
   category: "Ruby",
   run: () => {
     setInputDialog({
-      title: "Run Rake Task",
+      title: tr("langs.ruby.runRakeTask"),
       label: `Task (${(rakeTasks()?.tasks ?? []).slice(0, 4).map((t) => t.name).join(", ") || "e.g. test"}):`,
       value: "",
-      okLabel: "Run",
+      okLabel: tr("common.run2"),
       onOk: (value) => {
         const m = value.trim().match(/^([^[\s]+)(?:\[(.*)\])?$/);
         if (m) void runRakeTask(m[1], m[2]);
@@ -322,14 +322,14 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
             if (!s) return;
             if (!s.chosen)
               showRubyBalloon("No Ruby interpreter found", "Install Ruby with rbenv, rvm, chruby, asdf or mise, then configure the Ruby SDK.", 10000, [
-                { label: "Configure…", run: () => openSettings("lang.ruby") },
+                { label: tr("common.configureEllipsis"), run: () => openSettings("lang.ruby") },
               ]);
             else if (s.request && s.chosen.reason !== "versionFile" && !s.setting)
               showRubyBalloon(`Ruby ${s.request.version} is not installed`, `${s.request.file} asks for it; Forge uses ${s.chosen.interpreter.name}.`, 10000, [
-                { label: "Configure…", run: () => openSettings("lang.ruby") },
+                { label: tr("common.configureEllipsis"), run: () => openSettings("lang.ruby") },
               ]);
             else if (!s.lsp.path)
-              showRubyBalloon("Ruby LSP is not installed", "Code insight for Ruby needs Ruby LSP.", 10000, [{ label: "Install…", run: () => void installRubyLsp() }]);
+              showRubyBalloon("Ruby LSP is not installed", "Code insight for Ruby needs Ruby LSP.", 10000, [{ label: tr("common.installEllipsis"), run: () => void installRubyLsp() }]);
           });
         },
       ),

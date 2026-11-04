@@ -29,6 +29,7 @@ import { isPluginActive, usesFramework } from "@/state/project";
 import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { errorText, runCommandLine } from "./shared";
+import { t } from "@/i18n";
 
 export const GODOT_PLUGIN = "forge.godot";
 export const godotActive = () => isPluginActive(GODOT_PLUGIN) && usesFramework("godot");
@@ -50,11 +51,11 @@ export async function openGodotEditor(): Promise<void> {
     void runCommandLine(cmd, "Godot Editor");
     setTimeout(() => void refetch(), 6000);
   } catch (e) {
-    showBalloon("Cannot open the Godot editor", errorText(e), 8000);
+    showBalloon(t("langs.gamedev.cannotOpenTheGodotEditor"), errorText(e), 8000);
   }
 }
 
-const editorAction = () => [{ label: "Open in Godot Editor", run: () => void openGodotEditor() }];
+const editorAction = () => [{ label: t("langs.gamedev.openInGodotEditor"), run: () => void openGodotEditor() }];
 
 // ---- Run configurations -------------------------------------------------------------------------
 
@@ -142,13 +143,13 @@ registerDebugLauncher({
       const own = opt(cfg, "debugger");
       const pick = own && own !== "auto" ? own : getSetting<string>("godot.debugger", "auto");
       const csharp = pick === "csharp" || (pick === "auto" && !!status()?.project?.csharp);
-      if (csharp) showBalloon(`Building '${cfg.name}' for debugging…`, "", 3000);
+      if (csharp) showBalloon(t("langs.gamedev.buildingForDebuggingEllipsis", { name: cfg.name }), "", 3000);
       const request = await godotApi.debugRequest(cfg);
       showToolWindow("debug");
       await dapApi.start(request);
     } catch (e) {
       const text = errorText(e);
-      showBalloon(`Cannot debug '${cfg.name}'`, text, 12000, /Godot editor/.test(text) ? editorAction() : []);
+      showBalloon(t("common.cannotDebug", { name: cfg.name }), text, 12000, /Godot editor/.test(text) ? editorAction() : []);
     }
   },
 });
@@ -157,7 +158,7 @@ registerDebugLauncher({
 
 const needsGodot = (run: () => void) => () => {
   if (!godotActive()) {
-    showBalloon("Not a Godot project", "Open a folder with project.godot, or enable the Godot plugin.", 5000);
+    showBalloon(t("langs.gamedev.notAGodotProject"), t("langs.gamedev.openAFolderWithProject"), 5000);
     return;
   }
   run();
@@ -166,7 +167,7 @@ const needsGodot = (run: () => void) => () => {
 async function runScene(): Promise<void> {
   const path = activeTab()?.path ?? "";
   if (!/\.t?scn$/i.test(path)) {
-    showBalloon("Run Current Scene", "Open a scene (.tscn) in the editor first.", 5000);
+    showBalloon(t("langs.gamedev.runCurrentScene"), t("langs.gamedev.openASceneTscnIn"), 5000);
     return;
   }
   const name = path.split("/").pop()!.replace(/\.t?scn$/i, "");
@@ -207,8 +208,8 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
             if (!s || s.remote || s.lspListening || told) return;
             told = true;
             showBalloon(
-              "GDScript code insight needs the Godot editor",
-              `Godot serves completion, navigation and diagnostics from its editor (${s.host}:${s.lspPort}). Open the project in Godot, and Forge connects to it.`,
+              t("langs.gamedev.gdscriptCodeInsightNeedsThe"),
+              t("langs.gamedev.godotServesCompletionNavigationAnd", { host: s.host, lspPort: s.lspPort }),
               12000,
               s.godot ? editorAction() : [],
             );

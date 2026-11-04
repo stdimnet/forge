@@ -62,8 +62,7 @@ function ConfigureDialog(props: { value: string; onClose: (value: string | null)
               {(i) => (
                 <>
                   <div class="signing-config" data-testid="signing-config">
-                    Git config{i().remote ? " on the remote host" : ""} (read-only): user.signingkey = {i().config.signingKey ?? "not set"}, gpg.format ={" "}
-                    {i().config.format ?? "openpgp"}, commit.gpgsign = {String(i().config.gpgSign)}
+                    {t("tools.git.gitConfigReadOnlyUser", { value: i().remote ? t("tools.git.onTheRemoteHost") : "", value2: i().config.signingKey ?? t("tools.git.notSet"), value3: i().config.format ?? "openpgp", value4: String(i().config.gpgSign) })}
                   </div>
                   <Option value="" title={t("git.signingSettings.useTheKeyFromGit")} sub={i().config.signingKey ?? "user.signingkey is not set: git uses the committer's default key"} />
                   <div class="signing-group">{t("git.signingSettings.gpgKeys")}</div>

@@ -7,6 +7,7 @@ import { showBalloon } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { consoles } from "@/features/database/controllers";
 import { loadSources, openConsole, openDataSources, selectedSourceId, sources } from "@/features/database/store";
+import { t } from "@/i18n";
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -17,7 +18,7 @@ export async function runSqlInConsole(sql: string): Promise<boolean> {
   if (!sources().length) await loadSources().catch(() => undefined);
   const id = selectedSourceId();
   if (!id) {
-    showBalloon("No data source", "Add a data source in the Database tool window to run SQL.", 6000);
+    showBalloon(t("tools.injections.noDataSource"), t("tools.injections.addADataSourceIn"), 6000);
     showToolWindow("database");
     openDataSources({ newDriver: "mysql" });
     return false;

@@ -176,7 +176,7 @@ export function DiagramView(props: { tab: EditorTab }) {
         <Show when={error()}>{(e) => <div class="erd-empty">{e()}</div>}</Show>
         <Show when={!error() && !diagram()}>
           <div class="erd-empty">
-            <span class="db-spinner" /> Loading {schemaName()}…
+            <span class="db-spinner" /> {t("tools.database.loadingEllipsis2", { schemaName: schemaName() })}
           </div>
         </Show>
         <Show when={diagram()}>
@@ -202,7 +202,7 @@ export function DiagramView(props: { tab: EditorTab }) {
                     >
                       <title>
                         {e.name}: {e.from}({e.columns.join(", ")}) → {e.to}({e.refColumns.join(", ")})
-                        {e.virtual ? " (virtual)" : ""}
+                        {e.virtual ? t("tools.database.virtual") : ""}
                       </title>
                     </path>
                   )}
@@ -228,10 +228,10 @@ export function DiagramView(props: { tab: EditorTab }) {
           {(d) => (
             <>
               <span>
-                {d().nodes.length} table{d().nodes.length === 1 ? "" : "s"}, {d().edges.length} relation{d().edges.length === 1 ? "" : "s"}
+                {t("tools.database.tableRelation", { count: d().nodes.length, value: d().nodes.length, count2: d().edges.length, value2: d().edges.length })}
               </span>
               <Show when={d().externalEdges}>
-                <span class="muted"> · {d().externalEdges} to tables not shown</span>
+                <span class="muted"> {t("tools.database.toTablesNotShown", { externalEdges: d().externalEdges })}</span>
               </Show>
             </>
           )}
@@ -299,7 +299,7 @@ function TableNode(props: { node: DiagramNode; selected: boolean; dim: boolean; 
               {c.typeLabel}
               <title>
                 {c.name} {c.dataType}
-                {c.nullable ? "" : " NOT NULL"}
+                {c.nullable ? "" : t("tools.database.notNull")}
               </title>
             </text>
           </g>
@@ -307,7 +307,7 @@ function TableNode(props: { node: DiagramNode; selected: boolean; dim: boolean; 
       </For>
       <Show when={n().hiddenColumns}>
         <text class="erd-more" x="26" y={rowY(n().columns.length) + DIAGRAM_ROW / 2 + 1}>
-          … {n().hiddenColumns} more
+          {t("tools.database.more", { hiddenColumns: n().hiddenColumns })}
         </text>
       </Show>
     </g>

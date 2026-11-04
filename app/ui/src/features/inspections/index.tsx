@@ -62,7 +62,7 @@ registerToolWindow({
 });
 
 async function inspectCode(): Promise<void> {
-  const req = await askScope({ title: "Specify Inspection Scope", confirm: "Analyze" });
+  const req = await askScope({ title: t("tools.inspections.specifyInspectionScope"), confirm: t("tools.inspections.analyze") });
   if (req) await runInspections(req);
 }
 
@@ -70,20 +70,20 @@ async function runByName(): Promise<void> {
   const spec = await askInspectionByName();
   if (!spec) return;
   if (spec.batch === false) {
-    showBalloon(`'${spec.name}' runs in the editor only`, "Its problems come from a language server or tool while files are open.");
+    showBalloon(t("tools.inspections.runsInTheEditorOnly", { name: spec.name }), t("tools.inspections.itsProblemsComeFromA"));
     return;
   }
-  const req = await askScope({ title: `Run '${spec.name}'`, confirm: "OK", inspection: spec });
+  const req = await askScope({ title: t("common.run", { name: spec.name }), confirm: "OK", inspection: spec });
   if (req) await runInspections(req);
 }
 
 async function codeCleanup(): Promise<void> {
-  const req = await askScope({ title: "Specify Code Cleanup Scope", confirm: "OK" });
+  const req = await askScope({ title: t("tools.inspections.specifyCodeCleanupScope"), confirm: "OK" });
   if (!req) return;
   const plan = await cleanupPlan(req);
   if (!plan) return;
   if (!plan.files.length) {
-    showBalloon("Code Cleanup", "No safe fixes found in the scope.");
+    showBalloon(t("tools.inspections.codeCleanup"), t("tools.inspections.noSafeFixesFoundIn"));
     return;
   }
   if (await askCleanup(plan)) await applyCleanup(plan);
@@ -92,11 +92,11 @@ async function codeCleanup(): Promise<void> {
 function inspectCurrentFile(): void {
   const path = activeTab()?.path;
   if (!path) return;
-  void runInspections({ scope: { kind: "file", path, label: `File '${path}'` } });
+  void runInspections({ scope: { kind: "file", path, label: t("tools.inspections.file2", { path }) } });
 }
 
 async function locateDuplicates(): Promise<void> {
-  const req = await askScope({ title: "Locate Duplicates", confirm: "OK", inspection: { id: "DuplicatedCode", name: "Duplicated code fragment", group: "General", severity: "WEAK WARNING", enabled: true } });
+  const req = await askScope({ title: t("tools.inspections.locateDuplicates"), confirm: "OK", inspection: { id: "DuplicatedCode", name: "Duplicated code fragment", group: "General", severity: "WEAK WARNING", enabled: true } });
   if (req) await runInspections(req);
 }
 
@@ -119,7 +119,7 @@ function InspectingStatus() {
             <span class="insp-progress">
               <span class="insp-progress-bar" style={{ width: `${percent()}%` }} />
             </span>
-            <button class="icon-btn insp-cancel" title="Cancel" aria-label="Cancel inspection" onClick={cancelRun}>
+            <button class="icon-btn insp-cancel" title={t("common.cancel")} aria-label={t("tools.inspections.cancelInspection")} onClick={cancelRun}>
               <X size={12} />
             </button>
           </span>

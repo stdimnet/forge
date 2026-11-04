@@ -8,6 +8,7 @@ import { setDiffRequest } from "@/features/git/overlays";
 import { caps, errorText, ref, refreshAll, requestName } from "./store";
 import { MergeRequestTab } from "./MergeRequestTab";
 import { IssueTab } from "./IssueTab";
+import { t as tr } from "@/i18n";
 
 export const settingsPageFor = (kind: HostKind) => `vcs.${kind}`;
 
@@ -83,9 +84,9 @@ export async function checkoutRequest(mr: { number: number; sourceBranch: string
   try {
     const branch = await forgesApi.checkout(mr.number, mr.sourceBranch);
     await reloadOpenFiles();
-    notify("info", `Checked out ${branch}`, `${requestName()} ${ref(mr.number)}`);
+    notify("info", tr("tools.forges.checkedOut", { branch }), `${requestName()} ${ref(mr.number)}`);
   } catch (e) {
-    notify("error", "Checkout failed", errorText(e), 10000);
+    notify("error", tr("tools.forges.checkoutFailed"), errorText(e), 10000);
   } finally {
     await repositoryChanged();
   }
@@ -108,7 +109,7 @@ export async function showRequestDiff(mr: MergeRequestDetails, file: ChangedFile
       editable: false,
     });
   } catch (e) {
-    notify("error", "Cannot load the diff", errorText(e), 10000);
+    notify("error", tr("tools.forges.cannotLoadTheDiff"), errorText(e), 10000);
   }
 }
 

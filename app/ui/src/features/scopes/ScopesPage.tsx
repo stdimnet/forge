@@ -12,6 +12,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import { scopesApi, type NamedScope, type ScopeEditOp, type ScopeTreeNode } from "@/ipc/scopes";
 import { showResolvedMenu } from "@/features/contextMenu/state";
 import { checkPattern, editPattern, LOCAL_SCOPES, scopeContext, scopeEntries, scopeTree, SHARED_SCOPES } from "./model";
+import { t } from "@/i18n";
 
 type Storage = "local" | "shared";
 const keyOf = (s: Storage) => (s === "shared" ? SHARED_SCOPES : LOCAL_SCOPES);
@@ -65,8 +66,8 @@ export function ScopesPage() {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     showResolvedMenu(
       [
-        { kind: "action", label: "Local", run: () => add("local") },
-        { kind: "action", label: "Shared", run: () => add("shared") },
+        { kind: "action", label: t("tools.scopes.local"), run: () => add("local") },
+        { kind: "action", label: t("tools.scopes.shared"), run: () => add("shared") },
       ],
       r.left,
       r.bottom + 2,
@@ -156,9 +157,9 @@ export function ScopesPage() {
             data-scope={scope.name}
             onClick={() => setSelected({ storage: props.storage, index: i() })}
           >
-            <span>{scope.name || "(unnamed)"}</span>
+            <span>{scope.name || t("tools.scopes.unnamed")}</span>
             <Show when={problems().some(([n]) => n === scope.name)}>
-              <span class="scp-bad" title="This scope has a problem" />
+              <span class="scp-bad" title={t("tools.scopes.thisScopeHasAProblem")} />
             </Show>
           </div>
         )}
@@ -170,16 +171,16 @@ export function ScopesPage() {
     <div class="scp-page">
       <div class="scp-list set-list">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add Scope" aria-label="Add Scope" onClick={addMenu}>
+          <button class="icon-btn" title={t("tools.scopes.addScope")} aria-label={t("tools.scopes.addScope")} onClick={addMenu}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" aria-label="Remove" disabled={!current()} onClick={remove}>
+          <button class="icon-btn" title={t("common.remove")} aria-label={t("common.remove")} disabled={!current()} onClick={remove}>
             <Minus size={14} />
           </button>
           <button
             class="icon-btn"
-            title="Copy"
-            aria-label="Copy"
+            title={t("common.copy")}
+            aria-label={t("common.copy")}
             disabled={!current()}
             onClick={() => current() && add(selected()!.storage, current())}
           >
@@ -187,10 +188,10 @@ export function ScopesPage() {
           </button>
         </div>
         <div class="scp-items">
-          <Group storage="local" title="Local" />
-          <Group storage="shared" title="Shared" />
+          <Group storage="local" title={t("tools.scopes.local")} />
+          <Group storage="shared" title={t("tools.scopes.shared")} />
           <Show when={!list("local").length && !list("shared").length}>
-            <div class="set-list-empty">No scopes defined</div>
+            <div class="set-list-empty">{t("tools.scopes.noScopesDefined")}</div>
           </Show>
         </div>
       </div>
@@ -198,15 +199,14 @@ export function ScopesPage() {
         when={current()}
         fallback={
           <div class="scp-hint set-desc">
-            Scopes are named sets of files for Find in Files, Find Usages, Structural Search and File Colors. Add one with
-            the + button.
+            {t("tools.scopes.scopesAreNamedSetsOf")}
           </div>
         }
       >
         {(scope) => (
           <div class="scp-editor">
             <label class="scp-field">
-              <span>Name:</span>
+              <span>{t("common.nameLabel")}</span>
               <input
                 class="set-input"
                 classList={{ invalid: !!nameProblem() }}
@@ -214,27 +214,27 @@ export function ScopesPage() {
                 spellcheck={false}
                 onInput={(e) => update({ name: e.currentTarget.value })}
               />
-              <span class="scp-storage">{selected()?.storage === "shared" ? "Shared (project)" : "Local"}</span>
+              <span class="scp-storage">{selected()?.storage === "shared" ? t("tools.scopes.sharedProject") : t("tools.scopes.local")}</span>
             </label>
             <Show when={nameProblem()}>
               <div class="set-error">{nameProblem()}</div>
             </Show>
             <label class="scp-field">
-              <span>Pattern:</span>
+              <span>{t("tools.scopes.patternLabel")}</span>
               <input
                 class="set-input scp-pattern"
                 classList={{ invalid: !!patternError() }}
                 value={scope().pattern}
                 spellcheck={false}
-                placeholder="file:app//*.php&&!test:*..*"
-                aria-label="Pattern"
+                placeholder={t("tools.scopes.fileAppPhpTest")}
+                aria-label={t("tools.scopes.pattern")}
                 onInput={(e) => update({ pattern: e.currentTarget.value })}
               />
             </label>
             <Show when={patternError()}>
               {(err) => (
                 <div class="set-error">
-                  {err().message} at position {err().offset + 1}
+                  {t("tools.scopes.atPosition", { message: err().message, value: err().offset + 1 })}
                 </div>
               )}
             </Show>
@@ -244,23 +244,23 @@ export function ScopesPage() {
               </div>
               <div class="scp-buttons">
                 <button class="btn-secondary" disabled={!treeSel()} onClick={() => press("include")}>
-                  Include
+                  {t("tools.scopes.include")}
                 </button>
                 <button class="btn-secondary" disabled={!treeSel()?.dir} onClick={() => press("includeRecursively")}>
-                  Include Recursively
+                  {t("tools.scopes.includeRecursively")}
                 </button>
                 <button class="btn-secondary" disabled={!treeSel()} onClick={() => press("exclude")}>
-                  Exclude
+                  {t("tools.scopes.exclude")}
                 </button>
                 <button class="btn-secondary" disabled={!treeSel()?.dir} onClick={() => press("excludeRecursively")}>
-                  Exclude Recursively
+                  {t("tools.scopes.excludeRecursively")}
                 </button>
               </div>
             </div>
             <div class="scp-legend">
-              <span class="scp-swatch" /> In scope
+              <span class="scp-swatch" /> {t("tools.scopes.inScope")}
               <span class="scp-sep">·</span>
-              {tree()?.matched ?? 0} of {tree()?.total ?? 0} files
+              {t("tools.scopes.ofFiles", { value: tree()?.matched ?? 0, value2: tree()?.total ?? 0 })}
             </div>
           </div>
         )}

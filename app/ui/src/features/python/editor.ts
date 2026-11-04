@@ -28,6 +28,7 @@ import { commands, registerCommand } from "@/state/commands";
 import { activeTab } from "@/state/editor";
 import { getSetting, saveSettings } from "@/state/settings";
 import { packageAction, packagesRevision, pythonActive } from "./state";
+import { t } from "@/i18n";
 
 const SOURCE = "pyforge";
 
@@ -124,9 +125,9 @@ export async function addRequirement(requirement: string, target: string): Promi
     const edit = await pythonApi.addRequirement(requirement, target, view?.state.doc.toString());
     if (view) replaceChangedPart(view, edit.text, "input");
     else await workspaceApi.writeFile(edit.path, edit.text);
-    showBalloon(`Added '${requirement}' to ${fileName(target)}`);
+    showBalloon(t("langs.python.addedTo", { requirement, value: fileName(target) }));
   } catch (e) {
-    showBalloon("Add requirement", String(e), 5000, undefined, { type: "error" });
+    showBalloon(t("langs.python.addRequirement"), String(e), 5000, undefined, { type: "error" });
   }
 }
 
@@ -210,7 +211,7 @@ registerFormatProvider(async (path, text) => {
   try {
     return await pythonApi.format(path, text);
   } catch (e) {
-    showBalloon(formatter === "black" ? "Black" : "ruff format", String(e), 5000, undefined, { type: "error" });
+    showBalloon(formatter === "black" ? t("langs.python.black") : t("langs.python.ruffFormat"), String(e), 5000, undefined, { type: "error" });
     return text;
   }
 });

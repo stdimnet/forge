@@ -7,6 +7,7 @@ import { Smartphone } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
 import { registerRunConfigurationType } from "@/features/run/types";
 import { deviceLabel, onlineDevices, PLUGIN_ID } from "./store";
+import { t } from "@/i18n";
 
 export const APP = "android-app";
 
@@ -30,7 +31,7 @@ registerRunConfigurationType({
       label: "Deploy to",
       kind: "enum",
       options: () => [
-        { value: "", label: "The first running device" },
+        { value: "", label: t("langs.android.theFirstRunningDevice") },
         ...onlineDevices().map((d) => ({ value: d.serial, label: `${deviceLabel(d.serial)} (${d.serial})` })),
       ],
     },

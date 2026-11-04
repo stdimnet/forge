@@ -69,7 +69,7 @@ function BranchChangesView(props: { branch: string; path: string; label: string 
                 <span class={`tree-label ${s.cls}`}>{c.path.split("/").pop()}</span>
                 <span class="tree-hint">
                   {c.path.split("/").slice(0, -1).join("/")}
-                  {c.origPath ? ` (from ${c.origPath})` : ""}
+                  {c.origPath ? t("tools.git.from", { origPath: c.origPath }) : ""}
                 </span>
               </div>
             );
@@ -88,7 +88,7 @@ export function openBranchChanges(branch: string, path: string, label = branch):
   openCustomTab({
     id: `forge:branch-changes:${branch}\u0000${path}`,
     title: `${name} vs ${label}`,
-    tooltip: `${path || "/"} compared with ${label}`,
+    tooltip: t("tools.git.comparedWith", { value: path || "/", label }),
     icon: GitCompare,
     component: () => <BranchChangesView branch={branch} path={path} label={label} />,
   });

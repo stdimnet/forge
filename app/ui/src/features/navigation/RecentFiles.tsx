@@ -2,7 +2,7 @@
  * Recent Files popup (Ctrl+E) and Switcher (Ctrl+Tab), laid out like PHPStorm: tool
  * windows on the left, recently opened files on the right, speed search by typing.
  */
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 import { For, Show, createEffect, createMemo, createSignal, on, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { Search } from "lucide-solid";
@@ -199,7 +199,7 @@ export function RecentFilesPopup() {
           </Show>
           <label class="se-check recent-check" onMouseDown={(e) => e.preventDefault()}>
             <input type="checkbox" checked={editedOnly()} onChange={(e) => setEditedOnly(e.currentTarget.checked)} />
-            <span>Show edited only</span>
+            <span>{tr("tools.navigation.showEditedOnly")}</span>
           </label>
         </div>
         <div class="recent-body">
@@ -227,7 +227,7 @@ export function RecentFilesPopup() {
             </For>
           </div>
           <div class="recent-files" role={files().length ? "listbox" : undefined} aria-label={t("a11y.recent.files")}>
-            <Show when={files().length} fallback={<div class="se-empty">{editedOnly() ? "No edited files" : "No recent files"}</div>}>
+            <Show when={files().length} fallback={<div class="se-empty">{editedOnly() ? tr("tools.navigation.noEditedFiles") : tr("tools.navigation.noRecentFiles")}</div>}>
               <For each={files()}>
                 {(f, i) => {
                   const tab = () => editor.tabs.find((t) => t.path === f.path);
@@ -259,8 +259,8 @@ export function RecentFilesPopup() {
         </div>
         <div class="se-footer">
           {recentOpen() === "switcher"
-            ? "Release Ctrl to open · Tab to move"
-            : `Press ${shortcutLabel("RecentFiles")} again to show edited only · ← → to switch columns · type to search`}
+            ? tr("tools.navigation.releaseCtrlToOpenTab")
+            : tr("tools.navigation.pressAgainToShowEdited", { value: shortcutLabel("RecentFiles") })}
         </div>
       </div>
     </div>

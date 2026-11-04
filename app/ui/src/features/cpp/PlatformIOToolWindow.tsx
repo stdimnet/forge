@@ -11,6 +11,7 @@ import { ChevronDown, ChevronRight, CircuitBoard, Database, FlaskConical, Hammer
 import type { PioEnv, PioTask } from "@/ipc/cppTools";
 import { openFileAt } from "@/editor/views";
 import { embeddedInfo, refreshEmbedded, runPioTask } from "./embedded";
+import { t as tr } from "@/i18n";
 
 const TASKS: { task: PioTask; label: string; icon: typeof Hammer }[] = [
   { task: "build", label: "Build", icon: Hammer },
@@ -47,7 +48,7 @@ function TaskRows(props: { env: string; indent: number }) {
             data-pio-task={key}
             onClick={() => setSelected(key)}
             onDblClick={() => void runPioTask(props.env, t.task)}
-            title={`Double-click to run: pio ${t.task === "monitor" ? "device monitor" : t.task === "test" ? "test" : "run"}${props.env ? ` -e ${props.env}` : ""}`}
+            title={tr("langs.cpp.doubleClickToRunPio", { value: t.task === "monitor" ? "device monitor" : t.task === "test" ? "test" : "run", value2: props.env ? ` -e ${props.env}` : "" })}
           >
             <Dynamic component={t.icon} size={14} />
             <span>{t.label}</span>
@@ -91,20 +92,20 @@ export function PlatformIOToolWindow() {
   return (
     <div class="pio-window">
       <div class="pio-toolbar">
-        <button class="icon-btn" title="Refresh PlatformIO Project" onClick={() => void refreshEmbedded()}>
+        <button class="icon-btn" title={tr("langs.cpp.refreshPlatformioProject")} onClick={() => void refreshEmbedded()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn" title="Build the selected environment" onClick={() => run("build")}>
+        <button class="icon-btn" title={tr("langs.cpp.buildTheSelectedEnvironment")} onClick={() => run("build")}>
           <Hammer size={14} />
         </button>
-        <button class="icon-btn" title="Upload the selected environment" onClick={() => run("upload")}>
+        <button class="icon-btn" title={tr("langs.cpp.uploadTheSelectedEnvironment")} onClick={() => run("upload")}>
           <Upload size={14} />
         </button>
-        <button class="icon-btn" title="Run the selected task" disabled={!selected()?.includes("/")} onClick={() => run(selected()!.split("/")[1] as PioTask)}>
+        <button class="icon-btn" title={tr("langs.cpp.runTheSelectedTask")} disabled={!selected()?.includes("/")} onClick={() => run(selected()!.split("/")[1] as PioTask)}>
           <Play size={14} />
         </button>
       </div>
-      <Show when={project()} fallback={<div class="muted pio-empty">No platformio.ini in the project.</div>}>
+      <Show when={project()} fallback={<div class="muted pio-empty">{tr("langs.cpp.noPlatformioIniInThe")}</div>}>
         {(p) => (
           <div class="pio-tree" role="tree">
             <For each={p().problems ?? []}>
@@ -117,15 +118,15 @@ export function PlatformIOToolWindow() {
             </For>
             <div class="tree-row pio-row pio-group" onClick={() => toggle("#default")}>
               {collapsed().has("#default") ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-              <span>Default</span>
-              <span class="muted">{p().defaultEnvs.length ? p().defaultEnvs.join(", ") : "all environments"}</span>
+              <span>{tr("common.default")}</span>
+              <span class="muted">{p().defaultEnvs.length ? p().defaultEnvs.join(", ") : tr("langs.cpp.allEnvironments")}</span>
             </div>
             <Show when={!collapsed().has("#default")}>
               <TaskRows env="" indent={28} />
             </Show>
             <div class="tree-row pio-row pio-group" onClick={() => toggle("#envs")}>
               {collapsed().has("#envs") ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-              <span>Environments</span>
+              <span>{tr("langs.cpp.environments")}</span>
               <span class="muted">{p().envs.length}</span>
             </div>
             <Show when={!collapsed().has("#envs")}>

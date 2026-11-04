@@ -15,6 +15,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { startProviderTurn } from "@/features/ai-chat/store";
 import { openFile, reloadFile } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
+import { t } from "@/i18n";
 
 export const ACTION_TITLES: Record<ActionKind, string> = {
   explain: "Explain with AI",
@@ -131,7 +132,7 @@ export async function explainWithAi(path: string, view: EditorView): Promise<voi
     });
     if (!turn) {
       void cancel();
-      showBalloon("The AI Chat is busy", "Wait for the agent to finish its turn, then try again.", 5000);
+      showBalloon(t("tools.aiEditor.theAiChatIsBusy"), t("tools.aiEditor.waitForTheAgentTo"), 5000);
       return;
     }
     const note = [started.provider, started.model].filter(Boolean).join(" · ");

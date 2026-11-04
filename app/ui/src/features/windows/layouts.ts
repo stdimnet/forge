@@ -12,6 +12,7 @@ import { SLOTS, type ActiveWindows } from "@/state/toolWindowLayout";
 import { showBalloon } from "@/keymap";
 import { askName } from "@/features/contextMenu/dialogs";
 import { registerMainMenuDynamic } from "@/features/mainMenu/model";
+import { t } from "@/i18n";
 
 /** Replace the tool window layout with a saved one (windows it does not open close). */
 export function applyNamedLayout(saved: ProjectLayout): void {
@@ -24,7 +25,7 @@ export function applyNamedLayout(saved: ProjectLayout): void {
 export async function restoreNamedLayout(name: string): Promise<void> {
   const layouts = await projectStateApi.listLayouts();
   const found = layouts.find((l) => l.name.toLowerCase() === name.toLowerCase());
-  if (!found) return void showBalloon(`Layout "${name}" not found`);
+  if (!found) return void showBalloon(t("tools.windows.layoutNotFound", { name }));
   applyNamedLayout(found.layout);
 }
 
@@ -41,14 +42,14 @@ export async function saveCurrentLayoutAsNew(): Promise<void> {
   if (!name) return;
   try {
     await projectStateApi.saveNamedLayout(name, windowLayout());
-    showBalloon(`Layout "${name}" saved`, "Window | Layouts restores it.");
+    showBalloon(t("tools.windows.layoutSaved", { name }), t("tools.windows.windowLayoutsRestoresIt"));
   } catch (e) {
-    showBalloon("Cannot save the layout", String(e));
+    showBalloon(t("tools.windows.cannotSaveTheLayout"), String(e));
   }
 }
 
 export async function deleteNamedLayout(name: string): Promise<void> {
-  if (await projectStateApi.deleteNamedLayout(name).catch(() => false)) showBalloon(`Layout "${name}" deleted`);
+  if (await projectStateApi.deleteNamedLayout(name).catch(() => false)) showBalloon(t("tools.windows.layoutDeleted", { name }));
 }
 
 registerCommand({ id: "StoreNewLayout", title: "Save Current Layout as New…", category: "Window", run: saveCurrentLayoutAsNew });

@@ -201,7 +201,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
       const where = `${schema()}.${plan().table}`;
       showBalloon(
         summary.cancelled ? tr("database.objects.importDialog.importCancelled") : summary.aborted ? tr("database.objects.importDialog.importAborted") : tr("database.objects.importDialog.importFinished"),
-        `${summary.inserted} row${summary.inserted === 1 ? "" : "s"} into ${where}${summary.skipped ? `, ${summary.skipped} skipped` : ""}`,
+        tr("tools.database.rowsInto", { count: summary.inserted, where, value: summary.skipped ? `, ${summary.skipped} skipped` : "" }),
       );
       await afterChange(p.ds, schema());
     } catch (e) {
@@ -226,7 +226,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
 
   return (
     <ObjectModal
-      title={`Import "${file()?.name ?? "file"}"`}
+      title={tr("tools.database.import", { value: file()?.name ?? "file" })}
       testId="dbo-import-dialog"
       width={1060}
       height={760}
@@ -242,8 +242,8 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             <Show when={result()}>
               {(r) => (
                 <span class="muted" data-testid="dbo-import-result">
-                  {r().inserted} imported{r().skipped ? `, ${r().skipped} skipped` : ""}
-                  {r().errors[0] ? ` — row ${r().errors[0].row + 1}: ${r().errors[0].message}` : ""}
+                  {r().inserted} imported{r().skipped ? tr("tools.database.skipped", { skipped: r().skipped }) : ""}
+                  {r().errors[0] ? tr("tools.database.row", { value: r().errors[0].row + 1, message: r().errors[0].message }) : ""}
                 </span>
               )}
             </Show>
@@ -283,7 +283,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             <span class="db-form-label">{tr("database.objects.importDialog.file")}</span>
             <div class="dbo-row">
               <span class="dbo-file" title={file()?.source.path ?? file()?.name}>
-                {file()?.name ?? "No file chosen"}
+                {file()?.name ?? tr("tools.database.noFileChosen")}
               </span>
               <button class="btn-secondary" onClick={() => void pick()} data-autofocus>
                 <FileUp size={14} /> {tr("database.objects.importDialog.choose")}
@@ -303,7 +303,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
               </select>
               <span class="db-form-label">{tr("database.objects.importDialog.quote")}</span>
               <select class="dsd-input" value={opts.quote} onChange={(e) => setOpts("quote", e.currentTarget.value)}>
-                <option value={'"'}>Double quote "</option>
+                <option value={'"'}>{tr("tools.database.doubleQuote")}</option>
                 <option value="'">{tr("database.objects.importDialog.singleQuote")}</option>
               </select>
             </Show>
@@ -366,14 +366,14 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
             <span class="db-form-label">{tr("database.objects.importDialog.onError")}</span>
             <select class="dsd-input" value={onError()} onChange={(e) => setOnError(e.currentTarget.value as "skip" | "abort")}>
               <option value="skip">{tr("database.objects.importDialog.skipTheRowAndContinue")}</option>
-              <option value="abort">Abort (roll back)</option>
+              <option value="abort">{tr("tools.database.abortRollBack")}</option>
             </select>
             <span class="db-form-label">{tr("database.objects.importDialog.batchSize")}</span>
             <input class="dsd-input dbo-num" type="number" min="1" value={batchSize()} onInput={(e) => setBatchSize(Math.max(1, Number(e.currentTarget.value) || 1))} />
             <span />
             <label class="dbo-check">
               <input type="checkbox" checked={emptyAsNull()} onChange={(e) => setEmptyAsNull(e.currentTarget.checked)} />
-              Empty values as NULL
+              {tr("tools.database.emptyValuesAsNull")}
             </label>
           </div>
         </section>
@@ -429,7 +429,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
                           fallback={<input class="dbo-cell-input" value={mapping[i()]?.target ?? ""} spellcheck={false} onInput={(e) => setMapping(i(), "target", e.currentTarget.value)} />}
                         >
                           <select class="dbo-cell-input" value={mapping[i()]?.target ?? ""} onChange={(e) => setMapping(i(), { target: e.currentTarget.value, include: !!e.currentTarget.value })}>
-                            <option value="">(skip)</option>
+                            <option value="">{tr("tools.database.skip")}</option>
                             <For each={targetColumns()}>{(t) => <option value={t}>{t}</option>}</For>
                           </select>
                         </Show>
@@ -448,7 +448,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
           <div class="dbo-section-title">
             {tr("database.objects.importDialog.preview")}
             <span class="muted">
-              {preview() ? ` first ${Math.min(rowsShown(), preview()!.totalRows)} of ${preview()!.totalRows} rows` : ""}
+              {preview() ? tr("tools.database.firstOfRows", { value: Math.min(rowsShown(), preview()!.totalRows), totalRows: preview()!.totalRows }) : ""}
             </span>
             <select class="dbo-cell-input dbo-rows" value={rowsShown()} onChange={(e) => setRowsShown(Number(e.currentTarget.value))}>
               <For each={[10, 20, 50, 100]}>{(n) => <option value={n}>{n} rows</option>}</For>
@@ -465,7 +465,7 @@ export function ImportDialog(p: { ds: string; schema: string; table?: string }) 
                 <For each={preview()?.table.rows ?? []}>
                   {(r) => (
                     <tr>
-                      <For each={r}>{(v) => <td classList={{ "dbo-null": v === null }}>{v === null ? "<null>" : v}</td>}</For>
+                      <For each={r}>{(v) => <td classList={{ "dbo-null": v === null }}>{v === null ? tr("tools.database.null") : v}</td>}</For>
                     </tr>
                   )}
                 </For>

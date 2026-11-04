@@ -341,7 +341,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                   </button>
                   <Show when={d().source.driver !== "sqlite" && d().source.driver !== "ddl"}>
                     <button class="dsd-tab" classList={{ active: tab() === "ssh" }} onClick={() => setTab("ssh")} data-testid="dsd-tab-ssh">
-                      SSH/SSL
+                      {tr("tools.database.sshSsl")}
                     </button>
                   </Show>
                   <button class="dsd-tab" classList={{ active: tab() === "schemas" }} onClick={() => setTab("schemas")} data-testid="dsd-tab-schemas">
@@ -410,13 +410,13 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                       <Show when={!d().source.options.ssh?.enabled && d().source.scope === "project" && workspace()?.remote}>
                         {(remote) => (
                           <div class="dsd-hint muted" data-testid="dsd-ssh-note">
-                            Connects through the SSH connection to {remote().label}: host and port as the remote host sees them.
+                            {tr("tools.database.connectsThroughTheSshConnection", { label: remote().label })}
                           </div>
                         )}
                       </Show>
                       <Field label={tr("database.dataSourceDialog.authentication")}>
                         <select class="dsd-input dsd-narrow" value="password" disabled>
-                          <option value="password">User &amp; Password</option>
+                          <option value="password">{tr("tools.database.userAmpPassword")}</option>
                         </select>
                       </Field>
                       <Field label={tr("database.dataSourceDialog.user")}>
@@ -427,7 +427,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                           <input
                             class="dsd-input"
                             type="password"
-                            placeholder={d().hadPassword && d().password === undefined ? "<hidden>" : ""}
+                            placeholder={d().hadPassword && d().password === undefined ? tr("tools.database.hidden") : ""}
                             value={d().password ?? ""}
                             onInput={(e) => setPassword(e.currentTarget.value)}
                           />
@@ -448,7 +448,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                       </Field>
                       <Show when={d().source.driver === "oracle"}>
                         <div class="dsd-hint muted" data-testid="dsd-oracle-note">
-                          Oracle runs through SQL*Plus (Oracle Instant Client) or SQLcl installed on this machine and found on PATH. Each statement runs on its own and is committed.
+                          {tr("tools.database.oracleRunsThroughSqlPlus")}
                         </div>
                       </Show>
                     </Show>
@@ -512,7 +512,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
               class="dsd-input dsd-textarea"
               spellcheck={false}
               data-testid="dsd-ddl-files"
-              placeholder={"database/schema.sql\ndb/migrations"}
+              placeholder={tr("tools.database.databaseSchemaSqlDbMigrations")}
               value={files().join("\n")}
               onInput={(e) => update((s) => (s.options.ddlFiles = e.currentTarget.value.split("\n").map((x) => x.trim()).filter(Boolean)))}
             />
@@ -532,8 +532,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
           <input class="dsd-input dsd-narrow" placeholder="public" value={p.d.source.database} spellcheck={false} onInput={(e) => update((s) => (s.database = e.currentTarget.value))} />
         </Field>
         <div class="dsd-hint muted" data-testid="dsd-ddl-note">
-          One file or folder per line, relative to the project. Folders are read in name order (V1__, V2__, …), so migrations give the final schema. The tree and SQL completion use the parsed model;
-          {tr("database.dataSourceDialog.forgeParsesTheFilesAgain")}
+          {tr("tools.database.oneFileOrFolderPer", { value: tr("database.dataSourceDialog.forgeParsesTheFilesAgain") })}
         </div>
       </>
     );
@@ -604,8 +603,8 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
           />
         </Field>
         <div class="dsd-hint muted">
-          One pattern per line: a name, <code>*</code> and <code>?</code> wildcards (<code>{"tenant_*"}</code>), <code>:current</code>, <code>/regex/</code> (<code>/regex/i</code> ignores case), and{" "}
-          <code>{"!pattern"}</code> to exclude. No pattern means the current schema. Hidden schemas are not introspected.
+          {tr("tools.database.onePatternPerLineA")} <code>*</code> and <code>?</code> {tr("tools.database.wildcards")}<code>{"tenant_*"}</code>), <code>:current</code>, <code>/regex/</code> (<code>/regex/i</code> {tr("tools.database.ignoresCaseAnd")}
+          <code>{"!pattern"}</code> {tr("tools.database.toExcludeNoPatternMeans")}
         </div>
         <Show when={error()}>
           <div class="dsd-hint dsd-error">{error()}</div>
@@ -671,8 +670,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                                   <span>
                                     <b>{tr("database.dataSourceDialog.succeeded")}</b>
                                     <span class="muted">
-                                      {" "}
-                                      · {r.driver} {r.serverVersion} · {r.latencyMs} ms
+                                      {tr("tools.database.ms2", { driver: r.driver, serverVersion: r.serverVersion, latencyMs: r.latencyMs })}
                                     </span>
                                   </span>
                                 </span>
@@ -691,7 +689,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                                       <span>
                                         <b>{tr("database.dataSourceDialog.unknownSshHostKey")}</b>{" "}
                                         <span class="dsd-test-error">
-                                          {k().host}:{k().port} presented {k().keyType} {k().fingerprint}
+                                          {tr("tools.database.presented", { host: k().host, port: k().port, keyType: k().keyType, fingerprint: k().fingerprint })}
                                         </span>
                                         <button class="dsd-test-link dsd-trust" data-testid="dsd-trust-host" onClick={() => void runTest(k().fingerprint)}>
                                           {tr("database.dataSourceDialog.trustHostKeyAndTest")}
@@ -757,7 +755,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
               value={ssh().configurationId ?? ""}
               onChange={(e) => setSsh((t) => (t.configurationId = e.currentTarget.value || null))}
             >
-              <option value="">Ad-hoc (settings below)</option>
+              <option value="">{tr("tools.database.adHocSettingsBelow")}</option>
               <For each={sshConfigs() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
             </select>
           </Field>
@@ -789,7 +787,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                   class="dsd-input"
                   type="password"
                   disabled={!ssh().enabled}
-                  placeholder={p.d.hadSshSecret && p.d.sshSecret === undefined ? "<hidden>" : ""}
+                  placeholder={p.d.hadSshSecret && p.d.sshSecret === undefined ? tr("tools.database.hidden") : ""}
                   value={p.d.sshSecret ?? ""}
                   onInput={(e) => setSecret("sshSecret", e.currentTarget.value)}
                 />
@@ -797,7 +795,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
             </Show>
           </Show>
           <Show when={!adhoc()}>
-            <div class="dsd-hint muted">Host, user and authentication come from the SSH configuration (Settings | Tools | SSH Configurations).</div>
+            <div class="dsd-hint muted">{tr("tools.database.hostUserAndAuthenticationCome")}</div>
           </Show>
         </div>
         <div class="dsd-section">{tr("database.dataSourceDialog.ssl")}</div>
@@ -818,7 +816,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
             <input
               class="dsd-input"
               type="password"
-              placeholder={p.d.hadSslKey && p.d.sslKey === undefined ? "<hidden>" : ""}
+              placeholder={p.d.hadSslKey && p.d.sslKey === undefined ? tr("tools.database.hidden") : ""}
               value={p.d.sslKey ?? ""}
               onInput={(e) => setSecret("sslKey", e.currentTarget.value)}
             />
@@ -855,7 +853,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
           </div>
         </Field>
         <Show when={d().source.options.color === "red"}>
-          <div class="dsd-hint muted">Production: consoles ask before UPDATE or DELETE without WHERE (and TRUNCATE, FLUSHDB, deleteMany({})).</div>
+          <div class="dsd-hint muted">{tr("tools.database.productionConsolesAskBeforeUpdate")}{})).</div>
         </Show>
         <Show when={transactions()}>
           <Field label={tr("database.dataSourceDialog.transactionControl")}>
@@ -871,7 +869,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
         </Show>
         <label class="dsd-check">
           <input type="checkbox" checked={!!d().source.options.singleSession} onChange={(e) => update((s) => (s.options.singleSession = e.currentTarget.checked))} />
-          Single session mode (all consoles share one connection)
+          {tr("tools.database.singleSessionModeAllConsoles")}
         </label>
         <Field label={tr("database.dataSourceDialog.connectTimeoutS")}>
           <input
@@ -885,7 +883,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
             <textarea
               class="dsd-input dsd-textarea"
               spellcheck={false}
-              placeholder={"SET time_zone = '+00:00';"}
+              placeholder={tr("tools.database.setTimeZone0000")}
               value={d().source.options.initSql}
               onInput={(e) => update((s) => (s.options.initSql = e.currentTarget.value))}
             />
@@ -903,7 +901,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
         <div class="dsd-section">{tr("database.dataSourceDialog.scope")}</div>
         <label class="dsd-check">
           <input type="checkbox" checked={d().source.scope === "global"} onChange={(e) => update((s) => (s.scope = e.currentTarget.checked ? "global" : "project"))} />
-          Global (available in all projects)
+          {tr("tools.database.globalAvailableInAllProjects")}
         </label>
       </>
     );

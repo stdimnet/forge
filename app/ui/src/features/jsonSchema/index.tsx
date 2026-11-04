@@ -27,7 +27,7 @@ import { JsonSchemaMappingsPage } from "./MappingsPage";
 import { JsonSchemaStatus } from "./SchemaStatus";
 import { active, schemaLanguage } from "./state";
 import "./jsonSchema.css";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 registerEditorExtension(({ path }) => {
   const language = schemaLanguage(path);
@@ -93,10 +93,10 @@ registerSettingsPage({
   component: () => (
     <div class="set-page set-group-page">
       <button class="set-link" onClick={() => openSettings("lang.json-schema")}>
-        JSON Schema Mappings
+        {tr("tools.jsonSchema.jsonSchemaMappings")}
       </button>
       <button class="set-link" onClick={() => openSettings("lang.json-schema.remote")}>
-        Remote JSON Schemas
+        {tr("tools.jsonSchema.remoteJsonSchemas")}
       </button>
     </div>
   ),

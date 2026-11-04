@@ -7,6 +7,7 @@ import { createSignal, onCleanup, Show } from "solid-js";
 import { suspendKeymap } from "@/keymap";
 import { repoAvailable } from "@/features/git/store";
 import { workspace } from "@/state/workspace";
+import { t as tr } from "@/i18n";
 
 export interface OptimizeTarget {
   path: string;
@@ -56,7 +57,7 @@ function Dialog(props: { req: Request }) {
         class="dialog optimize-imports-dialog"
         style={{ width: "min(460px, calc(100vw - 32px))" }}
         role="dialog"
-        aria-label="Optimize Imports"
+        aria-label={tr("tools.imports.optimizeImports")}
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}
         onKeyDown={(e) => {
@@ -67,26 +68,26 @@ function Dialog(props: { req: Request }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Optimize Imports</div>
+        <div class="dialog-title">{tr("tools.imports.optimizeImports")}</div>
         <div class="dialog-body">
           <div class="optimize-imports-scope">{describeTargets(props.req.targets, workspace()?.name ?? "project")}</div>
           <Show when={hasDirs()}>
             <label class="form-label check">
               <input type="checkbox" checked={subdirs()} onChange={(e) => setSubdirs(e.currentTarget.checked)} />
-              Include subdirectories
+              {tr("tools.imports.includeSubdirectories")}
             </label>
           </Show>
-          <label class="form-label check" classList={{ disabled: !repoAvailable() }} title={repoAvailable() ? undefined : "The project is not under version control"}>
+          <label class="form-label check" classList={{ disabled: !repoAvailable() }} title={repoAvailable() ? undefined : tr("tools.imports.theProjectIsNotUnder")}>
             <input type="checkbox" checked={vcs()} disabled={!repoAvailable()} onChange={(e) => setVcs(e.currentTarget.checked)} />
-            Only VCS changed files
+            {tr("tools.imports.onlyVcsChangedFiles")}
           </label>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={() => close(false)}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => close(true)}>
-            Run
+            {tr("common.run2")}
           </button>
         </div>
       </div>

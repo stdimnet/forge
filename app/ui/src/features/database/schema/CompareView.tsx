@@ -70,7 +70,7 @@ function SidePicker(props: { label: string; side: Side; onChange: (s: Side) => v
           {tr("database.schema.compareView.dataSource")}
         </option>
         <For each={relational()}>{(s) => <option value={s.id}>{s.name}</option>}</For>
-        <option value={DDL}>DDL snapshot (paste SQL)</option>
+        <option value={DDL}>{tr("tools.database.ddlSnapshotPasteSql")}</option>
       </select>
       <Show when={props.side.id && props.side.id !== DDL}>
         <select class="cmp-select" value={props.side.schema} onChange={(e) => props.onChange({ ...props.side, schema: e.currentTarget.value })}>
@@ -196,7 +196,7 @@ export function CompareView(props: { tab: EditorTab }) {
       const res = await dbApi.execute(s.id, sql, 100, true);
       const failed = res.find((x) => x.error);
       if (failed) showBalloon(tr("database.schema.compareView.migrationFailed"), `${failed.sql}\n${failed.error}`, 10000);
-      else showBalloon(tr("database.schema.compareView.migrationComplete"), `${res.length} statements on ${t.name}`);
+      else showBalloon(tr("database.schema.compareView.migrationComplete"), tr("tools.database.statementsOn", { count: res.length, name: t.name }));
       await introspect(t.id, target().schema);
     } catch (e) {
       showBalloon(tr("database.schema.compareView.migrationFailed"), errorText(e), 10000);
@@ -216,7 +216,7 @@ export function CompareView(props: { tab: EditorTab }) {
       await workspaceApi.createDir(path.slice(0, path.lastIndexOf("/"))).catch(() => undefined);
       await workspaceApi.writeFile(path, r.file.text);
       await openFile(path);
-      showBalloon(`${kind === "laravel" ? "Laravel" : "Doctrine"} migration created`, r.file.path);
+      showBalloon(tr("tools.database.migrationCreated", { value: kind === "laravel" ? "Laravel" : "Doctrine" }), r.file.path);
     } catch (e) {
       showBalloon(tr("database.schema.compareView.cannotWriteTheMigration"), errorText(e));
     }
@@ -302,8 +302,8 @@ export function CompareView(props: { tab: EditorTab }) {
                   <KindIcon kind={t.kind} />
                   <span class={`cmp-name ${t.kind}`}>{t.name}</span>
                   <span class="cmp-hint">
-                    {t.tableKind === "table" ? "table" : t.tableKind === "matview" ? "materialized view" : t.tableKind}
-                    {t.kind === "added" ? " · only in source" : t.kind === "removed" ? " · only in target" : ` · ${t.items?.length ?? 0} difference${t.items?.length === 1 ? "" : "s"}`}
+                    {t.tableKind === "table" ? "table" : t.tableKind === "matview" ? tr("tools.database.materializedView") : t.tableKind}
+                    {t.kind === "added" ? tr("tools.database.onlyInSource") : t.kind === "removed" ? tr("tools.database.onlyInTarget") : tr("tools.database.differences", { count: t.items?.length, value: t.items?.length ?? 0 })}
                   </span>
                 </div>
                 <Show when={open().has(t.name)}>
@@ -313,7 +313,7 @@ export function CompareView(props: { tab: EditorTab }) {
                         <span class="cmp-chevron" />
                         <KindIcon kind={i.kind} />
                         <span class="cmp-cat">{CATEGORY[i.category]}</span>
-                        <span class={`cmp-name ${i.kind}`}>{i.name || "(unnamed)"}</span>
+                        <span class={`cmp-name ${i.kind}`}>{i.name || tr("tools.database.unnamed2")}</span>
                         <span class="cmp-hint">
                           {i.changes?.length ? i.changes.join(", ") : i.kind === "added" ? i.source : i.kind === "removed" ? i.target : `${i.target ?? ""} → ${i.source ?? ""}`}
                         </span>
@@ -328,9 +328,9 @@ export function CompareView(props: { tab: EditorTab }) {
         <div class="cmp-script">
           <div class="cmp-pane-head">
             <span>
-              Migration of <b>{sideName(target())}</b>
+              {tr("tools.database.migrationOf")} <b>{sideName(target())}</b>
             </span>
-            <span class="muted">{result() ? `${statements()} statement${statements() === 1 ? "" : "s"} · ${DRIVER_LABELS[targetDs()?.driver ?? "postgres"] ?? dialect()}` : ""}</span>
+            <span class="muted">{result() ? tr("tools.database.statements", { count: statements(), value: DRIVER_LABELS[targetDs()?.driver ?? "postgres"] ?? dialect() }) : ""}</span>
           </div>
           <Show when={result()?.migration.warnings.length}>
             <div class="cmp-warnings">

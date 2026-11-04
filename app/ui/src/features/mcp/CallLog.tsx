@@ -3,6 +3,7 @@ import { For, Show } from "solid-js";
 import { Ban, Check, CircleX, ShieldOff } from "lucide-solid";
 import type { McpCallLogEntry } from "@/ipc/mcp";
 import { durationText, timeOf } from "./store";
+import { t } from "@/i18n";
 
 const STATUS_TITLE: Record<McpCallLogEntry["status"], string> = {
   ok: "Done",
@@ -34,7 +35,7 @@ export function CallLog(props: { entries: McpCallLogEntry[]; limit?: number }) {
   };
   return (
     <div class="mcp-log" data-testid="mcp-call-log">
-      <Show when={rows().length} fallback={<div class="mcp-log-empty muted">No tool calls yet.</div>}>
+      <Show when={rows().length} fallback={<div class="mcp-log-empty muted">{t("tools.mcp.noToolCallsYet")}</div>}>
         <For each={rows()}>
           {(e) => (
             <div class="mcp-log-row" data-tool={e.tool} title={e.message ? `${e.arguments}\n\n${e.message}` : e.arguments}>
