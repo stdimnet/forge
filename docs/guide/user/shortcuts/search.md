@@ -91,7 +91,7 @@ More: [Search Everywhere and Find Action](../../user/search-everywhere.md#find-a
 
 **Shortcut:** `Ctrl+F` · macOS `Cmd+F` · action id `Find`
 
-Opens the find panel of the editor for the current file.
+Opens the Find bar at the top of the editor for the current file, prefilled with the selection or the word at the caret.
 
 **Menu:** Edit | Find | Find…
 
@@ -103,7 +103,9 @@ More: [Editor](../../user/editor.md#find-and-replace-in-a-file)
 
 **Shortcut:** `Ctrl+R` · macOS `Cmd+R` · action id `Replace`
 
-Opens the find panel with the replace field.
+Opens the Find bar with the replace row expanded.
+
+![Replace in File](../../../screenshots/find-bar-replace.png)
 
 **Menu:** Edit | Find | Replace…
 

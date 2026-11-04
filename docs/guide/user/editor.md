@@ -542,11 +542,48 @@ doc comments and Reader mode are described in
 
 ## Find and replace in a file
 
-**Find** (`Ctrl+F`, macOS `Cmd+F`) and **Replace** (`Ctrl+R`, macOS `Cmd+R`) open the search
-panel of the editor (CodeMirror's search panel) with match case, regular expression and
-whole word options. **Find Next**
-`F3` and **Find Previous** `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`) move between matches.
-Other occurrences of the selected text are highlighted automatically.
+**Find** (`Ctrl+F`, macOS `Cmd+F`) opens the Find bar at the top of the editor; **Replace**
+(`Ctrl+R`, macOS `Cmd+R`) opens it with the replace row expanded. The arrow at the left
+expands and collapses the replace row. The same bar works in SQL consoles of the
+[Database tools](database.md).
+
+![Find bar](../../screenshots/find-bar-find.png)
+
+The search field starts with the selection, or with the word at the caret. A selection over
+several lines turns on **In Selection** instead, so the search stays inside it (the scope stays
+marked in the editor). The field has:
+
+| Control | What it does |
+| --- | --- |
+| magnifier with arrow | recent searches (also `Alt+Down`); the replace field has its own history |
+| **Multiline** | makes the field taller; `Ctrl+Shift+Enter` inserts a line break |
+| **Cc** / **W** / **.\*** | Match Case, Words, Regex (Forge remembers them, as PHPStorm does) |
+
+Next to it, the counter shows the current match and the total (`2/5`), or the number of
+results while the caret is not on a match. Without matches the field turns red and the
+counter says **0 results**; an invalid regular expression shows **Bad pattern** (the error
+is in the tooltip).
+
+![No matches](../../screenshots/find-bar-no-matches.png)
+
+| Key or button | Action |
+| --- | --- |
+| `Enter` / `Shift+Enter` in the field, `F3` / `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`), arrow buttons | next / previous occurrence |
+| `Alt+Enter`, **Select All Occurrences** button | a caret on every match, focus back in the editor |
+| **In Selection** button | search only in the selected text |
+| `Escape` | close the bar; the focus goes back to the editor |
+
+The replace row has **Replace** (also `Enter` in the replace field: replaces the current match
+and selects the next one), **Replace All**, **Exclude** (skips the current match: it no longer
+counts, and Replace All leaves it alone) and **Preserve case** (**Aa**): an upper-case match
+gets an upper-case replacement and a capitalized match a capitalized one. With **Regex**,
+`$1`, `$&` and `\n` work in the replacement.
+
+![Replace](../../screenshots/find-bar-replace.png)
+
+The options, Preserve case and both histories are saved in the user settings
+(`editor.find.*`), like PHPStorm's find settings. Other occurrences of the selected text are
+highlighted automatically.
 
 To search the whole project, use [Find in Files](search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
