@@ -20,6 +20,7 @@ import { dapApi } from "@/features/debug/dapApi";
 import { useTemporary } from "@/features/run/configStore";
 import { launch } from "@/features/run/runStore";
 import { registerDebugLauncher, registerRunConfigurationType } from "@/features/run/types";
+import { registerTestFileMatcher } from "@/features/run/frameworkFiles";
 import { isDialogWindow } from "@/shell/window/mode";
 import { registerCommand } from "@/state/commands";
 import { activeTab } from "@/state/editor";
@@ -67,7 +68,7 @@ registerRunConfigurationType({
   icon: Gamepad2,
   color: "var(--syn-type)",
   pluginId: GODOT_PLUGIN,
-  argumentsLabel: "Program arguments (after --)",
+  argumentsLabel: "Program arguments",
   debuggable: true,
   noRunTarget: true,
   defaults: () => ({ options: { target: "project" } }),
@@ -128,6 +129,9 @@ registerRunConfigurationType({
   ],
   suggestName: (cfg) => (opt(cfg, "scope") === "file" ? opt(cfg, "file").split("/").pop()?.replace(/\.gd$/, "") : "GdUnit4 Tests"),
 });
+
+// GdUnit4 suites get the test gutter (discovery in Rust: `godot::gdunit`).
+registerTestFileMatcher((path) => godotActive() && /\.gd$/i.test(path));
 
 registerDebugLauncher({
   id: "godot",

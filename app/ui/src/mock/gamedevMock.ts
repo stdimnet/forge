@@ -5,7 +5,8 @@
  * messages; tests, Godot runs and GdUnit4 print canned output with a canned report. Nothing
  * is written outside the in-memory demo files.
  */
-import { emitMock, registerMock } from "@/ipc";
+import { emitMock, mockHandler, registerMock } from "@/ipc";
+import { callWasm, forgeWasm } from "@/wasm";
 import type { BridgeEvent, GodotStatus, LogEntry, PlayMode, UnityStatus } from "@/ipc/gamedev";
 import type { CommandLine, RunConfiguration, RunRequest } from "@/ipc/run";
 import { mockSettingValue } from "./settingsMock";
@@ -356,4 +357,41 @@ registerMockRunHandler({
             : [],
     });
   },
+});
+
+// ---- Test discovery -------------------------------------------------------------------------
+
+/**
+ * Unity tests: DotNetForge's C# scanner (WebAssembly, `dotnet_discover`, which knows
+ * `[UnityTest]`) with the targets turned into `unity-test` configurations, like
+ * `unity::test_runner::discover_file`. GdUnit4 suites: the suite of a `GdUnitTestSuite` file.
+ */
+const previousDiscover = mockHandler("test_discover");
+registerMock("test_discover", async (args) => {
+  const path = String(args.path);
+  const text = String(args.text ?? "");
+  if (isUnityDemo() && /^(Assets|Packages)\/.*\.cs$/i.test(path)) {
+    type Target = { line: number; kind: string; label: string; key: string; configuration: RunConfiguration };
+    const found = await callWasm<{ targets: Target[]; file?: RunConfiguration | null }>((await forgeWasm()).dotnet_discover, { path, text });
+    const unityCfg = (c: RunConfiguration): RunConfiguration => {
+      const { project: _p, file: _f, ...options } = c.options ?? {};
+      return { ...c, type: "unity-test", options };
+    };
+    const classes = found.targets.filter((t) => t.kind === "class").map((t) => t.configuration.options?.class ?? "");
+    return {
+      framework: "unity-test",
+      targets: found.targets.map((t) => ({ ...t, configuration: unityCfg(t.configuration) })),
+      file: classes.length
+        ? { name: `Tests in ${path.split("/").pop()}`, type: "unity-test", options: { scope: "filter", filter: `^(${classes.map((c) => c.replace(/\./g, "\\.")).join("|")})\\.` } }
+        : null,
+    };
+  }
+  if (isGodotDemo() && path.endsWith(".gd") && /extends\s+GdUnitTestSuite/.test(text)) {
+    const lines = text.split("\n");
+    const line = lines.findIndex((l) => /^extends\s+GdUnitTestSuite/.test(l));
+    const name = /class_name\s+(\w+)/.exec(text)?.[1] ?? path.split("/").pop()!.replace(/\.gd$/, "");
+    const configuration: RunConfiguration = { name, type: "gdunit4", options: { scope: "file", file: path } };
+    return { framework: "gdunit4", targets: [{ line, kind: "class", label: name, key: path, configuration }], file: configuration };
+  }
+  return previousDiscover?.(args);
 });

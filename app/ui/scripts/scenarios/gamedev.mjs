@@ -24,6 +24,17 @@ async function openFile(page, path, line = 1) {
   await page.waitForTimeout(500);
 }
 
+/** Drag the bottom splitter so the bottom tool window gets `height` pixels. */
+async function bottomHeight(page, height) {
+  const box = await page.locator(".splitter-h").boundingBox();
+  if (!box) return;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + 200, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 200, 900 - 26 - height, { steps: 4 });
+  await page.mouse.up();
+}
+
 /** @param {import("playwright-core").Page} page */
 async function runConfiguration(page, name) {
   await page.evaluate(async (n) => {
@@ -54,6 +65,7 @@ export default {
     await page.click('[data-tool-window="unity"]');
     await page.waitForSelector('[data-testid="unity-connected"]', { timeout: 15000 });
     await closeBalloons(page);
+    await bottomHeight(page, 380);
     await page.click('[data-testid="unity-play"]');
     await page.waitForSelector(".gd-log-row.gd-error", { timeout: 10000 });
     await page.waitForTimeout(1200);
@@ -84,11 +96,15 @@ export default {
   }),
   // Unity tests in batch mode with NUnit results (Unity is closed).
   "unity-tests": unity(async (page) => {
-    await openFile(page, "Assets/Tests/EditMode/PlayerTests.cs", 1);
+    await openFile(page, "Assets/Tests/EditMode/PlayerTests.cs", 30);
     await closeBalloons(page);
     await runConfiguration(page, "Edit Mode Tests");
-    await page.waitForSelector(".test-tree-row, .run-test-row, [data-test-status]", { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(4500);
+    await page.waitForSelector(".run-tests-status");
+    await page.waitForFunction(() => /failed/.test(document.querySelector(".run-tests-status")?.textContent ?? ""), null, { timeout: 20000 });
+    await page.waitForTimeout(800);
+    await bottomHeight(page, 380);
+    await page.click('.test-row[data-test="Health_Decreases"]').catch(() => {});
+    await page.waitForTimeout(500);
   }, "&editor=closed"),
   // Settings | Languages & Frameworks | .NET | Unity.
   "unity-settings": unity(async (page) => {
@@ -120,7 +136,12 @@ export default {
     await openFile(page, "test/player_test.gd", 1);
     await closeBalloons(page);
     await runConfiguration(page, "GdUnit4 Tests");
-    await page.waitForTimeout(3500);
+    await page.waitForSelector(".run-tests-status");
+    await page.waitForFunction(() => /failed/.test(document.querySelector(".run-tests-status")?.textContent ?? ""), null, { timeout: 20000 });
+    await page.waitForTimeout(800);
+    await bottomHeight(page, 380);
+    await page.click('.test-row[data-test="test_speed_default"]').catch(() => {});
+    await page.waitForTimeout(500);
   }),
   // Settings | Languages & Frameworks | .NET | Godot.
   "godot-settings": godot(async (page) => {

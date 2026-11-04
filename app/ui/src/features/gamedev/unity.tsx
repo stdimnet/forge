@@ -38,6 +38,7 @@ import { openFileAt } from "@/editor/views";
 import { registerToolWindow } from "@/features/registry";
 import { action, registerMainMenuEntries } from "@/features/mainMenu/model";
 import { registerRunConfigurationType } from "@/features/run/types";
+import { registerTestFileMatcher } from "@/features/run/frameworkFiles";
 import { refreshDebugAdapters } from "@/features/debug/adapters";
 import { dapApi } from "@/features/debug/dapApi";
 import { isDialogWindow } from "@/shell/window/mode";
@@ -419,6 +420,9 @@ registerToolWindow({
 });
 
 // ---- Run configurations -------------------------------------------------------------------------
+
+// Unity tests in C# files of Assets/ and Packages/ (discovery in Rust: `unity::test_runner`).
+registerTestFileMatcher((path) => unityActive() && /^(Assets|Packages)\/.*\.cs$/i.test(path));
 
 const opt = (cfg: { options?: Record<string, string> }, key: string) => cfg.options?.[key] ?? "";
 const scope = (cfg: { options?: Record<string, string> }) => opt(cfg, "scope") || "all";

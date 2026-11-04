@@ -871,8 +871,8 @@ Page id `lang.dotnet.godot` (plugin `forge.godot`; the page also shows the Godot
 | `godot.path` | path | `""` | user | Godot | Godot executable — Empty: GODOT4 / GODOT, the PATH (godot4, godot) or the usual install folders. C# projects need a .NET build of Godot. |
 | `godot.host` | string | `"127.0.0.1"` | user | Godot Editor | Editor host — Where the Godot editor's language server and debug adapter listen. |
 | `godot.lsp.enabled` | bool | `true` | user | Godot Editor | Use the Godot editor's GDScript language server — Code completion, navigation and diagnostics for GDScript while the Godot editor has the project open. |
-| `godot.lsp.port` | int (1–65535) | `6005` | user | Godot Editor | Language server port — Editor Settings, Network, Language Server, Remote Port. |
-| `godot.dap.port` | int (1–65535) | `6006` | user | Godot Editor | Debug adapter port — Editor Settings, Network, Debug Adapter, Remote Port. |
+| `godot.lsp.port` | int (1–65535) | `6005` | user | Godot Editor | Language server port — Editor Settings | Network | Language Server | Remote Port. |
+| `godot.dap.port` | int (1–65535) | `6006` | user | Godot Editor | Debug adapter port — Editor Settings | Network | Debug Adapter | Remote Port. |
 | `godot.debugger` | enum: `auto`, `gdscript`, `csharp` | `"auto"` | user, project | Debugger | Debug with — Which debugger Debug of a Godot configuration uses. |
 
 ### Languages & Frameworks | Jupyter
