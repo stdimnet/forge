@@ -7,7 +7,9 @@
 import { t } from "@/i18n";
 import { navigate as navigateTree } from "@/features/project/treeNavigation";
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
-import { ArrowDownAZ, ChevronDown, ChevronRight, EllipsisVertical, Layers2 } from "lucide-solid";
+import { ArrowDownAZ, EllipsisVertical, Layers2 } from "lucide-solid";
+import { FileIcon } from "@/shell/FileIcon";
+import { TreeArrow } from "@/shell/TreeArrow";
 import { activeTab } from "@/state/editor";
 import { languageIdFor } from "@/editor/languages";
 import { fileStructureView, groupByRegions, scopesAt, structureOf, structureOfText } from "@/features/codeStructure/model";
@@ -251,7 +253,9 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
             toggleCollapsed(key());
           }}
         >
-          <Show when={kids().length}>{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
+          <Show when={kids().length}>
+            <TreeArrow open={open()} />
+          </Show>
         </span>
         <SymbolIcon kind={props.node.kind} visibility={props.node.visibility} modifiers={props.node.modifiers} />
         <span class="tree-label php-structure-name">{props.node.name}</span>
@@ -312,9 +316,16 @@ export function StructureView() {
         fallback={<div class="placeholder-panel">{activeTab() ? t("langs.php.noStructureForThisFile") : t("langs.php.noFileIsOpen")}</div>}
       >
         {(s) => (
-          <For each={orderNodes(s().nodes, sortAlpha())}>
-            {(n) => <NodeRow node={n} depth={0} parent="" file={s().path} />}
-          </For>
+          <>
+            {/* The file the structure belongs to, as PHPStorm's root node. */}
+            <div class="php-structure-file" title={s().path}>
+              <FileIcon name={s().path.split("/").pop() ?? s().path} path={s().path} size={15} />
+              <span>{s().path.split("/").pop()}</span>
+            </div>
+            <For each={orderNodes(s().nodes, sortAlpha())}>
+              {(n) => <NodeRow node={n} depth={0} parent="" file={s().path} />}
+            </For>
+          </>
         )}
       </Show>
     </div>

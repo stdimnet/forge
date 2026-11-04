@@ -32,6 +32,7 @@ import { lspApi, type EditorCompletionItem } from "@/ipc/lsp";
 import { buildHoverDom, hoverDocOf } from "./hoverDoc";
 import { syncNow } from "./sync";
 import { fromLsp, h, iconNode, toLsp } from "./util";
+import { themedIconElement } from "@/features/iconThemes/state";
 
 const kindIcons: Record<string, Parameters<typeof iconNode>[0]> = {
   method: SquareFunction,
@@ -81,9 +82,11 @@ export function kindGroup(kind: string): string {
   return "other";
 }
 
-export function kindIconNode(kind: string): Element {
+export function kindIconNode(kind: string, label?: string): Element {
   const span = h("span", `cm-lsp-kind kind-${kindGroup(kind)}`);
-  span.append(iconNode(kindIcons[kind] ?? Text, 14));
+  // File and folder completions (paths, includes) use the active icon theme's icon.
+  const themed = label && (kind === "file" || kind === "folder") ? themedIconElement(label, kind === "file" ? "file" : "folder", 14) : null;
+  span.append(themed ?? iconNode(kindIcons[kind] ?? Text, 14));
   span.title = kind;
   return span;
 }
@@ -257,7 +260,7 @@ export function lspCompletion(path: string): Extension {
     EditorState.languageData.of(() => data),
     autocompletion({
       icons: false,
-      addToOptions: [{ render: (c) => kindIconNode(c.type ?? "text"), position: 20 }],
+      addToOptions: [{ render: (c) => kindIconNode(c.type ?? "text", c.label), position: 20 }],
       optionClass: (c) =>
         `cm-lsp-option kind-${kindGroup(c.type ?? "text")}${deprecatedOptions.has(c) ? " cm-lsp-deprecated-option" : ""}${
           extraClasses.has(c) ? ` ${extraClasses.get(c)}` : ""

@@ -224,8 +224,6 @@
   "tools.clipboard.nothingWasCopiedInThis": "In dieser Sitzung wurde nichts kopiert",
   "tools.clipboard.preview": "Vorschau",
   "tools.clipboard.enterToPasteDeleteTo": "Enter fügt ein · Entf entfernt · Tippen filtert",
-  "tools.clipboard.clipboardIsNotAvailable": "Zwischenablage ist nicht verfügbar",
-  "tools.clipboard.useTheKeyboardShortcutInstead": "Verwenden Sie stattdessen das Tastenkürzel.",
   "tools.codeStructure.breadcrumbs": "Breadcrumbs",
   "tools.codeStructure.showSiblings": "Geschwister anzeigen",
   "tools.codeStructure.toggleRenderedView": "Gerenderte Ansicht umschalten",

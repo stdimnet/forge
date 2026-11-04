@@ -119,7 +119,9 @@ async function main() {
   } else if (command === "build") {
     console.log(`wrote ${await build(args[0] ?? ".")}`);
   } else if (command === "pack") {
-    await build(args[0] ?? ".");
+    // Plugins without code (an icon theme only) have nothing to bundle.
+    const manifest = JSON.parse(readFileSync(join(resolve(args[0] ?? "."), "forge-plugin.json"), "utf8"));
+    if (manifest.main) await build(args[0] ?? ".");
     const { file, sha256, size } = pack(args[0] ?? ".");
     console.log(`wrote ${file} (${size} bytes)\nsha256 ${sha256}`);
   } else {

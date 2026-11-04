@@ -13,6 +13,7 @@ import { gridColumns } from "./grid";
 import { connect, openConsole, parseRedisPath, sourceColor } from "./store";
 import { ttlText } from "./DatabaseView";
 import { t as tr } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 const cell = (v: unknown): Cell =>
   v === null || v === undefined ? null : typeof v === "object" ? JSON.stringify(v) : (v as Cell);
@@ -64,7 +65,7 @@ export function RedisValueView(props: { tab: EditorTab }) {
         <button class="icon-btn db-tool" title={tr("database.redisValueView.reload")} onClick={() => void refetch()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn db-tool" title={tr("database.redisValueView.copyValue")} disabled={!value()} onClick={() => void navigator.clipboard?.writeText(valueText(value()!))}>
+        <button class="icon-btn db-tool" title={tr("database.redisValueView.copyValue")} disabled={!value()} onClick={() => void writeClipboard(valueText(value()!))}>
           <Copy size={14} />
         </button>
         <button class="icon-btn db-tool" title={tr("database.redisValueView.openInConsole")} onClick={() => openConsole(loc.id, `TYPE ${loc.key}\nTTL ${loc.key}\n`)}>

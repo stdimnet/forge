@@ -5455,6 +5455,82 @@ export function i18n_t_args(key, args_json) {
 }
 
 /**
+ * The icon id for `path` (`kind`: 0 file, 1 folder, 2 expanded folder), or "" for Forge's
+ * own icon.
+ * @param {string} path
+ * @param {number} kind
+ * @returns {string}
+ */
+export function icons_resolve(path, kind) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(path, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_resolve(retptr, ptr0, len0, kind);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `{ theme: IconThemeDef | null, associations }` → problems (`string[]`) of the theme and
+ * the associations; the resolver is replaced either way (associations with problems are
+ * skipped).
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function icons_set_theme(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_set_theme(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `IconThemeDef` JSON → problems (`string[]`).
+ * @param {string} theme_json
+ * @returns {string}
+ */
+export function icons_validate_theme(theme_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(theme_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_validate_theme(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
  * @param {string} request_json
  * @returns {string}
@@ -8074,6 +8150,31 @@ export function pio_project(request_json) {
         const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
         const len0 = WASM_VECTOR_LEN;
         wasm.pio_project(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `{ manifest, theme, files }` → `LoadedIconTheme`, as `icon_theme_load` reads it from an
+ * installed plugin.
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function plugins_load_icon_theme(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.plugins_load_icon_theme(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         deferred2_0 = r0;

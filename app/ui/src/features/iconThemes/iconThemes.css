@@ -1,0 +1,19 @@
+/* File icon themes: themed icons are drawn as background images (or color masks). */
+.themed-file-icon {
+  vertical-align: middle;
+}
+.tree-triangle {
+  margin: 0 3px;
+  color: var(--fg-muted);
+}
+.icon-theme-error {
+  color: var(--danger);
+}
+.icon-association-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.icon-associations .set-input {
+  width: 100%;
+}

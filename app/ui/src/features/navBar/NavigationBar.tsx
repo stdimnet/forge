@@ -57,10 +57,10 @@ function ItemIcon(props: { item: NavItem }) {
   return (
     <Switch>
       <Match when={props.item.kind === "directory"}>
-        <FileIcon name={props.item.label} dir size={14} />
+        <FileIcon name={props.item.label} path={props.item.path} dir size={14} />
       </Match>
       <Match when={props.item.kind === "file"}>
-        <FileIcon name={props.item.label} size={14} />
+        <FileIcon name={props.item.label} path={props.item.path} size={14} />
       </Match>
       <Match when={props.item.node}>
         {(n) => <SymbolIcon kind={n().kind} visibility={n().visibility} modifiers={n().modifiers} />}

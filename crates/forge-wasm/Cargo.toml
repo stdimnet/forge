@@ -87,6 +87,7 @@ forge-bookmarks.workspace = true
 forge-localhistory.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
+forge-icons.workspace = true
 forge-maintenance.workspace = true
 forge-text.workspace = true
 forge-codestyle.workspace = true

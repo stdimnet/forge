@@ -229,6 +229,37 @@ pub fn plugin_bundle(id: String, state: State<'_, AppState>) -> Result<String> {
     String::from_utf8(bytes).map_err(|_| err(format!("{main} is not UTF-8")))
 }
 
+/// An icon theme of an enabled plugin with its SVGs (`forge_plugins::icon_themes`). Themes
+/// are data only, so they load in Safe Mode too.
+#[tauri::command]
+pub fn icon_theme_load(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<forge_plugins::icon_themes::LoadedIconTheme> {
+    let store = store(&state)?;
+    let owner = store
+        .list()
+        .map_err(err)?
+        .into_iter()
+        .find(|p| {
+            p.manifest
+                .contributes
+                .icon_themes
+                .iter()
+                .any(|t| t.id == id)
+        })
+        .ok_or_else(|| {
+            err(format!(
+                "no installed plugin contributes the icon theme `{id}`"
+            ))
+        })?;
+    let plugin = enabled_plugin(&state, &owner.manifest.id)?;
+    forge_plugins::icon_themes::load(&plugin.manifest, &id, |path| {
+        store.read_file(&plugin.manifest.id, path)
+    })
+    .map_err(err)
+}
+
 fn roots(state: &AppState, id: &str) -> Result<Roots> {
     Ok(Roots {
         project: state.local_workspace().map(|w| w.root().to_path_buf()),

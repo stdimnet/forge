@@ -14,6 +14,7 @@ import { askChoice, askConfirm, askName } from "@/features/contextMenu/dialogs";
 import { compareWithDeployed, config, defaultServer, transfer } from "@/features/deployment/store";
 import { openFile } from "@/state/editor";
 import { t as tr } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 export const ROOT = "";
 /** Editor paths of Edit Remote File tabs: `remote-host://<server id>/<path>`. */
@@ -258,6 +259,5 @@ export const deleteEntry = (node: RemoteNode) =>
 
 export async function copyPath(node: RemoteNode): Promise<void> {
   const text = absolutePath(node.path);
-  await navigator.clipboard?.writeText(text).catch(() => undefined);
-  showBalloon(tr("tools.remoteHost.pathCopied"), text);
+  if (await writeClipboard(text)) showBalloon(tr("tools.remoteHost.pathCopied"), text);
 }

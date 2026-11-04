@@ -9389,6 +9389,31 @@ Editor fonts are under Settings | Editor | Font: JetBrains Mono (default), Fira 
 Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5), line height
 (1.6) and ligatures.
 
+## File icons
+
+Settings | Appearance & Behavior | **File Icons** picks the icon theme of the Project view,
+editor tabs, Recent Files, Search Everywhere, Find in Files, the Structure tool window, code
+completion and the navigation bar. Icon themes come from plugins (for example an Atom
+Material Icons plugin from the Marketplace); "Forge (built-in)" keeps Forge's own icons, and
+files a theme has no icon for keep them too.
+
+![File Icons settings](docs/screenshots/settings-file-icons.png)
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Icon theme | `fileIcons.theme` | Forge (built-in) |
+| Tree arrows (as the theme sets, chevrons, triangles, none) | `fileIcons.treeArrows` | as the theme sets |
+| Monochrome icons (as the theme sets, on, off) | `fileIcons.monochrome` | as the theme sets |
+| Folder accent color (`#rrggbb`; empty: the theme's) | `fileIcons.accentColor` | empty |
+| Icon size in pixels (0: the theme's or the view's) | `fileIcons.size` | 0 |
+| Custom associations: file name, extension, pattern, regular expression or folder name → an icon of the active theme | `fileIcons.associations` | none |
+
+Custom associations come before the theme's own rules, so `Makefile` or `*.stub` can get the
+icon you want. Associations that name an icon the theme does not have are listed under the
+theme picker and ignored.
+
+![Shapes icon theme in the Project view](docs/screenshots/icon-theme-project-view.png)
+
 ### Window controls
 
 Forge draws its own title bars. **Window controls** chooses how their buttons look:
@@ -18896,6 +18921,11 @@ reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**.
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
 and **Clear Buffer**.
 
+Paste reads the system clipboard natively in the desktop app, so `Ctrl+Shift+V` also works on
+Linux, where WebKitGTK does not let web pages read the clipboard. When the shell turns on
+bracketed paste mode, the pasted text is wrapped in its markers, so a multi-line paste is not
+run line by line. When the clipboard cannot be read, a balloon says why.
+
 On Windows, the arrow next to **+** also offers `WSL: <distro>` for every WSL distribution: a
 shell in that distribution, in the project folder (see
 [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md#terminal--wsl)). In projects opened in a dev
@@ -23747,6 +23777,19 @@ Page id `appearance.fileColors` (custom page).
 | `fileColors.local` | objects (`scope`, `color`) | Non-Project Files: Yellow, Tests: Green | user |  | Local colors |
 | `fileColors.shared` | objects (`scope`, `color`) | `[]` | project |  | Shared colors |
 
+### Appearance & Behavior | File Icons
+
+Page id `appearance.fileIcons`. See [Settings and themes](docs/guide/user/settings-and-themes.md#file-icons).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileIcons.theme` | string | `""` | user | Icon Theme | Icon theme. The icon theme of the Project view, editor tabs, Recent Files, Search Everywhere, Find in Files, Structure, completion and the navigation bar. Plugins contribute icon themes; empty: Forge's own icons. |
+| `fileIcons.treeArrows` | enum (`theme`, `chevron`, `triangle`, `none`) | `theme` | user | Look | Tree arrows |
+| `fileIcons.monochrome` | enum (`theme`, `on`, `off`) | `theme` | user | Look | Monochrome icons |
+| `fileIcons.accentColor` | string | `""` | user | Look | Folder accent color. A color like #e0a040 for folder icons. Empty: the icon theme's accent color, if it sets one. |
+| `fileIcons.size` | int (0–32) | `0` | user | Look | Icon size (pixels). 0: the size the icon theme sets, else each view's own size. |
+| `fileIcons.associations` | objects (`kind`, `value`, `icon`) | `[]` | user | Custom Associations | Custom associations. Your own file and folder icons; they come before the theme's own rules. |
+
 ### Appearance & Behavior | System Settings
 
 Page id `system`.
@@ -26020,6 +26063,7 @@ skills in [`.claude/skills/`](.claude/skills); the detailed IPC contracts are in
 | Page | Covers |
 | --- | --- |
 | [Contribution points](docs/guide/developer/contribution-points.md) | every `register*` API of the UI with examples |
+| [Icon themes](docs/guide/developer/icon-themes.md) | file icon themes: `icon-theme.json`, the resolver, plugin contributions, look hooks |
 | [IPC commands and browser mocks](docs/guide/developer/ipc-and-mocks.md) | Rust command, typed client, mock |
 | [Writing a plugin or pack](docs/guide/developer/plugins-and-packs.md) | manifest, crate, UI feature, activation — a walkthrough |
 | [Plugin SDK](docs/guide/developer/plugins/index.md) | third-party plugins: sandbox, manifest, `forge` API, permissions, marketplace index |
@@ -26610,6 +26654,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerFormatProvider` | `features/lsp/format.ts` | a formatter tried before the language server |
 | `registerCompletionKind` | `features/lsp/completion.ts` | icons/colors for custom completion kinds |
 | `registerSearchProvider` | `features/search/providers.ts` | candidates for a Search Everywhere tab |
+| `registerIconTheme` / `contributes.iconThemes` | `features/iconThemes/state.ts` / plugin manifest | a file icon theme (see [Icon themes](docs/guide/developer/icon-themes.md)) |
 | `registerStructureProvider` | `features/php/StructureView.tsx` | the Structure tool window for another language |
 | `registerContextMenu` | `features/contextMenu/state.ts` | entries of a context menu (e.g. `"editor"`) |
 | `registerProjectViewSection` | `features/project/ProjectView.tsx` | top-level nodes below the project tree |
@@ -26684,6 +26729,16 @@ registerSettingsPage({
 ```
 
 `SchemaPage` renders every setting whose `group` is the page id. See [Settings](docs/guide/developer/settings.md).
+
+## Icon themes
+
+```ts
+registerIconTheme({ id: "forge.example.icons", label: "Example", load: async () => ({ definition, svgs }) });
+```
+
+Third-party plugins contribute themes declaratively (`contributes.iconThemes` with an
+`icon-theme.json` and SVGs). Show file icons with `<FileIcon name path? dir? open? />` so the
+active theme is asked first. Format, matching rules and look hooks: [Icon themes](docs/guide/developer/icon-themes.md).
 
 ## Status bar and toolbar items
 
@@ -27040,6 +27095,150 @@ Use `projectInfo()`, `usesFramework("laravel")` and `isPluginActive("forge.larav
 `src/state/project.ts` to activate a feature only when the project uses it, and
 `isRemoteProject()` / `workspace()?.remote` from `state/workspace.ts` to name the host in the UI
 (features themselves work remotely through the project backend).
+
+
+---
+
+Source: docs/guide/developer/icon-themes.md
+
+# Icon themes
+
+An icon theme replaces the file and folder icons in every place that shows them: the Project
+view, editor tabs, Recent Files, Search Everywhere, Find in Files, the Structure tool window,
+code completion and the navigation bar. The user picks the active theme in
+Settings | Appearance & Behavior | File Icons (`fileIcons.theme`). With no theme, or for a file
+the theme has no icon for, Forge shows its own icons (`app/ui/src/shell/FileIcon.tsx`).
+
+A theme is **data only**: a JSON file that maps names to icon ids and an SVG per icon. It runs
+no code and needs no permission.
+
+## Where the parts live
+
+| Part | Where |
+| --- | --- |
+| Theme format, validation, SVG checks, resolver with a per-path cache | `crates/forge-icons` ([crate page](docs/guide/developer/crates/forge-icons.md)) |
+| Resolver in the UI (synchronous, desktop and browser) | `crates/forge-wasm/src/icons.rs` (`icons_set_theme`, `icons_resolve`) |
+| Plugin contribution, loading a theme from a package | `crates/forge-plugins` (`contributes.iconThemes`, `icon_themes::load`) |
+| IPC | `icon_theme_load({ id }) -> LoadedIconTheme` (`commands/third_party.rs`), browser mock in `mock/pluginsMock.ts` |
+| Contribution point, active theme, look hooks | `app/ui/src/features/iconThemes/state.ts` (`registerIconTheme`, `themedIcon`, `iconLook`) |
+| Settings page and associations editor | `app/ui/src/features/iconThemes/index.tsx` |
+| Tree arrows | `app/ui/src/shell/TreeArrow.tsx` |
+| Example | `sdk/examples/shapes-icons` |
+
+## `icon-theme.json`
+
+```json
+{
+  "icons": { "file": "icons/file.svg", "php": "icons/php.svg", "folder": "icons/folder.svg", "folder-open": "icons/folder-open.svg" },
+  "file": "file",
+  "folder": "folder",
+  "folderExpanded": "folder-open",
+  "fileNames": { "composer.json": "composer" },
+  "fileExtensions": { "php": "php", "blade.php": "blade" },
+  "filePatterns": [{ "pattern": "*Test.php", "icon": "test" }, { "pattern": "**/tests/*.php", "icon": "test" }],
+  "fileRegex": [{ "pattern": "^\\.env(\\..+)?$", "icon": "env" }],
+  "folderNames": { "src": "folder-src" },
+  "folderNamesExpanded": { "src": "folder-src-open" },
+  "options": { "treeArrows": "triangle", "accentColor": "#e0a040", "monochrome": false, "iconSize": 16 }
+}
+```
+
+| Key | Meaning |
+| --- | --- |
+| `icons` | icon id → SVG file, relative to the theme file (inside the package, `.svg`) |
+| `file`, `folder`, `folderExpanded` | default icons; without `file` unmatched files keep Forge's icon |
+| `fileNames` | exact file names (then ignoring case) |
+| `filePatterns` | globs, in order: `*`, `**`, `?`, `[a-z]`, `[!x]`; a pattern with `/` matches the whole path |
+| `fileRegex` | regular expressions on the file name, in order |
+| `fileExtensions` | extensions without the dot; the longest compound one wins (`blade.php` before `php`) |
+| `folderNames`, `folderNamesExpanded` | folders by name; an expanded folder falls back to its closed icon |
+| `options` | the theme's look: `treeArrows` (`chevron`, `triangle`, `none`), `accentColor` (`#rgb` / `#rrggbb`, folders), `monochrome`, `iconSize` (8–32 px) |
+
+Matching order for a file: the user's associations, file names, patterns, regular expressions,
+extensions, the default `file`. For a folder: the user's folder associations, the expanded or
+closed folder names, the defaults. Rules that name an icon the theme does not declare are
+reported by validation, and the resolver never answers with such an id.
+
+Limits and checks (`forge_icons::check_svg`): at most 5,000 icons, 128 KiB per SVG, an `<svg>`
+root, no scripts, event handler attributes, `foreignObject`, `iframe`, `javascript:` URLs or
+external references. Forge draws theme icons as CSS images (or masks), which cannot run
+scripts; the checks keep packages honest anyway.
+
+## Contributing a theme from a plugin
+
+In `forge-plugin.json`:
+
+```json
+"contributes": {
+  "iconThemes": [
+    { "id": "acme.material-icons.dark", "label": "Material (dark)", "path": "theme/icon-theme.json" }
+  ]
+}
+```
+
+- `id` starts with the plugin id (like every contribution) and is the value of
+  `fileIcons.theme`.
+- `path` is a `.json` file inside the package. Put it in a folder of its own next to its SVGs:
+  `pnpm plugin pack` packs that whole folder. A plugin without `main` (no code) is fine.
+- The theme and every SVG it names are loaded and checked when the package is installed, so a
+  broken theme is refused with the field that is wrong.
+- No permission is needed and the theme loads in Safe Mode: Forge reads only the theme file
+  and `.svg` files of the plugin's own package (`icon_themes::theme_file_allowed`).
+
+When the plugin is enabled, the plugin host registers its themes with `registerIconTheme`;
+disabling or uninstalling it removes them, and the icons fall back to Forge's.
+
+## `registerIconTheme` (built-in features)
+
+```ts
+import { registerIconTheme } from "@/features/iconThemes/state";
+
+const remove = registerIconTheme({
+  id: "forge.example.theme",
+  label: "Example",
+  source: "Example plugin",           // shown next to the label in the picker
+  load: async () => ({ definition, svgs }), // IconThemeDef + icon id → SVG text
+});
+```
+
+The active theme is loaded when it is selected, validated and handed to the Rust resolver
+together with the user's associations (`fileIcons.associations`, kinds `fileName`,
+`extension`, `pattern`, `regex`, `folderName`). Problems (an association naming a missing
+icon, a regex that does not compile) are shown on the settings page; the offending rules are
+skipped.
+
+## Showing icons
+
+`<FileIcon name path? dir? open? size? dimmed? />` asks the active theme first. Pass `path`
+when it is known so path patterns apply. Outside Solid (CodeMirror), use
+`themedIconElement(path, kind, size)`; it returns `null` when the theme has no icon. Both use
+`iconStyle()`, which applies the look hooks.
+
+## Look hooks
+
+`iconLook()` combines the theme's `options` with the user's settings, which win:
+
+| Hook | Setting | Effect |
+| --- | --- | --- |
+| Tree arrows | `fileIcons.treeArrows` (`theme`, `chevron`, `triangle`, `none`) | `<TreeArrow open />` in the Project view and Structure |
+| Monochrome | `fileIcons.monochrome` (`theme`, `on`, `off`) | icons drawn as a mask in `--fg-muted` (folders in the accent color) |
+| Accent color | `fileIcons.accentColor` | folder icons drawn as a mask in that color |
+| Icon size | `fileIcons.size` (0 = theme / view default) | width and height of themed icons |
+
+## The Shapes Icons example
+
+`sdk/examples/shapes-icons` is a complete icon theme plugin with 25 SVGs of simple shapes
+(MIT, drawn for Forge): PHP, Blade, JS/TS, JSON, Markdown, CSS, HTML, YAML, `.env`, Git files,
+lock files, `composer.json`, tests, and `src`, `app`, `tests`, `config` and `public` folders.
+
+```sh
+cd sdk/examples/shapes-icons && node ../../scripts/forge-plugin.mjs pack .
+```
+
+Install the `.forgeplugin` with Settings | Plugins | Install Plugin from Disk, then choose
+"Shapes (Shapes Icons)" in Settings | Appearance & Behavior | File Icons. Browser mode has it
+installed already. `cargo test -p forge-plugins` loads the example from disk and checks a few
+resolutions.
 
 
 ---
@@ -27438,6 +27637,16 @@ export function activate(context: PluginContext): void {
 
 It needs one permission, `"editor": ["read"]`.
 
+## The Shapes Icons example
+
+`sdk/examples/shapes-icons` is a plugin without code: an [icon theme](docs/guide/developer/icon-themes.md) of
+simple shapes. Its manifest contributes `iconThemes` with `theme/icon-theme.json`, next to the
+SVGs in `theme/icons/`. Pack it with `pnpm plugin pack ../../sdk/examples/shapes-icons` (a
+plugin without `main` is not built) and pick "Shapes (Shapes Icons)" in Settings | Appearance &
+Behavior | File Icons.
+
+![Shapes Icons in the Project view](docs/screenshots/icon-theme-project-view.png)
+
 ## Debugging
 
 Each plugin runs in an iframe with `data-forge-plugin="<id>"`. In the webview's developer tools
@@ -27514,6 +27723,7 @@ Commands and tool windows also load their plugin on first use without an event.
 | `settingsPages` | `{ id, title }`: a page under Tools in the Settings dialog showing the plugin's settings |
 | `settings` | typed settings like the built-in ones (`key`, `title`, `description`, `type` = `bool`, `int`, `number`, `string`, `enum`, `path`, `list`, `default`, `group` = one of the plugin's pages, `order`) |
 | `languages` | file types: `{ id, name, extensions, fileNames, indentSize? }` |
+| `iconThemes` | `{ id, label, path }`: a file icon theme, `path` = an `icon-theme.json` in a folder of the package next to its SVGs; no code and no permission needed (see [Icon themes](docs/guide/developer/icon-themes.md)) |
 
 ## The `forge` API
 
@@ -27612,7 +27822,11 @@ more marks the new entries and must be accepted again.
 | `editor: read` | | Read the open file (low) | the host |
 
 What needs no permission: the plugin's own settings (`<plugin id>.…`), its contributions,
-balloons, tool window HTML, running IDE actions with `forge.commands.execute`.
+balloons, tool window HTML, running IDE actions with `forge.commands.execute`, and icon
+themes. An icon theme is data: Forge itself reads the theme file and the `.svg` files it
+names from the plugin's own package (nothing outside it, `icon_themes::theme_file_allowed`),
+checks every SVG (size, no scripts, event handlers or external references) on install and
+draws them as images.
 
 ## Enforcement
 
@@ -27639,6 +27853,7 @@ In an untrusted project ([Project trust](docs/guide/user/project-trust.md)) Forg
 - writing files inside the project.
 
 Reading files and the other permissions still work, as reading does not run project code.
+Icon themes load in Safe Mode too.
 
 ## Limits
 
@@ -29109,6 +29324,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-emmet](docs/guide/developer/crates/forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
 | [forge-file-templates](docs/guide/developer/crates/forge-file-templates.md) | File and code templates (Settings \| Editor \| File and Code Templates): a Velocity subset renderer, the built-in templates, PSR-4 namespace mapping and New-file rendering (pure, WebAssembly-friendly) |
+| [forge-icons](docs/guide/developer/crates/forge-icons.md) | File icon themes for Forge: the theme format, its validation and the icon resolver (pure, WebAssembly-friendly) |
 | [forge-filetypes](docs/guide/developer/crates/forge-filetypes.md) | File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly) |
 | [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
@@ -31461,6 +31677,55 @@ cargo test -p forge-file-templates
 
 ---
 
+Source: docs/guide/developer/crates/forge-icons.md
+
+# forge-icons
+
+`crates/forge-icons` — File icon themes for Forge: the theme format, its validation and the icon resolver (pure, WebAssembly-friendly).
+
+## Purpose
+
+The model behind [icon themes](docs/guide/developer/icon-themes.md): which icon of a theme a file or folder
+gets. Every file icon in the UI asks the resolver of the active theme first and falls back to
+Forge's own icons without an answer.
+
+| Item | Summary |
+| --- | --- |
+| `IconThemeDef` | `icon-theme.json`: `icons` (id → SVG path), defaults (`file`, `folder`, `folderExpanded`), `fileNames`, `fileExtensions`, `filePatterns`, `fileRegex`, `folderNames`, `folderNamesExpanded`, `options`; `parse`, `validate` (paths, references, regexes, options) |
+| `IconThemeOptions`, `TreeArrows` | the look a theme asks for: tree arrows, accent color, monochrome, icon size |
+| `Association`, `AssociationKind` | the user's own rules (`fileIcons.associations`): file name, extension, pattern, regex, folder name |
+| `IconResolver` | `new(theme, associations)` (bad associations are skipped and reported), `resolve(path, IconKind)` with a cache per path and kind |
+| `check_svg`, `is_svg_path`, `glob_match` | SVG limits and safety checks, package paths, globs (`*`, `**`, `?`, `[a-z]`, `[!x]`) |
+
+Matching order for files: associations, file names (exact, then ignoring case), patterns,
+regular expressions, extensions (longest compound first), the default icon. Folders:
+associations, expanded or closed names, defaults.
+
+## Used by
+
+- `forge-plugins` (`icon_themes::load`, install checks) and through it the IPC command
+  `icon_theme_load`
+- `forge-wasm` (`icons_set_theme`, `icons_resolve`, `icons_validate_theme`): the UI resolves
+  icons synchronously with it in the desktop app and in browser mode
+- UI: `app/ui/src/features/iconThemes`, `app/ui/src/shell/FileIcon.tsx`
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`, `regex-lite`
+
+## Tests
+
+Theme validation, file and folder matching order, user associations, skipped associations,
+the per-path cache, globs and SVG checks.
+
+```sh
+cargo test -p forge-icons
+```
+
+
+---
+
 Source: docs/guide/developer/crates/forge-filetypes.md
 
 # forge-filetypes
@@ -33015,8 +33280,9 @@ Everything that decides what a third-party plugin is and may do; the UI host
 
 | Module | Summary |
 | --- | --- |
-| `manifest` | `PluginManifest` (`forge-plugin.json`, format 1): id, version, `engines.forge`, `main`, reserved `backend` (WASM / JSON-RPC process, never native), activation events, `Permissions`, `Contributes` (commands, keybindings, status items, tool windows, settings pages, settings, languages); `validate(forge_version)` returns every `Problem` with its JSON path |
-| `package` | `Package::read`: a `.forgeplugin` zip, size and path checks, manifest validation, `main` present, SHA-256 (feature `disk`) |
+| `manifest` | `PluginManifest` (`forge-plugin.json`, format 1): id, version, `engines.forge`, `main`, reserved `backend` (WASM / JSON-RPC process, never native), activation events, `Permissions`, `Contributes` (commands, keybindings, status items, tool windows, settings pages, settings, languages, icon themes); `validate(forge_version)` returns every `Problem` with its JSON path |
+| `package` | `Package::read`: a `.forgeplugin` zip, size and path checks, manifest validation, `main` present, every icon theme loads, SHA-256 (feature `disk`) |
+| `icon_themes` | `load`: an icon theme of a plugin (`contributes.iconThemes`) with the SVGs its `icons` table names, read through a callback and checked with `forge_icons`; `theme_file_allowed` (only the theme file and `.svg` files of the package), `resolve_asset` ([Icon themes](docs/guide/developer/icon-themes.md)) |
 | `store` | `PluginStore` in `<data dir>/forge/plugins` (`installed.json`, one folder per plugin; data in `plugin-data/<id>`): install/update with a staged swap, uninstall, enablement, granted permissions, the installed list for exported settings and the "wanted" list of imported ones; `descriptor` turns a plugin into a `PluginRegistry` entry (pack `thirdParty`) |
 | `permissions` | `Guard`: `check_fs` (scopes `${project}` / `${pluginData}`, `..` and symlinks resolved), `check_network` (hosts, `*.domain`), `check_process`, `check_setting`, `check_editor`; `summary` (the install prompt, most dangerous first) and `added` (what an update adds) |
 | `host` | `fetch` (granted hosts, redirects re-checked, 16 MB limit) and `run` (granted programs, no shell) (feature `net`) |
@@ -33026,14 +33292,14 @@ Everything that decides what a third-party plugin is and may do; the UI host
 
 Features: `disk` (packages and the store), `net` (implies `disk`; downloads and host calls,
 default). `forge-wasm` builds it without features for browser mode (`plugins_marketplace`,
-`plugins_permission_lines`, `plugins_validate_manifest`).
+`plugins_permission_lines`, `plugins_validate_manifest`, `plugins_load_icon_theme`).
 
 ## Used by
 
 - IPC (`app/src-tauri/src/commands/third_party.rs`): `plugins_installed`, `plugin_inspect`,
   `plugin_install_file`, `plugin_uninstall`, `plugin_bundle`, `plugin_host_read_file`,
   `plugin_host_write_file`, `plugin_host_fetch`, `plugin_host_run`,
-  `plugin_host_setting_get`, `plugin_host_setting_set`, `marketplace_list`,
+  `plugin_host_setting_get`, `plugin_host_setting_set`, `icon_theme_load`, `marketplace_list`,
   `marketplace_install`, `marketplace_updates`, `plugins_wanted_dismiss`; event
   `plugins://changed`.
 - `AppState::new` registers installed plugins in the `PluginRegistry`.
@@ -33041,7 +33307,7 @@ default). `forge-wasm` builds it without features for browser mode (`plugins_mar
 
 ## Dependencies
 
-- Workspace crates: `forge-plugin-api`, `forge-keymap` (shortcut validation)
+- Workspace crates: `forge-plugin-api`, `forge-keymap` (shortcut validation), `forge-icons`
 - External: `serde`, `serde_json`, `semver`, `sha2`, `hex`, `base64`, `ed25519-dalek`, `url`;
   `zip`, `dirs` (feature `disk`); `reqwest` (feature `net`)
 
@@ -33051,7 +33317,7 @@ Manifest rules and every problem field, the SDK example and template manifests, 
 checks (unsafe paths, missing files, engine ranges), install/update/uninstall in a temporary
 folder, imported plugin lists, file scopes with `..` and symlinks, network/process/settings
 checks, the permission prompt, index parsing, search, update checks, URLs, checksums,
-signatures, and downloads and host fetches from a local mock server.
+signatures, icon themes (the Shapes Icons example loaded from disk, escaping and unsafe SVGs), and downloads and host fetches from a local mock server.
 
 
 ---

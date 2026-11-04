@@ -17,7 +17,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { openSettings } from "@/features/settings";
 import { isDialogWindow } from "@/shell/window/mode";
-import { reloadPlugins } from "./host";
+import { reloadIconThemes, reloadPlugins } from "./host";
 import { checkPluginUpdates, installFromDisk, refreshInstalled } from "./store";
 import "./plugins.css";
 import { t } from "@/i18n";
@@ -31,12 +31,13 @@ void listen(PLUGINS_CHANGED_EVENT, () => {
   void refreshInstalled();
   void loadSettings().catch(() => undefined);
   if (!isDialogWindow()) void reloadPlugins();
+  else void reloadIconThemes();
 });
 
 if (typeof document !== "undefined" && !isDialogWindow()) {
   void refreshInstalled();
   void reloadPlugins();
-}
+} else if (typeof document !== "undefined") void reloadIconThemes();
 
 /** Labels of the settings groups (from `settings_sync_status`). */
 let groupLabels = new Map<string, string>();

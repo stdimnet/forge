@@ -7,13 +7,11 @@ import { Check, Copy } from "lucide-solid";
 import { mcpApi, type McpClientConfig } from "@/ipc/mcp";
 import { mcpStatus } from "./store";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 async function copyText(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    /* clipboard unavailable; the text stays selectable */
-  }
+  // On failure a balloon says so; the text stays selectable.
+  await writeClipboard(text);
 }
 
 export function CopyButton(props: { text: string; label?: string; testId?: string }) {

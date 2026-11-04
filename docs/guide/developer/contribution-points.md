@@ -38,6 +38,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerFormatProvider` | `features/lsp/format.ts` | a formatter tried before the language server |
 | `registerCompletionKind` | `features/lsp/completion.ts` | icons/colors for custom completion kinds |
 | `registerSearchProvider` | `features/search/providers.ts` | candidates for a Search Everywhere tab |
+| `registerIconTheme` / `contributes.iconThemes` | `features/iconThemes/state.ts` / plugin manifest | a file icon theme (see [Icon themes](icon-themes.md)) |
 | `registerStructureProvider` | `features/php/StructureView.tsx` | the Structure tool window for another language |
 | `registerContextMenu` | `features/contextMenu/state.ts` | entries of a context menu (e.g. `"editor"`) |
 | `registerProjectViewSection` | `features/project/ProjectView.tsx` | top-level nodes below the project tree |
@@ -112,6 +113,16 @@ registerSettingsPage({
 ```
 
 `SchemaPage` renders every setting whose `group` is the page id. See [Settings](settings.md).
+
+## Icon themes
+
+```ts
+registerIconTheme({ id: "forge.example.icons", label: "Example", load: async () => ({ definition, svgs }) });
+```
+
+Third-party plugins contribute themes declaratively (`contributes.iconThemes` with an
+`icon-theme.json` and SVGs). Show file icons with `<FileIcon name path? dir? open? />` so the
+active theme is asked first. Format, matching rules and look hooks: [Icon themes](icon-themes.md).
 
 ## Status bar and toolbar items
 

@@ -183,6 +183,17 @@ app/ui/            SolidJS UI
 
 ## Shared IPC contracts
 
+- Icon themes (`src/ipc/plugins.ts`, `forge-icons`, `forge-plugins::icon_themes`):
+  `icon_theme_load({ id }) -> LoadedIconTheme` (`{ id, label, pluginId, definition, svgs }`,
+  the theme of an enabled plugin with the SVG text per icon id). The UI resolves icons with the
+  WebAssembly resolver (`icons_set_theme`, `icons_resolve`) through
+  `src/features/iconThemes/state.ts`; `FileIcon` asks it before Forge's own icons.
+- System clipboard (`src/ipc/clipboard.ts`, `tauri-plugin-clipboard-manager`):
+  `clipboard_read_text() -> string` ("" without text) and `clipboard_write_text({ text })`;
+  browser mode answers them with `navigator.clipboard`. Features never call
+  `navigator.clipboard` themselves: they use `readClipboard()` / `writeClipboard()` from
+  `src/features/clipboard/system.ts`, which show a balloon on failure (`writeClipboardText()`
+  rejects instead, for callers with their own error message).
 - Keymap (`src/ipc/keymap.ts`, `forge-keymap`): `keymap_actions() -> KeymapSnapshot` (selected
   keymap, platform, every action with its shortcuts, display strings, `modified` and aliases);
   `keymap_register_actions({ actions?, commands? }) -> KeymapSnapshot`;

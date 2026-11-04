@@ -84,6 +84,16 @@ export function activate(context: PluginContext): void {
 
 It needs one permission, `"editor": ["read"]`.
 
+## The Shapes Icons example
+
+`sdk/examples/shapes-icons` is a plugin without code: an [icon theme](../icon-themes.md) of
+simple shapes. Its manifest contributes `iconThemes` with `theme/icon-theme.json`, next to the
+SVGs in `theme/icons/`. Pack it with `pnpm plugin pack ../../sdk/examples/shapes-icons` (a
+plugin without `main` is not built) and pick "Shapes (Shapes Icons)" in Settings | Appearance &
+Behavior | File Icons.
+
+![Shapes Icons in the Project view](../../../screenshots/icon-theme-project-view.png)
+
 ## Debugging
 
 Each plugin runs in an iframe with `data-forge-plugin="<id>"`. In the webview's developer tools

@@ -1,0 +1,80 @@
+{
+  "icons": {
+    "file": "icons/file.svg",
+    "php": "icons/php.svg",
+    "blade": "icons/blade.svg",
+    "js": "icons/js.svg",
+    "ts": "icons/ts.svg",
+    "json": "icons/json.svg",
+    "markdown": "icons/markdown.svg",
+    "css": "icons/css.svg",
+    "html": "icons/html.svg",
+    "yaml": "icons/yaml.svg",
+    "env": "icons/env.svg",
+    "git": "icons/git.svg",
+    "lock": "icons/lock.svg",
+    "composer": "icons/composer.svg",
+    "test": "icons/test.svg",
+    "folder": "icons/folder.svg",
+    "folder-open": "icons/folder-open.svg",
+    "folder-src": "icons/folder-src.svg",
+    "folder-src-open": "icons/folder-src-open.svg",
+    "folder-tests": "icons/folder-tests.svg",
+    "folder-tests-open": "icons/folder-tests-open.svg",
+    "folder-config": "icons/folder-config.svg",
+    "folder-config-open": "icons/folder-config-open.svg",
+    "folder-public": "icons/folder-public.svg",
+    "folder-public-open": "icons/folder-public-open.svg"
+  },
+  "file": "file",
+  "folder": "folder",
+  "folderExpanded": "folder-open",
+  "fileNames": {
+    "composer.json": "composer",
+    "composer.lock": "lock",
+    "package-lock.json": "lock",
+    "pnpm-lock.yaml": "lock"
+  },
+  "fileExtensions": {
+    "php": "php",
+    "blade.php": "blade",
+    "js": "js",
+    "mjs": "js",
+    "ts": "ts",
+    "json": "json",
+    "md": "markdown",
+    "css": "css",
+    "scss": "css",
+    "html": "html",
+    "yml": "yaml",
+    "yaml": "yaml",
+    "lock": "lock"
+  },
+  "filePatterns": [
+    { "pattern": "*Test.php", "icon": "test" },
+    { "pattern": "*.test.ts", "icon": "test" },
+    { "pattern": "*.spec.ts", "icon": "test" }
+  ],
+  "fileRegex": [
+    { "pattern": "^\\.env(\\..+)?$", "icon": "env" },
+    { "pattern": "^\\.git(ignore|attributes|modules)$", "icon": "git" }
+  ],
+  "folderNames": {
+    "src": "folder-src",
+    "app": "folder-src",
+    "tests": "folder-tests",
+    "config": "folder-config",
+    "public": "folder-public"
+  },
+  "folderNamesExpanded": {
+    "src": "folder-src-open",
+    "app": "folder-src-open",
+    "tests": "folder-tests-open",
+    "config": "folder-config-open",
+    "public": "folder-public-open"
+  },
+  "options": {
+    "treeArrows": "triangle",
+    "iconSize": 16
+  }
+}

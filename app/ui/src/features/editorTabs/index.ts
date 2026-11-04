@@ -39,6 +39,7 @@ import { canDetach, openTabInNewWindow } from "@/features/windows/detachedWindow
 import "./recentLocations";
 import "./editorTabs.css";
 import { t } from "@/i18n";
+import { writeClipboardText } from "@/features/clipboard/system";
 
 registerKeymapActions([
   { id: "MoveTabRight", title: "Split and Move Right", group: "Main Menu/Window/Editor Tabs" },
@@ -131,7 +132,7 @@ registerMainMenuEntries("Window/Editor Tabs", [menuAction("EditSourceInNewWindow
 
 async function copy(text: string, what: "path" | "name"): Promise<void> {
   try {
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
     showBalloon(t(`editor.tabs.copied.${what}`), text);
   } catch {
     showBalloon(t(`editor.tabs.copyFailed.${what}`), t("project.clipboardUnavailable"));

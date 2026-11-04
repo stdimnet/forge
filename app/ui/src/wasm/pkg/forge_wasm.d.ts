@@ -1161,6 +1161,24 @@ export function i18n_t(key: string): string;
 export function i18n_t_args(key: string, args_json: string): string;
 
 /**
+ * The icon id for `path` (`kind`: 0 file, 1 folder, 2 expanded folder), or "" for Forge's
+ * own icon.
+ */
+export function icons_resolve(path: string, kind: number): string;
+
+/**
+ * `{ theme: IconThemeDef | null, associations }` → problems (`string[]`) of the theme and
+ * the associations; the resolver is replaced either way (associations with problems are
+ * skipped).
+ */
+export function icons_set_theme(request_json: string): string;
+
+/**
+ * `IconThemeDef` JSON → problems (`string[]`).
+ */
+export function icons_validate_theme(theme_json: string): string;
+
+/**
  * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
  */
 export function image_describe(request_json: string): string;
@@ -1731,6 +1749,12 @@ export function pio_command(request_json: string): string;
  * `{ text }` → the parsed `platformio.ini`.
  */
 export function pio_project(request_json: string): string;
+
+/**
+ * `{ manifest, theme, files }` → `LoadedIconTheme`, as `icon_theme_load` reads it from an
+ * installed plugin.
+ */
+export function plugins_load_icon_theme(request_json: string): string;
 
 /**
  * `{ index, forgeVersion, installed, query }` → `{ name, entries, warnings }`.
@@ -2951,6 +2975,9 @@ export interface InitOutput {
     readonly i18n_set_locale: (a: number, b: number, c: number, d: number) => void;
     readonly i18n_t: (a: number, b: number, c: number) => void;
     readonly i18n_t_args: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly icons_resolve: (a: number, b: number, c: number, d: number) => void;
+    readonly icons_set_theme: (a: number, b: number, c: number) => void;
+    readonly icons_validate_theme: (a: number, b: number, c: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
     readonly imports_folder_summary: (a: number, b: number, c: number, d: number) => void;
     readonly imports_minimal_edit: (a: number, b: number, c: number) => void;
@@ -3060,6 +3087,7 @@ export interface InitOutput {
     readonly php_source_roots: (a: number, b: number, c: number) => void;
     readonly pio_command: (a: number, b: number, c: number) => void;
     readonly pio_project: (a: number, b: number, c: number) => void;
+    readonly plugins_load_icon_theme: (a: number, b: number, c: number) => void;
     readonly plugins_marketplace: (a: number, b: number, c: number) => void;
     readonly plugins_permission_lines: (a: number, b: number, c: number) => void;
     readonly plugins_validate_manifest: (a: number, b: number, c: number) => void;

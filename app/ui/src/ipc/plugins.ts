@@ -3,6 +3,7 @@
  * from Disk, uninstall, the plugin host's permission-checked backend calls and the
  * Marketplace tab. Settings Sync lives in `commands/settings_sync.rs`.
  */
+import type { IconThemeDef } from "@/features/iconThemes/state";
 import { invoke } from "./index";
 import type { CommandContribution, KeybindingContribution, SettingSpec, ToolWindowContribution } from "./settings";
 
@@ -52,6 +53,8 @@ export interface ThirdPartyManifest {
     settingsPages?: { id: string; title: string }[];
     settings?: SettingSpec[];
     languages?: FileTypeContribution[];
+    /** Icon themes: `{ id, label, path }` of an `icon-theme.json` in the package. */
+    iconThemes?: { id: string; label: string; path: string }[];
   };
 }
 
@@ -178,6 +181,8 @@ export const pluginsApi = {
   installFile: (path: string, sha256: string) => invoke<InstalledPlugin>("plugin_install_file", { path, sha256 }),
   uninstall: (id: string) => invoke<void>("plugin_uninstall", { id }),
   bundle: (id: string) => invoke<string>("plugin_bundle", { id }),
+  /** An icon theme of an enabled plugin with its SVGs (`forge_plugins::icon_themes`). */
+  iconTheme: (id: string) => invoke<LoadedIconTheme>("icon_theme_load", { id }),
   marketplace: (query: string, refresh = false) => invoke<MarketplaceView>("marketplace_list", { query, refresh }),
   marketplaceInstall: (id: string, version?: string) =>
     invoke<InstalledPlugin>("marketplace_install", { id, version: version ?? null }),
@@ -201,3 +206,13 @@ export const settingsSyncApi = {
   status: () => invoke<SyncStatus>("settings_sync_status"),
   syncNow: () => invoke<SyncResult>("settings_sync_now"),
 };
+
+/** `forge_plugins::icon_themes::LoadedIconTheme`. */
+export interface LoadedIconTheme {
+  id: string;
+  label: string;
+  pluginId: string;
+  definition: IconThemeDef;
+  /** Icon id → SVG text. */
+  svgs: Record<string, string>;
+}

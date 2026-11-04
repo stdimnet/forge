@@ -9,6 +9,7 @@ import { insertAtCaret } from "@/editor/views";
 import type { MdBlock, MdInline, MdListItem } from "@/ipc/markdown";
 import { highlight, type HighlightedLines } from "./highlight";
 import { t } from "@/i18n";
+import { writeClipboard } from "@/features/clipboard/system";
 
 export function Inlines(props: { items: MdInline[] }) {
   return (
@@ -79,13 +80,9 @@ export function CodeBlock(props: { lang: string; text: string }) {
   const [copied, setCopied] = createSignal(false);
   const lines = createMemo(() => highlight(props.text, props.lang));
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(props.text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable */
-    }
+    if (!(await writeClipboard(props.text))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
   return (
     <div class="chat-codeblock">
