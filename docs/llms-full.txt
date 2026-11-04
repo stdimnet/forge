@@ -21914,6 +21914,9 @@ Click **+** in the tool window header:
 | **Files it may change** | Comma-separated files and folders (`app/Services, tests/Unit`). The agent can read everything (except `.aiignore`d files) but writes only there. Empty: the whole project. |
 | **Agent** | **Forge agent** (Forge's own agent over a model of Settings \| Tools \| AI Providers: the default provider or a chosen one, the Chat model), **Claude Code** or **Gemini CLI** (your installed CLI, see [AI Chat](#agents)). |
 | **Verify with** | **No tests**, one of the project's **run configurations** (its test runner and result format), or a **command** such as `vendor/bin/phpunit`. |
+| **Run in container** | Run the task's commands and tests in a Docker or Podman container (see [Container sandbox](#container-sandbox)). Its default is a setting. |
+| **Allow network** | Only with Run in container: the container gets network access, and every command then asks for your approval. |
+| **Image** | Only with Run in container: an image for this task. Empty: the project's `devcontainer.json`, else the image of the settings. |
 
 ![New Agent Task](docs/screenshots/agent-tasks-new.png)
 
@@ -21928,7 +21931,54 @@ A task's sandbox is a detached **git worktree** in Forge's cache folder
 inside the project. It starts from a snapshot of your working tree, taken without touching it
 (`git stash create`): committed files, uncommitted changes and untracked files that are not
 ignored. The review shows only what the agent changed against that snapshot. Agent tasks need
-a Git repository with at least one commit; remote projects are not supported yet.
+a Git repository with at least one commit.
+
+### Container sandbox
+
+With **Run in container** the agent still edits the sandbox worktree, but `run_command` and
+`run_tests` (and the tests Forge runs between CLI turns) run inside a container:
+
+![Run in container](docs/screenshots/agent-tasks-container.png)
+
+- **Image**: the one entered in the form; else the project's `.devcontainer/devcontainer.json`
+  (or `.devcontainer.json`): its `image`, or the image built from its Dockerfile (`docker build`,
+  tagged like the Dev Containers feature, with its `containerEnv`); else **Container image** of
+  the settings (`php:8.3-cli` by default). Compose-based dev containers are not started; the
+  settings' image is used instead. The dev container's mounts, ports, run arguments and
+  lifecycle commands are not used.
+- **Only the sandbox is mounted**, read-write at `/workspace`; no other host folder, socket or
+  volume. Paths of the sandbox in commands and run configurations are mapped into
+  `/workspace`.
+- **No network** by default (`--network none`). With **Allow network** every command asks for
+  your approval, also allowlisted ones; network programs (`curl`, `wget`, `ssh`, …) stay
+  refused.
+- The container drops all capabilities, cannot gain privileges (`no-new-privileges`), may
+  start at most 1024 processes, runs as your user (Docker: your uid and gid; Podman:
+  `--userns keep-id`) and is limited by **Container CPU limit** and **Container memory limit**.
+- It is started when the task starts (`docker run`, named `forge-agent-<task>`) and removed
+  (`docker rm --force`) when the task finishes, fails or is stopped; Discard removes it too if
+  Forge quit while it ran.
+
+![Container steps in the log](docs/screenshots/agent-tasks-container-log.png)
+
+The engine is **Container engine** of the settings, else the Docker executable of Settings |
+Build, Execution, Deployment | Docker. Git does not work inside the container (the worktree's
+`.git` points to your repository, which is not mounted). Claude Code cannot use its own shell
+in a container task (it would run outside the container); Forge runs the tests in the
+container after each turn instead.
+
+### Remote projects
+
+For a [remote project](docs/guide/user/remote-development.md) the sandbox is a git worktree **on the host**,
+in the remote user's cache folder (`~/.cache/forge/agent-tasks/<project>/<task>`), created by
+the Forge agent there. The Forge agent's file tools, its commands and the tests run on the host
+(in a container on the host with Run in container, through the host's `docker`); the review,
+the diff, Apply, Commit, Branch and Discard work on the host's repository. The task list stays
+on your machine.
+
+Not available for remote projects yet: **Claude Code** and **Gemini CLI** as the agent (they run
+on your machine; use the Forge agent) and **run configurations** under Verify with (use a test
+command).
 
 ### Run, test and fix
 
@@ -21988,10 +22038,17 @@ Settings | Tools | **AI Assistant** › Agent Tasks:
 | Step budget per task (`ai.agentTasks.maxSteps`) | 40 | model turns (Forge agent) or CLI turns per task |
 | Test runs per task (`ai.agentTasks.maxTestRuns`) | 6 | test runs while fixing failures |
 | Commands that run without asking (`ai.agentTasks.allowedCommands`) | none | command prefixes, e.g. `composer test`, `php -l`, `npm run lint` |
+| Run new tasks in a container (`ai.agentTasks.container.enabled`) | off | default of Run in container |
+| Container image (`ai.agentTasks.container.image`) | `php:8.3-cli` | image without a `devcontainer.json` |
+| Allow network access in containers by default (`ai.agentTasks.container.network`) | off | default of Allow network |
+| Container CPU limit (`ai.agentTasks.container.cpus`) | 2 | `--cpus`; empty: no limit |
+| Container memory limit (`ai.agentTasks.container.memory`) | `4g` | `--memory`; empty: no limit |
+| Container engine (`ai.agentTasks.container.engine`) | empty | `docker`, `podman` or a path; empty: the Docker executable |
 
 Agent tasks run project code (tests, commands, the agent CLI's tools), so they are refused in
 [Safe Mode](docs/guide/user/project-trust.md). They are refused as well when AI is turned off for the project
-(`ai.enabled`), and the Forge agent never reads files matched by `.aiignore`. Tasks and their
+(`ai.enabled`), and the Forge agent never reads files matched by `.aiignore` (on a remote
+host, too). Tasks and their
 logs are stored next to the sandboxes in the cache folder; a task that was running when Forge
 quit shows as Cancelled.
 
@@ -29651,10 +29708,29 @@ user to review. The user's working tree is not touched until they apply it.
   Gemini CLI to allow (reads inside the sandbox, edits inside the scope, bookkeeping tools),
   deny (outside the sandbox, `.aiignore`, network tools, unknown tools) or ask the user (shell
   commands that are not allowlisted).
+- **Container sandbox** (`container.rs`): `ContainerSpec` builds the engine's command lines
+  (Docker or Podman): `start` (`run --detach --rm`, only the sandbox bind-mounted at
+  `/workspace`, `--network none` unless allowed, `--cap-drop ALL`, `no-new-privileges`,
+  `--pids-limit`, `--cpus` / `--memory`, the sandbox owner's uid:gid or `--userns keep-id`),
+  `exec` (the working folder, environment and sandbox paths in arguments mapped inside; paths
+  outside the sandbox refused) and `remove` (`rm --force`); `parse_cpus` / `parse_memory`
+  validate the limits. With network allowed, `TaskContext::approve_all` makes every command ask.
+- **Sandbox calls** (`remote.rs`): `SandboxCall` (`Create`, `Changes`, `FileVersions`, `Apply`,
+  `Remove`, `Tool`) answered where the project's files are by `handle`: the desktop app for a
+  local project, the Forge agent for a remote one ([`forge-backend`](docs/guide/developer/crates/forge-backend.md)
+  `agent_tasks`, protocol call `AgentSandbox`). Sandboxes go to
+  `<cache>/forge/agent-tasks/<project key>/<task id>` of that machine; every call is checked to
+  name one of the open project's sandboxes. `Tool` runs a file tool with the project's
+  `.aiignore` and the task's scope (`tools::execute_file_tool`).
+
+Without the default `agent` feature (used by the Forge agent) the loops and `run_process` are
+left out, so the agent does not link `forge-ai`.
 
 The app (`app/src-tauri/src/commands/agent_tasks.rs`) owns the queue, the `Host` (processes,
 approvals, the log as `agent-tasks://changed` events), maps run configurations into the
-sandbox and starts agent CLIs through [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md).
+sandbox, starts and removes the container, resolves its image from `devcontainer.json`
+([`forge-devenv`](docs/guide/developer/crates/forge-devenv.md)), runs a remote task's processes on the host and starts
+agent CLIs through [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md).
 
 ## Modules
 
@@ -29663,6 +29739,8 @@ sandbox and starts agent CLIs through [`forge-agent-cli`](docs/guide/developer/c
 | `agent.rs` | The built-in tool-calling loop and the run-test-fix loop around agent CLIs. |
 | `cli.rs` | Permission requests of agent CLIs mapped to the sandbox. |
 | `commands.rs` | Command lines without a shell, allowlist, refused programs, processes, test results. |
+| `container.rs` | Container sandbox command lines (run, exec, rm), resource limits, path mapping. |
+| `remote.rs` | Sandbox operations as protocol calls, checked against the project's sandboxes. |
 | `sandbox.rs` | The git worktree sandbox: create, changes, diff sides, apply, commit, branch, remove. |
 | `task.rs` | Task model, steps, outcomes and the task store. |
 | `tools.rs` | Tool calls of the built-in agent, the text protocol and the system prompt. |
@@ -29673,6 +29751,8 @@ sandbox and starts agent CLIs through [`forge-agent-cli`](docs/guide/developer/c
 ```rust
 pub use agent::{run_builtin, run_cli, Budget, CliTurns, Host, TaskContext};
 pub use cli::{permission, CliVerdict};
+pub use container::{ContainerOptions, ContainerSpec};
+pub use remote::{ApplyAnswer, ApplyMode, FileVersions, SandboxCall, SandboxInfo, SandboxRef};
 pub use commands::{RunOutput, ShellCommand, TestSpec};
 pub use sandbox::{ApplyResult, ChangeKind, FileChange, Sandbox};
 pub use task::{AgentBackend, AgentTask, ApprovalState, Outcome, OutcomeKind, Step, StepKind, TaskRequest, TaskStatus, TaskStore, TestChoice, TestResult};
@@ -29690,19 +29770,25 @@ pub use workspace::Workspace;
 
 ## Dependencies
 
-- Workspace crates: [`forge-ai`](docs/guide/developer/crates/forge-ai.md) (the `Provider` trait), [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md)
-  (`.aiignore`), [`forge-output`](docs/guide/developer/crates/forge-output.md) (test output parsers), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md)
+- Workspace crates: [`forge-ai`](docs/guide/developer/crates/forge-ai.md) (the `Provider` trait; `agent` feature),
+  [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md) (`.aiignore`), [`forge-core`](docs/guide/developer/crates/forge-core.md) (project
+  keys), [`forge-output`](docs/guide/developer/crates/forge-output.md) (test output parsers), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md)
   (git binary, patch splitting)
-- External: `serde`, `serde_json`, `tokio`, `async-trait`
+- External: `serde`, `serde_json`, `dirs`, `tokio` and `async-trait` (`agent` feature)
 
 ## Tests
 
-7 source files; 24 unit tests without network: a fake provider and a fake host drive the
+9 source files; 34 unit tests without network: a fake provider and a fake host drive the
 built-in loop (fix until green, step budget, approvals and refusals, cancellation), a fake CLI
 drives the run-test-fix loop, temporary git repositories cover the sandbox (snapshot of
 uncommitted and untracked files, changes, partial apply, conflicts that change nothing, apply
 as commit and as branch, removal), plus path confinement (symlinks, `.git`, `.aiignore`,
-scope), command parsing, the allowlist, process timeouts, test evaluation and CLI permissions.
+scope), command parsing, the allowlist, process timeouts, test evaluation, CLI permissions,
+the container command lines (one mount, no network, limits, path mapping, refused images) and
+the sandbox calls (refusing folders that are not the project's sandboxes). The remote side is
+tested in `crates/forge-remote-agent/tests/agent_tasks.rs` (sandbox, file tools, commands,
+review and apply on the host through `RemoteBackend`); `tests/container_docker.rs` is an integration test
+that starts a real container when Docker is available.
 
 ```sh
 cargo test -p forge-agent-tasks

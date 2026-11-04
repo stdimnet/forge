@@ -5,7 +5,8 @@
 //! `forge-remote-agent serve` and talks to it with [`forge_backend::rpc::RpcClient`]. Every
 //! service runs next to the project's files: file system, file search, git, terminals,
 //! processes, language servers (php-lsp indexes the remote project itself), language
-//! server installs, the PHP index and the framework and WebForge analysis.
+//! server installs, the PHP index, the framework and WebForge analysis and the sandboxes
+//! of Agent Tasks.
 
 mod browse;
 
@@ -340,6 +341,8 @@ impl Agent {
             Call::Php(call) => self.php(call),
             // Already encoded with the call's reply type.
             Call::Web(call) => self.backend()?.web(call),
+            // Already encoded; sandboxes go to this host's cache folder.
+            Call::AgentSandbox(call) => self.backend()?.agent_sandbox(call),
             // Works before a project is open, too: installs go to the host's Forge folders.
             Call::LangServerInstall { channel, request } => {
                 let cancel = Arc::new(tokio::sync::Notify::new());

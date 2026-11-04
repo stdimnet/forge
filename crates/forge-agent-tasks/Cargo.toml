@@ -5,15 +5,25 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["agent"]
+# The run loops over a `forge-ai` provider and local processes. Without it only the
+# sandbox, the file tools, command lines and the container sandbox are built: what the
+# Forge agent on a remote host needs (`crates/forge-remote-agent`).
+agent = ["dep:forge-ai", "dep:tokio", "dep:async-trait"]
+
 [dependencies]
-forge-ai.workspace = true
+forge-ai = { workspace = true, optional = true }
 forge-ai-editor.workspace = true
+forge-core.workspace = true
+dirs.workspace = true
 forge-output.workspace = true
 forge-vcs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-tokio.workspace = true
-async-trait = "0.1"
+tokio = { workspace = true, optional = true }
+async-trait = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }

@@ -165,6 +165,66 @@ group = "tools.ai-assistant"
 section = "Agent Tasks"
 order = 22
 
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.enabled"
+title = "Run new tasks in a container"
+description = "Default of \"Run in container\" in the New Agent Task form: the task's commands and tests run in a Docker or Podman container that mounts only the task's sandbox. The agent still edits the sandbox on the project's machine."
+type = "bool"
+default = false
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 23
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.image"
+title = "Container image"
+description = "Used when the project has no .devcontainer/devcontainer.json with an image or a Dockerfile, e.g. php:8.3-cli or node:22."
+type = "string"
+default = "php:8.3-cli"
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 24
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.network"
+title = "Allow network access in containers by default"
+description = "Default of \"Allow network\" in the New Agent Task form. Containers have no network otherwise (--network none). With network access every command of the agent asks for your approval, also allowlisted ones; network tools stay refused."
+type = "bool"
+default = false
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 25
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.cpus"
+title = "Container CPU limit"
+description = "CPUs a task's container may use (--cpus), e.g. 2 or 1.5. Empty: no limit."
+type = "string"
+default = "2"
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 26
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.memory"
+title = "Container memory limit"
+description = "Memory a task's container may use (--memory), e.g. 4g or 512m. Empty: no limit."
+type = "string"
+default = "4g"
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 27
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.engine"
+title = "Container engine"
+description = "docker, podman or the path of one of them. Empty: the Docker executable of Settings | Build, Execution, Deployment | Docker (on a remote project's host: docker)."
+type = "string"
+default = ""
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 28
+
 [[plugin]]
 id = "forge.claude-code"
 name = "Claude Code"

@@ -54,10 +54,29 @@ user to review. The user's working tree is not touched until they apply it.
   Gemini CLI to allow (reads inside the sandbox, edits inside the scope, bookkeeping tools),
   deny (outside the sandbox, `.aiignore`, network tools, unknown tools) or ask the user (shell
   commands that are not allowlisted).
+- **Container sandbox** (`container.rs`): `ContainerSpec` builds the engine's command lines
+  (Docker or Podman): `start` (`run --detach --rm`, only the sandbox bind-mounted at
+  `/workspace`, `--network none` unless allowed, `--cap-drop ALL`, `no-new-privileges`,
+  `--pids-limit`, `--cpus` / `--memory`, the sandbox owner's uid:gid or `--userns keep-id`),
+  `exec` (the working folder, environment and sandbox paths in arguments mapped inside; paths
+  outside the sandbox refused) and `remove` (`rm --force`); `parse_cpus` / `parse_memory`
+  validate the limits. With network allowed, `TaskContext::approve_all` makes every command ask.
+- **Sandbox calls** (`remote.rs`): `SandboxCall` (`Create`, `Changes`, `FileVersions`, `Apply`,
+  `Remove`, `Tool`) answered where the project's files are by `handle`: the desktop app for a
+  local project, the Forge agent for a remote one ([`forge-backend`](forge-backend.md)
+  `agent_tasks`, protocol call `AgentSandbox`). Sandboxes go to
+  `<cache>/forge/agent-tasks/<project key>/<task id>` of that machine; every call is checked to
+  name one of the open project's sandboxes. `Tool` runs a file tool with the project's
+  `.aiignore` and the task's scope (`tools::execute_file_tool`).
+
+Without the default `agent` feature (used by the Forge agent) the loops and `run_process` are
+left out, so the agent does not link `forge-ai`.
 
 The app (`app/src-tauri/src/commands/agent_tasks.rs`) owns the queue, the `Host` (processes,
 approvals, the log as `agent-tasks://changed` events), maps run configurations into the
-sandbox and starts agent CLIs through [`forge-agent-cli`](forge-agent-cli.md).
+sandbox, starts and removes the container, resolves its image from `devcontainer.json`
+([`forge-devenv`](forge-devenv.md)), runs a remote task's processes on the host and starts
+agent CLIs through [`forge-agent-cli`](forge-agent-cli.md).
 
 ## Modules
 
@@ -66,6 +85,8 @@ sandbox and starts agent CLIs through [`forge-agent-cli`](forge-agent-cli.md).
 | `agent.rs` | The built-in tool-calling loop and the run-test-fix loop around agent CLIs. |
 | `cli.rs` | Permission requests of agent CLIs mapped to the sandbox. |
 | `commands.rs` | Command lines without a shell, allowlist, refused programs, processes, test results. |
+| `container.rs` | Container sandbox command lines (run, exec, rm), resource limits, path mapping. |
+| `remote.rs` | Sandbox operations as protocol calls, checked against the project's sandboxes. |
 | `sandbox.rs` | The git worktree sandbox: create, changes, diff sides, apply, commit, branch, remove. |
 | `task.rs` | Task model, steps, outcomes and the task store. |
 | `tools.rs` | Tool calls of the built-in agent, the text protocol and the system prompt. |
@@ -76,6 +97,8 @@ sandbox and starts agent CLIs through [`forge-agent-cli`](forge-agent-cli.md).
 ```rust
 pub use agent::{run_builtin, run_cli, Budget, CliTurns, Host, TaskContext};
 pub use cli::{permission, CliVerdict};
+pub use container::{ContainerOptions, ContainerSpec};
+pub use remote::{ApplyAnswer, ApplyMode, FileVersions, SandboxCall, SandboxInfo, SandboxRef};
 pub use commands::{RunOutput, ShellCommand, TestSpec};
 pub use sandbox::{ApplyResult, ChangeKind, FileChange, Sandbox};
 pub use task::{AgentBackend, AgentTask, ApprovalState, Outcome, OutcomeKind, Step, StepKind, TaskRequest, TaskStatus, TaskStore, TestChoice, TestResult};
@@ -93,19 +116,25 @@ pub use workspace::Workspace;
 
 ## Dependencies
 
-- Workspace crates: [`forge-ai`](forge-ai.md) (the `Provider` trait), [`forge-ai-editor`](forge-ai-editor.md)
-  (`.aiignore`), [`forge-output`](forge-output.md) (test output parsers), [`forge-vcs`](forge-vcs.md)
+- Workspace crates: [`forge-ai`](forge-ai.md) (the `Provider` trait; `agent` feature),
+  [`forge-ai-editor`](forge-ai-editor.md) (`.aiignore`), [`forge-core`](forge-core.md) (project
+  keys), [`forge-output`](forge-output.md) (test output parsers), [`forge-vcs`](forge-vcs.md)
   (git binary, patch splitting)
-- External: `serde`, `serde_json`, `tokio`, `async-trait`
+- External: `serde`, `serde_json`, `dirs`, `tokio` and `async-trait` (`agent` feature)
 
 ## Tests
 
-7 source files; 24 unit tests without network: a fake provider and a fake host drive the
+9 source files; 34 unit tests without network: a fake provider and a fake host drive the
 built-in loop (fix until green, step budget, approvals and refusals, cancellation), a fake CLI
 drives the run-test-fix loop, temporary git repositories cover the sandbox (snapshot of
 uncommitted and untracked files, changes, partial apply, conflicts that change nothing, apply
 as commit and as branch, removal), plus path confinement (symlinks, `.git`, `.aiignore`,
-scope), command parsing, the allowlist, process timeouts, test evaluation and CLI permissions.
+scope), command parsing, the allowlist, process timeouts, test evaluation, CLI permissions,
+the container command lines (one mount, no network, limits, path mapping, refused images) and
+the sandbox calls (refusing folders that are not the project's sandboxes). The remote side is
+tested in `crates/forge-remote-agent/tests/agent_tasks.rs` (sandbox, file tools, commands,
+review and apply on the host through `RemoteBackend`); `tests/container_docker.rs` is an integration test
+that starts a real container when Docker is available.
 
 ```sh
 cargo test -p forge-agent-tasks

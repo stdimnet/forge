@@ -32,6 +32,7 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+forge-agent-tasks = { path = "../forge-agent-tasks", default-features = false }
 forge-diff.workspace = true
 forge-ssr.workspace = true
 forge-codeintel.workspace = true

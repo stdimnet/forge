@@ -12,7 +12,7 @@ use crate::commands::{
     OUTPUT_LIMIT,
 };
 use crate::task::{ApprovalState, Outcome, OutcomeKind, StepKind, TestResult};
-use crate::tools::{parse_reply, system_prompt, ToolCall};
+use crate::tools::{execute_file_tool, parse_reply, system_prompt, ToolCall};
 use crate::workspace::Workspace;
 
 /// Limits of a run.
@@ -45,12 +45,22 @@ pub struct TaskContext {
     pub allowlist: Vec<String>,
     pub tests: Option<TestSpec>,
     pub budget: Budget,
+    /// Every command asks for approval, allowlisted or not (a container with network
+    /// access).
+    pub approve_all: bool,
 }
 
 /// What a run needs from its surroundings: processes, the user's approval and the log.
 #[async_trait]
 pub trait Host: Send + Sync {
+    /// Run a program of the agent or the tests (in the container of a container task).
     async fn run(&self, cmd: &ShellCommand, timeout: Duration) -> RunOutput;
+    /// Run a file tool of the built-in agent. By default in `ws` on this machine; the host
+    /// of a remote project runs it where the sandbox is.
+    async fn file_tool(&self, ws: &Workspace, call: &ToolCall) -> Result<String, String> {
+        execute_file_tool(ws, call)
+            .unwrap_or_else(|| Err(format!("{} is not a file tool", call.name())))
+    }
     /// Ask the user whether `command` may run (the log shows an approval step at `step`).
     async fn approve(&self, step: usize, command: &str) -> bool;
     /// Append a step to the log; returns its index.
@@ -102,7 +112,7 @@ pub async fn run_command(
     if let Some(why) = refused(&words) {
         return Err(why);
     }
-    if !allowlisted(&words, &ctx.allowlist) {
+    if ctx.approve_all || !allowlisted(&words, &ctx.allowlist) {
         let step = host.log(StepKind::Approval {
             command: command.to_string(),
             state: ApprovalState::Pending,
@@ -158,20 +168,13 @@ impl Run<'_> {
     }
 
     async fn execute(&mut self, call: &ToolCall) -> Result<String, String> {
-        let ws = &self.ctx.workspace;
         match call {
-            ToolCall::ListFiles { path } => ws.list(path),
-            ToolCall::ReadFile {
-                path,
-                start_line,
-                end_line,
-            } => ws
-                .read(path, *start_line, *end_line)
-                .map(|t| tail(&t, OUTPUT_LIMIT * 4)),
-            ToolCall::Search { query, path } => ws.search(query, path),
-            ToolCall::WriteFile { path, content } => ws.write(path, content),
-            ToolCall::EditFile { path, old, new } => ws.edit(path, old, new),
-            ToolCall::DeleteFile { path } => ws.delete(path),
+            ToolCall::ListFiles { .. }
+            | ToolCall::ReadFile { .. }
+            | ToolCall::Search { .. }
+            | ToolCall::WriteFile { .. }
+            | ToolCall::EditFile { .. }
+            | ToolCall::DeleteFile { .. } => self.host.file_tool(&self.ctx.workspace, call).await,
             ToolCall::RunCommand { command } => run_command(self.ctx, self.host, command).await,
             ToolCall::RunTests => {
                 let Some(spec) = &self.ctx.tests else {
@@ -518,6 +521,7 @@ mod tests {
                 report: Some(TestReport::TeamCity),
             }),
             budget,
+            approve_all: false,
         }
     }
 
@@ -650,6 +654,24 @@ mod tests {
         assert!(errors[2].contains("scope"));
         assert!(errors[3].contains("outside the sandbox"));
         assert!(!dir.path().join("README.md").exists());
+    }
+
+    #[tokio::test]
+    async fn a_container_with_network_asks_for_every_command() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut ctx = context(dir.path(), false, Budget::default());
+        ctx.approve_all = true;
+        let host = FakeHost::new(dir.path(), false);
+        // Allowlisted, but denied: it was asked.
+        let err = run_command(&ctx, &host, "php -l src/sum.txt")
+            .await
+            .unwrap_err();
+        assert!(err.contains("denied"));
+        assert!(host.ran.lock().unwrap().is_empty());
+        // Network programs stay refused without asking.
+        let err = run_command(&ctx, &host, "wget x").await.unwrap_err();
+        assert!(err.contains("no network tools"));
+        assert_eq!(host.steps.lock().unwrap().len(), 1);
     }
 
     #[tokio::test]

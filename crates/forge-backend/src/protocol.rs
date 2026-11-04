@@ -30,13 +30,14 @@ use phpforge_lang_php::project::PhpProjectSettings;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::agent_tasks::SandboxCall;
 use crate::frameworks::FrameworkCall;
 use crate::langservers::{InstallRequest, LangServersRequest};
 use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 11;
+pub const PROTOCOL_VERSION: u32 = 12;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -241,6 +242,9 @@ pub enum Call {
         node_mirror: Option<String>,
         force: bool,
     },
+    /// An Agent Tasks sandbox on the host (create, diff, apply, remove, file tools) -> the
+    /// call's reply type (see [`SandboxCall`]; protocol 12)
+    AgentSandbox(SandboxCall),
 }
 
 /// PHP index queries (see [`crate::PhpBackend`]).
