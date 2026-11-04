@@ -22,6 +22,7 @@ skills in [`.claude/skills/`](../../../.claude/skills/); the detailed IPC contra
 | [Development setup](dev-setup.md) | toolchains, `pnpm dev`, `pnpm tauri dev`, demo projects |
 | [Rust computes, TypeScript renders](rust-computes.md) | the main design rule and how to apply it |
 | [The WebAssembly bridge](wasm-bridge.md) | running pure crates in browser mode |
+| [Unity editor bridge protocol](unity-bridge-protocol.md) | the localhost protocol between Forge and its Unity package |
 
 ## Extending Forge
 

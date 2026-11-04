@@ -19,7 +19,11 @@ Forge's generic Language Server Protocol client.
 - `LspManager`: routes files to servers by extension and starts them lazily; several
   servers may serve one file and their results are merged.
 - `model`: editor-friendly result types consumed by the UI.
-- `launch`: how server processes start (`LocalLauncher` here, or on a remote host).
+- `launch`: how server processes start (`LocalLauncher` here, or on a remote host). A
+  server that already listens on TCP (the Godot editor's GDScript server) has the command
+  `tcp://<host>:<port>`: `LocalLauncher` connects to it (`connect_tcp`, `tcp_address`)
+  instead of spawning a process, sends no parent `processId`, and stopping the client only
+  closes the socket.
 
 Nothing here is language specific; language packs contribute `LspServerConfig`s.
 `LspClient::update_settings` merges later changes (the code style options before Reformat
@@ -35,7 +39,7 @@ them.
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
-| `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. |
+| `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. `tcp://host:port` commands connect to a server that already listens (tested with the fake server bridged to a loopback socket). |
 | `manager.rs` | Routes files to language servers: one server per registered config, started lazily the first time a matching file is used. |
 | `model.rs` | Editor-friendly views of LSP results. |
 

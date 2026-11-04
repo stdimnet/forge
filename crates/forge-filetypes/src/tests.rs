@@ -73,6 +73,10 @@ fn bundled_types_by_name_and_extension() {
         ("requests.http", "HTTP Request"),
         ("nginx.conf", "Nginx"),
         ("LICENSE", "Plain text"),
+        ("Assets/Scripts/Game.asmdef", "JSON"),
+        ("Assets/Plugins/Shared.asmref", "JSON"),
+        ("Assets/UI/Main.uss", "CSS"),
+        ("Assets/UI/Main.uxml", "XML"),
     ] {
         assert_eq!(label(&r, path), expected, "{path}");
     }

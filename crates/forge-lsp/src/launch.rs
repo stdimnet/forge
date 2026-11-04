@@ -1,6 +1,11 @@
 //! Starting language server processes. [`LocalLauncher`] spawns them on this machine; other
 //! launchers start them elsewhere (on a remote development host) and hand back their stdio
 //! as streams, so [`LspClient`](crate::LspClient) works the same either way.
+//!
+//! A server that already runs and listens on a TCP port (the Godot editor's GDScript server
+//! on 6005) is reached with the command `tcp://<host>:<port>`: [`LocalLauncher`] connects
+//! to it instead of spawning a process, and stopping the client only closes the
+//! connection.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -76,10 +81,71 @@ impl ServerLauncher for LocalLauncher {
         config: &'a LspServerConfig,
         root: &'a Path,
     ) -> BoxFuture<'a, Result<ServerIo>> {
-        Box::pin(
-            async move { spawn_local_with_env(&config.command, &config.args, root, &config.env) },
-        )
+        Box::pin(async move {
+            if let Some(address) = tcp_address(&config.command) {
+                return connect_tcp(address).await;
+            }
+            spawn_local_with_env(&config.command, &config.args, root, &config.env)
+        })
     }
+}
+
+/// The `host:port` of a `tcp://host:port` server command.
+pub fn tcp_address(command: &str) -> Option<&str> {
+    command
+        .trim()
+        .strip_prefix("tcp://")
+        .map(|a| a.trim_end_matches('/'))
+        .filter(|a| !a.is_empty())
+}
+
+/// A connection to a server that listens on TCP; the server outlives it. Stopping closes
+/// the socket (a handle to the same socket as the client's streams).
+struct TcpConnection(Option<std::net::TcpStream>);
+
+impl TcpConnection {
+    fn close(&mut self) {
+        if let Some(s) = self.0.take() {
+            let _ = s.shutdown(std::net::Shutdown::Both);
+        }
+    }
+}
+
+impl ServerProcess for TcpConnection {
+    fn stop(&mut self, _grace: Duration) -> BoxFuture<'_, ()> {
+        self.close();
+        Box::pin(async {})
+    }
+
+    fn kill(&mut self) -> BoxFuture<'_, ()> {
+        self.close();
+        Box::pin(async {})
+    }
+}
+
+/// Connect to a language server that listens on `address` (`127.0.0.1:6005`).
+pub async fn connect_tcp(address: &str) -> Result<ServerIo> {
+    let stream = tokio::time::timeout(
+        Duration::from_secs(5),
+        tokio::net::TcpStream::connect(address),
+    )
+    .await
+    .map_err(|_| ForgeError::Other(format!("could not connect to {address}: timed out")))?
+    .map_err(|e| ForgeError::Other(format!("could not connect to {address}: {e}")))?;
+    let _ = stream.set_nodelay(true);
+    let other = |e: std::io::Error| ForgeError::Other(format!("{address}: {e}"));
+    let std_stream = stream.into_std().map_err(other)?;
+    let handle = std_stream.try_clone().map_err(other)?;
+    let stream = tokio::net::TcpStream::from_std(std_stream).map_err(other)?;
+    let (read, write) = stream.into_split();
+    Ok(ServerIo {
+        stdin: Box::pin(write),
+        stdout: Box::pin(read),
+        stderr: None,
+        process: Box::new(TcpConnection(Some(handle))),
+        // The server is not Forge's child: it must not exit with Forge.
+        parent_pid: None,
+    })
 }
 
 /// Spawn `command` with piped stdio in `cwd` (looked up on `PATH` like a shell would).

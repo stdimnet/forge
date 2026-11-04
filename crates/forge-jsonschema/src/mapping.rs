@@ -7,7 +7,7 @@
 //!    `# yaml-language-server: $schema=…` modeline (YAML),
 //! 3. Forge's built-in mappings (composer.json, package.json, tsconfig, ESLint, Prettier,
 //!    Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors in
-//!    `src/main/resources`) with bundled schemas,
+//!    `src/main/resources`, Unity assembly definitions) with bundled schemas,
 //! 4. the SchemaStore catalog, when remote schemas are allowed.
 
 use serde::{Deserialize, Serialize};
@@ -152,6 +152,16 @@ pub static BUILTINS: &[Builtin] = &[
         name: "bungee.yml",
         uri: bundled::MINECRAFT_BUNGEE,
         files: &["**/src/main/resources/bungee.yml"],
+    },
+    Builtin {
+        name: "Unity assembly definition",
+        uri: bundled::UNITY_ASMDEF,
+        files: &["*.asmdef"],
+    },
+    Builtin {
+        name: "Unity assembly definition reference",
+        uri: bundled::UNITY_ASMREF,
+        files: &["*.asmref"],
     },
 ];
 

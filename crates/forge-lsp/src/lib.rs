@@ -21,6 +21,8 @@ pub mod model;
 pub use client::{path_to_uri, uri_to_path, Feature, LspClient, LspEvent, ServerState};
 pub use config::{find_on_path, LspNotification, LspServerConfig};
 pub use forge_codeintel;
-pub use launch::{LocalLauncher, ServerIo, ServerLauncher, ServerProcess};
+pub use launch::{
+    connect_tcp, tcp_address, LocalLauncher, ServerIo, ServerLauncher, ServerProcess,
+};
 pub use lsp_types;
 pub use manager::{LspManager, ServerStatus, COMPLETION_SERVER_KEY};

@@ -34,6 +34,7 @@ pub mod embedded;
 pub mod emmet;
 pub mod extract_component;
 pub mod forges;
+pub mod gamedev;
 pub mod git;
 pub mod git_changes;
 pub mod git_clone;

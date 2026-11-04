@@ -15,6 +15,7 @@
 //! | Minitest verbose output | [`minitest`] | lines on stdout |
 //! | tox (environments as tests) | [`tox`] | lines on stdout |
 //! | Visual Studio TRX (`dotnet test --logger trx`) | [`trx`] | report files |
+//! | NUnit 3 XML (Unity Test Framework `-testResults`) | [`nunit`] | report files |
 //!
 //! [`line_parser`] picks the line parser of a [`TestReport`]; [`document_events`] reads a
 //! whole report (sniffing JSON, JSON lines and XML) for documents on stdout and report files.
@@ -24,6 +25,7 @@ pub mod jest;
 pub mod libtest;
 pub mod libtest_text;
 pub mod minitest;
+pub mod nunit;
 pub mod playwright;
 pub mod pytest;
 pub mod rspec;
@@ -40,6 +42,7 @@ pub use jest::jest_events;
 pub use libtest::LibtestParser;
 pub use libtest_text::LibtestTextParser;
 pub use minitest::MinitestParser;
+pub use nunit::nunit_events;
 pub use playwright::playwright_events;
 pub use pytest::PytestReportLogParser;
 pub use rspec::rspec_events;
@@ -70,6 +73,9 @@ pub fn document_events(text: &str, flavor: JUnitFlavor) -> Result<Vec<TestEvent>
     if t.starts_with('<') {
         if trx::is_trx(t) {
             return trx_events(t);
+        }
+        if nunit::is_nunit(t) {
+            return nunit_events(t);
         }
         return Ok(junit_messages(t, flavor)?
             .iter()

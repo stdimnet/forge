@@ -68,6 +68,7 @@ import "./minecraft";
 // After JavaForge: CForge wraps its Build Project (Ctrl+F9).
 import "./cpp";
 import "./dotnet";
+import "./gamedev";
 import "./services";
 import "./remote";
 import "./code-with-me";

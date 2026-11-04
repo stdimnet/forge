@@ -20,6 +20,7 @@ import { isDjangoDemo, isPythonDemo, pythonDemoName } from "./demoPythonProject"
 import { goDemoName, isGoDemo } from "./demoGoProject";
 import { cppDemoName, isCppDemo } from "./demoCppProject";
 import { dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
+import { GODOT_CONFIGURATIONS, godotDemoName, isGodotDemo, isUnityDemo, UNITY_CONFIGURATIONS, unityDemoName } from "./demoGameProjects";
 import { DOTNET_ROOT, dotnetCommandSteps, dotnetContext, dotnetRunSteps } from "./dotnetTestsMock";
 import { aspireRunSteps, dockerRunSteps, dotnetWebCommandLine, dotnetWebSteps } from "./dotnetWebMock";
 import { goContext } from "./goTestsMock";
@@ -40,7 +41,7 @@ import { addMockCoverage, demoClover, demoPhpunitXml, demoReportFor } from "./co
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isRubyDemo() ? rubyDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isMinecraftDemo() ? minecraftDemoName : isCppDemo() ? cppDemoName : isDotnetDemo() ? dotnetDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isRubyDemo() ? rubyDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isMinecraftDemo() ? minecraftDemoName : isCppDemo() ? cppDemoName : isDotnetDemo() ? dotnetDemoName : isUnityDemo() ? unityDemoName : isGodotDemo() ? godotDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -131,7 +132,7 @@ const DOTNET_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isRailsDemo() ? RAILS_CONFIGURATIONS : isRubyDemo() ? RUBY_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : {
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isRailsDemo() ? RAILS_CONFIGURATIONS : isRubyDemo() ? RUBY_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : isUnityDemo() ? UNITY_CONFIGURATIONS : isGodotDemo() ? GODOT_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {

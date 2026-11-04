@@ -30,6 +30,7 @@ and a plain Lua project does not start PHP language servers.
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
 | C# (`csharp`), F# (`fsharp`), Visual Basic (`vbnet`) | a solution (`.sln`, `.slnx`: the languages of its projects), a `.csproj`, `.fsproj` or `.vbproj` file (also the tool `dotnet`), a C# / F# file in the root or two or more in a folder, or `global.json` |
+| GDScript (`gdscript`) | a Godot project (`project.godot`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -38,6 +39,8 @@ and a plain Lua project does not start PHP language servers.
 | --- | --- |
 | Laravel | `laravel/framework` in `composer.json`, or an `artisan` file |
 | ASP.NET Core (`aspnetcore`) | a project file with the `Microsoft.NET.Sdk.Web` or `Microsoft.NET.Sdk.BlazorWebAssembly` SDK |
+| Unity (`unity`) | `ProjectSettings/ProjectVersion.txt` next to `Assets/`, with the editor version (`m_EditorVersion`); the language C# and the tool `dotnet` |
+| Godot (`godot`) | `project.godot`, with the version of `config/features`; GDScript, and C# with the `C#` feature, a `[dotnet]` section or a `.csproj` |
 | Symfony | `symfony/framework-bundle`, or `bin/console` together with `config/bundles.php` |
 | Doctrine | `doctrine/orm` |
 | Drupal | `drupal/core` or `drupal/core-recommended`, `core/lib/Drupal.php`, or a module / theme `<name>.info.yml` with `core_version_requirement` |
@@ -98,7 +101,7 @@ The primary type appears
 | RustForge | Rust projects |
 | RubyForge | Ruby projects |
 | CForge | C and C++ projects |
-| DotNetForge | .NET projects (C#, F#, Visual Basic) |
+| DotNetForge | .NET projects (C#, F#, Visual Basic); [Unity and Godot](../user/unity-godot.md) for Unity and Godot projects (Godot also without C#) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](../user/spring.md). A Minecraft server or proxy API (`paper-api`, `purpur-api`, `spigot-api`, `org.bukkit:bukkit`, `velocity-api`, `bungeecord-api`, …) makes the project a Minecraft plugin (framework `minecraft`, e.g. "Paper Plugin 1.21.8") that activates [Minecraft plugins](../user/minecraft.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |

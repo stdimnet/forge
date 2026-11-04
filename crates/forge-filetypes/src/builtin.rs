@@ -26,6 +26,10 @@ const ROWS: &[Row] = &[
             "webmanifest",
             "geojson",
             "har",
+            // Unity: assembly definitions and references, Input System actions.
+            "asmdef",
+            "asmref",
+            "inputactions",
         ],
         &[
             ".prettierrc",
@@ -47,7 +51,8 @@ const ROWS: &[Row] = &[
     ("jsx", "JavaScript React", &["jsx"], &[]),
     ("typescript", "TypeScript", &["ts", "mts", "cts"], &[]),
     ("tsx", "TypeScript React", &["tsx"], &[]),
-    ("css", "CSS", &["css", "pcss", "postcss"], &[]),
+    // `uss`: Unity UI Toolkit style sheets.
+    ("css", "CSS", &["css", "pcss", "postcss", "uss"], &[]),
     ("scss", "SCSS", &["scss"], &[]),
     ("sass", "Sass", &["sass"], &[]),
     ("less", "Less", &["less"], &[]),
@@ -88,7 +93,8 @@ const ROWS: &[Row] = &[
     (
         "xml",
         "XML",
-        &["xml", "xsd", "xsl", "svg", "dist", "xliff", "xlf"],
+        // `uxml`: Unity UI Toolkit documents.
+        &["xml", "xsd", "xsl", "svg", "dist", "xliff", "xlf", "uxml"],
         &[],
     ),
     ("dotenv", "Dotenv", &["env"], &[".env*", "*.env"]),

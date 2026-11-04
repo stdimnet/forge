@@ -88,6 +88,7 @@ import "./rustMock";
 import "./rubyMock";
 import "./railsMock";
 import "./dotnetMock";
+import "./gamedevMock";
 import "./dotnetWebMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";

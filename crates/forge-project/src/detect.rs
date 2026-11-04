@@ -34,7 +34,7 @@ pub struct Framework {
 pub struct ProjectInfo {
     /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `kotlin`,
     /// `groovy`, `scala`, `rust`, `go`, `python`, `cpp` (C and C++), `csharp`, `fsharp`,
-    /// `vbnet`.
+    /// `vbnet`, `gdscript`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
     /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
@@ -90,6 +90,7 @@ pub fn language_name(id: &str) -> &str {
         "csharp" => "C#",
         "fsharp" => "F#",
         "vbnet" => "Visual Basic",
+        "gdscript" => "GDScript",
         other => other,
     }
 }
@@ -158,6 +159,8 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "spring-boot",
     "jakarta-ee",
     "minecraft",
+    "unity",
+    "godot",
     "laravel",
     "symfony",
     "drupal",
@@ -508,6 +511,8 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     scan_cpp(dir, rel, c, &files);
     // ---- .NET (DotNetForge)
     scan_dotnet(dir, rel, c, &files);
+    // ---- Game engines (DotNetForge: Unity and Godot)
+    scan_game_engines(dir, rel, c, &files);
     // ---- Python
     // Like Lua: Python files in the root, several of them in a folder, or a packaging /
     // environment file make it a Python project.
@@ -645,6 +650,44 @@ fn scan_dotnet(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
             "csharp"
         };
         c.framework("aspnetcore", "ASP.NET Core", lang, None, rel);
+    }
+}
+
+/// Unity (`ProjectSettings/ProjectVersion.txt`, with its editor version) and Godot
+/// (`project.godot`: GDScript, C# with the `C#` feature or a `[dotnet]` section, the
+/// version of `config/features`).
+fn scan_game_engines(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let version_file = dir.join("ProjectSettings/ProjectVersion.txt");
+    if version_file.is_file() && dir.join("Assets").is_dir() {
+        let version = fs::read_to_string(&version_file).ok().and_then(|t| {
+            t.lines()
+                .find_map(|l| l.strip_prefix("m_EditorVersion:"))
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty())
+        });
+        c.framework("unity", "Unity", "csharp", version, rel);
+        c.tool("dotnet");
+    }
+    if files.iter().any(|f| f == "project.godot") {
+        let text = fs::read_to_string(dir.join("project.godot")).unwrap_or_default();
+        let features = text
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("config/features="))
+            .unwrap_or_default();
+        let version = features
+            .split('"')
+            .skip(1)
+            .step_by(2)
+            .find(|f| f.starts_with(|ch: char| ch.is_ascii_digit()) && f.contains('.'))
+            .map(str::to_string);
+        c.framework("godot", "Godot", "gdscript", version, rel);
+        let csharp = features.contains("\"C#\"")
+            || text.lines().any(|l| l.trim() == "[dotnet]")
+            || files.iter().any(|f| f.ends_with(".csproj"));
+        if csharp {
+            c.language("csharp");
+            c.tool("dotnet");
+        }
     }
 }
 
@@ -2015,6 +2058,48 @@ mod tests {
         write(dir.path(), "package.json", "{}");
         write(dir.path(), "tools/gen.cs", "");
         assert!(!detect(dir.path()).uses("dotnetforge"));
+    }
+
+    #[test]
+    fn unity_and_godot_projects() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "ProjectSettings/ProjectVersion.txt",
+            "m_EditorVersion: 2022.3.10f1\nm_EditorVersionWithRevision: 2022.3.10f1 (ff3792e53c62)\n",
+        );
+        write(dir.path(), "Assets/Scripts/Player.cs", "class Player {}");
+        let info = detect(dir.path());
+        let unity = info.framework("unity").unwrap();
+        assert_eq!(unity.version.as_deref(), Some("2022.3.10f1"));
+        assert_eq!(info.primary.as_ref().unwrap().id, "unity");
+        assert!(info.uses("csharp") && info.uses("dotnetforge"));
+
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "project.godot",
+            "config_version=5\n\n[application]\nconfig/name=\"Pong\"\nconfig/features=PackedStringArray(\"4.3\", \"GL Compatibility\")\n",
+        );
+        write(dir.path(), "pong.gd", "extends Node2D\n");
+        let info = detect(dir.path());
+        assert_eq!(
+            info.framework("godot").unwrap().version.as_deref(),
+            Some("4.3")
+        );
+        assert_eq!(info.languages, vec!["gdscript"]);
+        assert!(info.packs.is_empty());
+        assert_eq!(info.primary.as_ref().unwrap().id, "godot");
+        assert_eq!(language_name("gdscript"), "GDScript");
+
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "project.godot",
+            "[application]\nconfig/features=PackedStringArray(\"4.3\", \"C#\", \"Forward Plus\")\n[dotnet]\nproject/assembly_name=\"Dodge\"\n",
+        );
+        let info = detect(dir.path());
+        assert!(info.uses("godot") && info.uses("csharp") && info.uses("dotnetforge"));
     }
 
     #[test]
