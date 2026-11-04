@@ -42,7 +42,7 @@ describe("release channel", () => {
 });
 
 describe("workflow triggers", () => {
-  const release = "name: Release\n# comment\non:\n  release:\n    types: [published]  # only this\n\njobs: {}\n";
+  const release = 'name: Release\n# comment\non:\n  push:\n    tags: ["v*"]  # only this\n\njobs: {}\n';
   const ci = "name: CI\non:\n  workflow_dispatch:\n\njobs: {}\n";
 
   it("accepts the repository's workflows", () => {
@@ -52,7 +52,7 @@ describe("workflow triggers", () => {
   });
 
   it("ignores comments and blank lines", () => {
-    expect(triggerBlocks(release)).toEqual(["on:\n  release:\n    types: [published]"]);
+    expect(triggerBlocks(release)).toEqual(['on:\n  push:\n    tags: ["v*"]']);
     expect(workflowTriggerErrors([{ name: "release.yml", text: release }, { name: "ci.yml", text: ci }])).toEqual([]);
   });
 
@@ -61,7 +61,7 @@ describe("workflow triggers", () => {
     expect(workflowTriggerErrors([{ name: "release.yml", text: release }, { name: "ci.yml", text: push }])[0]).toContain(
       "ci.yml: triggers changed",
     );
-    const types = release.replace("[published]", "[published, created]");
+    const types = release.replace('tags: ["v*"]', 'tags: ["v*"]\n    branches: [main]');
     expect(workflowTriggerErrors([{ name: "release.yml", text: types }])[0]).toContain("release.yml");
     const twice = `${ci}"on": [push]\n`;
     expect(workflowTriggerErrors([{ name: "release.yml", text: release }, { name: "x.yml", text: twice }])[0]).toContain(

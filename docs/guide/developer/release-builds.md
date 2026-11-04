@@ -31,27 +31,30 @@ Cross-compiling is not supported: build Windows and macOS bundles on those syste
 Versions follow Pride Versioning and are bumped with `pnpm version:bump`; see
 [Versioning](versioning.md).
 
-Publishing a GitHub release runs `.github/workflows/release.yml`, and nothing else does
-(`pnpm workflows:check` in the [quality gates](quality-gates.md) fails if a workflow gets
-another trigger). It:
+Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
+`.github/workflows/release.yml`, and nothing else does (`pnpm workflows:check` in the
+[quality gates](quality-gates.md) fails if a workflow gets another trigger). It:
 
-1. `meta`: decides the channel from the tag (`vX.Y.Z` stable, `vX.Y.Z-beta.N` beta) and stops
-   when the tag, the app version in `tauri.conf.json` and the release's pre-release flag
-   disagree,
+1. `meta`: decides the channel from the tag (`vX.Y.Z` stable, `vX.Y.Z-beta.N` beta), stops
+   when the tag does not match the app version in `tauri.conf.json`, and creates a draft
+   release `Forge <version>` with generated notes (a pre-release for the beta channel); a
+   re-run of the same tag reuses that draft,
 2. builds the static remote agents on Linux,
 3. builds the bundles on Ubuntu (AppImage, deb, rpm), Windows (NSIS, MSI) and macOS (Apple
    Silicon and Intel) with `pnpm tauri build --config src-tauri/tauri.agents.conf.json`,
    [signing](#code-signing) them when the certificates are configured,
-4. signs the updater artifacts and uploads everything plus `latest.json` to the release,
+4. signs the updater artifacts and uploads everything plus `latest.json` to the draft,
 5. `checksums`: uploads `SHA256SUMS` (and `SHA256SUMS.asc` with a GPG key) and, for a
-   pre-release, the beta feed `latest-beta.json` (see [Channels](#channels)).
+   pre-release, the beta feed `latest-beta.json` (see [Channels](#channels)),
+6. `publish`: publishes the release once every asset is uploaded. If a job fails, the release
+   stays a draft; fix the cause and re-run the workflow.
 
 Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what stable users get offered.
 
 Linux build jobs (remote agents, Linux bundles) run on the project's self-hosted runner
-(labels `self-hosted`, `Linux`, `X64`); Windows and macOS bundles and the small `meta` and
-`checksums` jobs run on GitHub's runners (`checksums` needs `gh` and `gpg`). The self-hosted
+(labels `self-hosted`, `Linux`, `X64`); Windows and macOS bundles and the small `meta`,
+`checksums` and `publish` jobs run on GitHub's runners (`checksums` needs `gh` and `gpg`). The self-hosted
 runner needs the Debian packages listed in `.github/scripts/linux-deps.sh`. The script installs
 missing ones when the runner is root or has passwordless sudo; otherwise the job stops and
 prints the `apt-get install` command to run once as root on the runner.
@@ -250,13 +253,13 @@ Settings | Appearance & Behavior | System Settings | Updates. The logic is in
 
 The beta feed needs a fixed URL, so it lives on a long-lived release tagged `beta`. Create it
 once on GitHub: tag `beta`, title "Beta update feed", marked as **pre-release**, no assets.
-Publishing it starts the release workflow, which recognises the tag and builds nothing. From
-then on every published pre-release replaces its `latest-beta.json`. Until it exists, beta
+The tag does not match `v*`, so it starts no workflow. From then on every pre-release replaces
+its `latest-beta.json`. Until it exists, beta
 installations simply get stable releases (the workflow prints a warning).
 
-Pre-release versions come from `pnpm version:bump default --pre beta.1` (see
-[Versioning](versioning.md)). The `meta` job refuses a `-beta` tag that is not marked as a
-pre-release, and a pre-release without a label, so a beta never becomes GitHub's "latest".
+Pre-release versions come from `pnpm version:bump default --pre beta.1` and the next ones from
+`pnpm version:bump pre` (see [Versioning](versioning.md)). The `meta` job creates a tag with a
+`-label` as a pre-release, so a beta never becomes GitHub's "latest".
 
 ## Linux packages
 

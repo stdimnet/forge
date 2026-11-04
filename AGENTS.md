@@ -141,9 +141,10 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 - **No co-author or other trailers** in commits. Do not mention AI tools in commit messages.
 - Commit early and often during long tasks, so work is not lost.
 - CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. The release workflow
-  (`.github/workflows/release.yml`) runs **only when a GitHub release is published** and uploads
-  the bundles plus the updater feed `latest.json` to it. Never trigger workflows, never create or
-  publish releases, and never add other triggers (push, pull_request, schedule) to any workflow.
+  (`.github/workflows/release.yml`) runs **only when a version tag `v*` is pushed**: it creates
+  the GitHub release, uploads the bundles plus the updater feed `latest.json` and publishes it.
+  Never trigger workflows, never push version tags, never create or publish releases, and never
+  add other triggers (branch pushes, pull_request, schedule) to any workflow.
 - Versions follow Pride Versioning (https://pridever.org, PROUD.DEFAULT.SHAME) and are changed
   only with `pnpm version:bump` (see `docs/guide/developer/versioning.md`). Never bump the
   version unless you were asked to.
