@@ -10,6 +10,7 @@ import {
   releaseChannel,
   srcinfo,
   stableVersion,
+  tauriBuildErrors,
   triggerBlocks,
   updateFlatpakManifest,
   updatePkgbuild,
@@ -70,6 +71,29 @@ describe("workflow triggers", () => {
     const scheduled = "on:\n  schedule:\n    - cron: '0 0 * * *'\n";
     expect(workflowTriggerErrors([{ name: "release.yml", text: release }, { name: "nightly.yml", text: scheduled }])).toHaveLength(1);
     expect(workflowTriggerErrors([{ name: "ci.yml", text: ci }])).toEqual(["release.yml is missing"]);
+  });
+});
+
+describe("tauri builds", () => {
+  const step = (/** @type {string} */ script) =>
+    `jobs:\n  b:\n    steps:\n      - uses: tauri-apps/tauri-action@v0\n        with:\n          projectPath: app\n${script}          args: --verbose\n      - name: next\n        tauriScript: pnpm --dir ui tauri\n`;
+
+  it("accepts the repository's workflows", () => {
+    const dir = resolve(root, ".github/workflows");
+    const workflows = readdirSync(dir).map((name) => ({ name, text: read(`.github/workflows/${name}`) }));
+    expect(tauriBuildErrors(workflows)).toEqual([]);
+  });
+
+  it("requires tauri-action to run scripts/tauri.mjs", () => {
+    expect(tauriBuildErrors([{ name: "r.yml", text: step("          tauriScript: pnpm --dir ui tauri\n") }])).toEqual([]);
+    expect(tauriBuildErrors([{ name: "r.yml", text: step("") }])[0]).toMatch(/r\.yml:4: tauri-action needs/);
+    expect(tauriBuildErrors([{ name: "r.yml", text: step("          tauriScript: npx tauri\n") }])).toHaveLength(1);
+  });
+
+  it("flags the Tauri CLI run directly", () => {
+    expect(tauriBuildErrors([{ name: "c.yml", text: "      - run: npx tauri build --bundles msi\n" }])[0]).toMatch(/directly/);
+    expect(tauriBuildErrors([{ name: "c.yml", text: "      - run: cargo tauri bundle\n" }])).toHaveLength(1);
+    expect(tauriBuildErrors([{ name: "c.yml", text: "      - run: pnpm tauri build  # npx tauri build\n" }])).toEqual([]);
   });
 });
 

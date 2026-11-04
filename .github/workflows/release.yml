@@ -256,7 +256,8 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         with:
           # tauri-action looks for tauri.conf.json below projectPath, so it must include
-          # src-tauri; the Forge wrapper (scripts/tauri.mjs) lives in app/ui.
+          # src-tauri; the Forge wrapper (scripts/tauri.mjs) lives in app/ui. It adds the signing
+          # settings and the numeric MSI version WiX needs for pre-releases (workflows:check).
           projectPath: app
           tauriScript: pnpm --dir ui tauri
           args: --config src-tauri/tauri.agents.conf.json ${{ matrix.args }}

@@ -8,6 +8,8 @@
  * - `release`: the final version of a pre-release (`0.2.0-rc.1` → `0.2.0`).
  *
  * The result stays `X.Y.Z[-pre]`, so Cargo, npm and Tauri's updater read and order it like SemVer.
+ * Every version must also map to a Windows Installer version (msiVersion), so a pre-release
+ * label is `<label>.<N>` (`beta.1`, `rc.2`), a bare number or a bare label.
  */
 
 const VERSION = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
@@ -44,6 +46,47 @@ export function comparePre(a, b) {
   return Math.sign(x.length - y.length);
 }
 
+/** The largest value of the MSI ProductVersion fields: major, minor, build, revision. */
+const MSI_MAX = [255, 255, 65535, 65535];
+
+/**
+ * The Windows Installer ProductVersion (`bundle.windows.wix.version`) for an app version. WiX
+ * accepts only `major.minor.build[.revision]` with numbers, so Tauri cannot derive it from a
+ * SemVer pre-release like `0.1.1-beta.1` itself.
+ *
+ * - `X.Y.Z` → `X.Y.Z`
+ * - `X.Y.Z-<label>.N` (`beta.1`, `rc.2`) and `X.Y.Z-N` → `X.Y.Z.N`
+ * - `X.Y.Z-<label>` → `X.Y.Z.0`
+ *
+ * The label itself is dropped: Windows Installer compares only the first three fields when it
+ * decides on a major upgrade, so the fourth one only shows in Apps & Features. A pre-release of
+ * X.Y.Z, the next pre-release and the final X.Y.Z therefore all count as the same version, and
+ * they install over each other because the bundle allows downgrades (`MajorUpgrade` with
+ * `AllowDowngrades`, see tauriArgs.mjs). A later X.Y.Z is a normal major upgrade.
+ * @param {string} version
+ */
+export function msiVersion(version) {
+  const v = parseVersion(version);
+  const fields = [v.proud, v.default, v.shame];
+  if (v.pre !== null) {
+    const m = /^(?:[A-Za-z][0-9A-Za-z]*(?:\.(\d+))?|(\d+))$/.exec(v.pre);
+    if (!m) {
+      throw new Error(
+        `${version}: the MSI installer needs a pre-release label like beta.1, rc.2 or a plain number, not "${v.pre}"`,
+      );
+    }
+    const n = m[1] ?? m[2];
+    fields.push(n === undefined ? 0 : Number(n));
+  }
+  const names = ["major (PROUD)", "minor (DEFAULT)", "build (SHAME)", "pre-release number"];
+  fields.forEach((value, i) => {
+    if (value > MSI_MAX[i]) {
+      throw new Error(`${version}: the MSI installer allows at most ${MSI_MAX[i]} for the ${names[i]}, not ${value}`);
+    }
+  });
+  return fields.join(".");
+}
+
 /** The label after `pre`: its last number plus one (`beta.1` → `beta.2`), else `.1` appended. @param {string} pre */
 function nextPre(pre) {
   const parts = pre.split(".");
@@ -54,12 +97,19 @@ function nextPre(pre) {
 }
 
 /**
- * The next version after `version`.
+ * The next version after `version`. Fails when the result has no MSI version (msiVersion).
  * @param {string} version
  * @param {"proud" | "default" | "shame" | "pre" | "release"} part
  * @param {string | null} [pre] pre-release label, e.g. `beta.1`
  */
 export function bumpVersion(version, part, pre = null) {
+  const next = nextVersion(version, part, pre);
+  msiVersion(next);
+  return next;
+}
+
+/** @param {string} version @param {string} part @param {string | null} pre */
+function nextVersion(version, part, pre) {
   const v = parseVersion(version);
   if (pre !== null && !PRE.test(pre)) throw new Error(`"${pre}" is not a valid pre-release label (e.g. beta.1)`);
   if (part === "pre") {
