@@ -19,6 +19,36 @@ The written form stays `X.Y.Z`, so Cargo, npm and Tauri's updater parse and orde
 SemVer. Pre-releases use a SemVer label (`0.2.0-beta.1`); they go to the beta update channel
 (`updates.channel`).
 
+### MSI version
+
+The Windows MSI installer (WiX) accepts only numeric versions `major.minor.build[.revision]`
+(at most 255.255.65535.65535), not `0.2.0-beta.1`. `pnpm tauri build` therefore passes a
+derived `bundle.windows.wix.version` on Windows (`app/ui/scripts/tauriArgs.mjs`); the app, the
+NSIS installer and the updater keep the SemVer version.
+
+| App version | MSI version |
+| --- | --- |
+| `0.1.1` | `0.1.1` |
+| `0.1.1-beta.1`, `0.1.1-alpha.1`, `0.1.1-rc.1` | `0.1.1.1` |
+| `0.1.1-rc.2` | `0.1.1.2` |
+| `0.1.1-7` | `0.1.1.7` |
+| `0.1.1-beta` | `0.1.1.0` |
+
+The label is dropped and its number becomes the fourth field. Windows Installer compares only
+the first three fields for an upgrade, so every pre-release of `0.1.1` and the final `0.1.1`
+count as the same version. They still install over each other because the MSI allows
+downgrades (`bundle.windows.allowDowngrades`, Tauri's default, which makes WiX's `MajorUpgrade`
+remove any installed Forge, the same version included): `beta.1` → `beta.2` → `rc.1` → `0.1.1`
+each replace the previous install. A later version (`0.1.2-beta.1` → `0.1.2.1`) is an ordinary
+upgrade.
+
+So a version must stay MSI-compatible: PROUD and DEFAULT at most 255, SHAME at most 65535, and
+a pre-release label of the form `<label>.<N>` (`beta.1`, `rc.2`), a bare number or a bare label,
+with `N` at most 65535. `pnpm version:bump` refuses anything else (`beta.1.2`, `beta.70000`), and
+`pnpm version:check` fails on it and when `tauri.conf.json` pins `bundle.windows.wix.version` or
+turns `allowDowngrades` off. `pnpm workflows:check` makes sure the workflows build through
+`pnpm tauri` (tauri-action's `tauriScript: pnpm --dir ui tauri`), which adds the MSI version.
+
 ## Where the version lives
 
 The same version is written in three files:
@@ -30,7 +60,7 @@ The same version is written in three files:
 Never edit them by hand. From `app/ui`:
 
 ```sh
-pnpm version:check                        # fails when the three files disagree
+pnpm version:check                        # fails when the files disagree or there is no MSI version
 pnpm version:bump default                 # 0.1.0 → 0.2.0 in all three files + Cargo.lock
 pnpm version:bump shame                   # 0.2.0 → 0.2.1
 pnpm version:bump proud                   # 0.2.1 → 1.0.0
