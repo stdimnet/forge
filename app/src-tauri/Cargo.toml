@@ -131,6 +131,7 @@ rubyforge-sdk.workspace = true
 rubyforge-fw-rails.workspace = true
 dotnetforge-lang-dotnet.workspace = true
 dotnetforge-sdk.workspace = true
+dotnetforge-gamedev.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 pyforge-jupyter = { workspace = true, features = ["runtime", "keychain"] }

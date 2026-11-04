@@ -3382,6 +3382,45 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   in the status bar (watch runs are followed from the `.NET Project` type's `start`) and the
   `UpdateRunningApplication` action (`Ctrl+F10`, Apply Changes).
 
+- Game engines (`dotnetforge-gamedev`, `app/src-tauri/plugins/dotnetforge-gamedev.toml`:
+  plugins `forge.unity`, `projectTypes = ["unity"]`, depends on `forge.dotnet`, and
+  `forge.godot`, `projectTypes = ["godot"]`, depends on `forge.debugger`; `forge-project`
+  reports the frameworks `unity` (`ProjectSettings/ProjectVersion.txt` + `Assets/`, C#) and
+  `godot` (`project.godot`, language `gdscript`, C# with the `C#` feature / `[dotnet]` /
+  a `.csproj`); `commands/gamedev.rs`; UI `features/gamedev`; mock `gamedevMock.ts`, demos
+  `demoGameProjects.ts` with `?project=unity` and `?project=godot`). Unity: the editor of the
+  project's version from the Unity Hub folders (`unity::editors`), the Forge editor bridge, a
+  Unity package shipped as C# source (`packs/dotnetforge/gamedev/unity-package/dev.forge.unity`,
+  installed into `Packages/` only from the UI after the user confirmed) that listens on
+  loopback and writes `Library/ForgeBridge.json`; `GameDevState` holds the
+  `unity::bridge::BridgeClient` (protocol in `docs/guide/developer/unity-bridge-protocol.md`).
+  The `unity-test` (`unity::test_runner::UnityTests`) and `gdunit4`
+  (`godot::gdunit::GdUnitTests`) providers are registered in `RunState::new`;
+  `gamedev::extend_test_context` adds `unity.context` / `godot.context`, `test_discover` asks
+  `gamedev::discover_file` first for `.gd` files and `.cs` files in `Assets/` / `Packages/`
+  of Unity projects. NUnit 3 reports are read by `forge-output` (`formats/nunit.rs`), and
+  report folders also yield `<sub folder>/results.xml` (GdUnit4). Godot: `run.rs` builds the
+  `godot` type through `gamedev::run_command_line`; the `godot` debug adapter
+  (`godot::dap::GodotAdapter`, Rust) is registered by `dap.rs`'s sync while the plugin is
+  enabled; the GDScript language server is an `LspServerConfig` with the command
+  `tcp://<host>:6005` (`forge_lsp::launch` connects instead of spawning), registered by
+  `gamedev::sync_lsp_server` for local Godot projects. Unity's Mono soft debugger has no
+  bundled adapter: the manifest declares the `unity` adapter with `commandSetting =
+  "unity.debugger.adapterPath"` and an `attach` template (`address`, `port`).
+  IPC (`app/ui/src/ipc/gamedev.ts`): `unity_status() -> { project, editors, editor, exact,
+  editorRunning, bridgeAvailable, connected, welcome, bundledBridge, remote }`,
+  `unity_install_bridge() -> BridgeInstall`, `unity_bridge_connect() -> Welcome` (events
+  `unity://bridge`: `state`, `log` with a computed `location`, `openFile` with a
+  project-relative path, `disconnected`), `unity_bridge_disconnect()`,
+  `unity_bridge_command({ command }) -> { ok, message? }`, `unity_command({ action:
+  "openEditor" | "syncSolution" }) -> CommandLine` (run through the hidden
+  `gamedev-command` type), `unity_processes() -> UnityProcess[]`, `unity_attach_request({
+  port, host?, name? }) -> LaunchRequest`, `godot_status() -> { project, scenes, godot,
+  version, host, lspPort, dapPort, lspListening, dapListening, remote }`, `godot_command({
+  action: "openEditor" })`, `godot_debug_request({ configuration }) -> LaunchRequest`
+  (GDScript: `attachServer` to the editor's adapter with `launch`; C#: `dotnet build`, then
+  `coreclr` launching Godot; trusted projects only).
+
 ## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
 
 - The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,

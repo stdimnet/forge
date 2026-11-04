@@ -1,0 +1,274 @@
+# DotNetForge for game engines, in the style of Rider's Unity and Godot support. The logic
+# lives in packs/dotnetforge/gamedev (Unity projects and Hub editors, the editor bridge
+# package and its protocol, Unity tests in batch mode, Unity processes; Godot projects, the
+# Godot executable, run configurations, the editor's GDScript language server and debug
+# adapter, GdUnit4) and is wired up by app/src-tauri/src/commands/gamedev.rs. Forge never
+# bundles or downloads Unity or Godot.
+
+[[plugin]]
+id = "forge.unity"
+name = "Unity"
+version = "0.1.0"
+pack = "dotnetforge"
+vendor = "Forge"
+projectTypes = ["unity"]
+depends = ["forge.dotnet"]
+description = "Unity projects: the project's editor version and the Unity Hub's editors, Start Unity, the Forge editor bridge (play / pause / stop, refresh assets, Unity's console in the Unity tool window, scripts opened from Unity at their line), project files, Unity tests in batch mode with NUnit results, Unity editors for attaching a debugger, ShaderLab / HLSL highlighting and the asmdef schema."
+
+[[plugin.contributions.fileTypes]]
+id = "shaderlab"
+name = "ShaderLab"
+extensions = ["shader"]
+indentSize = 4
+
+[[plugin.contributions.fileTypes]]
+id = "hlsl"
+name = "HLSL"
+extensions = ["hlsl", "cginc", "hlslinc", "compute", "raytrace", "cg"]
+indentSize = 4
+
+[[plugin.contributions.commands]]
+id = "unity.startEditor"
+title = "Start Unity"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.installBridge"
+title = "Install Editor Bridge…"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.connect"
+title = "Connect to Unity Editor"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.play"
+title = "Play in Unity"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.pause"
+title = "Pause in Unity"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.stop"
+title = "Stop in Unity"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.refresh"
+title = "Refresh Unity Assets"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.syncSolution"
+title = "Regenerate Project Files"
+category = "Unity"
+
+[[plugin.contributions.commands]]
+id = "unity.attach"
+title = "Attach to Unity Process…"
+category = "Unity"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "unity-test"
+name = "Unity Tests"
+description = "Run Unity Test Framework tests (Edit Mode or Play Mode) in batch mode; results from the NUnit report. Unity must not have the project open."
+icon = "flask-conical"
+
+# Unity's debugger is the Mono soft debugger. Forge has no Mono debugger of its own: with a
+# Mono soft-debugger DAP adapter (for example a build of the MIT vscode-mono-debug) set in
+# Settings, "Attach to Unity Process…" attaches it to the editor's debugger port.
+[[plugin.contributions.debugAdapters]]
+type = "unity"
+label = "Unity (Mono soft debugger adapter)"
+command = ""
+commandSetting = "unity.debugger.adapterPath"
+languages = ["cs"]
+attach = { address = "${host}", port = "${port}" }
+
+[[plugin.contributions.settings]]
+key = "unity.editorPath"
+title = "Unity editor"
+description = "The Unity executable for Start Unity, tests and project files. Empty: the Unity Hub's editor of the project's version (ProjectSettings/ProjectVersion.txt)."
+type = "path"
+default = ""
+group = "lang.dotnet.unity"
+section = "Unity Editor"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "unity.bridge.autoConnect"
+title = "Connect to the Unity editor automatically"
+description = "When the Forge editor bridge runs in Unity (Library/ForgeBridge.json), Forge connects to it on its own."
+type = "bool"
+default = true
+group = "lang.dotnet.unity"
+section = "Editor Bridge"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "unity.console.maxEntries"
+title = "Unity console entries to keep"
+type = "int"
+min = 100
+max = 100000
+default = 5000
+group = "lang.dotnet.unity"
+section = "Editor Bridge"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "unity.tests.platform"
+title = "Test platform"
+description = "The default -testPlatform of Unity Tests configurations."
+type = "enum"
+options = [
+  { value = "EditMode", label = "Edit Mode" },
+  { value = "PlayMode", label = "Play Mode" },
+]
+default = "EditMode"
+group = "lang.dotnet.unity"
+section = "Tests"
+project = true
+order = 20
+
+[[plugin.contributions.settings]]
+key = "unity.debugger.adapterPath"
+title = "Mono debug adapter"
+description = "A Debug Adapter Protocol server for Mono's soft debugger that Forge starts on stdio for Attach to Unity Process (it gets an attach request with address and port). Forge does not ship one."
+type = "path"
+default = ""
+group = "lang.dotnet.unity"
+section = "Debugger"
+order = 30
+
+[[plugin]]
+id = "forge.godot"
+name = "Godot"
+version = "0.1.0"
+pack = "dotnetforge"
+vendor = "Forge"
+projectTypes = ["godot"]
+depends = ["forge.debugger"]
+description = "Godot projects (GDScript and C#): GDScript, scene and resource highlighting, code insight from the Godot editor's GDScript language server, the Godot run configuration (project, current scene or a chosen scene), GDScript debugging through the editor's debug adapter and C# debugging with netcoredbg, GdUnit4 tests."
+
+[[plugin.contributions.fileTypes]]
+id = "gdscript"
+name = "GDScript"
+extensions = ["gd"]
+indentSize = 4
+
+[[plugin.contributions.fileTypes]]
+id = "godot-resource"
+name = "Godot Resource"
+extensions = ["tscn", "tres", "godot", "import", "gdextension"]
+fileNames = ["export_presets.cfg", "override.cfg", "plugin.cfg"]
+indentSize = 4
+
+[[plugin.contributions.fileTypes]]
+id = "gdshader"
+name = "Godot Shader"
+extensions = ["gdshader", "gdshaderinc"]
+indentSize = 4
+
+[[plugin.contributions.commands]]
+id = "godot.openEditor"
+title = "Open in Godot Editor"
+category = "Godot"
+
+[[plugin.contributions.commands]]
+id = "godot.runScene"
+title = "Run Current Scene"
+category = "Godot"
+
+[[plugin.contributions.commands]]
+id = "godot.runProject"
+title = "Run Godot Project"
+category = "Godot"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "godot"
+name = "Godot"
+description = "Run a Godot project or one of its scenes. Debug uses the Godot editor's debug adapter for GDScript, or netcoredbg for C#."
+icon = "gamepad-2"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "gdunit4"
+name = "GdUnit4"
+description = "Run GdUnit4 test suites headless with GdUnit4's command line tool; results from its JUnit report."
+icon = "flask-conical"
+
+[[plugin.contributions.settings]]
+key = "godot.path"
+title = "Godot executable"
+description = "Empty: GODOT4 / GODOT, the PATH (godot4, godot) or the usual install folders. C# projects need a .NET build of Godot."
+type = "path"
+default = ""
+group = "lang.dotnet.godot"
+section = "Godot"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "godot.host"
+title = "Editor host"
+description = "Where the Godot editor's language server and debug adapter listen."
+type = "string"
+default = "127.0.0.1"
+group = "lang.dotnet.godot"
+section = "Godot Editor"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "godot.lsp.enabled"
+title = "Use the Godot editor's GDScript language server"
+description = "Code completion, navigation and diagnostics for GDScript while the Godot editor has the project open."
+type = "bool"
+default = true
+group = "lang.dotnet.godot"
+section = "Godot Editor"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "godot.lsp.port"
+title = "Language server port"
+description = "Editor Settings | Network | Language Server | Remote Port."
+type = "int"
+min = 1
+max = 65535
+default = 6005
+group = "lang.dotnet.godot"
+section = "Godot Editor"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "godot.dap.port"
+title = "Debug adapter port"
+description = "Editor Settings | Network | Debug Adapter | Remote Port."
+type = "int"
+min = 1
+max = 65535
+default = 6006
+group = "lang.dotnet.godot"
+section = "Godot Editor"
+order = 13
+
+[[plugin.contributions.settings]]
+key = "godot.debugger"
+title = "Debug with"
+description = "Which debugger Debug of a Godot configuration uses."
+type = "enum"
+options = [
+  { value = "auto", label = "C# projects: netcoredbg, else the Godot editor" },
+  { value = "gdscript", label = "The Godot editor (GDScript)" },
+  { value = "csharp", label = "netcoredbg (C#)" },
+]
+default = "auto"
+group = "lang.dotnet.godot"
+section = "Debugger"
+project = true
+order = 20

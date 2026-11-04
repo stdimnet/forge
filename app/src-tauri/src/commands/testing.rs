@@ -277,6 +277,10 @@ pub async fn test_discover(
     {
         return Ok(crate::commands::rust::discover_file(&state, &path, &text));
     }
+    // Unity tests (C# in Assets/ and Packages/) and GdUnit4 suites (GDScript).
+    if let Some(found) = crate::commands::gamedev::discover_file(&state, &path, &text) {
+        return Ok(found);
+    }
     // C# and F# files: the solution knows their project and its test framework.
     if dotnetforge_lang_dotnet::provider::is_test_source(&path)
         && state

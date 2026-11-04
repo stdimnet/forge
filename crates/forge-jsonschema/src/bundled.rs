@@ -54,6 +54,15 @@ pub const MINECRAFT_BUNGEE: &str = concat!(
     "minecraft-bungee-plugin.json"
 );
 
+pub const UNITY_ASMDEF: &str = concat!(
+    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "unity-asmdef.json"
+);
+pub const UNITY_ASMREF: &str = concat!(
+    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "unity-asmref.json"
+);
+
 pub const OPENAPI_30: &str = "https://spec.openapis.org/oas/3.0/schema/2021-09-28";
 pub const OPENAPI_31: &str = "https://spec.openapis.org/oas/3.1/schema/2022-10-07";
 
@@ -156,6 +165,15 @@ pub static BUNDLED: &[Bundled] = &[
     bundled!(
         "minecraft-bungee-plugin.json",
         ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-bungee-plugin.json"]
+    ),
+    // Written for Forge (DotNetForge's Unity support).
+    bundled!(
+        "unity-asmdef.json",
+        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/unity-asmdef.json"]
+    ),
+    bundled!(
+        "unity-asmref.json",
+        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/unity-asmref.json"]
     ),
 ];
 

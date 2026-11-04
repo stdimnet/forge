@@ -31,6 +31,7 @@ import { androidDemoFiles, androidDemoName, isAndroidDemo } from "./demoAndroidP
 import { isMinecraftDemo, minecraftDemoFiles, minecraftDemoName } from "./demoMinecraftProject";
 import { cppDemoFiles, cppDemoName, isCppDemo } from "./demoCppProject";
 import { dotnetDemoFiles, dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
+import { godotDemoFiles, godotDemoName, isGodotDemo, isUnityDemo, unityDemoFiles, unityDemoName } from "./demoGameProjects";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
@@ -42,7 +43,8 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge, `?project=ruby` the `pantry` gem of RubyForge,
 // `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application), `?project=kotlin` a Gradle Kotlin service,
 // `?project=scala` an sbt build, `?project=android` a Gradle Android app, `?project=minecraft` a Paper plugin.
-// `?project=cpp` the CMake project `shapes` of CForge.
+// `?project=cpp` the CMake project `shapes` of CForge, `?project=unity` / `?project=godot` the
+// game engine demos of DotNetForge (demoGameProjects.ts).
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
   : isWordPressDemo()
@@ -73,6 +75,10 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...cppDemoFiles }
     : isDotnetDemo()
     ? { ...dotnetDemoFiles }
+    : isUnityDemo()
+    ? { ...unityDemoFiles }
+    : isGodotDemo()
+    ? { ...godotDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -108,6 +114,10 @@ export const mockProjectName = isSymfonyDemo()
     ? cppDemoName
     : isDotnetDemo()
     ? dotnetDemoName
+    : isUnityDemo()
+    ? unityDemoName
+    : isGodotDemo()
+    ? godotDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.

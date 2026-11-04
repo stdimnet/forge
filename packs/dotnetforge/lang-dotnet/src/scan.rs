@@ -272,7 +272,7 @@ fn test_attribute(name: &str, hint: Option<TestFramework>) -> Option<(TestFramew
             (TestFramework::Nunit, true)
         }
         "Theory" | "SkippableTheory" => (TestFramework::Xunit, true),
-        "Test" => (TestFramework::Nunit, false),
+        "Test" | "UnityTest" => (TestFramework::Nunit, false),
         "TestCase" | "TestCaseSource" | "Combinatorial" | "Pairwise" | "Sequential" => {
             (TestFramework::Nunit, true)
         }

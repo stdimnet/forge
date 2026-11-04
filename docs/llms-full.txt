@@ -659,6 +659,7 @@ and a plain Lua project does not start PHP language servers.
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
 | C# (`csharp`), F# (`fsharp`), Visual Basic (`vbnet`) | a solution (`.sln`, `.slnx`: the languages of its projects), a `.csproj`, `.fsproj` or `.vbproj` file (also the tool `dotnet`), a C# / F# file in the root or two or more in a folder, or `global.json` |
+| GDScript (`gdscript`) | a Godot project (`project.godot`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -667,6 +668,8 @@ and a plain Lua project does not start PHP language servers.
 | --- | --- |
 | Laravel | `laravel/framework` in `composer.json`, or an `artisan` file |
 | ASP.NET Core (`aspnetcore`) | a project file with the `Microsoft.NET.Sdk.Web` or `Microsoft.NET.Sdk.BlazorWebAssembly` SDK |
+| Unity (`unity`) | `ProjectSettings/ProjectVersion.txt` next to `Assets/`, with the editor version (`m_EditorVersion`); the language C# and the tool `dotnet` |
+| Godot (`godot`) | `project.godot`, with the version of `config/features`; GDScript, and C# with the `C#` feature, a `[dotnet]` section or a `.csproj` |
 | Symfony | `symfony/framework-bundle`, or `bin/console` together with `config/bundles.php` |
 | Doctrine | `doctrine/orm` |
 | Drupal | `drupal/core` or `drupal/core-recommended`, `core/lib/Drupal.php`, or a module / theme `<name>.info.yml` with `core_version_requirement` |
@@ -727,7 +730,7 @@ The primary type appears
 | RustForge | Rust projects |
 | RubyForge | Ruby projects |
 | CForge | C and C++ projects |
-| DotNetForge | .NET projects (C#, F#, Visual Basic) |
+| DotNetForge | .NET projects (C#, F#, Visual Basic); [Unity and Godot](docs/guide/user/unity-godot.md) for Unity and Godot projects (Godot also without C#) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md). A Minecraft server or proxy API (`paper-api`, `purpur-api`, `spigot-api`, `org.bukkit:bukkit`, `velocity-api`, `bungeecord-api`, …) makes the project a Minecraft plugin (framework `minecraft`, e.g. "Paper Plugin 1.21.8") that activates [Minecraft plugins](docs/guide/user/minecraft.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
@@ -904,6 +907,7 @@ not finished, the page says so.
 | [Spring Boot and Jakarta EE](docs/guide/user/spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
 | [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
+| [Unity and Godot](docs/guide/user/unity-godot.md) | Unity: the project's editor from the Unity Hub, the Forge editor bridge (play, pause, stop, refresh, Unity's console, scripts opened from Unity), project files, Unity tests, attaching to Unity, ShaderLab / HLSL / asmdef; Godot: GDScript with the Godot editor's language server, the Godot run configuration, GDScript and C# debugging, GdUnit4 |
 | [Minecraft plugins](docs/guide/user/minecraft.md) | The Minecraft Plugin wizard (Paper, Purpur, Folia, Spigot, Bukkit, Velocity, BungeeCord; Gradle or Maven; Java or Kotlin), plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml completion and main class checks, Run Paper Server and event handler gutter icons |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
@@ -3364,6 +3368,7 @@ Forge picks the first match:
    | GitHub Action | `action.yml`, `action.yaml` |
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
    | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](docs/guide/user/minecraft.md)) |
+| Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](docs/guide/user/unity-godot.md#unity-file-types)) |
 
 4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
    hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
@@ -14079,6 +14084,12 @@ Rider:
 - Remote projects keep their secrets on the remote machine; use `dotnet user-secrets` in its
   terminal.
 
+## Unity and Godot
+
+Unity and Godot projects get their own plugins on top of this one: the Unity Hub's editors, the
+Forge editor bridge, Unity tests, GDScript with the Godot editor's language server, Godot run
+configurations and debugging. See [Unity and Godot](docs/guide/user/unity-godot.md).
+
 ## Azure DevOps
 
 Repositories on Azure DevOps (`dev.azure.com`, `*.visualstudio.com`, Azure DevOps Server) get
@@ -15103,6 +15114,240 @@ No layout editor, resource tools, APK analyzer, profilers or Android debugger ye
 Studio stays the tool for those. Kotlin and Java code intelligence comes from
 [KotlinForge](docs/guide/user/kotlin.md) and [JavaForge](docs/guide/user/java.md), which do not know the Android SDK's classes
 unless the build provides them.
+
+
+---
+
+Source: docs/guide/user/unity-godot.md
+
+# Unity and Godot
+
+DotNetForge supports the two game engines that use C#, in the style of Rider's Unity and Godot
+support. Two plugins of the [.NET pack](docs/guide/user/dotnet.md) do this:
+
+- **Unity** (`forge.unity`) is active in Unity projects: a folder with
+  `ProjectSettings/ProjectVersion.txt` and `Assets/`. It needs the .NET plugin.
+- **Godot** (`forge.godot`) is active in Godot projects: a folder with `project.godot`, with
+  GDScript, C# or both.
+
+Forge never bundles or downloads Unity or Godot. It uses the editors installed on your machine.
+The logic is in Rust (`packs/dotnetforge/gamedev`); see
+[dotnetforge-gamedev](docs/guide/developer/crates/dotnetforge-gamedev.md).
+
+## Unity
+
+### The project and its editor
+
+Forge reads the project's editor version from `ProjectSettings/ProjectVersion.txt` (for example
+`2022.3.10f1`) and its packages from `Packages/manifest.json`. It looks for installed editors
+where the Unity Hub puts them:
+
+| OS | Unity Hub editors | Unity Hub settings |
+| --- | --- | --- |
+| Linux | `~/Unity/Hub/Editor/<version>/Editor/Unity` | `~/.config/UnityHub` |
+| macOS | `/Applications/Unity/Hub/Editor/<version>/Unity.app` | `~/Library/Application Support/UnityHub` |
+| Windows | `C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe` | `%APPDATA%\UnityHub` |
+
+It also reads the Hub's custom install folder (`secondaryInstallPath.json`) and the editors
+you located manually in the Hub (`editors-v2.json`). The project uses the editor of its exact
+version, else the newest one of the same `major.minor` (Unity upgrades the project when it
+opens it). **Settings | Languages & Frameworks | .NET | Unity** shows the editors and lets you
+choose another one (`unity.editorPath`).
+
+**Tools | Unity | Start Unity** opens the project in its editor.
+
+### Project files
+
+C# code insight uses the `.sln` and `.csproj` files that Unity's IDE packages
+(`com.unity.ide.visualstudio`, `com.unity.ide.rider`, `com.unity.ide.vscode`) write into the
+project folder. Once they exist, the project is an ordinary [.NET solution](docs/guide/user/dotnet.md): the
+Roslyn language server, the Build tool window and NuGet work with it.
+
+**Tools | Unity | Regenerate Project Files** writes them:
+
+- with Unity open and the editor bridge connected, Unity generates them right away;
+- with Unity closed, Forge runs the editor in batch mode
+  (`-batchmode -quit -executeMethod …`), with the editor bridge's method or the Rider
+  package's `SyncSolution`.
+
+### The Forge editor bridge
+
+The editor bridge is a small Unity package (`dev.forge.unity`, MIT, C# source shipped with
+Forge) that connects the Unity editor to Forge. **Tools | Unity | Install Editor Bridge…**
+copies it into `Packages/dev.forge.unity` after you confirm; Forge never installs it on its
+own. Unity compiles it the next time it has focus.
+
+![The Unity tool window without the bridge: Install Editor Bridge asks first](docs/screenshots/unity-bridge-install.png)
+
+With the bridge, choose **Forge** in Unity's **Preferences | External Tools | External Script
+Editor**:
+
+- double-clicking a script (or a console message) in Unity opens it in Forge at its line;
+- **Regenerate project files** in that preferences page, and new or moved scripts, write the
+  project files through the installed IDE package's generator.
+
+While Unity runs, the bridge listens on `127.0.0.1` only (a free port) and writes the port and a
+random token into `Library/ForgeBridge.json`. Forge connects to it automatically
+(`unity.bridge.autoConnect`) or with **Tools | Unity | Connect to Unity Editor**, and again
+after every script reload. The protocol is described in
+[Unity editor bridge protocol](docs/guide/developer/unity-bridge-protocol.md).
+
+### The Unity tool window
+
+The **Unity** tool window (bottom) shows the connection and Unity's console:
+
+![The Unity tool window with Unity's console after Play, an exception selected](docs/screenshots/unity-console.png)
+
+- **Play**, **Pause**, **Step** and **Stop** control Play mode in the editor; the status shows
+  Playing, Paused and Compiling.
+- **Refresh Assets** (`AssetDatabase.Refresh`) and **Regenerate Project Files**.
+- The console: errors, warnings and messages with their counts (click to filter), search,
+  **Clear**. Select a message for its full text and stack trace; double-click it, or click its
+  location, to open the source. Compiler messages (`Assets/Scripts/Enemy.cs(13,22): warning
+  CS0618 …`) and stack frames (`(at Assets/Scripts/Enemy.cs:17)`) are read in Rust.
+  `unity.console.maxEntries` limits the messages kept.
+
+### Unity tests
+
+The **Unity Tests** configuration type runs the Unity Test Framework in batch mode:
+`Unity -batchmode -projectPath <project> -runTests -testPlatform EditMode|PlayMode
+-testResults <file>`.
+
+![Unity tests: the NUnit results in the test tree](docs/screenshots/unity-tests.png)
+
+- Gutter icons on NUnit `[Test]` / `[TestCase]` and `[UnityTest]` methods and their classes in
+  `Assets/` and `Packages/`.
+- Scopes: all tests, a class, a method or a `-testFilter` expression; the test platform
+  (Settings: `unity.tests.platform`), categories and assemblies.
+- Results come from Unity's NUnit 3 report: suites per test class, data rows, durations,
+  output, failure messages with **Click to see difference** and stack traces.
+- **Rerun Failed Tests** runs the failed methods.
+
+> **Note:** Unity refuses batch mode while an editor has the project open, so Forge refuses
+> the run then and says so. Close Unity to run its tests from Forge. Running tests inside the
+> open editor (through the bridge) is not supported yet.
+
+### Debugging Unity
+
+Unity's debugger is **Mono's soft debugger**, not the Debug Adapter Protocol that Forge's
+debugger speaks. There is no permissively licensed, maintained debug adapter for Unity:
+Microsoft's Unity extension for VS Code (`vstuc`) is under Microsoft's proprietary licence, and
+Unity's own MIT adapter (`vscode-unity-debug`) is deprecated. So Forge does not ship one:
+
+- **Run | Attach to Unity Process…** lists the running Unity editors (the project's first) with
+  their debugger port, `56000 + pid % 1000`. A player's host and port can be entered too.
+- Attaching needs a Mono soft-debugger debug adapter that you set in **Settings | Languages &
+  Frameworks | .NET | Unity | Debugger** (`unity.debugger.adapterPath`). Forge starts it on
+  stdio and sends `attach` with `address` and `port`. A build of the MIT
+  [vscode-mono-debug](https://github.com/mono/vscode-mono-debug) adapter, started by a small
+  script (`mono mono-debug.exe`), speaks this protocol.
+- Unity must be in Debug mode (the status bar toggle, or **Code Optimization On Startup:
+  Debug**).
+
+![Attach to Unity Process](docs/screenshots/unity-attach.png)
+
+> **Warning:** attaching through such an adapter is untested with Unity in Forge; only the
+> process discovery, the port and the attach request are. Without an adapter, Forge says why it
+> cannot attach.
+
+### Unity file types
+
+- **ShaderLab** (`.shader`): keywords, properties and their types, attributes (`[HDR]`) and
+  render states; `HLSLPROGRAM` / `CGPROGRAM` blocks are highlighted as HLSL.
+- **HLSL** (`.hlsl`, `.cginc`, `.hlslinc`, `.compute`): types, intrinsics, Unity's macros,
+  semantics (`SV_Target`), preprocessor directives.
+- **Assembly definitions** (`.asmdef`, `.asmref`) are JSON with a bundled
+  [JSON schema](docs/guide/user/json-schema.md): completion, documentation and validation of `name`,
+  `references`, `includePlatforms`, `defineConstraints`, `versionDefines` and the rest.
+- **UI Toolkit**: `.uss` style sheets are CSS, `.uxml` documents are XML.
+
+![A ShaderLab shader with its HLSL program](docs/screenshots/unity-shader.png)
+
+## Godot
+
+### The project and the Godot executable
+
+Forge reads `project.godot`: the name, the main scene, the engine version of
+`config/features` (`4.3`), the `C#` feature or `[dotnet]` section, and the autoloads.
+**Settings | Languages & Frameworks | .NET | Godot** shows them.
+
+The Godot executable is the one of Settings (`godot.path`), else `GODOT4` / `GODOT`, else
+`godot4`, `godot`, `godot-mono` on the `PATH`, the Flatpak, `/Applications/Godot*.app` on
+macOS, or a downloaded `Godot_v4…` executable in `~/Applications`, `~/Downloads`,
+`~/.local/bin` or `~/Godot`. C# projects need a .NET build of Godot, so those are preferred for
+them.
+
+![Settings | .NET | Godot](docs/screenshots/godot-settings.png)
+
+### GDScript
+
+GDScript (`.gd`) is highlighted: keywords, annotations (`@export`, `@onready`), built-in types,
+node paths (`$Sprite2D`, `%Unique`), string names (`&"move_left"`), `class_name`, `func` and
+`signal` declarations. Scenes and resources (`.tscn`, `.tres`, `project.godot`, `.import`,
+`export_presets.cfg`) and Godot shaders (`.gdshader`) are highlighted too.
+
+![player.gd](docs/screenshots/godot-gdscript.png)
+
+Code insight for GDScript (completion, navigation, hover, diagnostics) comes from **the Godot
+editor's language server**, like in Rider and VS Code: Godot has no stand-alone server. While
+the Godot editor has the project open, it listens on port 6005 (Editor Settings | Network |
+Language Server), and Forge connects to it. When you open a GDScript file and the editor does
+not run, a balloon offers **Open in Godot Editor** (**Tools | Godot | Open in Godot Editor**).
+Settings: `godot.lsp.enabled`, `godot.lsp.port`, `godot.host`.
+
+C# scripts use the Roslyn server with the project's `.csproj` like any [.NET project](docs/guide/user/dotnet.md).
+
+### Running
+
+The **Godot** configuration type runs the project (its main scene) or a scene, with Godot
+options (`--debug-collisions`, **Headless**) and the program's arguments after `--`
+(`OS.get_cmdline_user_args()`). **Tools | Godot | Run Current Scene** runs the scene open in
+the editor; **Run Godot Project** runs the project.
+
+![The Godot run configuration](docs/screenshots/godot-run-config.png)
+
+### Debugging Godot
+
+**Debug** on a Godot configuration uses (Settings: `godot.debugger`, or the configuration's
+**Debug with**):
+
+- **GDScript: the Godot editor's debug adapter.** The Godot editor listens for the Debug Adapter
+  Protocol on port 6006 (Editor Settings | Network | Debug Adapter; `godot.dap.port`). Forge
+  connects to it and asks the editor to run the project or the scene with its debugger, like
+  pressing Play in the editor: breakpoints in `.gd` files, stepping, the call stack and
+  variables come from Godot. The editor must have the project open.
+- **C#: netcoredbg.** Forge builds the project's `.csproj` with `dotnet build` and starts Godot
+  under [netcoredbg](docs/guide/user/dotnet.md#debugging) with the configuration's arguments, so breakpoints in
+  C# scripts work.
+
+With **Settings | Godot**, C# projects use netcoredbg and the others the Godot editor.
+
+### GdUnit4 tests
+
+The **GdUnit4** configuration type runs [GdUnit4](https://github.com/MikeSchulze/gdUnit4) test
+suites headless with its command line tool (`-s -d
+res://addons/gdUnit4/bin/GdUnitCmdTool.gd`): all suites in `test/`, a folder or a suite. Suites
+(scripts that extend `GdUnitTestSuite`) get a gutter icon; the results come from GdUnit4's JUnit
+report; **Rerun Failed Tests** runs the suites with failures. GdUnit4's command line runs whole
+suites, so single test functions run with their suite. C# tests (gdUnit4Net) run with
+[.NET Tests](docs/guide/user/dotnet.md#testing).
+
+![GdUnit4 results](docs/screenshots/godot-gdunit.png)
+
+## Project trust
+
+Starting Unity or Godot, generating project files in batch mode, running tests and running or
+debugging the game run project code, so [Safe Mode](docs/guide/user/project-trust.md) refuses them. Reading the
+project, finding editors, installing the bridge package (after you confirm), the bridge
+connection and the Godot editor's language server stay available.
+
+## Browser mode
+
+`?project=unity` opens `Shooter`, a Unity 2022.3 project, with the bridge connected to a
+simulated editor; `&bridge=none` starts without the bridge package and `&editor=closed`
+without a running editor (tests run then). `?project=godot` opens `Dodge the Creeps`, a Godot
+4.3 project with GDScript, C#, scenes, a shader and a GdUnit4 suite; `&editor=closed` starts
+without the Godot editor.
 
 
 ---
@@ -23685,6 +23930,31 @@ Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet hos
 | `dotnet.ef.startupProject` | string | `""` | user, project | ASP.NET Core and Aspire | EF Core startup project — The project dotnet ef starts to find the DbContext (--startup-project). Empty: the first runnable project that references EF Core. |
 | `dotnet.hotReload.showStatus` | bool | `true` | user | ASP.NET Core and Aspire | Show the Hot Reload status of dotnet watch runs in the status bar |
 
+### Languages & Frameworks | .NET | Unity
+
+Page id `lang.dotnet.unity` (plugin `forge.unity`; the page also shows the project's Unity version, the installed editors and the editor bridge). See [Unity and Godot](docs/guide/user/unity-godot.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `unity.editorPath` | path | `""` | user, project | Unity Editor | Unity editor — The Unity executable for Start Unity, tests and project files. Empty: the Unity Hub's editor of the project's version (ProjectSettings/ProjectVersion.txt). |
+| `unity.bridge.autoConnect` | bool | `true` | user | Editor Bridge | Connect to the Unity editor automatically — When the Forge editor bridge runs in Unity (Library/ForgeBridge.json), Forge connects to it on its own. |
+| `unity.console.maxEntries` | int (100–100000) | `5000` | user | Editor Bridge | Unity console entries to keep |
+| `unity.tests.platform` | enum: `EditMode`, `PlayMode` | `"EditMode"` | user, project | Tests | Test platform — The default -testPlatform of Unity Tests configurations. |
+| `unity.debugger.adapterPath` | path | `""` | user | Debugger | Mono debug adapter — A Debug Adapter Protocol server for Mono's soft debugger that Forge starts on stdio for Attach to Unity Process (it gets an attach request with address and port). Forge does not ship one. |
+
+### Languages & Frameworks | .NET | Godot
+
+Page id `lang.dotnet.godot` (plugin `forge.godot`; the page also shows the Godot executable and its version, the project and whether the Godot editor runs). See [Unity and Godot](docs/guide/user/unity-godot.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `godot.path` | path | `""` | user | Godot | Godot executable — Empty: GODOT4 / GODOT, the PATH (godot4, godot) or the usual install folders. C# projects need a .NET build of Godot. |
+| `godot.host` | string | `"127.0.0.1"` | user | Godot Editor | Editor host — Where the Godot editor's language server and debug adapter listen. |
+| `godot.lsp.enabled` | bool | `true` | user | Godot Editor | Use the Godot editor's GDScript language server — Code completion, navigation and diagnostics for GDScript while the Godot editor has the project open. |
+| `godot.lsp.port` | int (1–65535) | `6005` | user | Godot Editor | Language server port — Editor Settings | Network | Language Server | Remote Port. |
+| `godot.dap.port` | int (1–65535) | `6006` | user | Godot Editor | Debug adapter port — Editor Settings | Network | Debug Adapter | Remote Port. |
+| `godot.debugger` | enum: `auto`, `gdscript`, `csharp` | `"auto"` | user, project | Debugger | Debug with — Which debugger Debug of a Godot configuration uses. |
+
 ### Languages & Frameworks | Jupyter
 
 Page id `lang.jupyter`. See [Jupyter notebooks](docs/guide/user/jupyter.md). The server token is stored in the OS keychain, not in settings.
@@ -24297,7 +24567,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | --- | --- | --- | --- | --- |
 | `php` | PHP | `.php`, `.phtml`, `.inc` |  |  |
 | `blade` | Blade | `.blade.php` |  |  |
-| `json` | JSON | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har` | `.prettierrc`, `.babelrc`, `.eslintrc`, `composer.lock`, `.php-cs-fixer.cache` |  |
+| `json` | JSON | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.asmdef`, `.asmref`, `.inputactions` | `.prettierrc`, `.babelrc`, `.eslintrc`, `composer.lock`, `.php-cs-fixer.cache` |  |
 | `yaml` | YAML | `.yml`, `.yaml`, `.neon` |  |  |
 | `sql` | SQL | `.sql`, `.ddl` |  |  |
 | `markdown` | Markdown | `.md`, `.markdown` |  |  |
@@ -24305,7 +24575,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `jsx` | JavaScript React | `.jsx` |  |  |
 | `typescript` | TypeScript | `.ts`, `.mts`, `.cts` |  |  |
 | `tsx` | TypeScript React | `.tsx` |  |  |
-| `css` | CSS | `.css`, `.pcss`, `.postcss` |  |  |
+| `css` | CSS | `.css`, `.pcss`, `.postcss`, `.uss` |  |  |
 | `scss` | SCSS | `.scss` |  |  |
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
@@ -24326,7 +24596,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
-| `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
+| `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf`, `.uxml` |  |  |
 | `dotenv` | Dotenv | `.env` | `.env*`, `*.env` |  |
 | `properties` | Properties | `.properties`, `.ini`, `.cfg`, `.conf`, `.editorconfig` | `.editorconfig`, `.gitattributes` |  |
 | `shell` | Shell Script | `.sh`, `.bash`, `.zsh` | `.bashrc`, `.zshrc`, `.profile`, `artisan.sh` |  |
@@ -24397,7 +24667,7 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `django` | Django Template | `forge.django` | `.djhtml` | `templates/*.html`, `templates/*.htm`, `templates/*.txt` |  | 4 |
 | `jinja` | Jinja2 | `forge.flask` | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` | `templates/*.html`, `templates/*.htm` |  | 4 |
 | `yaml` | YAML | `forge.yaml` | `.yml`, `.yaml`, `.neon` | `.clang-format`, `.clang-tidy`, `.yamllint`, `.gemrc`, `CITATION.cff`, `.sops.yaml` |  | 2 |
-| `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
+| `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta`, `.asmdef`, `.asmref`, `.inputactions` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
 | `dotenv` | Dotenv | `forge.dotenv` | `.env` | `.env`, `.env.local`, `.env.*.local`, `.env.dist`, `.env.*.dist`, `.env.example`, `.env.sample`, `.env.template`, `.env.defaults`, `.env.dev`, `.env.development`, `.env.prod`, `.env.production`, `.env.stage`, `.env.staging`, `.env.test`, `.env.testing` |  | 2 |
 | `ignore` | Ignore File | `forge.ignore` | `.gitignore`, `.dockerignore`, `.npmignore`, `.ignore` | `.*ignore`, `.gitignore_global`, `.git/info/exclude` |  | 2 |
 | `dockerfile` | Dockerfile | `forge.docker` | `.dockerfile`, `.containerfile` | `Dockerfile`, `Dockerfile.*`, `Containerfile`, `Containerfile.*` |  | 4 |
@@ -24411,6 +24681,11 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
+| `shaderlab` | ShaderLab | `forge.unity` | `.shader` |  |  | 4 |
+| `hlsl` | HLSL | `forge.unity` | `.hlsl`, `.cginc`, `.hlslinc`, `.compute`, `.raytrace`, `.cg` |  |  | 4 |
+| `gdscript` | GDScript | `forge.godot` | `.gd` |  |  | 4 |
+| `godot-resource` | Godot Resource | `forge.godot` | `.tscn`, `.tres`, `.godot`, `.import`, `.gdextension` | `export_presets.cfg`, `override.cfg`, `plugin.cfg` |  | 4 |
+| `gdshader` | Godot Shader | `forge.godot` | `.gdshader`, `.gdshaderinc` |  |  | 4 |
 
 ## Template data languages
 
@@ -25061,6 +25336,8 @@ script and config language plugins.
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
 | .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet, EF Core, the ASP.NET Core view of Endpoints; 19 commands; 21 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project, .NET Aspire, .NET Docker; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
+| Unity | `forge.unity` | dotnetforge | `forge.dotnet` | `unity` | tool window (UI): Unity; 9 commands; 5 settings; file types: ShaderLab, HLSL; run types: Unity Tests; 1 debug adapter (unity, a Mono debug adapter you configure) |
+| Godot | `forge.godot` | dotnetforge | `forge.debugger` | `godot` | 3 commands; 6 settings; file types: GDScript, Godot Resource, Godot Shader; run types: Godot, GdUnit4; the `godot` debug adapter (the Godot editor, registered in Rust); the Godot editor's GDScript language server |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
@@ -25118,6 +25395,7 @@ skills in [`.claude/skills/`](.claude/skills); the detailed IPC contracts are in
 | [Development setup](docs/guide/developer/dev-setup.md) | toolchains, `pnpm dev`, `pnpm tauri dev`, demo projects |
 | [Rust computes, TypeScript renders](docs/guide/developer/rust-computes.md) | the main design rule and how to apply it |
 | [The WebAssembly bridge](docs/guide/developer/wasm-bridge.md) | running pure crates in browser mode |
+| [Unity editor bridge protocol](docs/guide/developer/unity-bridge-protocol.md) | the localhost protocol between Forge and its Unity package |
 
 ## Extending Forge
 
@@ -25550,6 +25828,128 @@ This needs the `wasm32-unknown-unknown` target (`rustup target add wasm32-unknow
 4. Rebuild with `pnpm --dir app/ui wasm` and call it from the mock.
 5. Add a test in `forge-wasm` (they run natively with `cargo test -p forge-wasm`) and, if useful,
    a vitest that loads the bundle (`app/ui/src/wasm/wasm.test.ts`).
+
+
+---
+
+Source: docs/guide/developer/unity-bridge-protocol.md
+
+# Unity editor bridge protocol
+
+The **Forge editor bridge** (`dev.forge.unity`, MIT) is a Unity editor package whose C# source
+ships with Forge in `packs/dotnetforge/gamedev/unity-package/dev.forge.unity`. Forge copies it
+into a project's `Packages/` folder when the user installs it
+([Unity and Godot](docs/guide/user/unity-godot.md#the-forge-editor-bridge)). Inside the Unity editor it
+listens on a loopback TCP port; Forge's client is `dotnetforge_gamedev::unity::bridge`. Rider's
+Unity plugin works the same way (the editor listens, the IDE connects).
+
+This page is protocol version **1** (`bridge::PROTOCOL`, `ForgeBridge.Protocol`).
+
+## Discovery
+
+When the editor loads the package (`[InitializeOnLoad]`, not in batch mode), the bridge:
+
+1. listens on `127.0.0.1` with a free port (never on other interfaces);
+2. creates a random 48-hex-digit token;
+3. writes `Library/ForgeBridge.json` in the project:
+
+   ```json
+   {
+     "port": 52817,
+     "pid": 4242,
+     "token": "3f9a1c…",
+     "protocol": 1,
+     "unityVersion": "2022.3.10f1",
+     "projectPath": "/home/sam/Shooter"
+   }
+   ```
+
+Before each script reload (`AssemblyReloadEvents.beforeAssemblyReload`) and when the editor
+quits, it closes the listener and its connections and deletes the file if it still holds its
+token. After the reload a new listener with a new port and token writes the file again; Forge
+reconnects. Only processes of users who can read the project's `Library` folder learn the
+token.
+
+## Framing
+
+- One JSON object per line, UTF-8, terminated by `\n` (`\r\n` is accepted).
+- At most 1 MiB per message (`bridge::MAX_MESSAGE`); longer lines end the connection.
+- Every message has a `type`. Unknown types and unknown fields are ignored on both sides, so a
+  newer bridge stays compatible.
+
+## Handshake
+
+Forge sends first:
+
+```json
+{"type": "hello", "token": "3f9a1c…", "client": "Forge", "protocol": 1}
+```
+
+With the right token the editor answers with its state:
+
+```json
+{"type": "welcome", "protocol": 1, "unityVersion": "2022.3.10f1", "projectPath": "/home/sam/Shooter", "pid": 4242, "playMode": "edit", "compiling": false}
+```
+
+With a wrong token, or any other first message, it answers
+`{"type": "error", "message": "wrong token"}` and closes the connection.
+
+## Commands
+
+Commands carry an `id` (a positive integer, unique per connection):
+
+```json
+{"type": "play", "id": 1}
+```
+
+| `type` | What Unity does |
+| --- | --- |
+| `play` | `EditorApplication.isPlaying = true` |
+| `pause` | `EditorApplication.isPaused = true` |
+| `resume` | `EditorApplication.isPaused = false` |
+| `stop` | `EditorApplication.isPlaying = false` |
+| `step` | `EditorApplication.Step()` |
+| `refresh` | `AssetDatabase.Refresh()` |
+| `syncSolution` | regenerate the `.sln` / `.csproj` files with the installed IDE package's generator (`ForgeProjectFiles.Sync`) |
+
+Commands run on Unity's main thread; the editor answers each one:
+
+```json
+{"type": "ack", "id": 1, "ok": true, "message": ""}
+```
+
+`ok: false` carries the reason in `message` (an unknown command, no IDE package to generate
+project files, an exception). Forge waits 15 seconds for an answer (Unity may be compiling or
+show a modal dialog).
+
+## Events
+
+The editor streams to every connected client:
+
+| `type` | Fields | When |
+| --- | --- | --- |
+| `state` | `playMode` (`edit`, `playing`, `paused`), `compiling` | Play mode or pause changes, compilation starts or ends |
+| `log` | `level` (`log`, `warning`, `error`, `exception`, `assert`), `message`, `stackTrace`, `time` (`HH:mm:ss`) | every console message (`Application.logMessageReceivedThreaded`) |
+| `openFile` | `path` (absolute, `/` separated), `line`, `column` (1-based) | a script is opened in Unity while Forge is the external script editor |
+
+Forge computes the location of a console message in Rust: a compiler message's
+`Assets/…/File.cs(line,column):`, else the first stack frame `(at Assets/…/File.cs:line)` or
+`in /path/File.cs:line`.
+
+## Opening files from Unity
+
+`ForgeCodeEditor` implements `Unity.CodeEditor.IExternalCodeEditor`. When Unity opens a code
+asset (`.cs`, `.shader`, `.hlsl`, `.uss`, `.uxml`, `.asmdef`, …) it sends `openFile` to the
+connected Forge; without a connection it starts the chosen Forge executable with
+`<project> <file>:<line>:<column>` (the [launcher](docs/guide/user/browser-companion.md) syntax).
+Other assets are left to Unity.
+
+## Tests
+
+`packs/dotnetforge/gamedev/tests/bridge.rs` drives `BridgeClient` against a fake Unity peer on
+loopback (handshake, wrong tokens, commands and answers, events, closing).
+`unity::package` tests check that the shipped C# source declares the same protocol version,
+instance file and commands.
 
 
 ---
@@ -27304,6 +27704,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [cforge-embedded](docs/guide/developer/crates/cforge-embedded.md) | CForge: platformio.ini and PlatformIO tasks, ESP-IDF (idf.py) and Zephyr (west) commands, OpenOCD flashing and GDB server, CMSIS-SVD files with register decoding (pure, also built to WebAssembly) |
 | [dotnetforge-lang-dotnet](docs/guide/developer/crates/dotnetforge-lang-dotnet.md) | DotNetForge: .sln / .slnx solutions, MSBuild projects with Directory.Build.props and central package management, launch profiles, global.json and SDK selection, build output as problems, xUnit / NUnit / MSTest discovery and the .NET test provider with TRX reports, dotnet command lines, dotnet new list, NuGet answers, dotnet format reports, the Roslyn server setup (pure, also built to WebAssembly) |
 | [dotnetforge-sdk](docs/guide/developer/crates/dotnetforge-sdk.md) | DotNetForge: the dotnet host, SDKs and runtimes on the user's machine, netcoredbg and Roslyn server locations, the NuGet v3 feed client with a version cache |
+| [dotnetforge-gamedev](docs/guide/developer/crates/dotnetforge-gamedev.md) | DotNetForge: Unity (projects, Unity Hub editors, the editor bridge package, protocol and client, tests in batch mode, processes for debugging) and Godot (projects, the executable, run configurations, the editor's GDScript language server and debug adapter, GdUnit4) |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
@@ -30060,7 +30461,9 @@ their refs accept anything.
 `schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
 `tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
 and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
-Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT).
+Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT). Schemas written for Forge (MIT): the
+Minecraft plugin descriptors and the Unity assembly definitions (`unity-asmdef.json` for
+`*.asmdef`, `unity-asmref.json` for `*.asmref`).
 
 ## Dependencies
 
@@ -30409,7 +30812,11 @@ Forge's generic Language Server Protocol client.
 - `LspManager`: routes files to servers by extension and starts them lazily; several
   servers may serve one file and their results are merged.
 - `model`: editor-friendly result types consumed by the UI.
-- `launch`: how server processes start (`LocalLauncher` here, or on a remote host).
+- `launch`: how server processes start (`LocalLauncher` here, or on a remote host). A
+  server that already listens on TCP (the Godot editor's GDScript server) has the command
+  `tcp://<host>:<port>`: `LocalLauncher` connects to it (`connect_tcp`, `tcp_address`)
+  instead of spawning a process, sends no parent `processId`, and stopping the client only
+  closes the socket.
 
 Nothing here is language specific; language packs contribute `LspServerConfig`s.
 `LspClient::update_settings` merges later changes (the code style options before Reformat
@@ -30425,7 +30832,7 @@ them.
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
-| `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. |
+| `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. `tcp://host:port` commands connect to a server that already listens (tested with the fake server bridged to a loopback socket). |
 | `manager.rs` | Routes files to language servers: one server per registered config, started lazily the first time a matching file is used. |
 | `model.rs` | Editor-friendly views of LSP results. |
 
@@ -30854,6 +31261,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
 | `formats/trx.rs` | Visual Studio test results (`dotnet test --logger trx`, xUnit / NUnit / MSTest): `TestDefinitions` give each test's class and method, `UnitTestResult`s their outcome, duration, output and error (MSTest data rows in `InnerResults`); a suite per class located by its full name (DotNetForge's location rules map it to the file), tests located by their method, comparisons of xUnit, NUnit, MSTest and FluentAssertions messages, the first `in <file>:line <n>` frame as the failure location. `document_events` sniffs TRX among XML reports. |
+| `formats/nunit.rs` | NUnit 3 result XML (`<test-run>`), which the Unity Test Framework writes with `-testResults` and the NUnit console with `--result`: a suite per `TestFixture` (namespace, assembly and parameterized-method levels flattened), located by its class full name; tests located by their method (data rows like `Damage(10)` count for it); `Skipped` / `Inconclusive` ignored with the reason; failures with NUnit's `Expected:` / `But was:` comparison and the first Mono (`in <file>:<n>`), .NET (`:line <n>`) or Unity (`(at <file>:<n>)`) frame; durations in seconds. `document_events` sniffs it among XML reports. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
 | `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), GoogleTest's and CTest's `status="notrun"` / `result="suppressed"` as ignored, durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
@@ -34570,6 +34978,70 @@ answers, including the offline cache fallback. Nothing needs a .NET SDK or the n
 ```sh
 cargo test -p dotnetforge-sdk
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/dotnetforge-gamedev.md
+
+# dotnetforge-gamedev
+
+`packs/dotnetforge/gamedev` — DotNetForge: Unity and Godot in the style of Rider. See
+[Unity and Godot](docs/guide/user/unity-godot.md).
+
+## Purpose
+
+The logic of the Unity (`forge.unity`) and Godot (`forge.godot`) plugins. The file system
+and the process list come in as data or functions, so everything is tested with fixtures and
+fakes; `app/src-tauri/src/commands/gamedev.rs` wires it to IPC.
+
+### Unity (`unity`)
+
+- `project`: `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion`, the revision),
+  `Packages/manifest.json`, the IDE packages that write project files, the Test Framework,
+  the bridge package (embedded or in the manifest, update available), the root `.sln` /
+  `.csproj` files, `Library/EditorInstance.json` (the editor's pid).
+- `editors`: Unity Hub folders per OS, `secondaryInstallPath.json`, manually located editors
+  (`editors-v2.json`, `editors.json`), Settings' editor; `match_editor` picks the exact
+  version, else the newest of the same `major.minor`. `version_key` orders Unity versions
+  (`a` < `b` < `f` < `p`).
+- `package`: the bridge package (`dev.forge.unity`, C# in `unity-package/`, embedded with
+  `include_str!`), its install plan below `Packages/dev.forge.unity`, version checks.
+- `bridge`: protocol 1 (see [Unity editor bridge protocol](docs/guide/developer/unity-bridge-protocol.md)):
+  `Library/ForgeBridge.json`, messages, console message locations (compiler messages, stack
+  frames), and `BridgeClient` (tokio): handshake, commands with acknowledgements, events until
+  `Disconnected`.
+- `commands`: Start Unity (`-projectPath`), project files in batch mode (`-executeMethod`
+  of the bridge or the Rider package).
+- `test_runner`: the `unity-test` provider of `forge-testing`: NUnit / `[UnityTest]`
+  discovery (DotNetForge's C# scanner), `-runTests -testPlatform -testResults -testFilter`,
+  location rules from the test classes, Rerun Failed Tests, the refusal while an editor has
+  the project open. Results: `forge_output::formats::nunit`.
+- `processes`: Unity editors in a process list (`-projectPath`, the editor instance's pid)
+  and their Mono debugger port (`56000 + pid % 1000`).
+
+### Godot (`godot`)
+
+- `project`: `project.godot` (multi-line values, `PackedStringArray`, autoloads, `[dotnet]`),
+  scenes, `res://` paths.
+- `executable`: Settings, `GODOT4` / `GODOT`, `PATH` names, Flatpak, macOS apps, downloaded
+  `Godot_v4…` executables (also inside extracted .NET folders); .NET builds first for C#
+  projects; `godot --version` parsing.
+- `commands`: the `godot` run configuration (`--path`, scene, `--headless`, options,
+  arguments after `--`), the editor (`--editor`), `dotnet build` before C# debugging.
+- `lsp`: the GDScript server config (`tcp://host:6005`, see `forge_lsp::launch`) and a port
+  probe.
+- `dap`: `GodotAdapter`, a `forge_dap::DebugAdapterDescriptor` that connects to the editor's
+  debug adapter (6006) and sends `launch` (`project`, `scene`, `playArgs`) or `attach`.
+- `gdunit`: the `gdunit4` provider: `GdUnitTestSuite` discovery, GdUnit4's command line
+  (`-a`, `-rd`), suite location rules, reruns by suite. The app reads GdUnit4's
+  `report_<n>/results.xml` below the report folder.
+
+## Tests
+
+Unit tests per module; `tests/bridge.rs` (a fake Unity peer), `tests/godot_editor.rs` (a fake
+GDScript language server and a fake Godot debug adapter on loopback, driven through
+`forge-lsp` and `forge-dap`). No Unity, Godot or network is needed.
 
 
 ---

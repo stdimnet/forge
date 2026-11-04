@@ -61,6 +61,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         "dotnetforge.toml",
         include_str!("../plugins/dotnetforge.toml"),
     ),
+    (
+        "dotnetforge-gamedev.toml",
+        include_str!("../plugins/dotnetforge-gamedev.toml"),
+    ),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (
@@ -195,6 +199,15 @@ mod tests {
             |path: &str, first: Option<&str>| types.detect(path, first, &[]).map(|t| t.id.as_str());
         for (path, expected) in [
             ("src/app.py", "python"),
+            ("Assets/Shaders/Toon.shader", "shaderlab"),
+            ("Assets/Shaders/Lighting.hlsl", "hlsl"),
+            ("Assets/Shaders/Common.cginc", "hlsl"),
+            ("Assets/Scripts/Game.asmdef", "json"),
+            ("player.gd", "gdscript"),
+            ("scenes/main.tscn", "godot-resource"),
+            ("project.godot", "godot-resource"),
+            ("export_presets.cfg", "godot-resource"),
+            ("shaders/water.gdshader", "gdshader"),
             ("scripts/deploy.sh", "shell"),
             ("config/a.yml", "yaml"),
             ("composer.json", "json"),

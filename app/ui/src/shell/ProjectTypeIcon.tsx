@@ -6,7 +6,7 @@
 import type { Component } from "solid-js";
 import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Atom, Code, Folder, Gem, Heart, Leaf, Moon, Mountain, Package, Pickaxe, Zap } from "lucide-solid";
+import { Atom, Box, Code, Folder, Gamepad2, Gem, Heart, Leaf, Moon, Mountain, Package, Pickaxe, Zap } from "lucide-solid";
 import "./projectTypeIcon.css";
 
 type Glyph = { icon?: Component<{ size?: number; "stroke-width"?: number }>; text?: string };
@@ -53,6 +53,9 @@ const GLYPHS: Record<string, Glyph> = {
   fsharp: { text: "F#" },
   vbnet: { text: "VB" },
   aspnetcore: { text: "asp" },
+  unity: { icon: Box },
+  godot: { icon: Gamepad2 },
+  gdscript: { text: "GD" },
   folder: { icon: Folder },
 };
 

@@ -72,6 +72,8 @@ impl RunState {
         rubyforge_lang_ruby::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // .NET Tests: the manifest spec with DotNetForge's discovery, filters and TRX reports.
         dotnetforge_lang_dotnet::provider::register(&mut tests, plugins.test_frameworks().cloned());
+        // Unity tests (batch mode, NUnit 3 results) and GdUnit4 suites.
+        super::gamedev::register_tests(&mut tests);
         // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
         tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -437,6 +439,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 super::dotnet::run_command_line(state, &cfg)?
             } else if super::dotnet_web::handles(&cfg.type_id) {
                 super::dotnet_web::run_command_line(state, &cfg)?
+            } else if super::gamedev::handles(&cfg.type_id) {
+                super::gamedev::run_command_line(state, &cfg)?
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
@@ -656,6 +660,7 @@ fn framework_command(
     super::rust::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::ruby::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::dotnet::extend_test_context(state, &cfg.type_id, &mut ctx);
+    super::gamedev::extend_test_context(state, &cfg.type_id, &mut ctx);
     let built = runs
         .tests
         .command(&test_frameworks::to_runtools(cfg)?, &ctx)

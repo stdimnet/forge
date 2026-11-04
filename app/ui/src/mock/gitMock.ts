@@ -36,6 +36,7 @@ import { isKotlinDemo, KT_PKG, kotlinDemoFiles } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoFiles } from "./demoScalaProject";
 import { androidDemoFiles, isAndroidDemo } from "./demoAndroidProject";
 import { isMinecraftDemo } from "./demoMinecraftProject";
+import { isGameDemo } from "./demoGameProjects";
 import { demoStatus } from "./demoStatus";
 import { CONFLICT_BRANCH, demoConflicts, type DemoConflict } from "./demoConflicts";
 import { callWasm, forgeWasm } from "@/wasm";
@@ -305,7 +306,7 @@ if (isScalaDemo() || isAndroidDemo()) {
 
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock). The web demos and the Lua demo game have no PHP tests.
-if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isMinecraftDemo() && !isCppDemo() && !isDotnetDemo()) void Promise.resolve().then(() =>
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isMinecraftDemo() && !isCppDemo() && !isDotnetDemo() && !isGameDemo()) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
@@ -843,7 +844,7 @@ async function startConflictMerge(rev: string): Promise<void> {
 }
 
 // `?conflicts` opens the demo in the middle of that merge (screenshots).
-if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isMinecraftDemo() && !isCppDemo() && !isDotnetDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isMinecraftDemo() && !isCppDemo() && !isDotnetDemo() && !isGameDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)

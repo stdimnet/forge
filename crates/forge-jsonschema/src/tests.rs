@@ -862,3 +862,34 @@ fn minecraft_plugin_descriptors() {
         "{names:?}"
     );
 }
+
+#[test]
+fn unity_assembly_definitions() {
+    let s = mapping::select("Assets/Scripts/Game.asmdef", "", DocKind::Json, &[], None).unwrap();
+    assert_eq!(s.uri, bundled::UNITY_ASMDEF);
+    let s = mapping::select("Assets/Plugins/Shared.asmref", "", DocKind::Json, &[], None).unwrap();
+    assert_eq!(s.uri, bundled::UNITY_ASMREF);
+    let ok = r#"{"name": "Shooter.Game", "rootNamespace": "Shooter", "references": ["GUID:6055be8ebefd69e48b49212b09b47b2f"], "includePlatforms": [], "excludePlatforms": [], "allowUnsafeCode": false, "autoReferenced": true, "defineConstraints": [], "versionDefines": [{"name": "com.unity.inputsystem", "expression": "1.0.0", "define": "HAS_INPUT_SYSTEM"}], "noEngineReferences": false}"#;
+    assert_eq!(
+        bundled_problems(bundled::UNITY_ASMDEF, DocKind::Json, ok),
+        Vec::<String>::new()
+    );
+    let bad = bundled_problems(
+        bundled::UNITY_ASMDEF,
+        DocKind::Json,
+        r#"{"includePlatforms": ["Linux"], "autoReferenced": "yes"}"#,
+    );
+    assert_eq!(bad.len(), 3, "{bad:?}");
+    assert!(bad.iter().any(|p| p.contains("'name'")), "{bad:?}");
+
+    let mut r = Registry::new();
+    load_bundled(&mut r, bundled::UNITY_ASMDEF);
+    let text = "{\n  \"name\": \"Game\",\n  \n}";
+    let at = text.find("  \n}").unwrap() + 2;
+    let c = complete(&r, bundled::UNITY_ASMDEF, DocKind::Json, text, at).unwrap();
+    let names: Vec<&str> = c.items.iter().map(|i| i.label.as_str()).collect();
+    assert!(
+        names.contains(&"rootNamespace") && names.contains(&"includePlatforms"),
+        "{names:?}"
+    );
+}

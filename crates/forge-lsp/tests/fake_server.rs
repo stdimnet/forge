@@ -671,3 +671,83 @@ async fn pulls_diagnostics_from_servers_that_do_not_publish() {
     assert!(diags.is_empty());
     client.shutdown().await;
 }
+
+/// A server that listens on a TCP port (like the Godot editor's GDScript server): the fake
+/// server's stdio is bridged to a loopback socket, and the client connects with
+/// `tcp://127.0.0.1:<port>` instead of spawning a process.
+#[tokio::test]
+async fn connects_to_a_server_listening_on_tcp() {
+    use std::process::Stdio;
+    use tokio::io::AsyncWriteExt;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let bridge = tokio::spawn(async move {
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_forge-lsp-fake-server"))
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .kill_on_drop(true)
+            .spawn()
+            .unwrap();
+        let mut stdin = child.stdin.take().unwrap();
+        let mut stdout = child.stdout.take().unwrap();
+        let (mut read, mut write) = stream.into_split();
+        let up = async move {
+            let _ = tokio::io::copy(&mut read, &mut stdin).await;
+            // Closing the pipe ends the server.
+            let _ = stdin.shutdown().await;
+            drop(stdin);
+        };
+        let down = async {
+            let _ = tokio::io::copy(&mut stdout, &mut write).await;
+        };
+        tokio::join!(up, down);
+        let _ = child.kill().await;
+    });
+
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("player.php");
+    let mut cfg = config();
+    cfg.command = format!("tcp://127.0.0.1:{port}");
+    assert_eq!(
+        forge_lsp::tcp_address(&cfg.command),
+        Some(format!("127.0.0.1:{port}").as_str())
+    );
+    let (tx, mut rx) = broadcast::channel(256);
+    let client = LspClient::start_with_events(cfg, dir.path(), tx)
+        .await
+        .unwrap();
+    assert!(client.capabilities().unwrap().hover_provider.is_some());
+    client.did_open(&file, "<?php\n// TODO tcp\n").unwrap();
+    let diags = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics { diagnostics, .. } => Some(diagnostics),
+        _ => None,
+    })
+    .await;
+    assert_eq!(diags.len(), 1);
+    let hover = client
+        .hover(&file, Position::new(1, 3))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        forge_lsp::model::EditorHover::from(hover).contents,
+        "**hover** 1:3"
+    );
+    client.shutdown().await;
+    assert_eq!(client.state(), ServerState::Stopped);
+    tokio::time::timeout(Duration::from_secs(10), bridge)
+        .await
+        .expect("the connection closes")
+        .unwrap();
+
+    // Nothing listens: the start fails instead of hanging.
+    let free = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let closed = free.local_addr().unwrap().port();
+    drop(free);
+    let mut cfg = config();
+    cfg.command = format!("tcp://127.0.0.1:{closed}");
+    let err = LspClient::start(cfg, dir.path()).await.err().unwrap();
+    assert!(err.to_string().contains("could not connect"), "{err}");
+}

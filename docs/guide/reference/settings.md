@@ -850,6 +850,31 @@ Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet hos
 | `dotnet.ef.startupProject` | string | `""` | user, project | ASP.NET Core and Aspire | EF Core startup project — The project dotnet ef starts to find the DbContext (--startup-project). Empty: the first runnable project that references EF Core. |
 | `dotnet.hotReload.showStatus` | bool | `true` | user | ASP.NET Core and Aspire | Show the Hot Reload status of dotnet watch runs in the status bar |
 
+### Languages & Frameworks | .NET | Unity
+
+Page id `lang.dotnet.unity` (plugin `forge.unity`; the page also shows the project's Unity version, the installed editors and the editor bridge). See [Unity and Godot](../user/unity-godot.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `unity.editorPath` | path | `""` | user, project | Unity Editor | Unity editor — The Unity executable for Start Unity, tests and project files. Empty: the Unity Hub's editor of the project's version (ProjectSettings/ProjectVersion.txt). |
+| `unity.bridge.autoConnect` | bool | `true` | user | Editor Bridge | Connect to the Unity editor automatically — When the Forge editor bridge runs in Unity (Library/ForgeBridge.json), Forge connects to it on its own. |
+| `unity.console.maxEntries` | int (100–100000) | `5000` | user | Editor Bridge | Unity console entries to keep |
+| `unity.tests.platform` | enum: `EditMode`, `PlayMode` | `"EditMode"` | user, project | Tests | Test platform — The default -testPlatform of Unity Tests configurations. |
+| `unity.debugger.adapterPath` | path | `""` | user | Debugger | Mono debug adapter — A Debug Adapter Protocol server for Mono's soft debugger that Forge starts on stdio for Attach to Unity Process (it gets an attach request with address and port). Forge does not ship one. |
+
+### Languages & Frameworks | .NET | Godot
+
+Page id `lang.dotnet.godot` (plugin `forge.godot`; the page also shows the Godot executable and its version, the project and whether the Godot editor runs). See [Unity and Godot](../user/unity-godot.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `godot.path` | path | `""` | user | Godot | Godot executable — Empty: GODOT4 / GODOT, the PATH (godot4, godot) or the usual install folders. C# projects need a .NET build of Godot. |
+| `godot.host` | string | `"127.0.0.1"` | user | Godot Editor | Editor host — Where the Godot editor's language server and debug adapter listen. |
+| `godot.lsp.enabled` | bool | `true` | user | Godot Editor | Use the Godot editor's GDScript language server — Code completion, navigation and diagnostics for GDScript while the Godot editor has the project open. |
+| `godot.lsp.port` | int (1–65535) | `6005` | user | Godot Editor | Language server port — Editor Settings | Network | Language Server | Remote Port. |
+| `godot.dap.port` | int (1–65535) | `6006` | user | Godot Editor | Debug adapter port — Editor Settings | Network | Debug Adapter | Remote Port. |
+| `godot.debugger` | enum: `auto`, `gdscript`, `csharp` | `"auto"` | user, project | Debugger | Debug with — Which debugger Debug of a Godot configuration uses. |
+
 ### Languages & Frameworks | Jupyter
 
 Page id `lang.jupyter`. See [Jupyter notebooks](../user/jupyter.md). The server token is stored in the OS keychain, not in settings.

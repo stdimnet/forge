@@ -190,6 +190,10 @@ fn run_steps(app: &AppHandle) {
     crate::commands::cpp::sync_lsp_server(app, detected.as_ref().map(|(r, i)| (r.as_path(), i)));
     crate::commands::scala::sync_lsp_server(app, detected.as_ref().map(|(r, i)| (r.as_path(), i)));
     crate::commands::dotnet::sync_lsp_server(app, detected.as_ref().map(|(r, i)| (r.as_path(), i)));
+    crate::commands::gamedev::sync_lsp_server(
+        app,
+        detected.as_ref().map(|(r, i)| (r.as_path(), i)),
+    );
     if let Ok(root) = state.project_root() {
         progress(app, "Starting background services", "file watcher", 62);
         crate::commands::workspace::start_watching(app);

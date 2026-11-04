@@ -332,6 +332,12 @@ Rider:
 - Remote projects keep their secrets on the remote machine; use `dotnet user-secrets` in its
   terminal.
 
+## Unity and Godot
+
+Unity and Godot projects get their own plugins on top of this one: the Unity Hub's editors, the
+Forge editor bridge, Unity tests, GDScript with the Godot editor's language server, Godot run
+configurations and debugging. See [Unity and Godot](unity-godot.md).
+
 ## Azure DevOps
 
 Repositories on Azure DevOps (`dev.azure.com`, `*.visualstudio.com`, Azure DevOps Server) get

@@ -18,7 +18,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | --- | --- | --- | --- | --- |
 | `php` | PHP | `.php`, `.phtml`, `.inc` |  |  |
 | `blade` | Blade | `.blade.php` |  |  |
-| `json` | JSON | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har` | `.prettierrc`, `.babelrc`, `.eslintrc`, `composer.lock`, `.php-cs-fixer.cache` |  |
+| `json` | JSON | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.asmdef`, `.asmref`, `.inputactions` | `.prettierrc`, `.babelrc`, `.eslintrc`, `composer.lock`, `.php-cs-fixer.cache` |  |
 | `yaml` | YAML | `.yml`, `.yaml`, `.neon` |  |  |
 | `sql` | SQL | `.sql`, `.ddl` |  |  |
 | `markdown` | Markdown | `.md`, `.markdown` |  |  |
@@ -26,7 +26,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `jsx` | JavaScript React | `.jsx` |  |  |
 | `typescript` | TypeScript | `.ts`, `.mts`, `.cts` |  |  |
 | `tsx` | TypeScript React | `.tsx` |  |  |
-| `css` | CSS | `.css`, `.pcss`, `.postcss` |  |  |
+| `css` | CSS | `.css`, `.pcss`, `.postcss`, `.uss` |  |  |
 | `scss` | SCSS | `.scss` |  |  |
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
@@ -47,7 +47,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
-| `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
+| `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf`, `.uxml` |  |  |
 | `dotenv` | Dotenv | `.env` | `.env*`, `*.env` |  |
 | `properties` | Properties | `.properties`, `.ini`, `.cfg`, `.conf`, `.editorconfig` | `.editorconfig`, `.gitattributes` |  |
 | `shell` | Shell Script | `.sh`, `.bash`, `.zsh` | `.bashrc`, `.zshrc`, `.profile`, `artisan.sh` |  |
@@ -118,7 +118,7 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `django` | Django Template | `forge.django` | `.djhtml` | `templates/*.html`, `templates/*.htm`, `templates/*.txt` |  | 4 |
 | `jinja` | Jinja2 | `forge.flask` | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` | `templates/*.html`, `templates/*.htm` |  | 4 |
 | `yaml` | YAML | `forge.yaml` | `.yml`, `.yaml`, `.neon` | `.clang-format`, `.clang-tidy`, `.yamllint`, `.gemrc`, `CITATION.cff`, `.sops.yaml` |  | 2 |
-| `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
+| `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta`, `.asmdef`, `.asmref`, `.inputactions` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
 | `dotenv` | Dotenv | `forge.dotenv` | `.env` | `.env`, `.env.local`, `.env.*.local`, `.env.dist`, `.env.*.dist`, `.env.example`, `.env.sample`, `.env.template`, `.env.defaults`, `.env.dev`, `.env.development`, `.env.prod`, `.env.production`, `.env.stage`, `.env.staging`, `.env.test`, `.env.testing` |  | 2 |
 | `ignore` | Ignore File | `forge.ignore` | `.gitignore`, `.dockerignore`, `.npmignore`, `.ignore` | `.*ignore`, `.gitignore_global`, `.git/info/exclude` |  | 2 |
 | `dockerfile` | Dockerfile | `forge.docker` | `.dockerfile`, `.containerfile` | `Dockerfile`, `Dockerfile.*`, `Containerfile`, `Containerfile.*` |  | 4 |
@@ -132,6 +132,11 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
+| `shaderlab` | ShaderLab | `forge.unity` | `.shader` |  |  | 4 |
+| `hlsl` | HLSL | `forge.unity` | `.hlsl`, `.cginc`, `.hlslinc`, `.compute`, `.raytrace`, `.cg` |  |  | 4 |
+| `gdscript` | GDScript | `forge.godot` | `.gd` |  |  | 4 |
+| `godot-resource` | Godot Resource | `forge.godot` | `.tscn`, `.tres`, `.godot`, `.import`, `.gdextension` | `export_presets.cfg`, `override.cfg`, `plugin.cfg` |  | 4 |
+| `gdshader` | Godot Shader | `forge.godot` | `.gdshader`, `.gdshaderinc` |  |  | 4 |
 
 ## Template data languages
 
