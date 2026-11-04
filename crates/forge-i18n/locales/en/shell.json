@@ -70,7 +70,7 @@
   "statusbar.encoding.convertFailed": "Cannot convert to {encoding}",
   "statusbar.encoding.convertHint": "Save the text in the new encoding",
   "statusbar.encoding.editorConfig": " (EditorConfig asks for {encoding})",
-  "statusbar.encoding.question": "The encoding you've chosen ('{encoding}') may change the contents of '{file}'. Do you want to reload the file from disk or convert the text and save in the new encoding?",
+  "statusbar.encoding.question": "The encoding you've chosen (''{encoding}'') may change the contents of ''{file}''. Do you want to reload the file from disk or convert the text and save in the new encoding?",
   "statusbar.encoding.reload": "Reload",
   "statusbar.encoding.reloadHint": "Read the file again in the new encoding",
   "statusbar.encoding.reloadOrConvert": "{file}: Reload or Convert to {encoding}",

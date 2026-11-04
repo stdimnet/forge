@@ -64,6 +64,6 @@
   "rename.moveTo": "Move file to {path}",
   "rename.preview": "Preview",
   "rename.refactor": "Refactor",
-  "rename.renameFile": "Rename file '{name}'",
+  "rename.renameFile": "Rename file ''{name}''",
   "rename.title": "Rename"
 }

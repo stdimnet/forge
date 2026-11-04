@@ -3667,7 +3667,9 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "forge-i18n",
  "serde",
+ "serde_json",
  "tempfile",
  "toml 0.8.23",
 ]
