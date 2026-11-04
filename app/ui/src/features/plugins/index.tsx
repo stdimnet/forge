@@ -37,10 +37,14 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
   void reloadPlugins();
 }
 
+/** Labels of the settings groups (from `settings_sync_status`). */
+let groupLabels = new Map<string, string>();
+const label = (ids: string[]) => ids.map((id) => groupLabels.get(id) ?? id).join(", ");
+
 const describe = (r: SyncReport) => {
   const parts: string[] = [];
-  if (r.pushed.length) parts.push(`sent ${r.pushed.join(", ")}`);
-  if (r.pulled.length) parts.push(`received ${r.pulled.join(", ")}`);
+  if (r.pushed.length) parts.push(`sent ${label(r.pushed)}`);
+  if (r.pulled.length) parts.push(`received ${label(r.pulled)}`);
   if (r.conflicts.length) parts.push(`${r.conflicts.length} conflict${r.conflicts.length > 1 ? "s" : ""} (newer change kept, the other backed up)`);
   return parts.length ? parts.join("; ") : "Everything is in sync.";
 };
@@ -65,7 +69,12 @@ export async function syncNow(quiet = false): Promise<void> {
 }
 
 function SettingsSyncPage() {
-  const [status] = createResource(() => settingsSyncApi.status().catch(() => null));
+  const [status] = createResource(() =>
+    settingsSyncApi.status().then(
+      (s) => ((groupLabels = new Map(s.groups)), s),
+      () => null,
+    ),
+  );
   const report = () => lastSync() ?? status()?.lastReport ?? null;
   const labels = () => new Map(status()?.groups ?? []);
   const synced = () => (getSetting<string[]>("settingsSync.groups") ?? []).map((g) => labels().get(g) ?? g);

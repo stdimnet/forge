@@ -180,3 +180,8 @@
   gap: 4px 16px;
   margin: 6px 0 4px;
 }
+.plugins-list .plugin-item-meta > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
