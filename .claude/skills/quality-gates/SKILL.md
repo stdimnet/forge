@@ -30,7 +30,7 @@ pnpm test        # vitest
 pnpm build
 pnpm i18n:check      # keys used in the UI exist in the English catalog; German coverage
 pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
-pnpm workflows:check # release.yml runs only on `release: published`, ci.yml only manually
+pnpm workflows:check # release.yml runs only on pushed `v*` tags, ci.yml only manually
 ```
 
 ## Accessibility (`app/ui`, for UI changes, with `pnpm dev` running)
