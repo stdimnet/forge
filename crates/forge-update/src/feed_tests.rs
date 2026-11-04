@@ -115,10 +115,10 @@ async fn run_check(
     manual: bool,
 ) -> Result<CheckOutcome> {
     let current = Version::parse(current).unwrap();
-    let endpoint = format!("{base}/latest.json");
+    let endpoints = vec![format!("{base}/latest.json")];
     let targets = targets();
     let req = CheckRequest {
-        endpoint: &endpoint,
+        endpoints: &endpoints,
         current: &current,
         channel: Channel::Stable,
         state,
@@ -261,4 +261,141 @@ async fn size_is_optional() {
     };
     assert_eq!(offer.size, None);
     assert!(!offer.summary.contains("MB"));
+}
+
+fn feed(version: &str, channel: Option<&str>) -> Feed {
+    let mut feed = Feed::parse(&feed_json(version, "https://x.test")).unwrap();
+    feed.channel = channel.map(str::to_string);
+    feed
+}
+
+fn picked(channel: Channel, answers: Vec<(&str, Result<Option<Feed>>)>) -> Option<String> {
+    let answers = answers
+        .into_iter()
+        .map(|(e, a)| (e.to_string(), a))
+        .collect();
+    pick_feed(channel, answers)
+        .unwrap()
+        .map(|(endpoint, _, v)| format!("{endpoint} {v}"))
+}
+
+#[test]
+fn the_newest_feed_wins_and_failures_are_tolerated() {
+    // A stable release newer than the last pre-release reaches the beta channel.
+    assert_eq!(
+        picked(
+            Channel::Beta,
+            vec![
+                ("beta", Ok(Some(feed("0.3.0-beta.1", Some("beta"))))),
+                ("stable", Ok(Some(feed("0.3.0", None)))),
+            ]
+        ),
+        Some("stable 0.3.0".into())
+    );
+    assert_eq!(
+        picked(
+            Channel::Beta,
+            vec![
+                ("beta", Ok(Some(feed("0.4.0-beta.2", Some("beta"))))),
+                ("stable", Ok(Some(feed("0.3.0", None)))),
+            ]
+        ),
+        Some("beta 0.4.0-beta.2".into())
+    );
+    // No beta feed yet (404): the stable feed still answers.
+    assert_eq!(
+        picked(
+            Channel::Beta,
+            vec![
+                ("beta", Err(UpdateError::Status(404))),
+                ("stable", Ok(Some(feed("0.3.0", None)))),
+            ]
+        ),
+        Some("stable 0.3.0".into())
+    );
+    // Equal versions: the earlier endpoint wins.
+    assert_eq!(
+        picked(
+            Channel::Beta,
+            vec![
+                ("beta", Ok(Some(feed("0.3.0", Some("beta"))))),
+                ("stable", Ok(Some(feed("0.3.0", None)))),
+            ]
+        ),
+        Some("beta 0.3.0".into())
+    );
+    // A feed marked beta never counts on the stable channel (e.g. a mirror URL).
+    assert_eq!(
+        picked(
+            Channel::Stable,
+            vec![("mirror", Ok(Some(feed("0.3.0", Some("beta")))))]
+        ),
+        None
+    );
+    assert_eq!(picked(Channel::Beta, vec![("beta", Ok(None))]), None);
+}
+
+#[test]
+fn all_feeds_failing_reports_the_first_error() {
+    let answers = vec![
+        ("beta".to_string(), Err(UpdateError::Status(404))),
+        (
+            "stable".to_string(),
+            Err(UpdateError::Network("dns".into())),
+        ),
+    ];
+    assert!(matches!(
+        pick_feed(Channel::Beta, answers),
+        Err(UpdateError::Status(404))
+    ));
+    let invalid = vec![("stable".to_string(), Ok(Some(feed("latest", None))))];
+    assert!(matches!(
+        pick_feed(Channel::Stable, invalid),
+        Err(UpdateError::Version(_))
+    ));
+    let parsed = Feed::parse(r#"{"version":"0.3.0-beta.1","channel":"beta"}"#).unwrap();
+    assert_eq!(parsed.channel(), Channel::Beta);
+    assert_eq!(feed("0.3.0", None).channel(), Channel::Stable);
+}
+
+#[tokio::test]
+async fn beta_checks_read_both_feeds_and_remember_the_source() {
+    let base = serve(|base| {
+        let mut r = Routes::new();
+        let mut beta: serde_json::Value =
+            serde_json::from_str(&feed_json("0.3.0-beta.1", base)).unwrap();
+        beta["channel"] = "beta".into();
+        route(&mut r, "GET /latest-beta.json", 200, beta.to_string());
+        route(&mut r, "GET /latest.json", 200, feed_json("0.2.0", base));
+        r
+    })
+    .await;
+    let current = Version::parse("0.2.0").unwrap();
+    let endpoints = vec![
+        format!("{base}/latest-beta.json"),
+        format!("{base}/latest.json"),
+    ];
+    let targets = targets();
+    let state = UpdateState::default();
+    let mut req = CheckRequest {
+        endpoints: &endpoints,
+        current: &current,
+        channel: Channel::Beta,
+        state: &state,
+        manual: false,
+        now: 1_800_000_000,
+        targets: &targets,
+    };
+    let CheckOutcome::Available { offer } = check(&client(), &req).await.unwrap() else {
+        panic!("expected the beta offer");
+    };
+    assert_eq!(offer.version, "0.3.0-beta.1");
+    assert_eq!(offer.feed.as_deref(), Some(endpoints[0].as_str()));
+
+    // On the stable channel the same feeds offer nothing.
+    req.channel = Channel::Stable;
+    assert_eq!(
+        check(&client(), &req).await.unwrap(),
+        CheckOutcome::UpToDate
+    );
 }

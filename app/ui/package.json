@@ -15,6 +15,10 @@
     "wasm": "node scripts/build-wasm.mjs",
     "version:check": "node scripts/version.mjs check",
     "version:bump": "node scripts/version.mjs bump",
+    "workflows:check": "node scripts/release-tools.mjs workflows",
+    "packaging:update": "node scripts/release-tools.mjs packaging",
+    "packaging:srcinfo": "node scripts/release-tools.mjs srcinfo",
+    "flatpak": "sh ../../packaging/flatpak/build.sh",
     "agents": "node scripts/build-agents.mjs",
     "langservers": "cargo run -q -p forge-langservers --bin forge-langservers --",
     "release": "node scripts/build-agents.mjs && node scripts/tauri.mjs build --config src-tauri/tauri.agents.conf.json"

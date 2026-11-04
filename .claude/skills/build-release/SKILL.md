@@ -26,6 +26,13 @@ GitHub release, builds Linux, Windows and macOS bundles with the remote agents, 
 updater artifacts and uploads them together with `latest.json`, the feed Forge's updater reads.
 Agents never publish releases or trigger workflows.
 
+The workflow also Authenticode-signs Windows bundles, signs and notarises macOS bundles,
+uploads `SHA256SUMS` and, for pre-releases, the beta feed `latest-beta.json`, each only when
+its secrets exist. Flatpak (`packaging/flatpak`, `pnpm flatpak`) and AUR
+(`packaging/aur`, `pnpm packaging:update vX.Y.Z`) packaging is described in
+`docs/guide/developer/release-builds.md`; publishing to Flathub or the AUR is manual and
+never done by agents. Never change the workflows' `on:` triggers (`pnpm workflows:check`).
+
 ## Signed updates
 
 `pnpm tauri` / `pnpm release` go through `app/ui/scripts/tauri.mjs`:

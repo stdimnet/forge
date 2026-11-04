@@ -45,9 +45,14 @@ commits, tags or publishes.
 
 1. `pnpm version:bump <part>` and run the [quality gates](quality-gates.md).
 2. Commit (`Release 0.2.0`) and merge to the release branch.
-3. On GitHub, publish a release tagged `v0.2.0` (a pre-release for `-beta` versions).
+3. On GitHub, publish a release tagged `v0.2.0` (a pre-release for `-beta` versions; the
+   workflow refuses a `-beta` tag that is not a pre-release and vice versa).
 4. The [release workflow](release-builds.md#official-releases) builds the bundles, signs them and
-   uploads them with `latest.json`; installed copies offer the update on their next start.
+   uploads them with `latest.json` and `SHA256SUMS`; a pre-release also updates the beta feed
+   ([Channels](release-builds.md#channels)). Installed copies offer the update on their next
+   start.
+5. For a stable release, run `pnpm packaging:update v0.2.0` and commit the AUR and Flatpak
+   changes ([Linux packages](release-builds.md#linux-packages)).
 
 > **Note:** Only the project owner bumps versions and publishes releases. Agents never bump a
 > version unless they are asked to, and never publish releases.

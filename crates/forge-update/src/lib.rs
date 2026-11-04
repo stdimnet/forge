@@ -19,7 +19,8 @@ pub mod policy;
 pub mod simulate;
 
 pub use feed::{
-    check, client, fetch_feed, CheckOutcome, CheckRequest, Feed, FeedPlatform, UpdateOffer,
+    check, client, fetch_feed, pick_feed, CheckOutcome, CheckRequest, Feed, FeedPlatform,
+    UpdateOffer,
 };
 pub use meter::SpeedMeter;
 pub use policy::{
@@ -29,10 +30,11 @@ pub use policy::{
 /// The feed of the stable channel: the newest GitHub release of `Reeperk/Forge`.
 pub const DEFAULT_ENDPOINT: &str =
     "https://github.com/Reeperk/Forge/releases/latest/download/latest.json";
-/// The feed of the beta channel: a release tagged `beta` whose `latest.json` is replaced
-/// whenever a pre-release is published.
+/// The feed of the beta channel: `latest-beta.json` of a long-lived pre-release tagged `beta`.
+/// The release workflow replaces it whenever a pre-release (`v0.3.0-beta.1`) is published.
+/// Beta installations read this feed and [`DEFAULT_ENDPOINT`] and take the newer release.
 pub const BETA_ENDPOINT: &str =
-    "https://github.com/Reeperk/Forge/releases/download/beta/latest.json";
+    "https://github.com/Reeperk/Forge/releases/download/beta/latest-beta.json";
 /// Automatic checks run at most once per this many seconds (one day).
 pub const CHECK_INTERVAL_SECS: u64 = 24 * 60 * 60;
 
