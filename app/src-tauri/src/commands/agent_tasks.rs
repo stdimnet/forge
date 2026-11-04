@@ -1399,4 +1399,54 @@ mod tests {
             serde_json::from_str(r#"{"mode":"branch","branch":"b","message":"m"}"#).unwrap();
         assert!(matches!(m, ApplyMode::Branch { .. }));
     }
+
+    #[test]
+    fn container_images_come_from_devcontainer_json_or_the_settings() {
+        let (plan, env, note) = container_image(None, "/p", " php:8.3-cli ");
+        assert_eq!(plan, ImagePlan::Use("php:8.3-cli".into()));
+        assert!(env.is_empty() && note.is_none());
+
+        let image = r#"{ // comment
+            "image": "mcr.microsoft.com/devcontainers/php:8.3",
+            "containerEnv": { "APP_ENV": "testing" },
+            "mounts": ["source=/,target=/host,type=bind"],
+        }"#;
+        let (plan, env, note) = container_image(
+            Some(("/p/.devcontainer/devcontainer.json", image)),
+            "/p",
+            "php:8.3-cli",
+        );
+        assert_eq!(
+            plan,
+            ImagePlan::Use("mcr.microsoft.com/devcontainers/php:8.3".into())
+        );
+        assert_eq!(env.get("APP_ENV").map(String::as_str), Some("testing"));
+        assert!(note.unwrap().contains("devcontainer.json"));
+
+        let build = r#"{ "build": { "dockerfile": "Dockerfile", "args": { "V": "1" } } }"#;
+        let (plan, _, _) = container_image(
+            Some(("/p/.devcontainer/devcontainer.json", build)),
+            "/p",
+            "php:8.3-cli",
+        );
+        let ImagePlan::Build { args, tag } = plan else {
+            panic!("expected a build");
+        };
+        assert_eq!(args[0], "build");
+        assert!(args.contains(&"/p/.devcontainer/Dockerfile".to_string()));
+        assert!(args.contains(&tag));
+
+        let compose = r#"{ "dockerComposeFile": "compose.yaml", "service": "app" }"#;
+        let (plan, _, note) = container_image(
+            Some(("/p/.devcontainer/devcontainer.json", compose)),
+            "/p",
+            "node:22",
+        );
+        assert_eq!(plan, ImagePlan::Use("node:22".into()));
+        assert!(note.unwrap().contains("Compose"));
+        let (plan, _, note) =
+            container_image(Some(("/p/.devcontainer.json", "{ oops")), "/p", "node:22");
+        assert_eq!(plan, ImagePlan::Use("node:22".into()));
+        assert!(note.is_some());
+    }
 }

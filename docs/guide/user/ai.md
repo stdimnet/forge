@@ -2,7 +2,7 @@
 title: AI
 description: AI in Forge - model providers (Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp, any OpenAI-compatible server), inline code completion, Explain / Fix with AI, AI-generated tests and documentation, AI commit messages, the AI Chat with Claude Code and Gemini CLI, and Agent Tasks that run, test and fix code in a sandbox.
 order: 210
-tags: [ai, llm, claude, claude code, gemini, ollama, openai, chat, inline completion, aiignore, agent tasks, sandbox, worktree]
+tags: [ai, llm, claude, claude code, gemini, ollama, openai, chat, inline completion, aiignore, agent tasks, sandbox, worktree, docker, podman, container, remote]
 ---
 
 # AI
@@ -304,6 +304,9 @@ Click **+** in the tool window header:
 | **Files it may change** | Comma-separated files and folders (`app/Services, tests/Unit`). The agent can read everything (except `.aiignore`d files) but writes only there. Empty: the whole project. |
 | **Agent** | **Forge agent** (Forge's own agent over a model of Settings \| Tools \| AI Providers: the default provider or a chosen one, the Chat model), **Claude Code** or **Gemini CLI** (your installed CLI, see [AI Chat](#agents)). |
 | **Verify with** | **No tests**, one of the project's **run configurations** (its test runner and result format), or a **command** such as `vendor/bin/phpunit`. |
+| **Run in container** | Run the task's commands and tests in a Docker or Podman container (see [Container sandbox](#container-sandbox)). Its default is a setting. |
+| **Allow network** | Only with Run in container: the container gets network access, and every command then asks for your approval. |
+| **Image** | Only with Run in container: an image for this task. Empty: the project's `devcontainer.json`, else the image of the settings. |
 
 ![New Agent Task](../../screenshots/agent-tasks-new.png)
 
@@ -318,7 +321,50 @@ A task's sandbox is a detached **git worktree** in Forge's cache folder
 inside the project. It starts from a snapshot of your working tree, taken without touching it
 (`git stash create`): committed files, uncommitted changes and untracked files that are not
 ignored. The review shows only what the agent changed against that snapshot. Agent tasks need
-a Git repository with at least one commit; remote projects are not supported yet.
+a Git repository with at least one commit.
+
+### Container sandbox
+
+With **Run in container** the agent still edits the sandbox worktree, but `run_command` and
+`run_tests` (and the tests Forge runs between CLI turns) run inside a container:
+
+- **Image**: the one entered in the form; else the project's `.devcontainer/devcontainer.json`
+  (or `.devcontainer.json`): its `image`, or the image built from its Dockerfile (`docker build`,
+  tagged like the Dev Containers feature, with its `containerEnv`); else **Container image** of
+  the settings (`php:8.3-cli` by default). Compose-based dev containers are not started; the
+  settings' image is used instead. The dev container's mounts, ports, run arguments and
+  lifecycle commands are not used.
+- **Only the sandbox is mounted**, read-write at `/workspace`; no other host folder, socket or
+  volume. Paths of the sandbox in commands and run configurations are mapped into
+  `/workspace`.
+- **No network** by default (`--network none`). With **Allow network** every command asks for
+  your approval, also allowlisted ones; network programs (`curl`, `wget`, `ssh`, …) stay
+  refused.
+- The container drops all capabilities, cannot gain privileges (`no-new-privileges`), may
+  start at most 1024 processes, runs as your user (Docker: your uid and gid; Podman:
+  `--userns keep-id`) and is limited by **Container CPU limit** and **Container memory limit**.
+- It is started when the task starts (`docker run`, named `forge-agent-<task>`) and removed
+  (`docker rm --force`) when the task finishes, fails or is stopped; Discard removes it too if
+  Forge quit while it ran.
+
+The engine is **Container engine** of the settings, else the Docker executable of Settings |
+Build, Execution, Deployment | Docker. Git does not work inside the container (the worktree's
+`.git` points to your repository, which is not mounted). Claude Code cannot use its own shell
+in a container task (it would run outside the container); Forge runs the tests in the
+container after each turn instead.
+
+### Remote projects
+
+For a [remote project](remote-development.md) the sandbox is a git worktree **on the host**,
+in the remote user's cache folder (`~/.cache/forge/agent-tasks/<project>/<task>`), created by
+the Forge agent there. The Forge agent's file tools, its commands and the tests run on the host
+(in a container on the host with Run in container, through the host's `docker`); the review,
+the diff, Apply, Commit, Branch and Discard work on the host's repository. The task list stays
+on your machine.
+
+Not available for remote projects yet: **Claude Code** and **Gemini CLI** as the agent (they run
+on your machine; use the Forge agent) and **run configurations** under Verify with (use a test
+command).
 
 ### Run, test and fix
 
@@ -378,10 +424,17 @@ Settings | Tools | **AI Assistant** › Agent Tasks:
 | Step budget per task (`ai.agentTasks.maxSteps`) | 40 | model turns (Forge agent) or CLI turns per task |
 | Test runs per task (`ai.agentTasks.maxTestRuns`) | 6 | test runs while fixing failures |
 | Commands that run without asking (`ai.agentTasks.allowedCommands`) | none | command prefixes, e.g. `composer test`, `php -l`, `npm run lint` |
+| Run new tasks in a container (`ai.agentTasks.container.enabled`) | off | default of Run in container |
+| Container image (`ai.agentTasks.container.image`) | `php:8.3-cli` | image without a `devcontainer.json` |
+| Allow network access in containers by default (`ai.agentTasks.container.network`) | off | default of Allow network |
+| Container CPU limit (`ai.agentTasks.container.cpus`) | 2 | `--cpus`; empty: no limit |
+| Container memory limit (`ai.agentTasks.container.memory`) | `4g` | `--memory`; empty: no limit |
+| Container engine (`ai.agentTasks.container.engine`) | empty | `docker`, `podman` or a path; empty: the Docker executable |
 
 Agent tasks run project code (tests, commands, the agent CLI's tools), so they are refused in
 [Safe Mode](project-trust.md). They are refused as well when AI is turned off for the project
-(`ai.enabled`), and the Forge agent never reads files matched by `.aiignore`. Tasks and their
+(`ai.enabled`), and the Forge agent never reads files matched by `.aiignore` (on a remote
+host, too). Tasks and their
 logs are stored next to the sandboxes in the cache folder; a task that was running when Forge
 quit shows as Cancelled.
 
