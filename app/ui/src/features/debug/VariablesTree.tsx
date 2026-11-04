@@ -21,6 +21,7 @@ import {
   sessionFeatures,
   type SelectedVariable,
 } from "./store";
+import { t } from "@/i18n";
 
 function TypeIcon(props: { p: Property; watch?: boolean }) {
   if (props.watch) return <Glasses size={13} class="dbg-icon dbg-icon-watch" />;
@@ -86,24 +87,24 @@ function openVariableMenu(e: MouseEvent, v: SelectedVariable, onRemove?: () => v
   const p = v.property;
   const native = [
     ...(features?.dataBreakpoints && p.container != null && !v.watch
-      ? [{ label: "Add Watchpoint", icon: ScanEye, disabled: !pausedSession(), run: () => void addWatchpoint(p) }]
+      ? [{ label: t("debug.variablesTree.addWatchpoint"), icon: ScanEye, disabled: !pausedSession(), run: () => void addWatchpoint(p) }]
       : []),
     ...(features?.readMemory && p.memoryReference
-      ? [{ label: "View Memory", icon: Binary, run: () => openMemoryView(p.memoryReference!) }]
+      ? [{ label: t("debug.variablesTree.viewMemory"), icon: Binary, run: () => openMemoryView(p.memoryReference!) }]
       : []),
   ];
   openMenu({
     x: e.clientX,
     y: e.clientY,
     items: [
-      { label: "Set Value…", icon: Pencil, shortcut: shortcutLabel("XDebugger.SetValue"), disabled: !pausedSession(), run: () => setEditingVariable(v.key) },
-      { label: "Copy Value", icon: Copy, shortcut: shortcutLabel("XDebugger.CopyValue"), run: () => void copyValue(v) },
-      { label: "Copy Name", run: () => void navigator.clipboard?.writeText(expr).catch(() => undefined) },
+      { label: t("debug.variablesTree.setValue"), icon: Pencil, shortcut: shortcutLabel("XDebugger.SetValue"), disabled: !pausedSession(), run: () => setEditingVariable(v.key) },
+      { label: t("debug.variablesTree.copyValue"), icon: Copy, shortcut: shortcutLabel("XDebugger.CopyValue"), run: () => void copyValue(v) },
+      { label: t("debug.variablesTree.copyName"), run: () => void navigator.clipboard?.writeText(expr).catch(() => undefined) },
       { separator: true },
-      { label: "Evaluate Expression…", shortcut: shortcutLabel("EvaluateExpression"), run: () => setEvaluateRequest({ expression: expr }) },
-      { label: "Add to Watches", icon: Eye, disabled: !!v.watch, run: () => addWatch(expr) },
+      { label: t("debug.variablesTree.evaluateExpression"), shortcut: shortcutLabel("EvaluateExpression"), run: () => setEvaluateRequest({ expression: expr }) },
+      { label: t("debug.variablesTree.addToWatches"), icon: Eye, disabled: !!v.watch, run: () => addWatch(expr) },
       ...(native.length ? [{ separator: true }, ...native] : []),
-      ...(onRemove ? [{ separator: true }, { label: "Remove Watch", icon: X, run: onRemove }] : []),
+      ...(onRemove ? [{ separator: true }, { label: t("debug.variablesTree.removeWatch"), icon: X, run: onRemove }] : []),
     ],
   });
 }
@@ -248,7 +249,7 @@ export function VariableNode(props: NodeProps) {
           </Show>
         </Show>
         <Show when={props.onRemove}>
-          <button class="icon-btn dbg-row-action" title="Remove Watch" onClick={(e) => (e.stopPropagation(), props.onRemove?.())}>
+          <button class="icon-btn dbg-row-action" title={t("debug.variablesTree.removeWatch")} onClick={(e) => (e.stopPropagation(), props.onRemove?.())}>
             <X size={12} />
           </button>
         </Show>
@@ -273,7 +274,7 @@ export function VariableNode(props: NodeProps) {
         </For>
         <Show when={loading()}>
           <div class="tree-row dbg-row muted" style={{ "padding-left": `${8 + (props.depth + 1) * 16 + 18}px` }}>
-            Collecting data…
+            {t("debug.variablesTree.collectingData")}
           </div>
         </Show>
         <Show when={!loading() && more() > 0 && children().length > 0}>

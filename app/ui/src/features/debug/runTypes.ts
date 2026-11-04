@@ -10,6 +10,7 @@ import type { RunConfiguration, RunRequest } from "@/ipc/run";
 import { scratchesApi } from "@/ipc/scratches";
 import { debugApi } from "./api";
 import { knownServers } from "./store";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 /** Debug runs carry the Xdebug environment of the debug launcher. */
@@ -23,15 +24,15 @@ const serverOptions = (allowNone: boolean) => () => [
 registerRunConfigurationType({
   id: "php-web-page",
   name: "PHP Web Page",
-  description: "Open a page of a web server in the browser; Debug starts listening and adds the Xdebug trigger.",
+  description: t("debug.runTypes.openAPageOfA"),
   icon: Globe,
   color: "var(--info)",
   pluginId: "forge.xdebug",
   argumentsLabel: false,
   debuggable: true,
   fields: [
-    { key: "server", label: "Server", kind: "enum", options: serverOptions(false), required: true },
-    { key: "startUrl", label: "Start URL", default: "/", placeholder: "/orders/1042" },
+    { key: "server", label: t("debug.runTypes.server"), kind: "enum", options: serverOptions(false), required: true },
+    { key: "startUrl", label: t("debug.runTypes.startUrl"), default: "/", placeholder: "/orders/1042" },
   ],
   suggestName: (cfg) => opt(cfg, "startUrl") || undefined,
   start: async (cfg, request) => {
@@ -56,18 +57,18 @@ export function httpRequestText(method: string, url: string, headers: string, bo
 registerRunConfigurationType({
   id: "php-http-request",
   name: "PHP HTTP Request",
-  description: "Send an HTTP request to a web server; Debug starts listening and adds the Xdebug session cookie.",
+  description: t("debug.runTypes.sendAnHttpRequestTo"),
   icon: Send,
   color: "var(--syn-function)",
   pluginId: "forge.xdebug",
   argumentsLabel: false,
   debuggable: true,
   fields: [
-    { key: "server", label: "Server", kind: "enum", options: serverOptions(true) },
+    { key: "server", label: t("debug.runTypes.server"), kind: "enum", options: serverOptions(true) },
     { key: "url", label: "URL", required: true, placeholder: "/api/orders or https://shop.test/api/orders" },
-    { key: "method", label: "Request method", kind: "enum", default: "GET", options: METHODS.map((m) => ({ value: m, label: m })) },
-    { key: "headers", label: "Headers", kind: "text", placeholder: "Accept: application/json" },
-    { key: "body", label: "Request body", kind: "text", placeholder: '{"status": "paid"}' },
+    { key: "method", label: t("debug.runTypes.requestMethod"), kind: "enum", default: "GET", options: METHODS.map((m) => ({ value: m, label: m })) },
+    { key: "headers", label: t("debug.runTypes.headers"), kind: "text", placeholder: t("debug.runTypes.acceptApplicationJson") },
+    { key: "body", label: t("debug.runTypes.requestBody"), kind: "text", placeholder: '{"status": "paid"}' },
   ],
   suggestName: (cfg) => `${opt(cfg, "method") || "GET"} ${opt(cfg, "url")}`.trim(),
   start: async (cfg, request) => {

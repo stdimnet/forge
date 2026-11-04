@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight, Folder, FolderRoot } from "lucide-solid";
 import { workspaceApi } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
 import type { PathMapping } from "./api";
+import { t } from "@/i18n";
 
 export interface MappingsTreeProps {
   mappings: PathMapping[];
@@ -74,13 +75,13 @@ export function MappingsTree(props: MappingsTreeProps) {
   const rootName = () => {
     const root = workspace()?.root ?? "";
     const name = root.replace(/[\\/]+$/, "").split(/[\\/]/).pop();
-    return name ? `Project files (${name})` : "Project files";
+    return name ? t("debug.mappingsTree.projectFilesName", { name }) : t("debug.mappingsTree.projectFiles");
   };
   return (
     <div class="dbg-mappings" classList={{ disabled: !!props.disabled }}>
       <div class="dbg-mappings-head">
-        <span>File/Directory</span>
-        <span>Absolute path on the server</span>
+        <span>{t("debug.mappingsTree.fileDirectory")}</span>
+        <span>{t("debug.mappingsTree.absolutePathOnTheServer")}</span>
       </div>
       <div class="dbg-mappings-body">
         <Row name={rootName()} path="" depth={0} root {...props} />

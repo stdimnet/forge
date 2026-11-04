@@ -91,7 +91,7 @@ function ListenButton() {
     <button
       class="icon-btn dbg-listen-btn"
       classList={{ "dbg-listening": listening() }}
-      title={listening() ? "Stop Listening for PHP Debug Connections" : "Start Listening for PHP Debug Connections"}
+      title={listening() ? t("debug.main.stopListeningForPhpDebug") : t("debug.main.startListeningForPhpDebug")}
       aria-pressed={listening()}
       onClick={() => void toggleListening()}
       data-action="PhpListenDebugAction"
@@ -108,13 +108,13 @@ function DebugStatusItem() {
     if (s?.status === "running") return "Debugging: running";
     const via = listeningVia();
     // Remote project: the host's port, forwarded over SSH (see the tooltip).
-    return via ? `Xdebug: ${via.replace(/:\d+$/, "")}:${port()}` : `Xdebug: listening on ${port()}`;
+    return via ? `Xdebug: ${via.replace(/:\d+$/, "")}:${port()}` : t("debug.main.xdebugListeningOnPort", { port: port() });
   };
   const title = () => {
     if (!listening()) return "Debug session";
     const via = listeningVia();
     return via
-      ? `Listening for PHP debug connections on port ${port()} of ${via}, forwarded over SSH. Click to stop.`
+      ? t("debug.main.listeningForPhpDebugConnections", { port: port(), via })
       : "Listening for PHP debug connections. Click to stop.";
   };
   return (
@@ -385,7 +385,7 @@ registerDebugLauncher({
     await refreshDebugAdapters();
     const adapter = cfg.type === NATIVE_APP ? debugAdapters().find((a) => a.type === (cfg.options?.adapter || "lldb")) : adapterForRunType(cfg.type);
     if (!adapter) {
-      showDebuggerBalloon(`Cannot debug '${cfg.name}'`, "No debug adapter is available. Choose a debugger in the run configuration.");
+      showDebuggerBalloon(t("debug.main.cannotDebugName", { name: cfg.name }), "No debug adapter is available. Choose a debugger in the run configuration.");
       return;
     }
     try {
@@ -393,7 +393,7 @@ registerDebugLauncher({
       showToolWindow("debug");
       await dapApi.start(request);
     } catch (e) {
-      showDebuggerBalloon(`Cannot debug '${cfg.name}'`, String(e).replace(/^Error: /, ""), 8000);
+      showDebuggerBalloon(t("debug.main.cannotDebugName", { name: cfg.name }), String(e).replace(/^Error: /, ""), 8000);
     }
   },
 });
@@ -403,23 +403,23 @@ const NATIVE_APP = "native-app";
 registerRunConfigurationType({
   id: NATIVE_APP,
   name: "Native Application",
-  description: "Run an executable; Debug starts it under a debug adapter such as LLDB or GDB.",
+  description: t("debug.main.runAnExecutableDebugStarts"),
   icon: Cpu,
   color: "var(--syn-type)",
   pluginId: "forge.debugger",
   argumentsLabel: "Program arguments",
   debuggable: true,
   fields: [
-    { key: "program", label: "Executable", kind: "path", required: true, placeholder: "build/demo" },
+    { key: "program", label: t("debug.main.executable"), kind: "path", required: true, placeholder: "build/demo" },
     {
       key: "adapter",
-      label: "Debugger",
+      label: t("debug.main.debugger"),
       kind: "enum",
       options: () => debugAdapters().filter((a) => a.launch).map((a) => ({ value: a.type, label: a.label })),
       default: "lldb",
     },
-    { key: "stopOnEntry", label: "Stop at the beginning of the program", kind: "bool" },
-    { key: "launchOptions", label: "Launch options (JSON)", kind: "text", placeholder: '{ "initCommands": ["settings set target.x86-disassembly-flavor intel"] }' },
+    { key: "stopOnEntry", label: t("debug.main.stopAtTheBeginningOf"), kind: "bool" },
+    { key: "launchOptions", label: t("debug.main.launchOptionsJson"), kind: "text", placeholder: '{ "initCommands": ["settings set target.x86-disassembly-flavor intel"] }' },
   ],
   suggestName: (cfg) => cfg.options?.program?.split(/[\\/]/).pop() || undefined,
   buildCommand: (cfg) => ({ program: cfg.options?.program ?? "", args: [], cwd: cfg.workingDirectory ?? "", env: cfg.env ?? {} }),

@@ -55,6 +55,7 @@ import { VariableNode } from "./VariablesTree";
 import { debugTabs } from "./debugTabs";
 import { setEvaluateRequest } from "./overlays";
 import { ExpressionInput } from "./ExpressionInput";
+import { t as tr } from "@/i18n";
 
 const tip = (title: string, action: string) => {
   const keys = shortcutLabel(action);
@@ -96,7 +97,7 @@ export function DebugActions() {
     <button
       class="icon-btn"
       classList={{ "dbg-listening": listening() }}
-      title={listening() ? "Stop Listening for PHP Debug Connections" : "Start Listening for PHP Debug Connections"}
+      title={listening() ? tr("debug.debugView.stopListeningForPhpDebug") : tr("debug.debugView.startListeningForPhpDebug")}
       onClick={() => void toggleListening()}
     >
       {listening() ? <PhoneCall size={15} /> : <PhoneOff size={15} />}
@@ -120,37 +121,37 @@ function Toolbar() {
   return (
     <div class="dbg-toolbar">
       <div class="dbg-tabs" role="tablist">
-        <Tab id="frames" title="Threads & Variables" />
-        <Tab id="console" title="Console" />
+        <Tab id="frames" title={tr("debug.debugView.threadsVariables")} />
+        <Tab id="console" title={tr("debug.debugView.console")} />
         <Show when={f()?.readMemory}>
-          <Tab id="memory" title="Memory" />
+          <Tab id="memory" title={tr("debug.debugView.memory")} />
         </Show>
         <Show when={f()?.disassemble}>
-          <Tab id="disassembly" title="Disassembly" />
+          <Tab id="disassembly" title={tr("debug.debugView.disassembly")} />
         </Show>
         <Show when={f()?.registers}>
-          <Tab id="registers" title="Registers" />
+          <Tab id="registers" title={tr("debug.debugView.registers")} />
         </Show>
         <For each={debugTabs().filter((t) => t.when(activeSession()))}>{(t) => <Tab id={t.id} title={t.title} />}</For>
       </div>
       <div class="dbg-sep" />
       <Show when={f()?.restart}>
-        <ToolButton action="Forge.Debugger.Rerun" title="Rerun" icon={RotateCcw} enabled={alive()} tone="run" />
+        <ToolButton action="Forge.Debugger.Rerun" title={tr("debug.debugView.rerun")} icon={RotateCcw} enabled={alive()} tone="run" />
       </Show>
-      <ToolButton action="Resume" title="Resume Program" icon={Play} enabled={paused()} tone="run" />
-      <ToolButton action="Pause" title="Pause Program" icon={Pause} enabled={running()} />
-      <ToolButton action="Stop" title="Stop" icon={Square} enabled={alive()} tone="stop" />
+      <ToolButton action="Resume" title={tr("debug.debugView.resumeProgram")} icon={Play} enabled={paused()} tone="run" />
+      <ToolButton action="Pause" title={tr("debug.debugView.pauseProgram")} icon={Pause} enabled={running()} />
+      <ToolButton action="Stop" title={tr("debug.debugView.stop")} icon={Square} enabled={alive()} tone="stop" />
       <div class="dbg-sep" />
-      <ToolButton action="ShowExecutionPoint" title="Show Execution Point" icon={Locate} enabled={paused()} />
-      <ToolButton action="StepOver" title="Step Over" icon={RedoDot} enabled={paused()} />
-      <ToolButton action="StepInto" title="Step Into" icon={ArrowDownToLine} enabled={paused()} />
-      <ToolButton action="ForceStepInto" title="Force Step Into" icon={ArrowDownToLine} enabled={paused()} tone="force" />
-      <ToolButton action="StepOut" title="Step Out" icon={ArrowUpFromLine} enabled={paused()} />
-      <ToolButton action="RunToCursor" title="Run to Cursor" icon={ArrowRightToLine} enabled={paused()} />
-      <ToolButton action="EvaluateExpression" title="Evaluate Expression…" icon={Calculator} enabled={paused()} />
+      <ToolButton action="ShowExecutionPoint" title={tr("debug.debugView.showExecutionPoint")} icon={Locate} enabled={paused()} />
+      <ToolButton action="StepOver" title={tr("debug.debugView.stepOver")} icon={RedoDot} enabled={paused()} />
+      <ToolButton action="StepInto" title={tr("debug.debugView.stepInto")} icon={ArrowDownToLine} enabled={paused()} />
+      <ToolButton action="ForceStepInto" title={tr("debug.debugView.forceStepInto")} icon={ArrowDownToLine} enabled={paused()} tone="force" />
+      <ToolButton action="StepOut" title={tr("debug.debugView.stepOut")} icon={ArrowUpFromLine} enabled={paused()} />
+      <ToolButton action="RunToCursor" title={tr("debug.debugView.runToCursor")} icon={ArrowRightToLine} enabled={paused()} />
+      <ToolButton action="EvaluateExpression" title={tr("debug.debugView.evaluateExpression")} icon={Calculator} enabled={paused()} />
       <div class="dbg-sep" />
-      <ToolButton action="ViewBreakpoints" title="View Breakpoints…" icon={CircleDot} enabled tone="bp" />
-      <ToolButton action="XDebugger.MuteBreakpoints" title="Mute Breakpoints" icon={CircleSlash} enabled pressed={breakpointsMuted()} />
+      <ToolButton action="ViewBreakpoints" title={tr("debug.debugView.viewBreakpoints")} icon={CircleDot} enabled tone="bp" />
+      <ToolButton action="XDebugger.MuteBreakpoints" title={tr("debug.debugView.muteBreakpoints")} icon={CircleSlash} enabled pressed={breakpointsMuted()} />
     </div>
   );
 }
@@ -171,7 +172,7 @@ function SessionTabs() {
               <span>{sessionTitle(s.id)}</span>
               <button
                 class="dbg-session-close"
-                title="Stop and close"
+                title={tr("debug.debugView.stopAndClose")}
                 onClick={(e) => {
                   e.stopPropagation();
                   void debugApi.stop(s.id).catch(() => {});
@@ -189,11 +190,11 @@ function SessionTabs() {
 
 function FramesPane() {
   return (
-    <div class="dbg-frames" role="listbox" aria-label="Frames">
+    <div class="dbg-frames" role="listbox" aria-label={tr("debug.debugView.frames")}>
       <ThreadSelector />
       <Show
         when={pausedSession()}
-        fallback={<div class="dbg-empty muted">{activeSession()?.status === "running" ? "The application is running" : "Frames are not available"}</div>}
+        fallback={<div class="dbg-empty muted">{activeSession()?.status === "running" ? tr("debug.debugView.theApplicationIsRunning") : tr("debug.debugView.framesAreNotAvailable")}</div>}
       >
         <For each={frames()}>
           {(f, i) => {
@@ -242,8 +243,8 @@ function VariablesPane() {
           }}
         />
       </div>
-      <div class="dbg-tree" role="tree" tabIndex={0} aria-label="Variables">
-        <Show when={pausedSession()} fallback={<div class="dbg-empty muted">{activeSession() ? "Variables are not available" : ""}</div>}>
+      <div class="dbg-tree" role="tree" tabIndex={0} aria-label={tr("debug.debugView.variables")}>
+        <Show when={pausedSession()} fallback={<div class="dbg-empty muted">{activeSession() ? tr("debug.debugView.variablesAreNotAvailable") : ""}</div>}>
           <For each={watches()}>
             {(w) => {
               const r = () => watchResults()[w];
@@ -264,7 +265,7 @@ function VariablesPane() {
                       selectable
                     >
                       <span class="dbg-eq"> = </span>
-                      <span class="dbg-error-text">{(() => { const x = r(); return x && "error" in x ? x.error : "Collecting data…"; })()}</span>
+                      <span class="dbg-error-text">{(() => { const x = r(); return x && "error" in x ? x.error : tr("debug.debugView.collectingData"); })()}</span>
                     </VariableNode>
                   }
                 >
@@ -273,7 +274,7 @@ function VariablesPane() {
               );
             }}
           </For>
-          <For each={variables()} fallback={<Show when={!variablesLoading()}><div class="dbg-empty muted">No variables</div></Show>}>
+          <For each={variables()} fallback={<Show when={!variablesLoading()}><div class="dbg-empty muted">{tr("debug.debugView.noVariables")}</div></Show>}>
             {(v) => <VariableNode p={v} depth={0} selectable />}
           </For>
         </Show>
@@ -290,13 +291,13 @@ function ConsolePane() {
   return (
     <div class="dbg-console-wrap">
       <div class="dbg-console-tools">
-        <button class="icon-btn" title="Clear All" onClick={clearConsole}>
+        <button class="icon-btn" title={tr("debug.debugView.clearAll")} onClick={clearConsole}>
           <Trash2 size={14} />
         </button>
       </div>
       <div class="dbg-console-main">
         <div class="dbg-console" ref={el}>
-          <For each={lines()} fallback={<span class="muted">No output yet.</span>}>
+          <For each={lines()} fallback={<span class="muted">{tr("debug.debugView.noOutputYet")}</span>}>
             {(l) => (
               <Show when={l.value} fallback={<span class={`dbg-out dbg-out-${l.stream}`}>{l.text}</span>}>
                 {(v) => (
@@ -339,23 +340,23 @@ function EmptyState() {
         fallback={
           <>
             <PhoneOff size={28} class="muted" />
-            <p>Forge is not listening for PHP debug connections.</p>
+            <p>{tr("debug.debugView.forgeIsNotListeningFor")}</p>
             <button class="btn-primary" onClick={() => void toggleListening()}>
-              Start Listening
+              {tr("debug.debugView.startListening")}
             </button>
-            <p class="muted dbg-hint">Xdebug 3 connects to port {port()} (xdebug.mode=debug, xdebug.start_with_request=yes).</p>
+            <p class="muted dbg-hint">{tr("debug.debugView.xdebugConnectsToPort", { port: port() })}</p>
             <p class="muted dbg-hint">
-              Other languages: Debug a run configuration, or use{" "}
+              {tr("debug.debugView.otherLanguages")}{" "}
               <button class="dbg-link" onClick={() => void runAction("XDebugger.AttachToProcess")}>
-                Attach to Process…
+                {tr("debug.debugView.attachToProcess")}
               </button>
             </p>
           </>
         }
       >
         <PhoneCall size={28} class="dbg-listening" />
-        <p>Waiting for incoming connection on port {port()}…</p>
-        <p class="muted dbg-hint">Start a request or a CLI script with Xdebug enabled. Breakpoints suspend execution here.</p>
+        <p>{tr("debug.debugView.waitingOnPort", { port: port() })}</p>
+        <p class="muted dbg-hint">{tr("debug.debugView.startARequestOrA")}</p>
       </Show>
     </div>
   );

@@ -21,6 +21,7 @@ import {
   type SessionInfo,
   type StepKind,
 } from "./api";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Debugger");
 
@@ -203,7 +204,7 @@ export async function selectThread(id: number): Promise<void> {
     if (top?.file) void showLine(top.file, top.line);
   } catch (e) {
     setFrames([]);
-    showBalloon("Cannot show the thread", String(e).replace(/^Error: /, ""));
+    showBalloon(t("debug.store.cannotShowTheThread"), String(e).replace(/^Error: /, ""));
   }
   await loadVariables(s.id, 0);
 }
@@ -273,7 +274,7 @@ export async function showLine(path: string, line: number): Promise<void> {
   try {
     await openFile(path);
   } catch {
-    showBalloon("Source not found", `${path} is not available in the project.`);
+    showBalloon(t("debug.store.sourceNotFound"), `${path} is not available in the project.`);
     return;
   }
   for (let i = 0; i < 60; i++) {
@@ -334,7 +335,7 @@ export function handleDebugEvent(e: DebugEvent): void {
       setListening(e.listening);
       setPort(e.port);
       if (!e.listening) setListeningVia(undefined);
-      if (e.error) showBalloon("Cannot start listening for debug connections", e.error, 6000);
+      if (e.error) showBalloon(t("debug.store.cannotStartListeningForDebug"), e.error, 6000);
       break;
     case "session":
       onSession(e.session);
@@ -365,7 +366,7 @@ export function handleDebugEvent(e: DebugEvent): void {
       setBreakpointState(e.snapshot);
       break;
     case "error":
-      showBalloon("Debugger error", e.message, 5000);
+      showBalloon(t("debug.store.debuggerError"), e.message, 5000);
       break;
   }
 }
@@ -418,7 +419,7 @@ export async function toggleListening(): Promise<void> {
       setListeningVia(status.listening ? status.via : undefined);
     }
   } catch (e) {
-    showBalloon("Cannot start listening for debug connections", String(e), 6000);
+    showBalloon(t("debug.store.cannotStartListeningForDebug"), String(e), 6000);
   }
 }
 
@@ -428,20 +429,20 @@ export async function step(kind: StepKind): Promise<void> {
   try {
     await debugApi.step(s.id, kind);
   } catch (e) {
-    showBalloon("Debugger", String(e));
+    showBalloon(t("debug.store.debugger"), String(e));
   }
 }
 
 export async function pause(): Promise<void> {
   const s = activeSession();
-  if (s?.status === "running") await debugApi.pause(s.id).catch((e) => showBalloon("Pause is not supported by this engine", String(e)));
+  if (s?.status === "running") await debugApi.pause(s.id).catch((e) => showBalloon(t("debug.store.pauseIsNotSupportedBy"), String(e)));
 }
 
 /** Rerun a DAP session (in place when the adapter can restart). */
 export async function restartSession(): Promise<void> {
   const s = activeSession();
   if (!s?.adapter) return;
-  await dapApi.restart(s.id).catch((e) => showBalloon("Cannot restart", String(e).replace(/^Error: /, "")));
+  await dapApi.restart(s.id).catch((e) => showBalloon(t("debug.store.cannotRestart"), String(e).replace(/^Error: /, "")));
 }
 
 export async function stop(): Promise<boolean> {
@@ -454,23 +455,23 @@ export async function stop(): Promise<boolean> {
 export async function runToCursor(file: string, line: number): Promise<void> {
   const s = pausedSession();
   if (!s) return;
-  await debugApi.runToCursor(s.id, file, line).catch((e) => showBalloon("Run to Cursor", String(e)));
+  await debugApi.runToCursor(s.id, file, line).catch((e) => showBalloon(t("debug.store.runToCursor"), String(e)));
 }
 
 export async function toggleLineBreakpoint(file: string, line: number): Promise<void> {
-  await debugApi.toggleBreakpoint(file, line).catch((e) => showBalloon("Cannot toggle breakpoint", String(e)));
+  await debugApi.toggleBreakpoint(file, line).catch((e) => showBalloon(t("debug.store.cannotToggleBreakpoint"), String(e)));
 }
 
 export async function updateBreakpoint(bp: Breakpoint): Promise<void> {
-  await debugApi.updateBreakpoint(bp).catch((e) => showBalloon("Cannot update breakpoint", String(e)));
+  await debugApi.updateBreakpoint(bp).catch((e) => showBalloon(t("debug.store.cannotUpdateBreakpoint"), String(e)));
 }
 
 export async function removeBreakpoint(id: number): Promise<void> {
-  await debugApi.removeBreakpoint(id).catch((e) => showBalloon("Cannot remove breakpoint", String(e)));
+  await debugApi.removeBreakpoint(id).catch((e) => showBalloon(t("debug.store.cannotRemoveBreakpoint"), String(e)));
 }
 
 export async function toggleMuted(): Promise<void> {
-  await debugApi.mute(!breakpointsMuted()).catch((e) => showBalloon("Cannot mute breakpoints", String(e)));
+  await debugApi.mute(!breakpointsMuted()).catch((e) => showBalloon(t("debug.store.cannotMuteBreakpoints"), String(e)));
 }
 
 export function clearConsole(): void {
@@ -493,7 +494,7 @@ export async function reloadServers(): Promise<ServerConfig[]> {
 export async function toggleTemporaryLineBreakpoint(file: string, line: number): Promise<void> {
   const existing = breakpoints().find((b) => b.kind === "line" && b.file === file && b.line === line);
   if (existing) return removeBreakpoint(existing.id);
-  await debugApi.addBreakpoint({ file, line, temporary: true }).catch((e) => showBalloon("Cannot add breakpoint", String(e)));
+  await debugApi.addBreakpoint({ file, line, temporary: true }).catch((e) => showBalloon(t("debug.store.cannotAddBreakpoint"), String(e)));
 }
 
 /** Shift+click in the gutter: a non-suspending breakpoint that logs "Breakpoint reached". */
@@ -502,7 +503,7 @@ export async function addLogpoint(file: string, line: number): Promise<Breakpoin
   if (existing) return existing;
   return debugApi
     .addBreakpoint({ file, line, suspend: false, logMessage: true })
-    .catch((e) => (showBalloon("Cannot add breakpoint", String(e)), null));
+    .catch((e) => (showBalloon(t("debug.store.cannotAddBreakpoint"), String(e)), null));
 }
 
 // ---- evaluation ---------------------------------------------------------------------------
@@ -553,7 +554,7 @@ export async function setVariableValue(fullname: string, value: string, property
   try {
     await debugApi.setValue(s.id, fullname, value, depth, property?.container, property?.container ? property.name : undefined);
   } catch (e) {
-    showBalloon("Cannot set value", String(e).replace(/^Error: /, ""), 5000);
+    showBalloon(t("debug.store.cannotSetValue"), String(e).replace(/^Error: /, ""), 5000);
     return false;
   }
   await loadVariables(s.id, depth);
@@ -568,8 +569,8 @@ export async function addWatchpoint(property: Property): Promise<void> {
   if (!s?.adapter || property.container == null) return;
   try {
     const bp = await dapApi.dataBreakpoint(s.id, property.container, property.name);
-    showBalloon("Watchpoint added", `Suspends when ${bp.description ?? property.name} changes.`, 3000);
+    showBalloon(t("debug.store.watchpointAdded"), `Suspends when ${bp.description ?? property.name} changes.`, 3000);
   } catch (e) {
-    showBalloon("Cannot add a watchpoint", String(e).replace(/^Error: /, ""), 5000);
+    showBalloon(t("debug.store.cannotAddAWatchpoint"), String(e).replace(/^Error: /, ""), 5000);
   }
 }

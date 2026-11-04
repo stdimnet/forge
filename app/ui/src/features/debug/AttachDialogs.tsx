@@ -8,6 +8,7 @@ import { showToolWindow } from "@/state/layout";
 import { DialogFrame } from "./DialogFrame";
 import { debugAdapters, type DebugAdapter } from "./adapters";
 import { dapApi, type LaunchRequest, type ProcessInfo } from "./dapApi";
+import { t } from "@/i18n";
 
 export type AttachKind = "process" | "server" | "coreDump";
 
@@ -42,8 +43,7 @@ function AdapterSelect(props: { id: string; adapters: DebugAdapter[]; value: str
 function NoAdapters(props: { what: string }) {
   return (
     <p class="muted dbg-pad">
-      No installed debug adapter can {props.what}. Enable a language pack with a debugger, or set the LLDB or GDB path in Settings | Build,
-      Execution, Deployment | Debugger.
+      {t("debug.attachDialogs.noAdapters", { what: props.what })}
     </p>
   );
 }
@@ -67,42 +67,42 @@ function ProcessDialog() {
   };
   return (
     <DialogFrame
-      title="Attach to Process"
+      title={t("debug.attachDialogs.attachToProcess")}
       class="dbg-attach"
       onClose={() => setAttachDialog(null)}
       footer={
         <>
-          <span class="muted dbg-left">{processes.loading ? "Collecting processes…" : `${shown().length} processes`}</span>
+          <span class="muted dbg-left">{processes.loading ? t("debug.attachDialogs.collectingProcesses") : `${shown().length} processes`}</span>
           <button class="btn-secondary" onClick={() => setAttachDialog(null)}>
             Cancel
           </button>
           <button class="btn-primary" disabled={!selected() || !adapter() || busy()} onClick={() => attach()}>
-            {busy() ? "Attaching…" : "Attach"}
+            {busy() ? t("debug.attachDialogs.attaching") : t("debug.attachDialogs.attach")}
           </button>
         </>
       }
     >
-      <Show when={adapters().length} fallback={<NoAdapters what="attach to processes" />}>
+      <Show when={adapters().length} fallback={<NoAdapters what="attach" />}>
         <div class="dbg-form-row">
-          <label for="dbg-attach-adapter">Debugger:</label>
+          <label for="dbg-attach-adapter">{t("debug.attachDialogs.debugger")}</label>
           <AdapterSelect id="dbg-attach-adapter" adapters={adapters()} value={adapter()} onChange={setAdapter} />
           <input
             class="dbg-input dbg-attach-filter"
-            placeholder="Filter by name, command line or PID"
+            placeholder={t("debug.attachDialogs.filterByNameCommandLine")}
             value={filter()}
             onInput={(e) => setFilter(e.currentTarget.value)}
             ref={(el) => queueMicrotask(() => el.focus())}
           />
-          <button class="icon-btn" title="Refresh" onClick={() => void refetch()}>
+          <button class="icon-btn" title={t("debug.attachDialogs.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={13} />
           </button>
         </div>
-        <div class="dbg-process-list" role="listbox" aria-label="Processes">
+        <div class="dbg-process-list" role="listbox" aria-label={t("debug.attachDialogs.processes")}>
           <div class="dbg-process-row dbg-process-head">
-            <span>PID</span>
-            <span>Name</span>
-            <span>User</span>
-            <span>Command line</span>
+            <span>{t("debug.attachDialogs.pid")}</span>
+            <span>{t("debug.attachDialogs.name")}</span>
+            <span>{t("debug.attachDialogs.user")}</span>
+            <span>{t("debug.attachDialogs.commandLine")}</span>
           </div>
           <For each={shown()}>
             {(p) => (
@@ -154,7 +154,7 @@ function ServerDialog() {
   };
   return (
     <DialogFrame
-      title="Attach to DAP Server"
+      title={t("debug.attachDialogs.attachToDapServer")}
       class="dbg-attach-server"
       onClose={() => setAttachDialog(null)}
       footer={
@@ -163,20 +163,20 @@ function ServerDialog() {
             Cancel
           </button>
           <button class="btn-primary" disabled={!adapter() || busy()} onClick={attach}>
-            {busy() ? "Connecting…" : "Attach"}
+            {busy() ? t("debug.attachDialogs.connecting") : t("debug.attachDialogs.attach")}
           </button>
         </>
       }
     >
-      <p class="muted dbg-hint">Connect to a debug adapter that listens on a TCP port, e.g. dlv dap --listen 127.0.0.1:4711 or debugpy --listen 5678.</p>
+      <p class="muted dbg-hint">{t("debug.attachDialogs.connectToADebugAdapter")}</p>
       <div class="dbg-form-grid">
-        <label for="dbg-srv-adapter">Debugger:</label>
+        <label for="dbg-srv-adapter">{t("debug.attachDialogs.debugger")}</label>
         <AdapterSelect id="dbg-srv-adapter" adapters={adapters()} value={adapter()} onChange={setAdapter} />
-        <label for="dbg-srv-host">Host:</label>
+        <label for="dbg-srv-host">{t("debug.attachDialogs.host")}</label>
         <input id="dbg-srv-host" class="dbg-input" value={host()} onInput={(e) => setHost(e.currentTarget.value)} />
-        <label for="dbg-srv-port">Port:</label>
+        <label for="dbg-srv-port">{t("debug.attachDialogs.port")}</label>
         <input id="dbg-srv-port" class="dbg-input dbg-port" value={port()} onInput={(e) => setPort(e.currentTarget.value)} />
-        <label for="dbg-srv-options">Attach options:</label>
+        <label for="dbg-srv-options">{t("debug.attachDialogs.attachOptions")}</label>
         <textarea
           id="dbg-srv-options"
           class="dbg-input dbg-mono dbg-json"
@@ -209,7 +209,7 @@ function CoreDumpDialog() {
   };
   return (
     <DialogFrame
-      title="Debug Core Dump"
+      title={t("debug.attachDialogs.debugCoreDump")}
       class="dbg-core-dump"
       onClose={() => setAttachDialog(null)}
       footer={
@@ -218,27 +218,27 @@ function CoreDumpDialog() {
             Cancel
           </button>
           <button class="btn-primary" disabled={!adapters().length || busy()} onClick={open}>
-            {busy() ? "Opening…" : "OK"}
+            {busy() ? t("debug.attachDialogs.opening") : "OK"}
           </button>
         </>
       }
     >
-      <Show when={adapters().length} fallback={<NoAdapters what="open core dumps" />}>
+      <Show when={adapters().length} fallback={<NoAdapters what="coreDump" />}>
         <div class="dbg-form-grid">
-          <label for="dbg-core-adapter">Debugger:</label>
+          <label for="dbg-core-adapter">{t("debug.attachDialogs.debugger")}</label>
           <AdapterSelect id="dbg-core-adapter" adapters={adapters()} value={adapter()} onChange={setAdapter} />
-          <label for="dbg-core-file">Core file:</label>
+          <label for="dbg-core-file">{t("debug.attachDialogs.coreFile")}</label>
           <input id="dbg-core-file" class="dbg-input dbg-mono" placeholder="/var/crash/core.4242" value={core()} onInput={(e) => setCore(e.currentTarget.value)} />
-          <label for="dbg-core-program">Symbol file:</label>
+          <label for="dbg-core-program">{t("debug.attachDialogs.symbolFile")}</label>
           <input
             id="dbg-core-program"
             class="dbg-input dbg-mono"
-            placeholder="The executable that crashed, e.g. build/demo"
+            placeholder={t("debug.attachDialogs.theExecutableThatCrashedE")}
             value={program()}
             onInput={(e) => setProgram(e.currentTarget.value)}
           />
         </div>
-        <p class="muted dbg-hint">The program does not run: frames, variables, memory and registers show the state at the crash.</p>
+        <p class="muted dbg-hint">{t("debug.attachDialogs.theProgramDoesNotRun")}</p>
       </Show>
       <Show when={error()}>
         <div class="dbg-error dbg-pad">{error()}</div>
