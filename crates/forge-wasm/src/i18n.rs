@@ -108,17 +108,18 @@ pub fn i18n_localize_settings(request_json: &str) -> String {
 mod tests {
     use super::*;
 
+    // The process-wide locale is shared with the other bridge tests (the main menu), which
+    // run in parallel and expect English; German lookups are covered in forge-i18n.
     #[test]
-    fn switches_language() {
-        assert_eq!(i18n_set_locale("de", 0), "de");
-        assert_eq!(i18n_t("common.cancel"), "Abbrechen");
+    fn formats_through_the_bridge() {
+        assert_eq!(i18n_set_locale("en", 0), "en");
+        assert_eq!(i18n_t("common.cancel"), "Cancel");
         assert!(i18n_has("common.cancel"));
+        assert_eq!(i18n_t_args("vcs.files", r#"{"count":3}"#), "3 files");
         assert_eq!(
             i18n_format("{n, plural, one {# Datei} other {# Dateien}}", r#"{"n":3}"#),
             "3 Dateien"
         );
-        assert_eq!(i18n_set_locale("en", 0), "en");
-        assert_eq!(i18n_t("common.cancel"), "Cancel");
         assert!(i18n_locales().contains("Deutsch"));
     }
 }

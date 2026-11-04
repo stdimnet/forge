@@ -87,8 +87,10 @@ export default {
   ),
   "i18n-run-configurations-de": async (page) => {
     await german(page);
-    await page.evaluate(() => window.__forgeRunCommand("editRunConfigurations"));
+    await page.click(".run-config");
+    await page.click(".run-dropdown .run-dd-item:has-text('Konfigurationen bearbeiten')");
     await page.waitForSelector(".rc-dialog");
+    await page.click('.rc-tree-item[data-config="UserTest"]');
     await page.waitForTimeout(200);
   },
 };

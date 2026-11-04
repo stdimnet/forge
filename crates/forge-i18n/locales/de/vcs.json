@@ -48,7 +48,7 @@
   "vcs.signOff.tooltip": "Eine Signed-off-by-Zeile hinzufügen (Einstellungen | Versionskontrolle | Git)",
   "vcs.signOffCommit": "Commit mit Sign-off",
   "vcs.tab.changes": "Änderungen",
-  "vcs.tab.shelf": "Zurückgestellt",
+  "vcs.tab.shelf": "Shelf",
   "vcs.tab.stash": "Stash",
   "vcs.unversioned": "Nicht versionierte Dateien"
 }

@@ -267,7 +267,6 @@ macro_rules! args {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::args;
 
     fn sample(locale: &str) -> Localizer {
         let mut l = Localizer::empty(locale);
