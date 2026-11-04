@@ -125,7 +125,7 @@ pub fn trust_project(
             }
             state
                 .project_trust_key()
-                .ok_or_else(|| ForgeError::no_project())?
+                .ok_or_else(ForgeError::no_project)?
         }
     };
     let mut store = state.trust_store();

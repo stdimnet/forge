@@ -220,7 +220,7 @@ impl AppState {
             .read()
             .expect("backend lock poisoned")
             .clone()
-            .ok_or_else(|| ForgeError::no_project())
+            .ok_or_else(ForgeError::no_project)
     }
 
     /// What the open project is, if one is open.

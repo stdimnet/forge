@@ -23,9 +23,7 @@ static STORE_LOCK: Mutex<()> = Mutex::new(());
 
 /// `<data dir>/forge/projects/<project>/changelists.json`.
 fn store_file(state: &AppState) -> Result<PathBuf> {
-    let info = state
-        .project_info()
-        .ok_or_else(|| ForgeError::no_project())?;
+    let info = state.project_info().ok_or_else(ForgeError::no_project)?;
     project_state_file(&info.name, &info.display_root(), "changelists.json")
         .ok_or_else(|| ForgeError::Other("no data directory on this system".into()))
 }

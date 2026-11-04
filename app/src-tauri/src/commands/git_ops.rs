@@ -18,9 +18,7 @@ use crate::state::AppState;
 
 /// `<data dir>/forge/projects/<project>/shelf` (PHPStorm keeps it in `.idea/shelf`).
 fn shelf(state: &AppState) -> Result<Shelf> {
-    let info = state
-        .project_info()
-        .ok_or_else(|| ForgeError::no_project())?;
+    let info = state.project_info().ok_or_else(ForgeError::no_project)?;
     let dir: PathBuf = project_state_file(&info.name, &info.display_root(), "shelf")
         .ok_or_else(|| ForgeError::Other("no data directory on this system".into()))?;
     Ok(Shelf::new(dir))

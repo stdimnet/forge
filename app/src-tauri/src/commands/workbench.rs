@@ -54,9 +54,7 @@ pub fn project_state_file(name: &str, root: &str, file: &str) -> Option<PathBuf>
 }
 
 fn bookmarks_file(state: &AppState) -> Result<PathBuf> {
-    let info = state
-        .project_info()
-        .ok_or_else(|| ForgeError::no_project())?;
+    let info = state.project_info().ok_or_else(ForgeError::no_project)?;
     project_state_file(&info.name, &info.display_root(), "bookmarks.json")
         .ok_or_else(|| ForgeError::Other("no data directory on this system".into()))
 }
