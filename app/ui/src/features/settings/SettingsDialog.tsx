@@ -30,6 +30,8 @@ import {
 import { dialogSearch, Hl, nodeMatches } from "./dialogSearch";
 import { nodesById, type TreeNode } from "./search";
 import { t } from "@/i18n";
+import { navigate } from "@/features/project/treeNavigation";
+import { tabbables } from "@/features/accessibility/dialogs";
 
 function TreeRow(props: {
   node: TreeNode;
@@ -50,6 +52,14 @@ function TreeRow(props: {
         }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
         data-node={props.node.id}
+        data-depth={props.depth}
+        data-dir={hasChildren() ? "" : undefined}
+        data-expanded={hasChildren() && props.expanded(props.node.id) ? "" : undefined}
+        role="treeitem"
+        aria-level={props.depth + 1}
+        aria-selected={selected() === props.node.id}
+        aria-expanded={hasChildren() ? props.expanded(props.node.id) : undefined}
+        tabIndex={selected() === props.node.id ? 0 : -1}
         onClick={() => {
           setSelected(props.node.id);
           if (hasChildren() && !props.node.page) props.toggle(props.node.id);
@@ -57,6 +67,7 @@ function TreeRow(props: {
       >
         <span
           class="set-tree-chevron"
+          aria-hidden="true"
           onClick={(e) => {
             e.stopPropagation();
             props.toggle(props.node.id);
@@ -142,6 +153,30 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
   });
 
   let searchEl!: HTMLInputElement;
+  let treeEl!: HTMLDivElement;
+  /** Arrow keys, Home/End and Enter in the page tree (PHPStorm's tree keys); Enter on a page moves into it. */
+  const onTreeKey = (e: KeyboardEvent) => {
+    const rows = [...treeEl.querySelectorAll<HTMLElement>(".set-tree-row[data-node]")];
+    const action = navigate(
+      rows.map((r) => ({
+        path: r.dataset.node!,
+        isDir: r.dataset.dir !== undefined,
+        expanded: r.dataset.expanded !== undefined,
+        depth: Number(r.dataset.depth ?? 0),
+      })),
+      selected(),
+      e.key,
+    );
+    if (action.type === "none") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (action.type === "select") {
+      setSelected(action.path);
+      queueMicrotask(() => [...treeEl.querySelectorAll<HTMLElement>("[data-node]")].find((r) => r.dataset.node === action.path)?.focus());
+    } else if (action.type === "expand" || action.type === "collapse") toggle(action.path);
+    else tabbables(contentEl)[0]?.focus();
+  };
+  let contentEl!: HTMLDivElement;
   onMount(() => queueMicrotask(() => searchEl?.focus()));
 
   const ok = async () => {
@@ -165,6 +200,7 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
             <input
               ref={searchEl}
               placeholder={t("settings.search")}
+              aria-label={t("settings.search")}
               value={query()}
               spellcheck={false}
               onInput={(e) => setQuery(e.currentTarget.value)}
@@ -175,13 +211,13 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
               </button>
             </Show>
           </div>
-          <div class="set-tree">
+          <div class="set-tree" role="tree" aria-label={t("a11y.settingsTree")} ref={treeEl} onKeyDown={onTreeKey}>
             <For each={visibleTree()} fallback={<div class="set-empty">{t("common.nothingFound")}</div>}>
               {(node) => <TreeRow node={node} depth={0} expanded={expanded} toggle={toggle} />}
             </For>
           </div>
         </aside>
-        <main class="set-main">
+        <div class="set-main" role="region" aria-label={t("a11y.settingsPage")}>
           <div class="set-header">
             <div class="set-breadcrumb">
               <For each={selectedPath()}>
@@ -226,7 +262,7 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
               </button>
             </Show>
           </div>
-          <div class="set-content">
+          <div class="set-content" ref={contentEl}>
             <Show when={current()}>
               {(node) => (
                 <Show when={node().page && pageById(node().id)} fallback={<GroupPage node={node()} />}>
@@ -235,10 +271,10 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
               )}
             </Show>
           </div>
-        </main>
+        </div>
       </div>
-      <footer class="set-footer">
-        <button class="icon-btn" title={t("common.help")}>
+      <div class="set-footer">
+        <button class="icon-btn" title={t("common.help")} aria-label={t("common.help")}>
           <CircleHelp size={16} />
         </button>
         <Show when={error()}>
@@ -259,7 +295,7 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
             {t("common.apply")}
           </button>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

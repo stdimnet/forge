@@ -141,8 +141,13 @@ function NameDialog(props: { req: NameRequest }) {
       >
         <div class="dialog-title">{props.req.title}</div>
         <div class="dialog-body">
-          <label class="form-label">{props.req.label}</label>
+          <label class="form-label" for="ask-name-input">
+            {props.req.label}
+          </label>
           <input
+            id="ask-name-input"
+            aria-invalid={error() ? "true" : undefined}
+            aria-describedby={error() ? "ask-name-error" : undefined}
             ref={(el) =>
               queueMicrotask(() => {
                 el.focus();
@@ -156,7 +161,9 @@ function NameDialog(props: { req: NameRequest }) {
             spellcheck={false}
           />
           <Show when={error()}>
-            <div class="dialog-error">{error()}</div>
+            <div class="dialog-error" id="ask-name-error" role="alert">
+              {error()}
+            </div>
           </Show>
         </div>
         <div class="dialog-buttons">

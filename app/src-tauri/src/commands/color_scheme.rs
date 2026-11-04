@@ -4,7 +4,7 @@
 use tauri::State;
 
 use forge_colorscheme::{
-    export_icls, import_icls, SchemeChange, SchemeSettings, SchemesSnapshot, SettingWrite,
+    export_icls, import_icls, Bundled, SchemeChange, SchemeSettings, SchemesSnapshot, SettingWrite,
 };
 use forge_core::{ForgeError, Result, SettingsScope};
 
@@ -23,11 +23,20 @@ fn write_settings(app: &AppState, writes: Vec<SettingWrite>) -> Result<()> {
     Ok(())
 }
 
-/// Schemes, the attributes of the active one, the preview and the editor CSS. `dark`: whether
-/// the UI theme is dark (the scheme that follows the theme).
+/// The bundled scheme that follows the UI theme: `dark` and `high_contrast` describe it.
+fn following(dark: bool, high_contrast: Option<bool>) -> Bundled {
+    Bundled::for_theme(dark, high_contrast.unwrap_or(false))
+}
+
+/// Schemes, the attributes of the active one, the preview and the editor CSS. `dark` and
+/// `high_contrast`: the kind of UI theme (the scheme that follows the theme).
 #[tauri::command]
-pub fn color_scheme_state(dark: bool, app: State<'_, AppState>) -> SchemesSnapshot {
-    settings_of(&app).snapshot(dark)
+pub fn color_scheme_state(
+    dark: bool,
+    high_contrast: Option<bool>,
+    app: State<'_, AppState>,
+) -> SchemesSnapshot {
+    settings_of(&app).snapshot(following(dark, high_contrast))
 }
 
 /// Select, duplicate, rename or delete a scheme, or change an attribute of the active user
@@ -36,11 +45,13 @@ pub fn color_scheme_state(dark: bool, app: State<'_, AppState>) -> SchemesSnapsh
 pub fn color_scheme_change(
     change: SchemeChange,
     dark: bool,
+    high_contrast: Option<bool>,
     app: State<'_, AppState>,
 ) -> Result<SchemesSnapshot> {
-    let writes = settings_of(&app).apply(change, dark);
+    let theme = following(dark, high_contrast);
+    let writes = settings_of(&app).apply(change, theme);
     write_settings(&app, writes)?;
-    Ok(settings_of(&app).snapshot(dark))
+    Ok(settings_of(&app).snapshot(theme))
 }
 
 /// Import an .icls file (its `text`, or the file at `path` picked in an open dialog) as a new
@@ -50,6 +61,7 @@ pub async fn color_scheme_import(
     text: Option<String>,
     path: Option<String>,
     dark: bool,
+    high_contrast: Option<bool>,
     app: State<'_, AppState>,
 ) -> Result<SchemesSnapshot> {
     let text = match (text, path) {
@@ -62,7 +74,7 @@ pub async fn color_scheme_import(
     let imported = import_icls(&text).map_err(ForgeError::Other)?;
     let writes = settings_of(&app).add_imported(imported.scheme);
     write_settings(&app, writes)?;
-    Ok(settings_of(&app).snapshot(dark))
+    Ok(settings_of(&app).snapshot(following(dark, high_contrast)))
 }
 
 /// Scheme `name` as an .icls file; with `path` it is also written there (a file the user

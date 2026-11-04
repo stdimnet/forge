@@ -1,7 +1,7 @@
 import { ChevronDown, GitBranch, Search, Settings, Sparkles, Hammer, Sun, Moon } from "lucide-solid";
 import { RunWidget } from "@/features/run/RunWidget";
 import { isCollabGuest, workspace } from "@/state/workspace";
-import { theme, toggleTheme } from "@/state/theme";
+import { isDarkTheme, theme, toggleTheme } from "@/state/theme";
 import { showToolWindow } from "@/state/layout";
 import { branchLabel } from "@/state/vcs";
 import { runCommand } from "@/state/commands";
@@ -29,14 +29,14 @@ export function MainToolbar() {
   return (
     <>
     <SeparateMainMenuBar />
-    <header class="main-toolbar" onMouseDown={dragRegion.onMouseDown}>
+    <header class="main-toolbar" aria-label={t("a11y.mainToolbar")} onMouseDown={dragRegion.onMouseDown}>
       <Show when={drawsControls() && chrome()!.buttons.left.length > 0}>
         <WindowControls style={chrome()!.style} buttons={chrome()!.buttons.left} side="left" />
       </Show>
       <div class="toolbar-left">
         <MainMenuButton />
         <button class="pill-btn project-widget" title={t("toolbar.openProject")} onClick={() => runCommand("workspace.open")}>
-          <span class="project-badge">{initials()}</span>
+          <span class="project-badge" aria-hidden="true">{initials()}</span>
           <span class="project-name">{workspace()?.name ?? t("toolbar.noProject")}</span>
           <Show when={workspace()?.collab}>
             {(c) => (
@@ -70,7 +70,7 @@ export function MainToolbar() {
           <Search size={16} />
         </button>
         <button class="icon-btn" title={t("toolbar.toggleTheme")} onClick={toggleTheme}>
-          {theme() === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          {isDarkTheme(theme()) ? <Sun size={16} /> : <Moon size={16} />}
         </button>
         <button class="icon-btn" title={t("toolbar.settings", { shortcut: "Ctrl+Alt+S" })} onClick={() => runCommand("settings.open")}>
           <Settings size={16} />

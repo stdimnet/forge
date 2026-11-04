@@ -4,15 +4,18 @@
  * <html> here; while the scheme follows the theme, none are set and the theme CSS applies.
  */
 import { createEffect, createRoot, createSignal, on } from "solid-js";
-import { colorSchemeApi, type SchemeChange, type SchemesSnapshot } from "@/ipc/colorScheme";
+import { colorSchemeApi, type SchemeChange, type SchemesSnapshot, type ThemeKind } from "@/ipc/colorScheme";
 import { getSetting, settingsState } from "@/state/settings";
-import { theme } from "@/state/theme";
+import { isDarkTheme, isHighContrastTheme, theme } from "@/state/theme";
 
 const [snapshot, setSnapshot] = createSignal<SchemesSnapshot | null>(null);
 export { snapshot as colorSchemes };
 
 /** Whether the UI theme is a dark one (the scheme that follows the theme is Ember then). */
-export const themeIsDark = (): boolean => theme() === "dark" || theme() === "solarized-dark";
+export const themeIsDark = (): boolean => isDarkTheme(theme());
+
+/** The kind of UI theme, which decides the scheme that follows the theme. */
+export const themeKind = (): ThemeKind => ({ dark: isDarkTheme(theme()), highContrast: isHighContrastTheme(theme()) });
 
 let applied: string[] = [];
 
@@ -37,14 +40,14 @@ function adopt(request: Promise<SchemesSnapshot>): Promise<void> {
   );
 }
 
-export const refreshColorSchemes = (): Promise<void> => adopt(colorSchemeApi.state(themeIsDark()));
+export const refreshColorSchemes = (): Promise<void> => adopt(colorSchemeApi.state(themeKind()));
 
 export const changeColorScheme = (change: SchemeChange): Promise<void> =>
-  adopt(colorSchemeApi.change(change, themeIsDark()));
+  adopt(colorSchemeApi.change(change, themeKind()));
 
 /** Import an .icls file (text in browser mode, a picked path in the desktop app). */
 export const importColorScheme = (source: { text?: string; path?: string }): Promise<void> =>
-  colorSchemeApi.import(source, themeIsDark()).then((s) => {
+  colorSchemeApi.import(source, themeKind()).then((s) => {
     seq++;
     setSnapshot(s);
     applySchemeCss(s);

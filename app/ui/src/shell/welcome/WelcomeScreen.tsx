@@ -32,7 +32,7 @@ function badgeColor(name: string): string {
   const hues = [22, 200, 145, 280, 340, 45, 175];
   let h = 0;
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return `hsl(${hues[h % hues.length]} 62% 52%)`;
+  return `hsl(${hues[h % hues.length]} 62% 34%)`;
 }
 
 const initials = (name: string) =>
@@ -57,7 +57,7 @@ function ProjectRow(props: { project: RecentProject; onError: (message: string) 
       title={props.project.root}
       data-root={props.project.root}
     >
-      <span class="welcome-badge" style={{ background: badgeColor(props.project.name) }}>
+      <span class="welcome-badge" style={{ background: badgeColor(props.project.name) }} aria-hidden="true">
         {initials(props.project.name)}
       </span>
       <span class="welcome-project-text">

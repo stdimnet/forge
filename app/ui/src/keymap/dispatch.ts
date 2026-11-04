@@ -82,7 +82,7 @@ export async function runAction(actionId: string): Promise<void> {
   const cmd = resolveCommand(actionId);
   if (cmd) {
     try {
-      await runCommand(cmd);
+      await runCommand(cmd, actionId);
     } catch (err) {
       console.error(`action ${actionId} failed`, err);
       showBalloon(`${actionById(actionId)?.title ?? actionId} failed`, String(err), 2600, undefined, { type: "error" });

@@ -1,6 +1,6 @@
 ---
 title: Color schemes
-description: Settings | Editor | Color Scheme - the Ember and Anvil schemes, following the theme, your own schemes, editing foreground, background, bold, italic and effects with a live preview, and importing and exporting IntelliJ .icls files.
+description: Settings | Editor | Color Scheme - the Ember, Anvil and High Contrast schemes, following the theme, your own schemes, editing foreground, background, bold, italic and effects with a live preview, and importing and exporting IntelliJ .icls files.
 order: 235
 tags: [color scheme, colors, syntax highlighting, themes, icls, import, export]
 ---
@@ -21,9 +21,11 @@ Settings | Editor | **Color Scheme** | **Scheme** (`editor.colorScheme.active`):
 
 | Scheme | Meaning |
 | --- | --- |
-| Follow the theme | the default: Ember with dark themes, Anvil with light ones, and the theme's own token colors (the Solarized themes bring their own) |
+| Follow the theme | the default: Ember with dark themes, Anvil with light ones, High Contrast (Light) with the High Contrast themes, and the theme's own token colors (the Solarized themes bring their own) |
 | Ember | Forge's dark scheme |
 | Anvil | Forge's light scheme |
+| High Contrast | white text on black, every token at least 7:1 (WCAG AAA), keywords bold |
+| High Contrast Light | black text on white, every token at least 7:1, keywords bold |
 | *your schemes* | listed under **Custom** |
 
 A scheme you select explicitly stays the same when you switch the UI theme, so you can, for
@@ -31,10 +33,10 @@ example, use the dark Ember editor with the light Anvil UI.
 
 ## Your own schemes
 
-Ember and Anvil are bundled and cannot be changed. The **gear** next to the selector has:
+The four bundled schemes cannot be changed. The **gear** next to the selector has:
 
 - **Duplicate…**: copy the selected scheme into a new one and select it. Change it from there.
-- **Rename…**, **Restore Defaults** (back to the colors of its parent, Ember or Anvil) and
+- **Rename…**, **Restore Defaults** (back to the colors of its parent bundled scheme) and
   **Delete** for your own schemes.
 - **Import Scheme…** and **Export…** (see below).
 
@@ -72,8 +74,9 @@ select its attribute.
   IntelliJ's attributes are mapped onto Forge's (for example `DEFAULT_KEYWORD` or
   `PHP_KEYWORD` → Keyword, `PHP_VAR` / `DEFAULT_LOCAL_VARIABLE` → Variable,
   `CARET_ROW_COLOR` → Caret row); references to other attributes (`baseAttributes`) are
-  followed. What the file does not set comes from Ember when its parent is Darcula (or another
-  dark scheme) and from Anvil otherwise.
+  followed. What the file does not set comes from High Contrast when its parent is IntelliJ's
+  "High contrast", from Ember when it is Darcula (or another dark scheme) and from Anvil
+  otherwise.
 - **Export…** writes the selected scheme as an `.icls` file with every attribute, so it looks
   the same when you import it into a JetBrains IDE.
 

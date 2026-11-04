@@ -35,6 +35,7 @@ skills in [`.claude/skills/`](../../../.claude/skills/); the detailed IPC contra
 | [Adding a language](adding-a-language.md) | file types, syntax modes, template data languages, language packs |
 | [Settings](settings.md) | declaring, reading and showing settings |
 | [Localization](localization.md) | translatable UI text: catalogs, `t()`, key naming, German, `pnpm i18n:check` |
+| [Writing accessible UI](accessibility.md) | ARIA roles and names, trees, dialogs and focus, keyboard operation, focus rings, theme contrast, announcements, axe audit and keyboard-only flow |
 | [Keymap actions](keymap-actions.md) | shortcuts through the keymap engine |
 
 ## Quality and delivery

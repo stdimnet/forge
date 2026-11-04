@@ -41,9 +41,10 @@ not finished, the page says so.
 | [Language servers](language-servers.md) | detection, installation, per-server settings, the built-in php-lsp |
 | [Keymap](keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](shortcuts/reference-card.md) |
-| [Color schemes](color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
+| [Color schemes](color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil, High Contrast and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
 | [IDE language](languages.md) | English or German (Deutsch): the Language settings page, what is translated, Find Action in both languages |
 | [Settings and themes](settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
+| [Accessibility](accessibility.md) | screen readers, the High Contrast themes, keyboard-only navigation and focus areas, contrast scrollbars, the Presentation Assistant |
 | [Invalidate Caches and Repair IDE](repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
 | [Plugins and packs](plugins-and-packs.md) | packs, activation, Settings \| Plugins |
 

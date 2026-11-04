@@ -43,6 +43,7 @@ import { navigateBack, navigateForward, reopenClosedTab } from "./history";
 import { openRecentFiles, recentOpen } from "./RecentFiles";
 import { openSettings } from "@/features/settings/dialogState";
 import { PopupHost } from "./PopupHost";
+import { focusToolWindowContent } from "@/features/accessibility/areas";
 import "./navigation.css";
 
 function action(id: string, run: () => void | Promise<void>): void {
@@ -94,10 +95,12 @@ export const TOOL_WINDOW_ACTIONS: Record<string, string> = {
 let lastToolWindow: string | null = null;
 let hiddenLayout: Partial<Record<ToolWindowSlot, string>> | null = null;
 
+/** Focus a shown tool window's content; its content may render a moment later. */
 function focusToolWindow(id: string): void {
-  queueMicrotask(() =>
-    document.querySelector<HTMLElement>(`[data-tool-window-panel="${id}"] .tool-window-body`)?.focus?.(),
-  );
+  queueMicrotask(() => {
+    focusToolWindowContent(id);
+    setTimeout(() => focusToolWindowContent(id), 80);
+  });
 }
 
 for (const [actionId, twId] of Object.entries(TOOL_WINDOW_ACTIONS)) {

@@ -50,6 +50,7 @@ export function Workbench() {
       <Show when={appearanceMode() && !isFullScreen() && drawsControls()}>
         <WindowTitleBar title={workspace()?.name ?? "Forge"} />
       </Show>
+      <h1 class="sr-only">{workspace()?.name ? `${workspace()!.name} – Forge` : "Forge"}</h1>
       <MainToolbar />
       <div class="workbench-body">
         <ToolStripe side="left" />

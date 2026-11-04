@@ -122,6 +122,14 @@
             {
               "value": "solarized-light",
               "label": "Solarized Light"
+            },
+            {
+              "value": "high-contrast",
+              "label": "High Contrast"
+            },
+            {
+              "value": "high-contrast-light",
+              "label": "High Contrast Light"
             }
           ],
           "default": "dark",
@@ -219,6 +227,123 @@
           "project": false,
           "hidden": true,
           "order": 90
+        },
+        {
+          "key": "appearance.screenReader",
+          "title": "Support screen readers",
+          "description": "Announces what happens through the screen reader: the caret position and problems at the caret on request, opened files, invoked actions, notifications and the result of dialogs. Tree and list rows, tool windows, menus and dialogs always carry their accessible names.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "Accessibility",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "appearance.contrastScrollbars",
+          "title": "Use contrast scrollbars",
+          "description": "Draws scrollbars with a strong color and a wider thumb so they are easy to see.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "Accessibility",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "appearance.presentationAssistant.enabled",
+          "title": "Show Presentation Assistant",
+          "description": "Shows the name and shortcut of every action you invoke in a popup, for demos, screencasts and pair programming.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "Presentation Assistant",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "appearance.presentationAssistant.size",
+          "title": "Popup size",
+          "type": "enum",
+          "options": [
+            {
+              "value": "small",
+              "label": "Small"
+            },
+            {
+              "value": "medium",
+              "label": "Medium"
+            },
+            {
+              "value": "large",
+              "label": "Large"
+            }
+          ],
+          "default": "medium",
+          "group": "appearance",
+          "section": "Presentation Assistant",
+          "project": false,
+          "order": 51
+        },
+        {
+          "key": "appearance.presentationAssistant.position",
+          "title": "Position",
+          "type": "enum",
+          "options": [
+            {
+              "value": "top-left",
+              "label": "Top left"
+            },
+            {
+              "value": "top-center",
+              "label": "Top center"
+            },
+            {
+              "value": "top-right",
+              "label": "Top right"
+            },
+            {
+              "value": "bottom-left",
+              "label": "Bottom left"
+            },
+            {
+              "value": "bottom-center",
+              "label": "Bottom center"
+            },
+            {
+              "value": "bottom-right",
+              "label": "Bottom right"
+            }
+          ],
+          "default": "bottom-center",
+          "group": "appearance",
+          "section": "Presentation Assistant",
+          "project": false,
+          "order": 52
+        },
+        {
+          "key": "appearance.presentationAssistant.duration",
+          "title": "Duration (ms)",
+          "description": "How long the popup stays after the last action.",
+          "type": "int",
+          "min": 500,
+          "max": 30000,
+          "default": 4000,
+          "group": "appearance",
+          "section": "Presentation Assistant",
+          "project": false,
+          "order": 53
+        },
+        {
+          "key": "appearance.presentationAssistant.alternateKeymap",
+          "title": "Show alternate keymap",
+          "description": "Also shows the shortcut of the other PHPStorm keymap: macOS next to Windows/Linux, or the other way round.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Presentation Assistant",
+          "project": false,
+          "order": 54
         },
         {
           "key": "appearance.uiFont.family",

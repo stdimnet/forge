@@ -148,7 +148,7 @@ interface ListItem {
   hunks: string[] | null;
 }
 
-function Checkbox(props: { items: ListItem[] }) {
+function Checkbox(props: { items: ListItem[]; label: string }) {
   const state = (): Inclusion => {
     const states = props.items.map((i) => inclusionOf(i.path, i.hunks));
     if (!states.length || states.every((s) => s === "none")) return "none";
@@ -161,6 +161,8 @@ function Checkbox(props: { items: ListItem[] }) {
       ref={ref}
       type="checkbox"
       class="commit-check"
+      aria-label={t("a11y.commit.include", { name: props.label })}
+      tabIndex={-1}
       checked={props.items.length > 0 && state() === "all"}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => setManyIncluded(props.items, e.currentTarget.checked)}
@@ -179,6 +181,10 @@ function FileRow(props: { entry: StatusEntry; item: ListItem; list: string; dept
       style={{ "padding-left": `${8 + props.depth * 18}px` }}
       data-path={props.entry.path}
       data-changelist={props.list}
+      id={commitRowId(props.list, props.entry.path)}
+      role="treeitem"
+      aria-level={props.depth + 1}
+      aria-selected={selected() === props.entry.path && selectedList() === props.list}
       draggable={props.list !== "unversioned"}
       onDragStart={(e) => {
         e.dataTransfer?.setData(dragType, JSON.stringify({ from: props.list, items: [props.item] }));
@@ -194,7 +200,7 @@ function FileRow(props: { entry: StatusEntry; item: ListItem; list: string; dept
       title={props.entry.path}
     >
       <span class="tree-chevron" />
-      <Checkbox items={[props.item]} />
+      <Checkbox items={[props.item]} label={nameOf(props.entry.path)} />
       <FileIcon name={nameOf(props.entry.path)} />
       <span class={`tree-label vcs-${st()}`}>{nameOf(props.entry.path)}</span>
       <Show when={props.showDir && dirOf(props.entry.path)}>
@@ -212,6 +218,69 @@ function FileRow(props: { entry: StatusEntry; item: ListItem; list: string; dept
 function select(path: string | null, list: string | null) {
   setSelected(path);
   setSelectedList(list);
+}
+
+/** Element id of a changelist or file row (aria-activedescendant). */
+const commitRowIds = new Map<string, string>();
+function commitRowId(list: string, path: string | null): string {
+  const key = `${list}\n${path ?? ""}`;
+  let id = commitRowIds.get(key);
+  if (!id) commitRowIds.set(key, (id = `commit-row-${commitRowIds.size + 1}`));
+  return id;
+}
+
+/**
+ * Keys in the changes tree: Up/Down/Home/End move between changelists and files, Left/Right
+ * collapse and expand a changelist, Space includes or excludes the selection, Enter shows the
+ * diff (or opens an unversioned file).
+ */
+function onCommitTreeKey(e: KeyboardEvent): void {
+  const tree = e.currentTarget as HTMLElement;
+  const rows = [...tree.querySelectorAll<HTMLElement>(".commit-group[data-changelist], .commit-row[data-path][data-changelist]")];
+  const at = rows.findIndex((r) =>
+    selected() ? r.dataset.path === selected() && r.dataset.changelist === selectedList() : !r.dataset.path && r.dataset.changelist === selectedList(),
+  );
+  const pick = (r: HTMLElement | undefined) => {
+    if (!r) return;
+    select(r.dataset.path ?? null, r.dataset.changelist ?? null);
+    r.scrollIntoView?.({ block: "nearest" });
+  };
+  const row = rows[at];
+  switch (e.key) {
+    case "ArrowDown":
+      pick(rows[at < 0 ? 0 : Math.min(rows.length - 1, at + 1)]);
+      break;
+    case "ArrowUp":
+      pick(rows[at < 0 ? 0 : Math.max(0, at - 1)]);
+      break;
+    case "Home":
+      pick(rows[0]);
+      break;
+    case "End":
+      pick(rows[rows.length - 1]);
+      break;
+    case "ArrowLeft":
+    case "ArrowRight": {
+      if (!row || row.dataset.path) return;
+      const id = row.dataset.changelist!;
+      if (collapsed().has(id) === (e.key === "ArrowRight")) toggleCollapsed(id);
+      break;
+    }
+    case " ":
+      row?.querySelector<HTMLInputElement>(".commit-check")?.click();
+      break;
+    case "Enter": {
+      const path = row?.dataset.path;
+      if (!path) return;
+      if (row.dataset.changelist === "unversioned") void openFile(path);
+      else void showDiff(path, allPaths());
+      break;
+    }
+    default:
+      return;
+  }
+  e.preventDefault();
+  e.stopPropagation();
 }
 
 /** One changelist node ("Changes", user lists, "Unversioned Files") with files grouped by directory. */
@@ -239,6 +308,11 @@ function Group(props: { id: string; title: string; items: ListItem[]; strong?: b
         class="tree-row commit-group"
         classList={{ selected: !selected() && selectedList() === props.id, "drop-target": dropTarget() === props.id }}
         data-changelist={props.id}
+        id={commitRowId(props.id, null)}
+        role="treeitem"
+        aria-level={1}
+        aria-expanded={open()}
+        aria-selected={!selected() && selectedList() === props.id}
         onClick={() => {
           select(null, props.id);
           toggleCollapsed(props.id);
@@ -267,7 +341,7 @@ function Group(props: { id: string; title: string; items: ListItem[]; strong?: b
         title={props.list?.comment || undefined}
       >
         <span class="tree-chevron">{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-        <Checkbox items={entries().map((e) => e.item)} />
+        <Checkbox items={entries().map((e) => e.item)} label={props.title} />
         <span class="tree-label" classList={{ strong: props.strong }}>
           {props.title}
         </span>
@@ -280,11 +354,19 @@ function Group(props: { id: string; title: string; items: ListItem[]; strong?: b
               when={dir && files.length > 1}
               fallback={<For each={files}>{(e) => <FileRow entry={e.entry} item={e.item} list={props.id} depth={1} showDir />}</For>}
             >
-              <div class="tree-row" style={{ "padding-left": "26px" }} onClick={() => toggleCollapsed(`${props.id}:${dir}`)}>
+              <div
+                class="tree-row"
+                style={{ "padding-left": "26px" }}
+                role="treeitem"
+                aria-level={2}
+                aria-expanded={!collapsed().has(`${props.id}:${dir}`)}
+                aria-selected="false"
+                onClick={() => toggleCollapsed(`${props.id}:${dir}`)}
+              >
                 <span class="tree-chevron">
                   {collapsed().has(`${props.id}:${dir}`) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                 </span>
-                <Checkbox items={files.map((e) => e.item)} />
+                <Checkbox items={files.map((e) => e.item)} label={dir} />
                 <Folder size={15} stroke-width={1.75} class="muted" />
                 <span class="tree-label">{dir}</span>
                 <span class="tree-hint">{plural(files.length)}</span>
@@ -352,7 +434,15 @@ function ConflictsGroup() {
   const open = () => !collapsed().has("conflicts");
   return (
     <Show when={conflicts().length > 0}>
-      <div class="tree-row commit-group commit-conflicts" onClick={() => toggleCollapsed("conflicts")} style={{ "padding-left": "8px" }}>
+      <div
+        class="tree-row commit-group commit-conflicts"
+        role="treeitem"
+        aria-level={1}
+        aria-expanded={open()}
+        aria-selected="false"
+        onClick={() => toggleCollapsed("conflicts")}
+        style={{ "padding-left": "8px" }}
+      >
         <span class="tree-chevron">{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
         <span class="tree-label strong">{t("vcs.mergeConflicts")}</span>
         <span class="tree-hint">{plural(conflicts().length)}</span>
@@ -374,6 +464,9 @@ function ConflictsGroup() {
               classList={{ selected: selected() === e.path }}
               style={{ "padding-left": "26px" }}
               data-path={e.path}
+              role="treeitem"
+              aria-level={2}
+              aria-selected={selected() === e.path}
               onClick={() => setSelected(e.path)}
               onDblClick={() => void openMerge(e.path)}
               title={e.path}
@@ -605,7 +698,15 @@ export function CommitPanel() {
           <ListPlus size={15} />
         </button>
       </div>
-      <div class="commit-tree" role="tree">
+      <div
+        class="commit-tree"
+        role={total() > 0 ? "tree" : undefined}
+        aria-label={t("toolwindow.commit.title")}
+        aria-multiselectable="true"
+        tabIndex={0}
+        aria-activedescendant={selected() ? commitRowId(selectedList() ?? "", selected()) : selectedList() ? commitRowId(selectedList()!, null) : undefined}
+        onKeyDown={onCommitTreeKey}
+      >
         <Show
           when={total() > 0}
           fallback={<div class="commit-empty">{status() ? t("vcs.noChanges") : t("vcs.noRepository")}</div>}
@@ -647,6 +748,7 @@ export function CommitPanel() {
           <textarea
             ref={messageInput}
             placeholder={t("vcs.commitMessage")}
+            aria-label={t("vcs.commitMessage")}
             data-focus-context="toolwindow-input"
             value={message()}
             spellcheck={false}

@@ -1515,7 +1515,7 @@ export function colors_parse(request_json) {
 }
 
 /**
- * `{settings, dark, change}` → `SettingWrite[]`.
+ * `{settings, dark, highContrast, change}` → `SettingWrite[]`.
  * @param {string} json
  * @returns {string}
  */
@@ -1587,7 +1587,7 @@ export function colorscheme_import(json) {
 }
 
 /**
- * `{settings, dark}` → `SchemesSnapshot`.
+ * `{settings, dark, highContrast}` → `SchemesSnapshot`.
  * @param {string} json
  * @returns {string}
  */

@@ -29,11 +29,33 @@ export function unregisterCommand(id: string): void {
 
 export { commands };
 
-export async function runCommand(id: string): Promise<void> {
+/** A command that is about to run, for observers like the Presentation Assistant. */
+export interface CommandInvocation {
+  command: Command;
+  /** The PHPStorm action id it was invoked as (keymap, menus, Find Action), when known. */
+  actionId?: string;
+}
+
+const listeners = new Set<(inv: CommandInvocation) => void>();
+
+/** Observe every command run; returns a function that stops observing. */
+export function onCommandInvoked(listener: (inv: CommandInvocation) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export async function runCommand(id: string, actionId?: string): Promise<void> {
   const cmd = commands().get(id);
   if (!cmd) {
     console.warn(`command not registered: ${id}`);
     return;
+  }
+  for (const l of listeners) {
+    try {
+      l({ command: cmd, actionId });
+    } catch (e) {
+      console.warn("command observer failed", e);
+    }
   }
   await cmd.run();
 }

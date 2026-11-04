@@ -18,8 +18,8 @@
 
   --fg: #d9d9df;
   --fg-strong: #f2f2f5;
-  --fg-muted: #8c8c98;
-  --fg-faint: #5f5f6a;
+  --fg-muted: #a0a0ab;
+  --fg-faint: #8a8a95;
 
   --accent: #ff7a1a;
   --accent-strong: #ff8f3d;
@@ -34,7 +34,7 @@
   /* VCS file status colors (project tree, tabs, commit window) */
   --vcs-modified: #6aa7ff;
   --vcs-added: #73c48a;
-  --vcs-deleted: #8a8a94;
+  --vcs-deleted: #9a9aa4;
   --vcs-untracked: #e0806a;
   /* Project view: excluded folders and resource roots (Mark Directory as) */
   --tree-excluded: #e08a4f;
@@ -80,7 +80,7 @@
   --syn-keyword: #ff9a57;
   --syn-string: #a5d17f;
   --syn-number: #7cc5e8;
-  --syn-comment: #6b6b78;
+  --syn-comment: #80808e;
   --syn-variable: #c9a6ff;
   --syn-function: #ffd479;
   --syn-type: #6fd2c4;
@@ -145,23 +145,28 @@
 
   --fg: #26272b;
   --fg-strong: #0f1012;
-  --fg-muted: #6b6e78;
-  --fg-faint: #9a9da6;
+  --fg-muted: #575a63;
+  --fg-faint: #686b74;
 
-  --accent: #e8620c;
-  --accent-strong: #d45608;
+  --accent: #b84a08;
+  --accent-strong: #9e4006;
   --accent-soft: rgba(232, 98, 12, 0.12);
   --accent-fg: #ffffff;
 
-  --vcs-modified: #2463c7;
-  --vcs-added: #2f8a46;
-  --vcs-deleted: #8a8a94;
-  --vcs-untracked: #b5492f;
+  --success: #236b35;
+  --warning: #765300;
+  --danger: #c42b2b;
+  --info: #1f5fbf;
+
+  --vcs-modified: #1a4d9c;
+  --vcs-added: #236b35;
+  --vcs-deleted: #5a5a63;
+  --vcs-untracked: #8f3519;
   /* Project view: excluded folders and resource roots (Mark Directory as) */
   --tree-excluded: #c0580e;
   --tree-resource-root: #8a4fb5;
   --tree-test-resource-root: #3a8a3a;
-  --vcs-ignored: #9a9aa3;
+  --vcs-ignored: #6b6b75;
 
   --blame-age-0: #e8620c;
   --blame-age-1: #e48a4a;
@@ -177,9 +182,9 @@
   --diff-changed-bg: rgba(36, 99, 199, 0.08);
   --graph-0: #e8620c;
   --graph-1: #2463c7;
-  --graph-2: #2f8a46;
+  --graph-2: #2a7d3f;
   --graph-3: #7a3fc4;
-  --graph-4: #b58a00;
+  --graph-4: #856600;
   --graph-5: #157a6e;
   --graph-6: #c43f6a;
   --ref-local: #d45608;
@@ -197,7 +202,7 @@
   --syn-keyword: #b8460b;
   --syn-string: #3c7d24;
   --syn-number: #1b6fa0;
-  --syn-comment: #8c8f99;
+  --syn-comment: #6e717b;
   --syn-variable: #7a3fc4;
   --syn-function: #8a5a00;
   --syn-type: #157a6e;
@@ -255,15 +260,15 @@
   --bg-elevated: #073642;
   --bg-hover: #073642;
   --bg-active: #0b4351;
-  --bg-selection: #0b4a5a;
+  --bg-selection: #073a46;
   --bg-input: #00303c;
   --border: #0a3b48;
   --border-strong: #16505f;
 
   --fg: #93a1a1;
   --fg-strong: #eee8d5;
-  --fg-muted: #7c9195;
-  --fg-faint: #586e75;
+  --fg-muted: #93a7ab;
+  --fg-faint: #80979d;
 
   --accent: #268bd2;
   --accent-strong: #4aa3e3;
@@ -339,10 +344,10 @@
   --border: #e3dcc4;
   --border-strong: #d3cbb0;
 
-  --fg: #586e75;
+  --fg: #4f646a;
   --fg-strong: #073642;
-  --fg-muted: #738489;
-  --fg-faint: #93a1a1;
+  --fg-muted: #4a5a5f;
+  --fg-faint: #57686c;
 
   --success: #859900;
   --warning: #b58900;
@@ -402,6 +407,249 @@
   color-scheme: light;
 }
 
+/* High Contrast: WCAG AAA (7:1) text on pure black, white borders and strong focus rings,
+   after PHPStorm's "High contrast" theme. Checked by src/theme/contrast.test.ts. */
+:root[data-theme="high-contrast"] {
+  --bg-app: #000000;
+  --bg-toolbar: #000000;
+  --bg-panel: #000000;
+  --bg-editor: #000000;
+  --bg-elevated: #0a0a0a;
+  --bg-hover: #262626;
+  --bg-active: #333333;
+  --bg-selection: #5c3300;
+  --bg-input: #000000;
+  --border: #9a9a9a;
+  --border-strong: #ffffff;
+
+  --fg: #ffffff;
+  --fg-strong: #ffffff;
+  --fg-muted: #e6e6e6;
+  --fg-faint: #cccccc;
+
+  --accent: #ffa64d;
+  --accent-strong: #ffbf80;
+  --accent-soft: rgba(255, 166, 77, 0.24);
+  --accent-fg: #000000;
+
+  --success: #85eb96;
+  --warning: #ffd966;
+  --danger: #ff8f8f;
+  --info: #94c8ff;
+
+  --vcs-modified: #94c8ff;
+  --vcs-added: #85eb96;
+  --vcs-deleted: #c8c8c8;
+  --vcs-untracked: #ffb8a6;
+  --tree-excluded: #ffb27a;
+  --tree-resource-root: #e0b8ff;
+  --tree-test-resource-root: #a8f09a;
+  --vcs-ignored: #bdbdbd;
+  --vcs-conflict: #ff8f8f;
+
+  --blame-age-0: #ffb27a;
+  --blame-age-1: #f0a878;
+  --blame-age-2: #d8a88c;
+  --blame-age-3: #c8b8ac;
+  --blame-age-4: #bdbdbd;
+  --blame-bg-0: rgba(255, 166, 77, 0.2);
+  --blame-bg-1: rgba(255, 166, 77, 0.1);
+  --diff-inserted-bg: rgba(133, 235, 150, 0.22);
+  --diff-inserted-text: rgba(133, 235, 150, 0.4);
+  --diff-deleted-bg: rgba(255, 143, 143, 0.22);
+  --diff-deleted-text: rgba(255, 143, 143, 0.4);
+  --diff-changed-bg: rgba(148, 200, 255, 0.22);
+  --graph-0: #ffa64d;
+  --graph-1: #94c8ff;
+  --graph-2: #85eb96;
+  --graph-3: #e0b8ff;
+  --graph-4: #ffd966;
+  --graph-5: #80f0e0;
+  --graph-6: #ff9ec0;
+  --ref-local: #ffa64d;
+  --ref-remote: #e0b8ff;
+  --ref-tag: #ffd966;
+
+  --file-color-blue: rgba(148, 200, 255, 0.24);
+  --file-color-green: rgba(133, 235, 150, 0.22);
+  --file-color-orange: rgba(255, 166, 77, 0.24);
+  --file-color-rose: rgba(255, 158, 192, 0.24);
+  --file-color-violet: rgba(224, 184, 255, 0.24);
+  --file-color-yellow: rgba(255, 217, 102, 0.22);
+  --file-color-gray: rgba(200, 200, 200, 0.24);
+
+  --syn-keyword: #ffb877;
+  --syn-string: #9cf08c;
+  --syn-number: #8fdcff;
+  --syn-comment: #c8c8c8;
+  --syn-variable: #e6ccff;
+  --syn-function: #ffe28f;
+  --syn-type: #80f0e0;
+  --syn-attribute: #f5e98f;
+  --syn-operator: #ffffff;
+  --syn-tag: #ffb877;
+
+  --ansi-black: #4d4d4d;
+  --ansi-red: #ff8f8f;
+  --ansi-green: #85eb96;
+  --ansi-yellow: #ffd966;
+  --ansi-blue: #94c8ff;
+  --ansi-magenta: #e0b8ff;
+  --ansi-cyan: #80f0e0;
+  --ansi-white: #e6e6e6;
+  --ansi-bright-black: #b3b3b3;
+  --ansi-bright-red: #ffb3b3;
+  --ansi-bright-green: #b3f5bd;
+  --ansi-bright-yellow: #ffeb99;
+  --ansi-bright-blue: #c2deff;
+  --ansi-bright-magenta: #efd9ff;
+  --ansi-bright-cyan: #b3f7ee;
+  --ansi-bright-white: #ffffff;
+
+  --shadow: 0 0 0 1px #ffffff;
+
+  --wc-fg: #ffffff;
+  --wc-hover: rgba(255, 255, 255, 0.2);
+  --wc-pressed: rgba(255, 255, 255, 0.3);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #a3261a;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(255, 255, 255, 0.2);
+  --wc-round-hover: rgba(255, 255, 255, 0.32);
+  --wc-round-active: rgba(255, 255, 255, 0.45);
+  --wc-breeze-hover: #ffffff;
+  --wc-breeze-hover-fg: #000000;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(255, 255, 255, 0.5);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.8);
+  --wc-mac-disabled: #808080;
+  color-scheme: dark;
+}
+
+/* High Contrast Light: black on white, AAA text contrast, black borders. */
+:root[data-theme="high-contrast-light"] {
+  --bg-app: #ffffff;
+  --bg-toolbar: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-editor: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f0f0f0;
+  --bg-active: #e6e6e6;
+  --bg-selection: #ffd9b3;
+  --bg-input: #ffffff;
+  --border: #5c5c5c;
+  --border-strong: #000000;
+
+  --fg: #000000;
+  --fg-strong: #000000;
+  --fg-muted: #262626;
+  --fg-faint: #3d3d3d;
+
+  --accent: #9a3a00;
+  --accent-strong: #7a2e00;
+  --accent-soft: rgba(154, 58, 0, 0.16);
+  --accent-fg: #ffffff;
+
+  --success: #104d1f;
+  --warning: #5c4400;
+  --danger: #a30000;
+  --info: #0a4699;
+
+  --vcs-modified: #0a4699;
+  --vcs-added: #104d1f;
+  --vcs-deleted: #3d3d3d;
+  --vcs-untracked: #7a240f;
+  --tree-excluded: #8a3a00;
+  --tree-resource-root: #5c1f99;
+  --tree-test-resource-root: #1a4d1a;
+  --vcs-ignored: #4d4d4d;
+  --vcs-conflict: #a30000;
+
+  --blame-age-0: #9a3a00;
+  --blame-age-1: #8a4a1f;
+  --blame-age-2: #6b4f3a;
+  --blame-age-3: #4d4d4d;
+  --blame-age-4: #5c5c5c;
+  --blame-bg-0: rgba(154, 58, 0, 0.14);
+  --blame-bg-1: rgba(154, 58, 0, 0.07);
+  --diff-inserted-bg: rgba(20, 92, 37, 0.16);
+  --diff-inserted-text: rgba(20, 92, 37, 0.32);
+  --diff-deleted-bg: rgba(163, 0, 0, 0.14);
+  --diff-deleted-text: rgba(163, 0, 0, 0.3);
+  --diff-changed-bg: rgba(10, 70, 153, 0.14);
+  --graph-0: #9a3a00;
+  --graph-1: #0a4699;
+  --graph-2: #145c25;
+  --graph-3: #5c1f99;
+  --graph-4: #5c4400;
+  --graph-5: #00574d;
+  --graph-6: #8f1f4a;
+  --ref-local: #9a3a00;
+  --ref-remote: #5c1f99;
+  --ref-tag: #5c4400;
+
+  --file-color-blue: rgba(10, 70, 153, 0.14);
+  --file-color-green: rgba(20, 92, 37, 0.14);
+  --file-color-orange: rgba(154, 58, 0, 0.14);
+  --file-color-rose: rgba(143, 31, 74, 0.14);
+  --file-color-violet: rgba(92, 31, 153, 0.14);
+  --file-color-yellow: rgba(92, 68, 0, 0.16);
+  --file-color-gray: rgba(61, 61, 61, 0.14);
+
+  --syn-keyword: #8a2c00;
+  --syn-string: #1d5c0c;
+  --syn-number: #004f8a;
+  --syn-comment: #4a4a4a;
+  --syn-variable: #561f99;
+  --syn-function: #614000;
+  --syn-type: #00574d;
+  --syn-attribute: #574a00;
+  --syn-operator: #000000;
+  --syn-tag: #8a2c00;
+
+  --ansi-black: #000000;
+  --ansi-red: #a30000;
+  --ansi-green: #145c25;
+  --ansi-yellow: #5c4400;
+  --ansi-blue: #0a4699;
+  --ansi-magenta: #5c1f99;
+  --ansi-cyan: #00574d;
+  --ansi-white: #4d4d4d;
+  --ansi-bright-black: #3d3d3d;
+  --ansi-bright-red: #c20000;
+  --ansi-bright-green: #1a7030;
+  --ansi-bright-yellow: #6b5000;
+  --ansi-bright-blue: #0d55b8;
+  --ansi-bright-magenta: #6b26b3;
+  --ansi-bright-cyan: #006b5e;
+  --ansi-bright-white: #262626;
+
+  --shadow: 0 0 0 1px #000000;
+
+  --wc-fg: #000000;
+  --wc-hover: rgba(0, 0, 0, 0.14);
+  --wc-pressed: rgba(0, 0, 0, 0.22);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #a3261a;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(0, 0, 0, 0.14);
+  --wc-round-hover: rgba(0, 0, 0, 0.22);
+  --wc-round-active: rgba(0, 0, 0, 0.32);
+  --wc-breeze-hover: #000000;
+  --wc-breeze-hover-fg: #ffffff;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(0, 0, 0, 0.5);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.8);
+  --wc-mac-disabled: #808080;
+  color-scheme: light;
+}
+
 :root {
   --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, monospace;
@@ -420,7 +668,8 @@
    text and on the scrollbar's error stripe. */
 :root,
 :root[data-theme="dark"],
-:root[data-theme="solarized-dark"] {
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
   --usage-read-bg: rgba(94, 164, 255, 0.2);
   --usage-write-bg: rgba(239, 95, 95, 0.22);
   --usage-read-mark: #6aa7ff;
@@ -428,7 +677,8 @@
 }
 
 :root[data-theme="light"],
-:root[data-theme="solarized-light"] {
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
   --usage-read-bg: rgba(46, 111, 214, 0.16);
   --usage-write-bg: rgba(214, 58, 58, 0.16);
   --usage-read-mark: #3f7fe0;
@@ -439,7 +689,8 @@
    marker of an empty side. Conflicts red, modifications blue, insertions green, deletions grey. */
 :root,
 :root[data-theme="dark"],
-:root[data-theme="solarized-dark"] {
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
   --merge-conflict-bg: rgba(239, 95, 95, 0.22);
   --merge-conflict-band: rgba(239, 95, 95, 0.36);
   --merge-conflict-mark: #ef6f6f;
@@ -455,7 +706,8 @@
 }
 
 :root[data-theme="light"],
-:root[data-theme="solarized-light"] {
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
   --merge-conflict-bg: rgba(214, 58, 58, 0.14);
   --merge-conflict-band: rgba(214, 58, 58, 0.26);
   --merge-conflict-mark: #d64545;
@@ -473,7 +725,8 @@
 /* Splash screen: cold steel letters that fill with molten metal while Forge loads. */
 :root,
 :root[data-theme="dark"],
-:root[data-theme="solarized-dark"] {
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
   --splash-desk: #0b0b0d;
   --splash-bg: #131316;
   --splash-edge: #26262d;
@@ -487,7 +740,8 @@
 }
 
 :root[data-theme="light"],
-:root[data-theme="solarized-light"] {
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
   --splash-desk: #dfe2e8;
   --splash-bg: #f7f8fa;
   --splash-edge: #d3d6de;
@@ -638,7 +892,8 @@ select:focus {
 /* Code With Me participant colors (carets, selections, avatars), in join order; the host is 1. */
 :root,
 :root[data-theme="dark"],
-:root[data-theme="solarized-dark"] {
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
   --collab-1: #ff8a3d;
   --collab-2: #5aa9ff;
   --collab-3: #6fd18c;
@@ -651,7 +906,8 @@ select:focus {
 }
 
 :root[data-theme="light"],
-:root[data-theme="solarized-light"] {
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
   --collab-1: #d9590a;
   --collab-2: #1f6fd1;
   --collab-3: #24914a;

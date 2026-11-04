@@ -25,16 +25,19 @@ async function call<T>(fn: (w: ForgeWasm) => (json: string) => string, args: Rec
 
 const store = (writes: SettingWrite[]) => writes.forEach((w) => setSetting(w.key, w.value, "user"));
 
-const state = (dark: boolean) => call<SchemesSnapshot>((w) => w.colorscheme_state, { dark });
+/** The kind of UI theme the scheme that follows the theme depends on. */
+const themeOf = (args: Record<string, unknown>) => ({ dark: !!args.dark, highContrast: !!args.highContrast });
 
-registerMock("color_scheme_state", ({ dark }) => state(!!dark));
-registerMock("color_scheme_change", async ({ change, dark }) => {
-  store(await call<SettingWrite[]>((w) => w.colorscheme_apply, { change, dark: !!dark }));
-  return state(!!dark);
+const state = (args: Record<string, unknown>) => call<SchemesSnapshot>((w) => w.colorscheme_state, themeOf(args));
+
+registerMock("color_scheme_state", (args) => state(args));
+registerMock("color_scheme_change", async (args) => {
+  store(await call<SettingWrite[]>((w) => w.colorscheme_apply, { change: args.change, ...themeOf(args) }));
+  return state(args);
 });
-registerMock("color_scheme_import", async ({ text, dark }) => {
-  if (typeof text !== "string") throw new Error("nothing to import");
-  store(await call<SettingWrite[]>((w) => w.colorscheme_import, { text }));
-  return state(!!dark);
+registerMock("color_scheme_import", async (args) => {
+  if (typeof args.text !== "string") throw new Error("nothing to import");
+  store(await call<SettingWrite[]>((w) => w.colorscheme_import, { text: args.text }));
+  return state(args);
 });
 registerMock("color_scheme_export", ({ name }) => call<string>((w) => w.colorscheme_export, { name }));

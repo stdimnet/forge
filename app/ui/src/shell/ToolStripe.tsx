@@ -91,6 +91,9 @@ function StripeButton(props: { tw: ToolWindow }) {
       class="icon-btn stripe-btn"
       classList={{ active: active(), dragged: drag()?.id === props.tw.id }}
       title={props.tw.shortcut ? `${props.tw.title} (${props.tw.shortcut})` : props.tw.title}
+      aria-label={props.tw.title}
+      aria-pressed={active()}
+      aria-keyshortcuts={props.tw.shortcut}
       data-tool-window={props.tw.id}
       onPointerDown={(e) => startPress(e, props.tw)}
       // Mouse clicks are handled on pointer up (they may be drags); this is Enter/Space.
@@ -114,7 +117,7 @@ function StripeButton(props: { tw: ToolWindow }) {
 function StripeGroup(props: { slot: ToolWindowSlot }) {
   const target = () => (drag()?.target?.slot === props.slot ? drag()!.target : null);
   return (
-    <div class="stripe-group" classList={{ "drop-target": !!target() }} data-stripe-slot={props.slot}>
+    <div class="stripe-group" classList={{ "drop-target": !!target() }} data-stripe-slot={props.slot} role="group">
       <For each={stripeToolWindows(props.slot)}>{(tw) => <StripeButton tw={tw} />}</For>
       <Show when={target()}>{(t) => <div class="stripe-drop-indicator" style={{ top: `${t().y}px` }} />}</Show>
     </div>
@@ -131,7 +134,11 @@ export function ToolStripe(props: { side: "left" | "right" }) {
   const slots = STRIPE_SLOTS[props.side];
   const splitShown = () => stripeToolWindows(slots.top[1]).length > 0 || !!drag();
   return (
-    <nav class={`tool-stripe tool-stripe-${props.side}`} classList={{ dragging: !!drag() }}>
+    <nav
+      class={`tool-stripe tool-stripe-${props.side}`}
+      classList={{ dragging: !!drag() }}
+      aria-label={t(props.side === "left" ? "a11y.stripe.left" : "a11y.stripe.right")}
+    >
       <div class="stripe-part">
         <StripeGroup slot={slots.top[0]} />
         <Show when={splitShown()}>
@@ -142,6 +149,8 @@ export function ToolStripe(props: { side: "left" | "right" }) {
           <button
             class="icon-btn stripe-btn stripe-more"
             title={t("toolwindow.more")}
+            aria-label={t("toolwindow.more")}
+            aria-haspopup="menu"
             data-more-tool-windows
             onClick={(e) => {
               const r = e.currentTarget.getBoundingClientRect();

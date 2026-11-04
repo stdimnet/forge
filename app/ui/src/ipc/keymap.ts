@@ -64,6 +64,17 @@ export interface KeymapSnapshot {
   groupOrder: string[];
   modifiedCount: number;
   actions: ActionInfo[];
+  /** The other PHPStorm keymap's default shortcuts (Presentation Assistant's alternate keymap). */
+  alternate?: AlternateKeymap;
+}
+
+/** Default shortcuts of the PHPStorm keymap the active keymap does not derive from. */
+export interface AlternateKeymap {
+  keymap: KeymapId;
+  title: string;
+  platform: Platform;
+  /** Action id → display strings. */
+  display: Record<string, string[]>;
 }
 
 /** Action contributed by a feature or plugin, with optional default shortcuts per keymap. */

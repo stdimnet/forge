@@ -49,6 +49,8 @@ export function rootFlags(get: <T>(key: string) => T): Record<string, boolean> {
     showWhitespace: get<boolean>("editor.showWhitespace"),
     noCaretRow: !get<boolean>("editor.highlightCurrentLine"),
     noLineNumbers: !get<boolean>("editor.showLineNumbers"),
+    screenReader: !!get<boolean>("appearance.screenReader"),
+    contrastScrollbars: !!get<boolean>("appearance.contrastScrollbars"),
   };
 }
 

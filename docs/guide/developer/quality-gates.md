@@ -33,6 +33,16 @@ pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
 pnpm workflows:check # release.yml runs only on `release: published`, ci.yml only manually
 ```
 
+## Accessibility (`app/ui`, with `pnpm dev` running, for UI changes)
+
+```sh
+pnpm a11y:audit --themes=dark,light,high-contrast,high-contrast-light  # axe-core: no serious or critical violations
+pnpm a11y:keyboard   # keyboard-only flow: open file, rename, focus areas, commit, Settings
+```
+
+The theme contrast check (WCAG AA, AAA for the High Contrast themes) and the keyboard tests of
+dialogs and the Settings tree run in `pnpm test`. See [Writing accessible UI](accessibility.md).
+
 ## Browser extension (`browser-extension`, only when it changed)
 
 ```sh

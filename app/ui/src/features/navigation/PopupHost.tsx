@@ -11,6 +11,7 @@ import { ChooseDeclarationPopup } from "./ChooseDeclarationPopup";
 import { chooser } from "./declarationChooser";
 import { FileStructurePopup, fileStructureSession } from "@/features/fileStructure/FileStructurePopup";
 import { FloatingNavBar } from "@/features/navBar";
+import { t } from "@/i18n";
 
 export function PopupHost() {
   return (
@@ -30,16 +31,22 @@ export function PopupHost() {
       </Show>
       <ContextMenuHost />
       <DialogHost />
-      <div class="balloons">
+      {/* A live region from startup, so screen readers read every balloon that appears. */}
+      <div class="balloons" aria-live="polite" aria-relevant="additions" aria-label={t("a11y.notifications")} role="region">
         <For each={balloons()}>
           {(b) => (
-            <div class="balloon" classList={{ interactive: !!b.actions?.length || b.sticky }} role="status">
-              <Switch fallback={<Info size={15} class="balloon-icon" />}>
+            <div
+              class="balloon"
+              classList={{ interactive: !!b.actions?.length || b.sticky }}
+              role={b.type === "error" ? "alert" : undefined}
+              data-balloon-type={b.type ?? "info"}
+            >
+              <Switch fallback={<Info size={15} class="balloon-icon" aria-label={t("a11y.balloon.info")} />}>
                 <Match when={b.type === "warning"}>
-                  <TriangleAlert size={15} class="balloon-icon warning" />
+                  <TriangleAlert size={15} class="balloon-icon warning" aria-label={t("a11y.balloon.warning")} />
                 </Match>
                 <Match when={b.type === "error"}>
-                  <CircleAlert size={15} class="balloon-icon error" />
+                  <CircleAlert size={15} class="balloon-icon error" aria-label={t("a11y.balloon.error")} />
                 </Match>
               </Switch>
               <div class="balloon-body">
@@ -66,7 +73,7 @@ export function PopupHost() {
                 </Show>
               </div>
               <Show when={b.actions?.length || b.sticky}>
-                <button class="balloon-close" title="Close" onClick={() => dismissBalloon(b.id)}>
+                <button class="balloon-close" title={t("common.close")} aria-label={t("common.close")} onClick={() => dismissBalloon(b.id)}>
                   <X size={13} />
                 </button>
               </Show>

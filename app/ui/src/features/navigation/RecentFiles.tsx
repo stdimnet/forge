@@ -2,6 +2,7 @@
  * Recent Files popup (Ctrl+E) and Switcher (Ctrl+Tab), laid out like PHPStorm: tool
  * windows on the left, recently opened files on the right, speed search by typing.
  */
+import { t } from "@/i18n";
 import { For, Show, createEffect, createMemo, createSignal, on, onMount } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { Search } from "lucide-solid";
@@ -184,6 +185,7 @@ export function RecentFilesPopup() {
         ref={root}
         role="dialog"
         aria-label={title()}
+        aria-activedescendant={column() === "windows" ? `recent-tw-${twIdx()}` : files().length ? `recent-file-${fileIdx()}` : undefined}
         onKeyDown={onKeyDown}
         onKeyUp={onKeyUp}
       >
@@ -201,13 +203,16 @@ export function RecentFilesPopup() {
           </label>
         </div>
         <div class="recent-body">
-          <div class="recent-windows">
+          <div class="recent-windows" role="listbox" aria-label={t("a11y.recent.toolWindows")}>
             <For each={windows()}>
               {(tw, i) => (
                 <div
                   class="recent-row"
                   classList={{ selected: column() === "windows" && twIdx() === i(), active: isToolWindowVisible(tw.id) }}
                   data-tw={i()}
+                  id={`recent-tw-${i()}`}
+                  role="option"
+                  aria-selected={column() === "windows" && twIdx() === i()}
                   onMouseMove={() => {
                     setColumn("windows");
                     setTwIdx(i());
@@ -221,7 +226,7 @@ export function RecentFilesPopup() {
               )}
             </For>
           </div>
-          <div class="recent-files">
+          <div class="recent-files" role={files().length ? "listbox" : undefined} aria-label={t("a11y.recent.files")}>
             <Show when={files().length} fallback={<div class="se-empty">{editedOnly() ? "No edited files" : "No recent files"}</div>}>
               <For each={files()}>
                 {(f, i) => {
@@ -231,6 +236,9 @@ export function RecentFilesPopup() {
                       class="recent-row"
                       classList={{ selected: column() === "files" && fileIdx() === i() }}
                       data-file={i()}
+                      id={`recent-file-${i()}`}
+                      role="option"
+                      aria-selected={column() === "files" && fileIdx() === i()}
                       onMouseMove={() => {
                         setColumn("files");
                         setFileIdx(i());
