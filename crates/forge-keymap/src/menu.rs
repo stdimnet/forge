@@ -12,6 +12,7 @@
 
 use std::collections::{BTreeMap, HashSet};
 
+use forge_i18n::Localizer;
 use serde::{Deserialize, Serialize};
 
 /// One entry of a menu definition.
@@ -299,6 +300,76 @@ struct Resolver<'a> {
     checked: HashSet<&'a str>,
     dynamic: &'a BTreeMap<String, Vec<DynamicItem>>,
     labels: &'a BTreeMap<String, String>,
+    l10n: &'a Localizer,
+}
+
+/// Catalog key of a submenu label: "_Recent Projects" → `menu.group.recent-projects`.
+pub fn group_key(label: &str) -> String {
+    format!("menu.group.{}", forge_i18n::slug(label))
+}
+
+/// Catalog key of an action's own menu label: `menu.<action id>`, or
+/// `menu.<action id>.<label slug>` for the few actions the built-in menu shows under
+/// different labels ("_Find Action..." in Help, "_Action..." in Navigate | Search).
+pub fn label_key(id: &str, label: &str) -> String {
+    static AMBIGUOUS: std::sync::OnceLock<HashSet<String>> = std::sync::OnceLock::new();
+    let ambiguous = AMBIGUOUS.get_or_init(|| {
+        let mut seen: BTreeMap<String, String> = BTreeMap::new();
+        let mut out = HashSet::new();
+        fn walk(e: &[MenuEntry], seen: &mut BTreeMap<String, String>, out: &mut HashSet<String>) {
+            for e in e {
+                match e {
+                    MenuEntry::Action {
+                        id,
+                        label: Some(l),
+                        ..
+                    } => {
+                        let plain = plain(l);
+                        if seen.entry(id.clone()).or_insert_with(|| plain.clone()) != &plain {
+                            out.insert(id.clone());
+                        }
+                    }
+                    MenuEntry::Group { items, .. } => walk(items, seen, out),
+                    _ => {}
+                }
+            }
+        }
+        walk(&builtin_main_menu(true), &mut seen, &mut out);
+        walk(&builtin_main_menu(false), &mut seen, &mut out);
+        out
+    });
+    if ambiguous.contains(id) {
+        format!("menu.{id}.{}", forge_i18n::slug(label))
+    } else {
+        format!("menu.{id}")
+    }
+}
+
+/// The English source catalog of the built-in menu labels (`locales/en/menu.json`).
+pub fn menu_messages() -> BTreeMap<String, String> {
+    fn walk(entries: &[MenuEntry], out: &mut BTreeMap<String, String>) {
+        for e in entries {
+            match e {
+                MenuEntry::Action {
+                    id,
+                    label: Some(label),
+                    ..
+                } => {
+                    out.entry(label_key(id, label))
+                        .or_insert_with(|| label.clone());
+                }
+                MenuEntry::Group { label, items } => {
+                    out.entry(group_key(label)).or_insert_with(|| label.clone());
+                    walk(items, out);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut out = BTreeMap::new();
+    walk(&builtin_main_menu(true), &mut out);
+    walk(&builtin_main_menu(false), &mut out);
+    out
 }
 
 impl Resolver<'_> {
@@ -322,7 +393,8 @@ impl Resolver<'_> {
                     if items.is_empty() {
                         continue;
                     }
-                    let (label, mnemonic) = parse_mnemonic(&menu_text(label));
+                    let label = self.l10n.t_or(&group_key(label), label);
+                    let (label, mnemonic) = parse_mnemonic(&menu_text(&label));
                     out.push(MenuItem {
                         kind: MenuItemKind::Submenu,
                         label,
@@ -363,7 +435,8 @@ impl Resolver<'_> {
         mnemonic: Option<char>,
         checkable: bool,
     ) -> MenuItem {
-        let label = self.labels.get(id).map(String::as_str).or(label);
+        let own = label.map(|l| self.l10n.t_or(&label_key(id, l), l));
+        let label = self.labels.get(id).map(String::as_str).or(own.as_deref());
         let (label, index) = match label {
             Some(l) => parse_mnemonic(&menu_text(l)),
             None => {
@@ -386,14 +459,25 @@ impl Resolver<'_> {
     }
 }
 
-/// Resolve the main menu for the UI.
+/// Resolve the main menu for the UI, in the language of the process-wide localizer.
 pub fn resolve_main_menu(request: &MainMenuRequest, lookup: &dyn ActionLookup) -> MainMenu {
+    resolve_main_menu_in(request, lookup, &forge_i18n::current())
+}
+
+/// Resolve the main menu with the labels of `l10n` (`menu.*` keys; action titles come from
+/// `lookup`).
+pub fn resolve_main_menu_in(
+    request: &MainMenuRequest,
+    lookup: &dyn ActionLookup,
+    l10n: &Localizer,
+) -> MainMenu {
     let entries = main_menu_entries(request.git, &request.contributions);
     let resolver = Resolver {
         lookup,
         checked: request.checked.iter().map(String::as_str).collect(),
         dynamic: &request.dynamic,
         labels: &request.labels,
+        l10n,
     };
     MainMenu {
         menus: resolver
@@ -1155,6 +1239,49 @@ fn help_menu() -> MenuEntry {
 
 #[cfg(test)]
 mod tests {
+    use super::super::catalog::action_messages;
+
+    /// Keeps `crates/forge-i18n/locales/en/{menu,actions}.json`, the English source of the
+    /// menu labels and action titles, in sync with the code; `FORGE_UPDATE_SNAPSHOTS=1`
+    /// rewrites them.
+    #[test]
+    fn english_catalogs_match_the_code() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../forge-i18n/locales/en");
+        for (file, messages) in [("menu.json", menu_messages()), ("actions.json", action_messages())] {
+            let path = format!("{dir}/{file}");
+            let want = serde_json::to_string_pretty(&messages).unwrap() + "\n";
+            if std::env::var_os("FORGE_UPDATE_SNAPSHOTS").is_some() {
+                std::fs::write(&path, &want).unwrap();
+            }
+            let have = std::fs::read_to_string(&path).unwrap_or_default();
+            assert!(
+                have == want,
+                "{path} is out of date; rerun with FORGE_UPDATE_SNAPSHOTS=1"
+            );
+        }
+    }
+
+    #[test]
+    fn german_menu_labels_and_mnemonics() {
+        let mut de = forge_i18n::Localizer::empty("de");
+        de.add_messages(
+            "de",
+            [
+                ("menu.group.file".to_string(), "_Datei".to_string()),
+                ("menu.SaveAll".to_string(), "_Alle speichern".to_string()),
+            ],
+        );
+        let menu = resolve_main_menu_in(&MainMenuRequest::default(), &fake(&[]), &de);
+        let file = &menu.menus[0];
+        assert_eq!(file.label, "Datei");
+        assert_eq!(file.mnemonic, Some(0));
+        let save = file.items.iter().find(|i| i.action.as_deref() == Some("SaveAll")).unwrap();
+        assert_eq!(save.label, "Alle speichern");
+        // Untranslated labels stay English.
+        let edit = &menu.menus[1];
+        assert_eq!(edit.label, "Edit");
+    }
+
     use super::*;
     use std::collections::HashMap;
 
@@ -1465,6 +1592,7 @@ mod tests {
             checked: HashSet::new(),
             dynamic: &BTreeMap::new(),
             labels: &BTreeMap::new(),
+            l10n: &forge_i18n::Localizer::empty("en"),
         };
         let menus = resolver.list(&entries);
         let tools = find(&menus, "Tools");
@@ -1544,6 +1672,7 @@ mod tests {
             checked: HashSet::new(),
             dynamic: &BTreeMap::new(),
             labels: &BTreeMap::new(),
+            l10n: &forge_i18n::Localizer::empty("en"),
         };
         let out = resolver.list(&[
             SEP,

@@ -3220,6 +3220,7 @@ dependencies = [
 name = "forge-keymap"
 version = "0.1.0"
 dependencies = [
+ "forge-i18n",
  "serde",
  "serde_json",
 ]
