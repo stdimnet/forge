@@ -26,6 +26,7 @@ import { formatCompartment, formatExtensions } from "./codeStyle";
 import { errorStripe } from "./errorStripe";
 import { usageHighlighting } from "./usageHighlight";
 import "./fileFormat";
+import { findBar } from "@/features/find/findBar/FindBar";
 import { getSetting } from "@/state/settings";
 
 /** Caret blink period (Settings | Editor | General | Caret). */
@@ -74,6 +75,8 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           autocompletion(),
           wordCompletion,
           highlightSelectionMatches(),
+          // Find / Replace (Ctrl+F / Ctrl+R): Forge's bar at the top of the editor.
+          findBar(),
           usageHighlighting(),
           errorStripe(),
           keymap.of([

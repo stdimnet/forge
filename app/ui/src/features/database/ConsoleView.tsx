@@ -21,6 +21,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { bracketMatching, indentOnInput } from "@codemirror/language";
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
+import { findBar } from "@/features/find/findBar/FindBar";
 import {
   Check,
   ChevronDown,
@@ -502,6 +503,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
           closeBrackets(),
           autocompletion({ activateOnTyping: true }),
           highlightSelectionMatches(),
+          findBar(),
           keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap]),
           forgeEditorTheme,
           forgeHighlight,
