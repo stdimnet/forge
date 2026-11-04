@@ -31,6 +31,7 @@ import { wrapGotoDeclaration } from "./editor";
 import { anyWebActive, djangoActive, loadWebProject, webActive } from "./state";
 import "./runTypes";
 import "./pythonWeb.css";
+import { t } from "@/i18n";
 
 wrapGotoDeclaration();
 
@@ -41,7 +42,7 @@ registerEndpointsView({ id: "python", title: "Python", order: 10, when: anyWebAc
 
 registerToolWindow({
   id: "djangoStructure",
-  title: "Django Structure",
+  title: t("toolwindow.djangoStructure.title"),
   icon: Boxes,
   anchor: "left",
   order: 40,

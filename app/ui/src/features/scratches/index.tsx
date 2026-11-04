@@ -50,6 +50,7 @@ function openHttpRunMenu(e: MouseEvent, name: string, run: (debug: boolean) => P
 }
 import "./httpLanguage";
 import "./scratches.css";
+import { t } from "@/i18n";
 
 registerFileSystem({
   prefix: "scratch://",
@@ -104,7 +105,7 @@ registerEditorExtension(({ path }) => (isHttpPath(path) ? httpToolbar() : null))
 
 registerSettingsPage({
   id: "tools.http-client",
-  title: "HTTP Client",
+  title: t("settings.page.tools.http-client"),
   group: "Tools",
   keywords: ["http", "rest", "environment", "request"],
   component: () => <SchemaPage pageId="tools.http-client" />,

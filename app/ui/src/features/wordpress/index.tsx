@@ -16,10 +16,11 @@ import { installStubs, loadWordPress, wordpressActive } from "./store";
 import { runWpCli } from "./wpcli";
 import "./editor";
 import "./wordpress.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "wordpress",
-  title: "WordPress",
+  title: t("toolwindow.wordpress.title"),
   icon: Webhook,
   anchor: "bottom",
   order: 36,
@@ -30,7 +31,7 @@ registerToolWindow({
 
 registerSettingsPage({
   id: "lang.php.wordpress",
-  title: "WordPress",
+  title: t("settings.page.lang.php.wordpress"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 22,

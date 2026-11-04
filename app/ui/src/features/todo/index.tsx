@@ -8,10 +8,11 @@ import { registerToolWindow } from "@/features/registry";
 import { TodoTabs, TodoView } from "./TodoView";
 import "./store";
 import "./todo.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "todo",
-  title: "TODO",
+  title: t("toolwindow.todo.title"),
   icon: ListTodo,
   anchor: "bottom",
   order: 55,

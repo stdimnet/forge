@@ -11,6 +11,7 @@ import { fileTypeOf } from "@/editor/fileTypes";
 import { GeneralPage, LanguagePage } from "./CodeStylePages";
 import { applyDraft, discardDraft, GENERAL_PAGE, hasChanges, loadModel, pageModified, pageOf, resetPage } from "./store";
 import "./codeStyle.css";
+import { t } from "@/i18n";
 
 const keywordsOf = (lang: CodeStyleLanguage) => [
   ...new Set([...lang.options.map((o) => o.title), ...lang.tabs.map((t) => t.title), ...lang.presets.map((p) => p.name)]),
@@ -18,7 +19,7 @@ const keywordsOf = (lang: CodeStyleLanguage) => [
 
 registerSettingsPage({
   id: GENERAL_PAGE,
-  title: "Code Style",
+  title: t("settings.page.code-style"),
   group: "Editor",
   order: 20,
   keywords: ["formatting", "scheme", "EditorConfig", "line separator", "hard wrap", "formatter markers"],
@@ -30,7 +31,7 @@ void loadModel()
   .then((model) => {
     registerSettingsPage({
       id: GENERAL_PAGE,
-      title: "Code Style",
+      title: t("settings.page.code-style"),
       group: "Editor",
       order: 20,
       keywords: ["formatting", "scheme", "EditorConfig", "import scheme", "export scheme", ...keywordsOf(model.general)],

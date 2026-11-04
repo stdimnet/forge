@@ -30,6 +30,7 @@ import { phpMetaEditor } from "./meta";
 import "./libraries";
 import "./sourceRoots";
 import "./php.css";
+import { t } from "@/i18n";
 
 const isPhp = (path: string) =>
   /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
@@ -82,7 +83,7 @@ registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", categor
 
 registerToolWindow({
   id: "structure",
-  title: "Structure",
+  title: t("toolwindow.structure.title"),
   icon: ListTree,
   anchor: "left",
   order: 30,
@@ -96,7 +97,7 @@ registerStatusItem({ id: "php.version", align: "right", order: 90, component: Ph
 
 registerSettingsPage({
   id: "lang.php",
-  title: "PHP",
+  title: t("settings.page.lang.php"),
   group: "Languages & Frameworks",
   order: 10,
   keywords: ["php", "interpreter", "language level", "php-lsp", "language server", "include path"],

@@ -1,0 +1,15 @@
+{
+  "description": "Strings `pnpm i18n:check` does not count as untranslated: product, language and tool names, file names, units and symbols.",
+  "strings": [
+    "Forge", "PHPStorm", "Git", "GitHub", "GitLab", "Bitbucket", "Gitea", "PHP", "Laravel", "Symfony", "Doctrine",
+    "WordPress", "Drupal", "Joomla", "Composer", "Xdebug", "Docker", "Kubernetes", "Lua", "Python", "Django", "Flask",
+    "FastAPI", "Java", "Kotlin", "Gradle", "Maven", "Spring", "Rust", "Cargo", "Go", "Ruby", "Rails", "C/C++",
+    "CMake", ".NET", "NuGet", "Unity", "Godot", "TypeScript", "JavaScript", "HTML", "CSS", "SQL", "JSON", "YAML",
+    "XML", "Markdown", "Vue", "React", "Angular", "Node.js", "npm", "pnpm", "yarn", "OK", "UTF-8", "LF", "CRLF",
+    "CR", "TODO", "FIXME", "MCP", "SSH", "SFTP", "FTP", "HTTP", "URL", "AI", "Claude", "Gemini", "Codex", "OpenAI",
+    "Anthropic", "Ollama", "PHPUnit", "Pest", "Jest", "Vitest", "pytest", "Intelephense", "Twig", "Blade", "Smarty",
+    "Latte", "Jinja2", "Emmet", "Vim", "IdeaVim", "sbt", "Scala", "Groovy", "Android", "Logcat", "PlatformIO",
+    "Minecraft", "EF Core", "Rake", "Jupyter", "Kotlin/JS", "Spring Boot", "VS Code", "Eclipse", "Emacs",
+    "Sublime Text", "English", "Deutsch", "px", "ms", "KB", "MB", "GB"
+  ]
+}

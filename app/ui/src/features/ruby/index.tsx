@@ -55,6 +55,7 @@ import {
   showRubyBalloon,
 } from "./state";
 import "./ruby.css";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const baseName = (p: string) => p.replace(/\\/g, "/").split("/").pop() ?? p;
@@ -63,7 +64,7 @@ const baseName = (p: string) => p.replace(/\\/g, "/").split("/").pop() ?? p;
 
 registerSettingsPage({
   id: "lang.ruby",
-  title: "Ruby",
+  title: t("settings.page.lang.ruby"),
   group: "Languages & Frameworks",
   order: 28,
   keywords: ["ruby", "sdk", "gems", "rbenv", "rvm", "chruby", "asdf", "mise", "bundler", "gemfile", "rake", "rubocop", "ruby-lsp", "rdbg", "debug", "irb", ".ruby-version"],
@@ -88,7 +89,7 @@ registerStatusItem({ id: "ruby.interpreter", align: "right", order: 87, componen
 
 registerToolWindow({
   id: "rake",
-  title: "Rake",
+  title: t("toolwindow.rake.title"),
   icon: Hammer,
   anchor: "right",
   order: 42,

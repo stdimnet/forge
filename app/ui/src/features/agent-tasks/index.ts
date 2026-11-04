@@ -9,10 +9,11 @@ import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { AgentTasksActions, AgentTasksPanel } from "./AgentTasksPanel";
 import { setFormOpen } from "./store";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "agent-tasks",
-  title: "Agent Tasks",
+  title: t("toolwindow.agent-tasks.title"),
   icon: ListChecks,
   anchor: "right",
   order: 1,

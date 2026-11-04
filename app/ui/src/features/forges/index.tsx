@@ -20,6 +20,7 @@ import { openCreateDialog } from "./actions";
 import { branchPipeline, context, refreshAll, requestName, startForgesStore } from "./store";
 import { CiIcon, ciLabels } from "./ui";
 import "./forges.css";
+import { t } from "@/i18n";
 
 const toolWindow = (title: string) =>
   registerToolWindow({
@@ -43,7 +44,7 @@ const pages = [
 // of each host are pages below it.
 registerSettingsPage({
   id: "vcs.hosts",
-  title: "Code Hosts",
+  title: t("settings.page.vcs.hosts"),
   group: "Version Control",
   order: 10,
   keywords: ["pipeline", "ci", "merge request", "pull request", "refresh", "gitlab", "github", "forgejo", "azure devops"],

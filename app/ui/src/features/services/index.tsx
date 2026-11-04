@@ -16,10 +16,11 @@ import { ServicesView } from "./ServicesView";
 import { initServices, pullImageDialog, refresh, select, status } from "./store";
 import "./settings";
 import "./gutter";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "services",
-  title: "Services",
+  title: t("toolwindow.services.title"),
   icon: Container,
   anchor: "bottom",
   order: 30,

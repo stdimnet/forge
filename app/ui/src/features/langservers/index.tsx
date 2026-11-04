@@ -19,10 +19,11 @@ import { closeInstallRequest, installRequest, startLangserverListeners } from ".
 import { registerSymbolProviders } from "./symbols";
 import { isDialogWindow } from "@/shell/window/mode";
 import "./langservers.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "lang.servers",
-  title: "Language Servers",
+  title: t("settings.page.lang.servers"),
   group: "Languages & Frameworks",
   order: 5,
   keywords: [

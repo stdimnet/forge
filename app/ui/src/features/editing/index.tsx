@@ -18,13 +18,14 @@ import { completeStatement } from "./statement";
 import { expandWord } from "./hippie";
 import { PostfixTemplatesEditor } from "./PostfixTemplatesEditor";
 import "./editing.css";
+import { t } from "@/i18n";
 
 registerEditorExtension(({ path }) => postfixCompletion(languageIdFor(path)));
 registerCompletionKind("postfix", Scissors, "keyword");
 
 registerSettingsPage({
   id: "editor.postfix",
-  title: "Postfix Completion",
+  title: t("settings.page.editor.postfix"),
   group: "Editor",
   parent: "editor.general",
   order: 10,

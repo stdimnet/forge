@@ -14,6 +14,10 @@ const root = document.getElementById("root")!;
 
 /** The IDE window (or a dialog window) with all features. */
 async function bootWorkbench() {
+  // The IDE language is selected before the features register their titles.
+  const { initI18n, LANGUAGE_SETTING } = await import("./i18n");
+  const { settingsApi } = await import("./ipc/settings");
+  await initI18n(async () => (await settingsApi.getAll()).values[LANGUAGE_SETTING] as string | undefined);
   // Features load after the mocks so anything they invoke at startup has a backend.
   await import("./features");
   // The Settings dialog window shows a form: it skips the IDE-only features.

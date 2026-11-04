@@ -15,6 +15,7 @@ import { askTrust } from "./TrustDialog";
 import { canTrustProject, refreshTrust, safeMode, trustStatus } from "./store";
 import { TrustedLocationsPage } from "./TrustedLocationsPage";
 import "./trust.css";
+import { t } from "@/i18n";
 
 export { canTrustProject, safeMode, trustStatus };
 
@@ -87,7 +88,7 @@ export function SafeModeBanner() {
 
 registerSettingsPage({
   id: "build.trusted-locations",
-  title: "Trusted Locations",
+  title: t("settings.page.build.trusted-locations"),
   group: "Build, Execution, Deployment",
   order: 40,
   keywords: ["trust", "safe mode", "trusted", "untrusted", "security", "location"],

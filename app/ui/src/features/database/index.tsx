@@ -49,10 +49,11 @@ import {
 } from "./store";
 import "./database.css";
 import "./schema";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "database",
-  title: "Database",
+  title: t("toolwindow.database.title"),
   icon: Database,
   anchor: "right",
   order: 10,
@@ -117,7 +118,7 @@ registerTabColorProvider((path) => {
 
 registerSettingsPage({
   id: "tools.database",
-  title: "Database",
+  title: t("settings.page.tools.database"),
   group: "Tools",
   order: 20,
   keywords: ["sql", "data source", "page size", "null", ".env", "query console"],

@@ -17,6 +17,7 @@ import { focusSession, revealTerminalTab, setSshHostKeyResolver } from "./sessio
 import { chooseSshSession, confirmSshHostKey, setSshTabOpener } from "./ssh";
 import { progressLabel } from "./osc";
 import { ProgressRing } from "./ProgressRing";
+import { t } from "@/i18n";
 
 /** Stripe marker while the Terminal is hidden: combined progress, else a bell dot. */
 function TerminalStripeBadge() {
@@ -53,7 +54,7 @@ registerStatusItem({ id: "terminal.progress", align: "right", order: -30, compon
 
 registerToolWindow({
   id: "terminal",
-  title: "Terminal",
+  title: t("toolwindow.terminal.title"),
   icon: SquareTerminal,
   anchor: "bottom",
   order: 40,

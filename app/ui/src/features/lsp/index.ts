@@ -23,6 +23,7 @@ import { lspSignatureHelp, parameterInfo } from "./signature";
 import { startLspListeners } from "./store";
 import { documentSync } from "./sync";
 import "./lsp.css";
+import { t } from "@/i18n";
 
 startLspListeners();
 
@@ -46,7 +47,7 @@ registerEditorExtension(({ path }) =>
 
 registerToolWindow({
   id: "problems",
-  title: "Problems",
+  title: t("toolwindow.problems.title"),
   icon: TriangleAlert,
   anchor: "bottom",
   order: 50,

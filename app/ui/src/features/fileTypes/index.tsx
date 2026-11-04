@@ -10,10 +10,11 @@ import { getSetting } from "@/state/settings";
 import { refreshAllDirs } from "@/features/project/ProjectView";
 import { FileTypesPage, IGNORED_KEY } from "./FileTypesPage";
 import "./fileTypes.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "editor.file-types",
-  title: "File Types",
+  title: t("settings.page.editor.file-types"),
   group: "Editor",
   order: 20,
   keywords: ["file name patterns", "wildcard", "associate", "custom file type", "ignored files and folders", "keywords", "syntax highlighting"],

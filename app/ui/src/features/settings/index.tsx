@@ -26,6 +26,7 @@ import { PluginsPage } from "./PluginsPage";
 import { applySettingsToDocument } from "./apply";
 import { softWrapFor } from "@/editor/languages";
 import "./settings.css";
+import { t } from "@/i18n";
 
 export { openSettings, openSettingsForNewProjects, closeSettings };
 
@@ -33,22 +34,22 @@ type SchemaPageDef = Omit<SettingsPage, "component">;
 
 /** Pages rendered from the settings schema (setting `group` = page id). */
 const schemaPages: SchemaPageDef[] = [
-  { id: "appearance", title: "Appearance", group: "Appearance & Behavior", order: 0, keywords: ["theme", "dark", "light", "font"] },
-  { id: "system", title: "System Settings", group: "Appearance & Behavior", order: 10, keywords: ["autosave", "startup", "exit"] },
-  { id: "editor.general", title: "General", group: "Editor", order: 0 },
-  { id: "editor.tabs", title: "Editor Tabs", group: "Editor", parent: "editor.general", order: 0, keywords: ["tab limit", "closing policy", "pinned", "split"] },
-  { id: "editor.general.auto-import", title: "Auto Import", group: "Editor", parent: "editor.general", order: 10, keywords: ["optimize imports", "use statement", "import popup", "fqn", "on the fly"] },
-  { id: "editor.font", title: "Font", group: "Editor", order: 10 },
-  { id: "editor.inlay-hints", title: "Inlay Hints", group: "Editor", order: 30, keywords: ["code vision"] },
-  { id: "editor.todo", title: "TODO", group: "Editor", order: 40, keywords: ["fixme", "patterns", "comments"] },
-  { id: "vcs.git", title: "Git", group: "Version Control", order: 0, keywords: ["commit message"] },
-  { id: "vcs.commit", title: "Commit", group: "Version Control", order: 1, keywords: ["commit checks", "reformat", "analyze code", "todo", "run tests", "hooks"] },
-  { id: "vcs.changelists", title: "Changelists", group: "Version Control", order: 2, keywords: ["changelist", "create changelists automatically"] },
-  { id: "vcs.local-history", title: "Local History", group: "Version Control", order: 3, keywords: ["working days", "labels", "revisions", "recent changes"] },
-  { id: "lang.php", title: "PHP", group: "Languages & Frameworks", order: 0, keywords: ["interpreter", "language level"] },
-  { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "go template", "latex", "delimiter"] },
-  { id: "tools.terminal", title: "Terminal", group: "Tools", order: 0, keywords: ["shell"] },
-  { id: "tools.search", title: "Search", group: "Tools", order: 10, keywords: ["find in files", "matches", "limit"] },
+  { id: "appearance", title: t("settings.page.appearance"), group: "Appearance & Behavior", order: 0, keywords: ["theme", "dark", "light", "font"] },
+  { id: "system", title: t("settings.page.system"), group: "Appearance & Behavior", order: 10, keywords: ["autosave", "startup", "exit"] },
+  { id: "editor.general", title: t("settings.page.editor.general"), group: "Editor", order: 0 },
+  { id: "editor.tabs", title: t("settings.page.editor.tabs"), group: "Editor", parent: "editor.general", order: 0, keywords: ["tab limit", "closing policy", "pinned", "split"] },
+  { id: "editor.general.auto-import", title: t("settings.page.editor.general.auto-import"), group: "Editor", parent: "editor.general", order: 10, keywords: ["optimize imports", "use statement", "import popup", "fqn", "on the fly"] },
+  { id: "editor.font", title: t("settings.page.editor.font"), group: "Editor", order: 10 },
+  { id: "editor.inlay-hints", title: t("settings.page.editor.inlay-hints"), group: "Editor", order: 30, keywords: ["code vision"] },
+  { id: "editor.todo", title: t("settings.page.editor.todo"), group: "Editor", order: 40, keywords: ["fixme", "patterns", "comments"] },
+  { id: "vcs.git", title: t("settings.page.vcs.git"), group: "Version Control", order: 0, keywords: ["commit message"] },
+  { id: "vcs.commit", title: t("settings.page.vcs.commit"), group: "Version Control", order: 1, keywords: ["commit checks", "reformat", "analyze code", "todo", "run tests", "hooks"] },
+  { id: "vcs.changelists", title: t("settings.page.vcs.changelists"), group: "Version Control", order: 2, keywords: ["changelist", "create changelists automatically"] },
+  { id: "vcs.local-history", title: t("settings.page.vcs.local-history"), group: "Version Control", order: 3, keywords: ["working days", "labels", "revisions", "recent changes"] },
+  { id: "lang.php", title: t("settings.page.lang.php"), group: "Languages & Frameworks", order: 0, keywords: ["interpreter", "language level"] },
+  { id: "lang.templates", title: t("settings.page.lang.templates"), group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "go template", "latex", "delimiter"] },
+  { id: "tools.terminal", title: t("settings.page.tools.terminal"), group: "Tools", order: 0, keywords: ["shell"] },
+  { id: "tools.search", title: t("settings.page.tools.search"), group: "Tools", order: 10, keywords: ["find in files", "matches", "limit"] },
 ];
 
 for (const page of schemaPages) {
@@ -59,14 +60,14 @@ registerObjectSettingEditor(DELIMITERS_KEY, TemplateDelimitersEditor);
 
 registerSettingsPage({
   id: "plugins",
-  title: "Plugins",
+  title: t("settings.page.plugins"),
   group: "Plugins",
   order: 0,
   keywords: ["marketplace", "installed", "extensions", "packs"],
   component: PluginsPage,
 });
 
-registerCommand({ id: "settings.open", title: "Settings…", category: "File", run: () => openSettings() });
+registerCommand({ id: "settings.open", title: t("settings.page.settings.open"), category: "File", run: () => openSettings() });
 registerCommand({
   id: "TemplateProjectProperties",
   title: "Settings for New Projects…",

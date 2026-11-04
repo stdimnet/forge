@@ -15,13 +15,14 @@ import { chooseServer, config, defaultServer } from "@/features/deployment/store
 import { RemoteHostView } from "./RemoteHostView";
 import { EDIT_PREFIX, parseEditPath, saveRemoteEdit, selectServer } from "./store";
 import "./remoteHost.css";
+import { t } from "@/i18n";
 
 const PLUGIN = "forge.deployment";
 const active = () => isPluginActive(PLUGIN);
 
 registerToolWindow({
   id: "remoteHost",
-  title: "Remote Host",
+  title: t("toolwindow.remoteHost.title"),
   icon: Server,
   anchor: "right",
   order: 40,

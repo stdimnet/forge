@@ -21,10 +21,11 @@ import { registerCommand } from "@/state/commands";
 import { runPaperServer } from "./store";
 import "./editor";
 import "./minecraft.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "lang.java.minecraft",
-  title: "Minecraft",
+  title: t("settings.page.lang.java.minecraft"),
   group: "Languages & Frameworks",
   parent: "lang.java",
   order: 20,

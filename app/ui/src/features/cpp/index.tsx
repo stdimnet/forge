@@ -56,6 +56,7 @@ import {
   buildFirst,
   showCppBalloon,
 } from "./state";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -63,7 +64,7 @@ const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
 registerSettingsPage({
   id: "build.toolchains",
-  title: "Toolchains",
+  title: t("settings.page.build.toolchains"),
   group: "Build, Execution, Deployment",
   order: 2,
   keywords: ["toolchain", "gcc", "g++", "clang", "msvc", "visual studio", "mingw", "cross compiler", "cmake", "ninja", "make", "gdb", "lldb", "debugger", "compiler"],
@@ -72,7 +73,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "build.cmake",
-  title: "CMake",
+  title: t("settings.page.build.cmake"),
   group: "Build, Execution, Deployment",
   order: 3,
   keywords: ["cmake", "profile", "preset", "CMakePresets.json", "build type", "debug", "release", "generator", "build directory", "cmake options"],
@@ -81,7 +82,7 @@ registerSettingsPage({
 
 registerSettingsPage({
   id: "lang.cpp",
-  title: "C/C++",
+  title: t("settings.page.lang.cpp"),
   group: "Languages & Frameworks",
   order: 27,
   keywords: ["c", "c++", "cpp", "clangd", "clang-tidy", "clang-format", "compile_commands.json", "compilation database", "pretty printers", "stl"],
@@ -92,7 +93,7 @@ registerSettingsPage({
 
 registerToolWindow({
   id: "cmake",
-  title: "CMake",
+  title: t("toolwindow.cmake.title"),
   icon: Triangle,
   anchor: "bottom",
   order: 45,

@@ -14,10 +14,11 @@ import { EntitiesActions, EntitiesView } from "./EntitiesView";
 import { loadEntities } from "./store";
 import "./editor";
 import "./doctrine.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "doctrine",
-  title: "Doctrine",
+  title: t("toolwindow.doctrine.title"),
   icon: Boxes,
   anchor: "right",
   order: 15,
@@ -27,7 +28,7 @@ registerToolWindow({
 
 registerSettingsPage({
   id: "lang.php.doctrine",
-  title: "Doctrine",
+  title: t("settings.page.lang.php.doctrine"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 30,

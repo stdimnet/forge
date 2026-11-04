@@ -14,12 +14,13 @@ import { onFileSaved, saveFile } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
 import { FileWatchersPage } from "./FileWatchersPage";
 import { autoSaveWanted, clearWatcherProblems, fileWatchers, triggerWatchers, watcherProblemCount, watcherProblems } from "./run";
+import { t } from "@/i18n";
 
 export { triggerWatchers } from "./run";
 
 registerSettingsPage({
   id: "tools.file-watchers",
-  title: "File Watchers",
+  title: t("settings.page.tools.file-watchers"),
   group: "Tools",
   order: 31,
   keywords: ["file watchers", "sass", "scss", "less", "tsc", "typescript", "babel", "prettier", "track only root files", "$FileName$", "output filters"],

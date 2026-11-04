@@ -26,6 +26,7 @@ import { documentationAt, signatureLanguage, type Documentation } from "./docs";
 import { closePopup, docPopups, popupOf, showPopup } from "./popup";
 import { DocumentationActionsBar, DocumentationView, autoUpdate, setDocumentationActions, setShown } from "./DocumentationView";
 import "./documentation.css";
+import { t } from "@/i18n";
 
 const TOOL_WINDOW = "documentation";
 
@@ -279,7 +280,7 @@ registerEditorExtension(({ path }) => [docPopups(), followCaret(path)]);
 
 registerToolWindow({
   id: TOOL_WINDOW,
-  title: "Documentation",
+  title: t("toolwindow.documentation.title"),
   icon: BookOpen,
   anchor: "right",
   order: 30,

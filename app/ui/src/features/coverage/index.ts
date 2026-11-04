@@ -25,10 +25,11 @@ import { coverageGutter } from "./gutter";
 import { activeSuite, projectHint, setCoverageVisible, showSuite, suites, visible } from "./store";
 import { generateReport, importCoverageFile, importReport } from "./actions";
 import "./coverage.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "coverage",
-  title: "Coverage",
+  title: t("toolwindow.coverage.title"),
   icon: ShieldCheck,
   anchor: "right",
   order: 40,

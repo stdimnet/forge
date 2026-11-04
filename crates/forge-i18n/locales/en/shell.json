@@ -1,1 +1,27 @@
-{}
+{
+  "toolwindow.android-devices.title": "Device Manager",
+  "toolwindow.bookmarks.title": "Bookmarks",
+  "toolwindow.cargo.title": "Cargo",
+  "toolwindow.cmake.title": "CMake",
+  "toolwindow.code-with-me.title": "Code With Me",
+  "toolwindow.command-line-tools-console.title": "Command Line Tools Console",
+  "toolwindow.coverage.title": "Coverage",
+  "toolwindow.documentation.title": "Documentation",
+  "toolwindow.dotnet-build.title": "Build",
+  "toolwindow.efcore.title": "EF Core",
+  "toolwindow.find.title": "Find",
+  "toolwindow.gradle.title": "Gradle",
+  "toolwindow.hierarchy.title": "Hierarchy",
+  "toolwindow.inspection-results.title": "Inspection Results",
+  "toolwindow.logcat.title": "Logcat",
+  "toolwindow.maven.title": "Maven",
+  "toolwindow.notifications.title": "Notifications",
+  "toolwindow.nuget.title": "NuGet",
+  "toolwindow.platformio.title": "PlatformIO",
+  "toolwindow.problems.title": "Problems",
+  "toolwindow.rake.title": "Rake",
+  "toolwindow.sbt.title": "sbt",
+  "toolwindow.structure.title": "Structure",
+  "toolwindow.todo.title": "TODO",
+  "toolwindow.unity.title": "Unity"
+}

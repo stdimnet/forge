@@ -17,6 +17,7 @@ import { goToEditPoint, removeTag, surroundWithEmmet, updateTag } from "./action
 import { AbbreviationPopupHost } from "./AbbreviationPopup";
 import { PAGE_ID } from "./model";
 import "./emmet.css";
+import { t } from "@/i18n";
 
 registerEditorExtension(({ path }) => emmetExtension(path));
 
@@ -30,7 +31,7 @@ registerCommand({ id: "EmmetPreviousEditPoint", title: "Previous Emmet Edit Poin
 
 registerSettingsPage({
   id: PAGE_ID,
-  title: "Emmet",
+  title: t("settings.page.emmet"),
   group: "Editor",
   order: 36,
   keywords: ["abbreviation", "expand", "zen coding", "tab", "html", "css", "jsx"],
@@ -38,7 +39,7 @@ registerSettingsPage({
 });
 registerSettingsPage({
   id: "editor.emmet.html",
-  title: "HTML",
+  title: t("settings.page.editor.emmet.html"),
   group: "Editor",
   parent: PAGE_ID,
   order: 0,
@@ -47,7 +48,7 @@ registerSettingsPage({
 });
 registerSettingsPage({
   id: "editor.emmet.css",
-  title: "CSS",
+  title: t("settings.page.editor.emmet.css"),
   group: "Editor",
   parent: PAGE_ID,
   order: 1,
@@ -56,7 +57,7 @@ registerSettingsPage({
 });
 registerSettingsPage({
   id: "editor.emmet.jsx",
-  title: "JSX",
+  title: t("settings.page.editor.emmet.jsx"),
   group: "Editor",
   parent: PAGE_ID,
   order: 2,

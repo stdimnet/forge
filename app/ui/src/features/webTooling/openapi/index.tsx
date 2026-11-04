@@ -21,6 +21,7 @@ import { balloonsFor } from "@/keymap";
 import { OpenApiEndpointsActions, OpenApiEndpointsView } from "./EndpointsView";
 import { OpenApiPreview } from "./OpenApiPreview";
 import { generateHttpRequest, isOpenApiPath, loadOpenApi, openApiFiles } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("OpenAPI");
 const active = () => isPluginActive("forge.openapi");
@@ -44,7 +45,7 @@ registerFileEditor({
 
 registerSettingsPage({
   id: "lang.openapi",
-  title: "OpenAPI Specifications",
+  title: t("settings.page.lang.openapi"),
   group: "Languages & Frameworks",
   order: 60,
   keywords: ["openapi", "swagger", "endpoints", "preview", "http request"],

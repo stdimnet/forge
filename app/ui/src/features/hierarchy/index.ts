@@ -14,10 +14,11 @@ import { activeView } from "@/features/lsp/navigation";
 import { HierarchyTabs, HierarchyToolWindow } from "./HierarchyToolWindow";
 import { callHierarchyAt, HIERARCHY_WINDOW, methodHierarchyAt, typeHierarchyAt } from "./state";
 import "./hierarchy.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: HIERARCHY_WINDOW,
-  title: "Hierarchy",
+  title: t("toolwindow.hierarchy.title"),
   icon: Network,
   anchor: "right",
   order: 20,
@@ -26,7 +27,7 @@ registerToolWindow({
 });
 
 // PHPStorm has no default shortcut for the window itself; it is listed under View | Tool Windows.
-registerKeymapActions([{ id: "ActivateHierarchyToolWindow", title: "Hierarchy", group: "Main Menu/View/Tool Windows" }]);
+registerKeymapActions([{ id: "ActivateHierarchyToolWindow", title: t("toolwindow.hierarchy.title"), group: "Main Menu/View/Tool Windows" }]);
 
 const inEditor = (fn: (path: string, view: EditorView, pos: number) => Promise<void>) => () => {
   const a = activeView();

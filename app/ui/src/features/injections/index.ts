@@ -29,6 +29,7 @@ import { InjectionsPage } from "./InjectionsPage";
 import { chooseInjectedLanguage, LanguageChooserHost } from "./LanguageChooser";
 import { runSqlInConsole } from "./runSql";
 import "./injections.css";
+import { t } from "@/i18n";
 
 registerEditorExtension(({ path }) => (isInjectionHost(path) ? [injectionHighlighting(path), fragmentEditor()] : null));
 
@@ -149,7 +150,7 @@ registerLineMarkerProvider({
 
 registerSettingsPage({
   id: "editor.injections",
-  title: "Language Injections",
+  title: t("settings.page.editor.injections"),
   group: "Editor",
   order: 37,
   keywords: ["injection", "inject", "language", "sql", "html", "json", "regexp", "css", "intellilang", "fragment"],

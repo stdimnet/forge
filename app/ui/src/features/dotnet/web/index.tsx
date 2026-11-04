@@ -27,12 +27,13 @@ import { openAddDockerSupport } from "./docker";
 import { applyChanges } from "./hotReload";
 import { manageUserSecretsAction } from "./secrets";
 import "./razor";
+import { t } from "@/i18n";
 
 registerEndpointsView({ id: "aspnet", title: "ASP.NET Core", order: 22, when: aspnetActive, component: AspNetEndpointsView, actions: AspNetEndpointsActions });
 
 registerToolWindow({
   id: "efcore",
-  title: "EF Core",
+  title: t("toolwindow.efcore.title"),
   icon: Database,
   anchor: "bottom",
   order: 49,

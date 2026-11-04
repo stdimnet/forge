@@ -36,12 +36,13 @@ import { active, activeInstall, moduleOf } from "./store";
 import { SCRIPT } from "./runTypes";
 import "./debug";
 import "./kotlin.css";
+import { t } from "@/i18n";
 
 // ---- Settings ---------------------------------------------------------------------------
 
 registerSettingsPage({
   id: "lang.kotlin",
-  title: "Kotlin",
+  title: t("settings.page.lang.kotlin"),
   group: "Languages & Frameworks",
   order: 26,
   keywords: ["kotlin", "kotlin-lsp", "language server", "kotlinc", "ktlint", "detekt", "kotest", "coroutines", "scripts", "kts"],

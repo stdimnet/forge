@@ -21,6 +21,7 @@ import { NotebookEditor } from "./NotebookEditor";
 import { NotebookDiffView } from "./NotebookDiffView";
 import { existingNotebook, type NotebookController } from "./store";
 import "./jupyter.css";
+import { t } from "@/i18n";
 
 export const isNotebookPath = (path: string): boolean => /\.ipynb$/i.test(path) && !path.includes("://");
 const enabled = () => isPluginActive("forge.jupyter");
@@ -146,7 +147,7 @@ function ServerToken() {
 
 registerSettingsPage({
   id: "lang.jupyter",
-  title: "Jupyter",
+  title: t("settings.page.lang.jupyter"),
   group: "Languages & Frameworks",
   order: 26,
   keywords: ["jupyter", "notebook", "ipynb", "kernel", "ipykernel", "jupyter server", "token", "dataframe", "pandas"],

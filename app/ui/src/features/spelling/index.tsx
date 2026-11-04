@@ -22,6 +22,7 @@ import { inspectorOf, invalidateAll, spellInspection } from "./inspector";
 import { dictionaryWords, saveWord, settingsFingerprint } from "./options";
 import { GRAMMAR_PAGE, NATURAL_LANGUAGES_PAGE, NaturalLanguagesPage, SPELLING_PAGE } from "./NaturalLanguagesPage";
 import "./spelling.css";
+import { t } from "@/i18n";
 
 registerEditorExtension(({ path }) => (isLibraryPath(path) ? null : spellInspection(path)));
 
@@ -93,7 +94,7 @@ registerContextActionHandler("SpellCheck.SaveTo", (data) => saveWord(data as Sav
 
 registerSettingsPage({
   id: NATURAL_LANGUAGES_PAGE,
-  title: "Natural Languages",
+  title: t("settings.page.natural-languages"),
   group: "Editor",
   order: 45,
   keywords: ["spelling", "grammar", "dictionary", "typo", "language"],
@@ -101,7 +102,7 @@ registerSettingsPage({
 });
 registerSettingsPage({
   id: SPELLING_PAGE,
-  title: "Spelling",
+  title: t("settings.page.spelling"),
   group: "Editor",
   parent: NATURAL_LANGUAGES_PAGE,
   order: 0,
@@ -110,7 +111,7 @@ registerSettingsPage({
 });
 registerSettingsPage({
   id: GRAMMAR_PAGE,
-  title: "Grammar and Style",
+  title: t("settings.page.grammar-and-style"),
   group: "Editor",
   parent: NATURAL_LANGUAGES_PAGE,
   order: 1,

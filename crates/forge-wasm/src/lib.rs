@@ -41,6 +41,7 @@ mod emmet;
 mod filetypes;
 mod go;
 mod hierarchy;
+mod i18n;
 mod injections;
 mod inspections;
 mod java;

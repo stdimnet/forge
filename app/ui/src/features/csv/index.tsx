@@ -10,6 +10,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { CsvEditor, csvEditors, setCsvMode, type CsvMode } from "./CsvEditor";
 import "./csv.css";
+import { t } from "@/i18n";
 
 export const isCsvPath = (path: string) => /\.(csv|tsv|tab)$/i.test(path) && !path.includes("://");
 
@@ -35,7 +36,7 @@ for (const a of ACTIONS) {
 
 registerSettingsPage({
   id: "editor.csv",
-  title: "CSV/TSV",
+  title: t("settings.page.editor.csv"),
   group: "Editor",
   order: 61,
   keywords: ["table", "edit as table", "header", "tsv", "delimiter"],

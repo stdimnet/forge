@@ -50,6 +50,7 @@ import {
 import { readerMode, readerModeOn, renderDocsByDefault, toggleReaderMode } from "./readerMode";
 import { LanguageToggles } from "./LanguageToggles";
 import "./codeStructure.css";
+import { t } from "@/i18n";
 
 // ---- Editor ----
 
@@ -200,7 +201,7 @@ registerMainMenuEntries("Tools", [toggle("ToggleRenderedDocPresentationForAll", 
 
 registerSettingsPage({
   id: "editor.breadcrumbs",
-  title: "Breadcrumbs",
+  title: t("settings.page.editor.breadcrumbs"),
   group: "Editor",
   parent: "editor.general",
   order: 5,
@@ -209,7 +210,7 @@ registerSettingsPage({
 });
 registerSettingsPage({
   id: "editor.readerMode",
-  title: "Reader Mode",
+  title: t("settings.page.editor.readerMode"),
   group: "Editor",
   order: 35,
   keywords: ["reader", "rendered", "doc comments", "ligatures", "line spacing", "library"],

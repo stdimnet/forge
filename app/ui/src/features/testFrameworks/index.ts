@@ -13,12 +13,13 @@ import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { testFrameworksApi } from "@/ipc/testFrameworks";
 import { TestFrameworksEditor } from "./TestFrameworksEditor";
 import "./testFrameworks.css";
+import { t } from "@/i18n";
 
 export const SETTINGS_PAGE = "lang.php.test-frameworks";
 
 registerSettingsPage({
   id: SETTINGS_PAGE,
-  title: "Test Frameworks",
+  title: t("settings.page.test-frameworks"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 2,

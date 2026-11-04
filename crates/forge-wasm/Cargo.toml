@@ -64,6 +64,7 @@ javaforge-lang-scala.workspace = true
 javaforge-android.workspace = true
 javaforge-minecraft.workspace = true
 forge-keymap.workspace = true
+forge-i18n.workspace = true
 forge-vim.workspace = true
 forge-vcs = { path = "../forge-vcs", default-features = false }
 forge-livetemplates.workspace = true

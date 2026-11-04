@@ -19,10 +19,11 @@ import "./editor";
 import "./jsDebug";
 import "./popup";
 import "./webforge.css";
+import { t } from "@/i18n";
 
 registerToolWindow({
   id: "npm",
-  title: "npm",
+  title: t("toolwindow.npm.title"),
   icon: Hexagon,
   anchor: "left",
   order: 30,
@@ -33,7 +34,7 @@ registerToolWindow({
 
 registerSettingsPage({
   id: "lang.node",
-  title: "Node.js",
+  title: t("settings.page.lang.node"),
   group: "Languages & Frameworks",
   order: 20,
   keywords: ["node", "npm", "pnpm", "yarn", "bun", "package manager", "scripts", "package.json", "inspect", "debug"],
@@ -45,7 +46,7 @@ const WEB_SERVER_GROUPS = ["JavaScript & TypeScript", "Vue", "Angular", "HTML & 
 
 registerSettingsPage({
   id: "lang.typescript",
-  title: "TypeScript",
+  title: t("settings.page.lang.typescript"),
   group: "Languages & Frameworks",
   order: 21,
   keywords: [

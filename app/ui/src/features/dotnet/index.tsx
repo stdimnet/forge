@@ -59,6 +59,7 @@ import {
   showDotnetBalloon,
   testProjects,
 } from "./state";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 let watchSeq = 0;
@@ -67,7 +68,7 @@ let watchSeq = 0;
 
 registerSettingsPage({
   id: "lang.dotnet",
-  title: ".NET",
+  title: t("settings.page.lang.dotnet"),
   group: "Languages & Frameworks",
   order: 28,
   keywords: [".net", "dotnet", "c#", "csharp", "f#", "fsharp", "sdk", "global.json", "msbuild", "roslyn", "netcoredbg", "nuget", "dotnet format", "editorconfig", "code cleanup", "solution", "asp.net core", "aspire", "ef core", "hot reload", "user secrets"],
@@ -76,7 +77,7 @@ registerSettingsPage({
 
 registerToolWindow({
   id: "dotnet-build",
-  title: "Build",
+  title: t("toolwindow.dotnet-build.title"),
   icon: Hammer,
   anchor: "bottom",
   order: 46,
@@ -86,7 +87,7 @@ registerToolWindow({
 
 registerToolWindow({
   id: "nuget",
-  title: "NuGet",
+  title: t("toolwindow.nuget.title"),
   icon: Package,
   anchor: "bottom",
   order: 47,

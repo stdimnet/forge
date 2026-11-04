@@ -6,10 +6,11 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { ColorSchemePage } from "./ColorSchemePage";
 import { installColorScheme } from "./store";
 import "./colorScheme.css";
+import { t } from "@/i18n";
 
 registerSettingsPage({
   id: "editor.color-scheme",
-  title: "Color Scheme",
+  title: t("settings.page.editor.color-scheme"),
   group: "Editor",
   order: 15,
   keywords: ["colors", "theme", "syntax", "highlighting", "icls", "import scheme", "export scheme", "bold", "italic", "effect"],

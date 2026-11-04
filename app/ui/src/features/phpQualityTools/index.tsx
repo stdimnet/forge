@@ -34,12 +34,13 @@ import { QualityToolsPage } from "./QualityToolsPage";
 import { RECTOR_DIALOG, RectorPreviewDialog, type RectorPreviewProps } from "./RectorPreviewDialog";
 import { active, ALL_TOOLS, checkFile, enabledTools, FIXERS, fixWith, inspectWithQualityTools, isPhpCode, onTheFly } from "./run";
 import "./phpQualityTools.css";
+import { t } from "@/i18n";
 
 export { inspectWithQualityTools } from "./run";
 
 registerSettingsPage({
   id: "lang.php.quality-tools",
-  title: "Quality Tools",
+  title: t("settings.page.lang.php.quality-tools"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 1,

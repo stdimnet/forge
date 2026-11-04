@@ -18,12 +18,13 @@ import { ExternalToolsPage } from "./ExternalToolsPage";
 import { externalTools, toolActionId, toolGroups, DEFAULT_GROUP } from "./model";
 import { runExternalTool, runToolAndWait } from "./run";
 import "./externalTools.css";
+import { t } from "@/i18n";
 
 export { runExternalTool } from "./run";
 
 registerSettingsPage({
   id: "tools.external-tools",
-  title: "External Tools",
+  title: t("settings.page.tools.external-tools"),
   group: "Tools",
   order: 30,
   keywords: ["external tools", "program", "arguments", "macro", "output filters", "$FilePath$", "$ProjectFileDir$"],

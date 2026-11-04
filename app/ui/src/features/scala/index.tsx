@@ -36,6 +36,7 @@ import { SbtToolWindow, openSbtShell } from "./SbtToolWindow";
 import { SBT_TASK } from "./runTypes";
 import { active, importBuild, metalsInstalling, projectOf, refreshBuild, refreshStatus, sbtBuild, scalaStatus, setMetalsInstalling } from "./store";
 import "./scala.css";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Scala");
 
@@ -134,7 +135,7 @@ function ScalaPage() {
 
 registerSettingsPage({
   id: "lang.scala",
-  title: "Scala",
+  title: t("settings.page.lang.scala"),
   group: "Languages & Frameworks",
   order: 28,
   keywords: ["scala", "sbt", "metals", "coursier", "scalatest", "munit", "bloop"],
@@ -149,7 +150,7 @@ registerCommand({ id: "scala.installMetals", title: "Install Metals (Scala Langu
 
 registerToolWindow({
   id: "sbt",
-  title: "sbt",
+  title: t("toolwindow.sbt.title"),
   icon: Workflow,
   anchor: "right",
   order: 41,

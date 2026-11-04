@@ -39,6 +39,7 @@ import type { RunConfiguration } from "@/ipc/run";
 import "./builtinTypes";
 import "./testFrameworkTypes";
 import "./run.css";
+import { t } from "@/i18n";
 
 export {
   registerRunConfigurationType,
@@ -65,7 +66,7 @@ export { registerTestFileMatcher } from "./frameworkFiles";
 
 registerToolWindow({
   id: "run",
-  title: "Run",
+  title: t("toolwindow.run.title"),
   icon: Play,
   anchor: "bottom",
   order: 10,

@@ -48,6 +48,7 @@ import { ProposalDialog } from "./ProposalDialog";
 import { actionsAllowed } from "./status";
 import { AiStatusWidget } from "./StatusWidget";
 import "./aiEditor.css";
+import { t } from "@/i18n";
 
 const isFile = (path: string) => !path.includes("://");
 
@@ -164,7 +165,7 @@ registerGenerateItems((path, view) =>
 
 registerSettingsPage({
   id: "tools.ai-assistant",
-  title: "AI Assistant",
+  title: t("settings.page.tools.ai-assistant"),
   group: "Tools",
   order: 8,
   keywords: ["AI", "inline completion", "ghost text", "completion", "explain", "fix", "tests", "documentation", "aiignore", "local model", "Ollama"],

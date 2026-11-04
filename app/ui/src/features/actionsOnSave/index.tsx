@@ -10,12 +10,13 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { ActionsOnSavePage } from "./ActionsOnSavePage";
 import { saveActionsRunner } from "./run";
 import "./actionsOnSave.css";
+import { t } from "@/i18n";
 
 setSaveActionsRunner(saveActionsRunner);
 
 registerSettingsPage({
   id: "tools.actions-on-save",
-  title: "Actions on Save",
+  title: t("settings.page.tools.actions-on-save"),
   group: "Tools",
   order: 5,
   keywords: [

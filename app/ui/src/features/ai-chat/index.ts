@@ -13,6 +13,7 @@ import { ChatActions, ChatPanel } from "./ChatPanel";
 import { focusChatInput } from "./Composer";
 import { newChat } from "./store";
 import "./chat.css";
+import { t } from "@/i18n";
 
 export { registerChatAgent } from "./agents";
 
@@ -50,7 +51,7 @@ registerChatAgent({
 
 registerToolWindow({
   id: "ai-chat",
-  title: "AI Chat",
+  title: t("toolwindow.ai-chat.title"),
   icon: Sparkles,
   anchor: "right",
   order: 0,
@@ -70,7 +71,7 @@ registerCommand({
 
 registerSettingsPage({
   id: "tools.ai-agents",
-  title: "AI Agents",
+  title: t("settings.page.tools.ai-agents"),
   group: "Tools",
   order: 5,
   keywords: ["claude", "claude code", "gemini", "agent", "cli", "permission", "model"],

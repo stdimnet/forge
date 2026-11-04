@@ -20,6 +20,7 @@ import { DependenciesDialogHost, openDependenciesDialog } from "./DependenciesDi
 import { composerEditor } from "./editor";
 import { composerActive, runComposer } from "./state";
 import "./composer.css";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Composer");
 
@@ -68,7 +69,7 @@ registerEditorExtension(({ path }) => composerEditor(path));
 
 registerSettingsPage({
   id: "lang.php.composer",
-  title: "Composer",
+  title: t("settings.page.lang.php.composer"),
   group: "Languages & Frameworks",
   parent: "lang.php",
   order: 0,
