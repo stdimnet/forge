@@ -28085,7 +28085,7 @@ pnpm typecheck
 pnpm test        # vitest
 pnpm build
 pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
-pnpm workflows:check # release.yml runs only on `release: published`, ci.yml only manually
+pnpm workflows:check # release.yml runs only on pushed `v*` tags, ci.yml only manually
 ```
 
 ## Accessibility (`app/ui`, with `pnpm dev` running, for UI changes)
@@ -28154,27 +28154,30 @@ Cross-compiling is not supported: build Windows and macOS bundles on those syste
 Versions follow Pride Versioning and are bumped with `pnpm version:bump`; see
 [Versioning](docs/guide/developer/versioning.md).
 
-Publishing a GitHub release runs `.github/workflows/release.yml`, and nothing else does
-(`pnpm workflows:check` in the [quality gates](docs/guide/developer/quality-gates.md) fails if a workflow gets
-another trigger). It:
+Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
+`.github/workflows/release.yml`, and nothing else does (`pnpm workflows:check` in the
+[quality gates](docs/guide/developer/quality-gates.md) fails if a workflow gets another trigger). It:
 
-1. `meta`: decides the channel from the tag (`vX.Y.Z` stable, `vX.Y.Z-beta.N` beta) and stops
-   when the tag, the app version in `tauri.conf.json` and the release's pre-release flag
-   disagree,
+1. `meta`: decides the channel from the tag (`vX.Y.Z` stable, `vX.Y.Z-beta.N` beta), stops
+   when the tag does not match the app version in `tauri.conf.json`, and creates a draft
+   release `Forge <version>` with generated notes (a pre-release for the beta channel); a
+   re-run of the same tag reuses that draft,
 2. builds the static remote agents on Linux,
 3. builds the bundles on Ubuntu (AppImage, deb, rpm), Windows (NSIS, MSI) and macOS (Apple
    Silicon and Intel) with `pnpm tauri build --config src-tauri/tauri.agents.conf.json`,
    [signing](#code-signing) them when the certificates are configured,
-4. signs the updater artifacts and uploads everything plus `latest.json` to the release,
+4. signs the updater artifacts and uploads everything plus `latest.json` to the draft,
 5. `checksums`: uploads `SHA256SUMS` (and `SHA256SUMS.asc` with a GPG key) and, for a
-   pre-release, the beta feed `latest-beta.json` (see [Channels](#channels)).
+   pre-release, the beta feed `latest-beta.json` (see [Channels](#channels)),
+6. `publish`: publishes the release once every asset is uploaded. If a job fails, the release
+   stays a draft; fix the cause and re-run the workflow.
 
 Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what stable users get offered.
 
 Linux build jobs (remote agents, Linux bundles) run on the project's self-hosted runner
-(labels `self-hosted`, `Linux`, `X64`); Windows and macOS bundles and the small `meta` and
-`checksums` jobs run on GitHub's runners (`checksums` needs `gh` and `gpg`). The self-hosted
+(labels `self-hosted`, `Linux`, `X64`); Windows and macOS bundles and the small `meta`,
+`checksums` and `publish` jobs run on GitHub's runners (`checksums` needs `gh` and `gpg`). The self-hosted
 runner needs the Debian packages listed in `.github/scripts/linux-deps.sh`. The script installs
 missing ones when the runner is root or has passwordless sudo; otherwise the job stops and
 prints the `apt-get install` command to run once as root on the runner.
@@ -28373,13 +28376,13 @@ Settings | Appearance & Behavior | System Settings | Updates. The logic is in
 
 The beta feed needs a fixed URL, so it lives on a long-lived release tagged `beta`. Create it
 once on GitHub: tag `beta`, title "Beta update feed", marked as **pre-release**, no assets.
-Publishing it starts the release workflow, which recognises the tag and builds nothing. From
-then on every published pre-release replaces its `latest-beta.json`. Until it exists, beta
+The tag does not match `v*`, so it starts no workflow. From then on every pre-release replaces
+its `latest-beta.json`. Until it exists, beta
 installations simply get stable releases (the workflow prints a warning).
 
-Pre-release versions come from `pnpm version:bump default --pre beta.1` (see
-[Versioning](docs/guide/developer/versioning.md)). The `meta` job refuses a `-beta` tag that is not marked as a
-pre-release, and a pre-release without a label, so a beta never becomes GitHub's "latest".
+Pre-release versions come from `pnpm version:bump default --pre beta.1` and the next ones from
+`pnpm version:bump pre` (see [Versioning](docs/guide/developer/versioning.md)). The `meta` job creates a tag with a
+`-label` as a pre-release, so a beta never becomes GitHub's "latest".
 
 ## Linux packages
 
@@ -28606,7 +28609,17 @@ pnpm version:bump default                 # 0.1.0 → 0.2.0 in all three files +
 pnpm version:bump shame                   # 0.2.0 → 0.2.1
 pnpm version:bump proud                   # 0.2.1 → 1.0.0
 pnpm version:bump default --pre beta.1    # 1.0.0 → 1.1.0-beta.1
+pnpm version:bump pre                     # 1.1.0-beta.1 → 1.1.0-beta.2
+pnpm version:bump pre --pre rc.1          # 1.1.0-beta.2 → 1.1.0-rc.1
+pnpm version:bump release                 # 1.1.0-rc.1 → 1.1.0 (the final release)
 ```
+
+`proud`, `default` and `shame` always raise a number, also on a pre-release
+(`1.1.0-rc.1` → `shame` → `1.1.1`). `pre` keeps PROUD.DEFAULT.SHAME and only moves the
+pre-release label on: without `--pre` it adds one to the label's last number (`beta` becomes
+`beta.1`); with `--pre` it takes the new label, which must come after the current one in SemVer
+order (`beta.2` → `rc.1`, not back to `beta.1`). `pre` and `release` work only on a pre-release
+version.
 
 The script (`app/ui/scripts/version.mjs`, logic and tests in `versionBump.mjs`) updates
 `Cargo.lock` for the workspace crates, prints the release tag and does nothing else: it never
@@ -28616,17 +28629,17 @@ commits, tags or publishes.
 
 1. `pnpm version:bump <part>` and run the [quality gates](docs/guide/developer/quality-gates.md).
 2. Commit (`Release 0.2.0`) and merge to the release branch.
-3. On GitHub, publish a release tagged `v0.2.0` (a pre-release for `-beta` versions; the
-   workflow refuses a `-beta` tag that is not a pre-release and vice versa).
-4. The [release workflow](docs/guide/developer/release-builds.md#official-releases) builds the bundles, signs them and
-   uploads them with `latest.json` and `SHA256SUMS`; a pre-release also updates the beta feed
+3. Tag that commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`.
+4. The [release workflow](docs/guide/developer/release-builds.md#official-releases) creates the release (a
+   pre-release for `-beta` versions), builds the bundles, signs them, uploads them with
+   `latest.json` and `SHA256SUMS` and publishes it; a pre-release also updates the beta feed
    ([Channels](docs/guide/developer/release-builds.md#channels)). Installed copies offer the update on their next
    start.
 5. For a stable release, run `pnpm packaging:update v0.2.0` and commit the AUR and Flatpak
    changes ([Linux packages](docs/guide/developer/release-builds.md#linux-packages)).
 
-> **Note:** Only the project owner bumps versions and publishes releases. Agents never bump a
-> version unless they are asked to, and never publish releases.
+> **Note:** Only the project owner bumps versions and pushes version tags. Agents never bump a
+> version unless they are asked to, and never push version tags or publish releases.
 
 
 ---
@@ -28653,10 +28666,11 @@ Run the [quality gates](docs/guide/developer/quality-gates.md) locally instead. 
 and Linux jobs run on the project's self-hosted runner (`.github/scripts/linux-deps.sh` checks
 its system packages), Windows and macOS on GitHub's runners.
 
-`.github/workflows/release.yml` runs **only when a GitHub release is published**. It builds the
-Linux, Windows and macOS bundles (with the remote agents), signs the updater artifacts and uploads
-them plus `latest.json` to that release. Only the project owner publishes releases; never add
-push, pull request or schedule triggers to any workflow. See [Release builds](docs/guide/developer/release-builds.md).
+`.github/workflows/release.yml` runs **only when a version tag `v*` is pushed**. It creates a
+draft GitHub release for the tag, builds the Linux, Windows and macOS bundles (with the remote
+agents), signs the updater artifacts, uploads them plus `latest.json` and publishes the release.
+Only the project owner pushes version tags; never add branch push, pull request or schedule
+triggers to any workflow. See [Release builds](docs/guide/developer/release-builds.md).
 
 ## Worktrees
 
