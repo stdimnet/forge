@@ -26,6 +26,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/ui/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # release.yml runs only on `release: published`, every other workflow only manually.
+      - run: pnpm workflows:check
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

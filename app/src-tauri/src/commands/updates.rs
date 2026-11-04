@@ -166,11 +166,20 @@ fn targets() -> Vec<String> {
     out
 }
 
+/// The primary feed of the selected channel (shown on the Updates settings page).
 fn endpoint(app: &AppHandle) -> String {
     let state = app.state::<AppState>();
     let settings = state.read_settings();
     forge_update::Channel::from_setting(settings.get_str(KEY_CHANNEL))
         .endpoint(settings.get_str(KEY_ENDPOINT))
+}
+
+/// Every feed the selected channel reads (the beta channel also reads the stable feed).
+fn endpoints(app: &AppHandle) -> Vec<String> {
+    let state = app.state::<AppState>();
+    let settings = state.read_settings();
+    forge_update::Channel::from_setting(settings.get_str(KEY_CHANNEL))
+        .endpoints(settings.get_str(KEY_ENDPOINT))
 }
 
 /// The result of a check, for the splash and the Check for Updates dialog.
@@ -237,7 +246,7 @@ async fn run_check(app: &AppHandle, manual: bool) -> CheckResult {
             CheckResult::NotChecked { reason, message }
         }
         CheckPlan::Check => {
-            let endpoint = endpoint(app);
+            let endpoints = endpoints(app);
             let channel = forge_update::Channel::from_setting(
                 app.state::<AppState>().read_settings().get_str(KEY_CHANNEL),
             );
@@ -249,7 +258,7 @@ async fn run_check(app: &AppHandle, manual: bool) -> CheckResult {
             let targets = targets();
             let state = updates.with_state(|s| s.clone());
             let req = CheckRequest {
-                endpoint: &endpoint,
+                endpoints: &endpoints,
                 current: &version,
                 channel,
                 state: &state,
@@ -269,7 +278,7 @@ async fn run_check(app: &AppHandle, manual: bool) -> CheckResult {
                     }
                 }
                 Err(e) => {
-                    tracing::warn!("update check failed ({endpoint}): {e}");
+                    tracing::warn!("update check failed ({}): {e}", endpoints.join(", "));
                     CheckResult::Error {
                         message: e.short_message(),
                     }
@@ -461,7 +470,10 @@ fn download_error(e: &tauri_plugin_updater::Error) -> String {
 }
 
 async fn download_real(app: &AppHandle, offer: &UpdateOffer) -> std::result::Result<(), String> {
-    let url = endpoint(app)
+    let url = offer
+        .feed
+        .clone()
+        .unwrap_or_else(|| endpoint(app))
         .parse()
         .map_err(|e| format!("invalid update endpoint: {e}"))?;
     let wanted = offer.version.clone();
