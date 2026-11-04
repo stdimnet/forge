@@ -178,6 +178,7 @@ async function play(t: AgentTask) {
   t.baseCommit = "4f2c9e1";
   emit(t);
   const command = t.request.tests.kind === "command" ? t.request.tests.command : t.request.tests.kind === "configuration" ? t.request.tests.name : "vendor/bin/phpunit";
+  let answer: Promise<boolean> | null = null;
   for (const [delay, step] of script(command, t)) {
     await sleep(delay);
     if (cancelled.has(t.id)) {
@@ -187,7 +188,8 @@ async function play(t: AgentTask) {
     }
     if (step === "approval") {
       const index = t.steps.length - 1;
-      const allowed = await new Promise<boolean>((resolve) => approvals.set(`${t.id}:${index}`, resolve));
+      const allowed = await answer!;
+      answer = null;
       t.steps[index] = { ...t.steps[index], kind: "approval", command: "php -l app/Services/Checkout.php", state: allowed ? "allowed" : "denied" } as AgentTask["steps"][number];
       emit(t);
       continue;
@@ -195,6 +197,11 @@ async function play(t: AgentTask) {
     if (step.kind === "finished") {
       t.status = "needsReview";
       t.outcome = step.outcome;
+    }
+    if (step.kind === "approval") {
+      // Listen for the answer before the step is shown, so a quick answer is not lost.
+      const index = t.steps.length;
+      answer = new Promise<boolean>((resolve) => approvals.set(`${t.id}:${index}`, resolve));
     }
     push(t, step);
   }
