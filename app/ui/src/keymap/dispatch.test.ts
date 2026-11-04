@@ -109,6 +109,15 @@ describe("installed keymap", () => {
     expect(search).toHaveBeenCalledOnce();
   });
 
+  it("leaves keys a widget owns to the widget", () => {
+    document.body.innerHTML = `<div data-own-keys="Ctrl+N Alt+Enter"><textarea id="own"></textarea></div><button id="btn">b</button>`;
+    const owned = press(document.getElementById("own")!, { key: "n", code: "KeyN", ctrlKey: true });
+    expect(owned.defaultPrevented).toBe(false);
+    expect(gotoClass).not.toHaveBeenCalled();
+    press(document.getElementById("btn")!, { key: "n", code: "KeyN", ctrlKey: true });
+    expect(gotoClass).toHaveBeenCalledOnce();
+  });
+
   it("can be suspended while recording shortcuts", () => {
     const resume = suspendKeymap();
     const e = press(document.getElementById("btn")!, { key: "n", code: "KeyN", ctrlKey: true });

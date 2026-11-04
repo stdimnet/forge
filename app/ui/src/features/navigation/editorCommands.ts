@@ -212,6 +212,8 @@ export function runInEditor(cmd: CmCommand): void {
   const view = activeView();
   if (!view) return;
   cmd(view);
-  // Commands run from the Find/Replace bar (F3, Ctrl+F) keep the focus in the bar.
-  if (!view.dom.querySelector(".cm-find-bar")?.contains(document.activeElement)) view.focus();
+  // Commands that focus one of the editor's panels (the Find/Replace bar, Go to Line), or run
+  // from there (F3 in the bar), leave the focus in the panel.
+  const focused = document.activeElement;
+  if (!(focused?.closest(".cm-panels") && view.dom.contains(focused))) view.focus();
 }
