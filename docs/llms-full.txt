@@ -15148,6 +15148,7 @@ The project contains:
   `pom.xml`, with the platform's repository, its API as a `compileOnly` / `provided`
   dependency, the Java release as toolchain and compiler release, and resource filtering that
   writes the project version into the descriptor (`${version}`, Maven `${project.version}`);
+  Gradle settings apply the foojay toolchain resolver;
 - the descriptor in `src/main/resources`: `plugin.yml` (with the `/hello` command),
   `paper-plugin.yml`, `velocity-plugin.json` or `bungee.yml`; Folia plugins declare
   `folia-supported: true`;
@@ -15175,7 +15176,7 @@ Forge keeps a pinned table of Minecraft versions (1.16.5 to 1.21.11, then 26.1.1
 | Purpur (1.18+) | Paper's and `https://repo.purpurmc.org/snapshots` | `org.purpurmc.purpur:purpur-api:<version>-R0.1-SNAPSHOT`; from 26.1 `<version>.build.<n>-stable` |
 | Spigot | `https://hub.spigotmc.org/nexus/content/repositories/snapshots/` | `org.spigotmc:spigot-api:<version>-R0.1-SNAPSHOT` |
 | Bukkit | the Spigot repository | `org.bukkit:bukkit:<version>-R0.1-SNAPSHOT` up to 1.20.5; newer versions have no Bukkit artifact, so they use `spigot-api` (a superset; the generated code only uses the Bukkit API) |
-| Velocity | Paper's | `com.velocitypowered:velocity-api:4.3.1` (Java 21) |
+| Velocity | Paper's | `com.velocitypowered:velocity-api:4.3.1` (Java 25: Velocity 4.x is built for it) |
 | BungeeCord / Waterfall | Maven Central | `net.md-5:bungeecord-api:1.21-R0.4` (Java 17) |
 
 From Minecraft 26.1 on, Paper and Purpur publish their API with build numbers
@@ -15195,10 +15196,17 @@ of each 26.x version. It only runs when you click it, and the result is cached i
 cache directory (`<cache>/forge/minecraft/versions.json`), never in a project. New versions
 get their coordinates and Java release from the same rules.
 
-Pinned values that may go out of date (refresh to update the Paper / Purpur builds; the rest
-changes with Forge releases): the 26.3 builds above, Velocity 4.3.1, BungeeCord 1.21-R0.4,
-and the build plugins of generated projects: run-paper 3.1.0, Shadow (`com.gradleup.shadow`)
-9.6.1 and Kotlin 2.3.0. Generated Gradle builds expect Gradle 9 or newer.
+Pinned values that go out of date over time (refresh to update the Paper / Purpur builds;
+the rest changes with Forge releases): the 26.3 builds above, Velocity 4.3.1, BungeeCord
+1.21-R0.4, and the build plugins of generated projects: run-paper 3.1.0, Shadow
+(`com.gradleup.shadow`) 9.6.1, Kotlin 2.4.21 and the foojay toolchain resolver 1.0.0.
+
+Generated Gradle builds need Gradle 9 or newer (Shadow 9 does not load on Gradle 8). Their
+`settings.gradle(.kts)` applies the foojay toolchain resolver, so Gradle downloads the JDK of
+the project's Java release (for example 25 for Minecraft 26.x) when it is not installed.
+Paper 1.21.11 (Java, run-paper, Shadow), Paper 26.3 (Kotlin), Folia 26.3 with
+`paper-plugin.yml`, Purpur 26.2 (Groovy DSL, dynamic build), Velocity 4.3.1, BungeeCord
+(Kotlin) with Gradle 9.8.2 and Spigot 26.3 with Maven were built from generated projects.
 
 Fabric, NeoForge and Forge mods are not generated yet: their templates need Loom or
 ModDevGradle with mappings and loader versions that change with every Minecraft release.

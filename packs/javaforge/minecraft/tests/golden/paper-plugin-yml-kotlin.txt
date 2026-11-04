@@ -29,13 +29,13 @@ A Paper plugin for Minecraft 1.21.11, written in Kotlin (Java 21).
 
 ## Build
 
-The project has no Gradle wrapper yet. Create it once with an installed Gradle (9 or newer is recommended for Shadow 9 and run-paper 3):
+The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer (Shadow 9 does not load on Gradle 8):
 
 ```sh
 gradle wrapper
 ```
 
-Then build the plugin:
+Then build the plugin (a missing JDK of the project's Java release is downloaded by Gradle's toolchain resolver, foojay):
 
 ```sh
 ./gradlew build
@@ -57,7 +57,7 @@ The plugin jar is `build/libs/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the 
 The Kotlin standard library is bundled into the plugin jar with Shadow.
 ==== build.gradle.kts ====
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.4.21"
     id("com.gradleup.shadow") version "9.6.1"
     id("xyz.jpenilla.run-paper") version "3.1.0"
 }
@@ -99,6 +99,10 @@ tasks {
     }
 }
 ==== settings.gradle.kts ====
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 rootProject.name = "better-chat"
 ==== src/main/kotlin/dev/alex/betterchat/BetterChat.kt ====
 package dev.alex.betterchat

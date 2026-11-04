@@ -81,9 +81,10 @@ pub const PAPER_METADATA_PATH: &str = "io/papermc/paper/paper-api/maven-metadata
 pub const PURPUR_METADATA_PATH: &str = "org/purpurmc/purpur/purpur-api/maven-metadata.xml";
 
 /// The Velocity API release the generator uses (repo.papermc.io), and the Java release of
-/// generated projects.
+/// generated projects: Velocity 4.x is built for Java 25 (`org.gradle.jvm.version` in its
+/// Gradle module metadata).
 pub const VELOCITY_API: &str = "4.3.1";
-pub const VELOCITY_JAVA: u32 = 21;
+pub const VELOCITY_JAVA: u32 = 25;
 /// The BungeeCord API release the generator uses (Maven Central), and the Java release of
 /// generated projects.
 pub const BUNGEECORD_API: &str = "1.21-R0.4";
@@ -96,7 +97,10 @@ pub const BUKKIT_NEWEST: &str = "1.20.5";
 /// Build plugins and libraries of generated projects.
 pub const RUN_PAPER: &str = "3.1.0";
 pub const SHADOW: &str = "9.6.1";
-pub const KOTLIN: &str = "2.3.0";
+pub const KOTLIN: &str = "2.4.21";
+/// Gradle's toolchain resolver: downloads the project's JDK (e.g. 25 for 26.x) when it is
+/// not installed.
+pub const FOOJAY_RESOLVER: &str = "1.0.0";
 pub const MAVEN_COMPILER: &str = "3.13.0";
 pub const MAVEN_SHADE: &str = "3.6.0";
 
@@ -614,7 +618,7 @@ mod tests {
             velocity.dependency.gradle(),
             "com.velocitypowered:velocity-api:4.3.1"
         );
-        assert_eq!(velocity.java, 21);
+        assert_eq!(velocity.java, 25);
         assert_eq!(
             api_spec(Platform::Bungeecord, "", true)
                 .unwrap()

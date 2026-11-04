@@ -438,14 +438,22 @@ pub fn files(p: &Project) -> Vec<GeneratedFile> {
         Build::GradleKts => {
             add(
                 "settings.gradle.kts".into(),
-                format!("rootProject.name = \"{}\"\n", p.name),
+                format!(
+                    "plugins {{\n    id(\"org.gradle.toolchains.foojay-resolver-convention\") version \"{}\"\n}}\n\nrootProject.name = \"{}\"\n",
+                    versions::FOOJAY_RESOLVER,
+                    p.name
+                ),
             );
             add("build.gradle.kts".into(), gradle_kts(p));
         }
         Build::GradleGroovy => {
             add(
                 "settings.gradle".into(),
-                format!("rootProject.name = '{}'\n", p.name),
+                format!(
+                    "plugins {{\n    id 'org.gradle.toolchains.foojay-resolver-convention' version '{}'\n}}\n\nrootProject.name = '{}'\n",
+                    versions::FOOJAY_RESOLVER,
+                    p.name
+                ),
             );
             add("build.gradle".into(), gradle_groovy(p));
         }
@@ -861,7 +869,7 @@ fn readme(p: &Project) -> String {
         format!("target/{}-{VERSION}.jar", artifact_id(&p.name))
     };
     if p.build.is_gradle() {
-        s += "The project has no Gradle wrapper yet. Create it once with an installed Gradle (9 or newer is recommended for Shadow 9 and run-paper 3):\n\n```sh\ngradle wrapper\n```\n\nThen build the plugin:\n\n```sh\n./gradlew build\n```\n\n";
+        s += "The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer (Shadow 9 does not load on Gradle 8):\n\n```sh\ngradle wrapper\n```\n\nThen build the plugin (a missing JDK of the project's Java release is downloaded by Gradle's toolchain resolver, foojay):\n\n```sh\n./gradlew build\n```\n\n";
     } else {
         s += "```sh\nmvn package\n```\n\n";
     }
@@ -1034,6 +1042,7 @@ mod tests {
         assert!(build.contains("compileOnly(\"io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT\")"));
         assert!(build.contains("id(\"xyz.jpenilla.run-paper\")"));
         assert!(build.contains("minecraftVersion(\"1.21.11\")"));
+        assert!(file(&files, "settings.gradle.kts").contains("foojay-resolver-convention"));
         let yml = file(&files, "src/main/resources/plugin.yml");
         assert!(yml.contains("main: com.example.myplugin.MyPlugin\n"));
         assert!(yml.contains("version: '${version}'"));
