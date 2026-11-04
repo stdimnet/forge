@@ -147,7 +147,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
         <header class="dialog-title">
           <span>{tr("git.logDialogs.rebasingCommits")}</span>
           <span class="rebase-subtitle">
-            {rows().length} commits of <b>{branch}</b> onto {onto}
+            {tr("tools.git.commitsOf", { count: rows().length })} <b>{branch}</b> onto {onto}
           </span>
         </header>
         <div class="panel-toolbar rebase-toolbar" role="toolbar" aria-label={tr("git.logDialogs.rebaseActions")}>
@@ -166,10 +166,10 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
             )}
           </For>
           <span class="rebase-sep" />
-          <button class="icon-btn" title={`Move Up (${shortcutLabel("Git.Interactive.Rebase.MoveUp") || "Alt+Up"})`} disabled={!selected().size} onClick={() => move(-1)}>
+          <button class="icon-btn" title={tr("tools.git.moveUp", { value: shortcutLabel("Git.Interactive.Rebase.MoveUp") || "Alt+Up" })} disabled={!selected().size} onClick={() => move(-1)}>
             <ArrowUp size={15} />
           </button>
-          <button class="icon-btn" title={`Move Down (${shortcutLabel("Git.Interactive.Rebase.MoveDown") || "Alt+Down"})`} disabled={!selected().size} onClick={() => move(1)}>
+          <button class="icon-btn" title={tr("tools.git.moveDown", { value: shortcutLabel("Git.Interactive.Rebase.MoveDown") || "Alt+Down" })} disabled={!selected().size} onClick={() => move(1)}>
             <ArrowDown size={15} />
           </button>
           <span class="spacer" />
@@ -238,7 +238,7 @@ export function InteractiveRebaseDialog(props: { sha: string; plan: RebasePlan }
                     <>
                       <div class="log-files">
                         <div class="log-files-title">
-                          {d.files.length} file{d.files.length === 1 ? "" : "s"} changed
+                          {tr("common.filesChanged", { count: d.files.length })}
                         </div>
                         <For each={d.files}>
                           {(f) => (

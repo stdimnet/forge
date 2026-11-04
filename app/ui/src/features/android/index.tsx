@@ -41,7 +41,7 @@ function AndroidSdkPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            Android SDK: <b>{status()?.sdk ? `found (${status()!.sdk!.source})` : "not found"}</b>
+            {t("langs.android.androidSdkLabel")} <b>{status()?.sdk ? t("langs.android.found", { source: status()!.sdk!.source }) : t("common.notFound")}</b>
             <Show when={status()?.sdk}>
               <span class="scala-path"> {status()!.sdk!.path}</span>
             </Show>
@@ -52,7 +52,7 @@ function AndroidSdkPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            adb: <b>{status()?.adb ? "found" : "not found (SDK platform-tools)"}</b>
+            adb: <b>{status()?.adb ? "found" : t("langs.android.notFoundSdkPlatformTools")}</b>
             <Show when={status()?.adb}>
               <span class="scala-path"> {status()!.adb}</span>
             </Show>
@@ -63,10 +63,10 @@ function AndroidSdkPage() {
             <div class="java-status-row">
               <CircleCheck size={14} class="java-ok" />
               <span>
-                Module <b>{m.gradlePath}</b> ({m.kind === "application" ? "application" : "library"}
+                {t("langs.android.module")} <b>{m.gradlePath}</b> ({m.kind === "application" ? "application" : "library"}
                 {m.applicationId ?? m.namespace ? `, ${m.applicationId ?? m.namespace}` : ""}
-                {m.minSdk ? `, minSdk ${m.minSdk}` : ""}
-                {m.targetSdk ? `, targetSdk ${m.targetSdk}` : ""})
+                {m.minSdk ? t("langs.android.minsdk", { minSdk: m.minSdk }) : ""}
+                {m.targetSdk ? t("langs.android.targetsdk", { targetSdk: m.targetSdk }) : ""})
               </span>
             </div>
           )}
@@ -120,6 +120,6 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
     const s = await refreshStatus();
     if (!s || s.remote || s.sdk) return;
     hinted = true;
-    showBalloon("Android SDK not found", s.hint ?? "", 0, [{ label: "Android SDK Settings…", run: () => openSettings("lang.android") }]);
+    showBalloon(t("langs.android.androidSdkNotFound"), s.hint ?? "", 0, [{ label: t("langs.android.androidSdkSettingsEllipsis"), run: () => openSettings("lang.android") }]);
   });
 }

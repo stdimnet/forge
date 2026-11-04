@@ -62,7 +62,7 @@ async function afterRewrite(res: RewriteResult | undefined, title: string, body?
   if (!res) return;
   await reloadOpenFiles();
   if (res.stopped) {
-    notify("info", t("git.logActions.rebaseStoppedForEditing"), "Make your changes and amend the commit, then use Git | Continue Rebase.", 10000);
+    notify("info", t("git.logActions.rebaseStoppedForEditing"), t("tools.git.makeYourChangesAndAmend"), 10000);
     return;
   }
   const newHead = res.newHead;
@@ -88,7 +88,7 @@ export async function cherryPick(shas: string[]): Promise<void> {
   const skipped = out.split("\n").find((l) => l.includes("skipped"));
   notify(
     "success",
-    "Cherry-pick successful",
+    t("tools.git.cherryPickSuccessful"),
     shas.length === 1 ? `${shortSha(shas[0])} ${subjectOf(shas[0])}${skipped ? ` (${skipped})` : ""}` : `${plural(shas.length, "commit")}${skipped ? `, ${skipped}` : ""}`,
   );
 }
@@ -266,6 +266,6 @@ export async function runLogAction(key: keyof LogActionStates | null, run: (shas
     if (!states) return;
     state = states[key];
   }
-  if (!state.enabled) return notify("info", state.reason ?? "Not available");
+  if (!state.enabled) return notify("info", state.reason ?? t("tools.git.notAvailable"));
   await run(shas, state);
 }

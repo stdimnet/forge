@@ -21,6 +21,7 @@ import { selectCommitFile } from "@/features/git/CommitPanel";
 import { setLogPathFilter } from "@/features/git/GitLogPanel";
 import { repoAvailable } from "@/features/git/store";
 import { openTerminalAt } from "@/features/terminal";
+import { t as tr } from "@/i18n";
 import "./selectIn.css";
 
 export interface SelectInTarget {
@@ -51,7 +52,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
   if (fromEditor)
     out.push({
       id: "project",
-      label: "Project View",
+      label: tr("tools.editorNavigation.projectView"),
       run: () => {
         showToolWindow("project");
         selectInTree(path);
@@ -60,7 +61,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
   if (statusOf(path))
     out.push({
       id: "commit",
-      label: "Commit",
+      label: tr("tools.editorNavigation.commit"),
       run: () => {
         showToolWindow("commit");
         selectCommitFile(path);
@@ -69,7 +70,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
   if (hasFileStructure(path) && fromEditor) {
     out.push({
       id: "structure",
-      label: "Structure",
+      label: tr("tools.editorNavigation.structure"),
       run: () => {
         showToolWindow("structure");
         // The view loads the file's structure first.
@@ -78,13 +79,13 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
     });
   }
   if (fromEditor) {
-    out.push({ id: "fileStructure", label: "File Structure", run: () => runAction("FileStructurePopup") });
-    out.push({ id: "navBar", label: "Navigation Bar", run: () => runAction("ShowNavBar") });
+    out.push({ id: "fileStructure", label: tr("tools.editorNavigation.fileStructure"), run: () => runAction("FileStructurePopup") });
+    out.push({ id: "navBar", label: tr("tools.editorNavigation.navigationBar"), run: () => runAction("ShowNavBar") });
   }
   if (repoAvailable())
     out.push({
       id: "gitLog",
-      label: "Git Log",
+      label: tr("tools.editorNavigation.gitLog"),
       run: () => {
         setLogPathFilter(path);
         showToolWindow("git");
@@ -95,10 +96,10 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
     label: fileManagerName(),
     run: () =>
       windowApi.revealInFileManager(path).catch((e) => {
-        showBalloon(`Cannot show the file in ${fileManagerName()}`, String(e instanceof Error ? e.message : e));
+        showBalloon(tr("tools.editorNavigation.cannotShowTheFileIn", { fileManagerName: fileManagerName() }), String(e instanceof Error ? e.message : e));
       }),
   });
-  out.push({ id: "terminal", label: "Terminal", run: () => openTerminalAt(dirOf(path)) });
+  out.push({ id: "terminal", label: tr("tools.editorNavigation.terminal"), run: () => openTerminalAt(dirOf(path)) });
   return out;
 }
 
@@ -151,9 +152,9 @@ function SelectInPopup(props: { targets: SelectInTarget[]; path: string }) {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div class="popup select-in-popup" tabIndex={-1} ref={root} role="dialog" aria-label="Select In" onKeyDown={onKeyDown}>
+      <div class="popup select-in-popup" tabIndex={-1} ref={root} role="dialog" aria-label={tr("tools.editorNavigation.selectIn")} onKeyDown={onKeyDown}>
         <div class="select-in-title">
-          Select In <span class="select-in-file">{props.path.split("/").pop()}</span>
+          {tr("tools.editorNavigation.selectIn")} <span class="select-in-file">{props.path.split("/").pop()}</span>
         </div>
         <div class="select-in-list" role="listbox">
           <For each={props.targets}>

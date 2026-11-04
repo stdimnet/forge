@@ -13,6 +13,7 @@ import { Highlight } from "@/features/search/SearchEverywhere";
 import { SymbolIcon } from "@/features/php/SymbolIcon";
 import { loadFileStructure, revealStructureNode, supportsInherited } from "@/features/php/StructureView";
 import { fileStructureView, type FileStructureRow } from "@/features/codeStructure/model";
+import { t } from "@/i18n";
 
 /** The file the popup was opened for. */
 export interface FileStructureSession {
@@ -129,20 +130,20 @@ export function FileStructurePopup(props: { session: FileStructureSession }) {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeFileStructure()}>
-      <div class="popup fs-popup" role="dialog" aria-label="File Structure" onKeyDown={onKeyDown}>
+      <div class="popup fs-popup" role="dialog" aria-label={t("tools.fileStructure.fileStructure")} onKeyDown={onKeyDown}>
         <div class="fs-header">
           <span class="fs-title">{fileName(props.session.path)}</span>
           <div class="fs-toggles">
             <Show when={inheritedApplies()}>
-              <Toggle label="Show Inherited" hint={shortcutLabel("FileStructurePopup")} checked={showInherited()} onChange={setShowInherited} />
+              <Toggle label={t("tools.fileStructure.showInherited")} hint={shortcutLabel("FileStructurePopup")} checked={showInherited()} onChange={setShowInherited} />
             </Show>
             <Show when={view().hasFields || !showFields()}>
-              <Toggle label="Show Fields" checked={showFields()} onChange={setShowFields} />
+              <Toggle label={t("tools.fileStructure.showFields")} checked={showFields()} onChange={setShowFields} />
             </Show>
             <Show when={view().hasLambdas}>
-              <Toggle label="Show Lambdas" checked={showLambdas()} onChange={setShowLambdas} />
+              <Toggle label={t("tools.fileStructure.showLambdas")} checked={showLambdas()} onChange={setShowLambdas} />
             </Show>
-            <Toggle label="Sort Alphabetically" checked={sortAlpha()} onChange={setSortAlpha} />
+            <Toggle label={t("common.sortAlphabetically")} checked={sortAlpha()} onChange={setSortAlpha} />
           </div>
         </div>
         <div class="se-search fs-search">
@@ -150,9 +151,9 @@ export function FileStructurePopup(props: { session: FileStructureSession }) {
           <input
             ref={input}
             class="se-input"
-            placeholder="Type to search"
+            placeholder={t("tools.fileStructure.typeToSearch")}
             spellcheck={false}
-            aria-label="Search the file structure"
+            aria-label={t("tools.fileStructure.searchTheFileStructure")}
             value={query()}
             onInput={(e) => setQuery(e.currentTarget.value)}
           />
@@ -160,7 +161,7 @@ export function FileStructurePopup(props: { session: FileStructureSession }) {
         <div class="fs-tree" ref={list} role="tree">
           <Show
             when={rows().length}
-            fallback={<div class="se-empty">{structure.loading ? "Loading…" : query() ? "Nothing found" : "No structure for this file"}</div>}
+            fallback={<div class="se-empty">{structure.loading ? t("common.loadingEllipsis") : query() ? t("common.nothingFound") : t("tools.fileStructure.noStructureForThisFile")}</div>}
           >
             <For each={rows()}>
               {(row, i) => (
@@ -171,7 +172,7 @@ export function FileStructurePopup(props: { session: FileStructureSession }) {
                   role="treeitem"
                   aria-selected={index() === i()}
                   data-row={i()}
-                  title={row.node.inheritedFrom ? `Inherited from ${row.node.inheritedFrom}` : undefined}
+                  title={row.node.inheritedFrom ? t("tools.fileStructure.inheritedFrom", { inheritedFrom: row.node.inheritedFrom }) : undefined}
                   onMouseMove={() => setIndex(i())}
                   onClick={() => open(row)}
                 >

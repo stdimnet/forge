@@ -13,6 +13,7 @@ import { draft, draftValue, openSettings, setDraft } from "@/features/settings/d
 import { Hl, settingMatches } from "@/features/settings/dialogSearch";
 import { SettingRow } from "@/features/settings/SchemaPage";
 import { ALL_TOOLS } from "./run";
+import { t as tr } from "@/i18n";
 import "@/features/phpQualityTools/phpQualityTools.css";
 import "./webQualityTools.css";
 
@@ -30,9 +31,9 @@ const FILES: Record<WebTool, string> = {
   biome: "web.biome.files",
 };
 const MODES: { value: WebToolMode; label: string }[] = [
-  { value: "disabled", label: "Disabled" },
-  { value: "automatic", label: "Automatic configuration" },
-  { value: "manual", label: "Manual configuration" },
+  { value: "disabled", label: tr("langs.webQualityTools.disabled") },
+  { value: "automatic", label: tr("langs.webQualityTools.automaticConfiguration") },
+  { value: "manual", label: tr("langs.webQualityTools.manualConfiguration") },
 ];
 
 /** The options of a tool, in the order the page shows them. */
@@ -84,7 +85,7 @@ function ValidateRow(props: { tool: WebTool }) {
   return (
     <div class="qt-validate">
       <button class="btn-secondary set-btn" disabled={state() === "running"} onClick={() => void run()}>
-        Validate
+        {tr("langs.webQualityTools.validate")}
       </button>
       <Show when={state() === "running"}>
         <LoaderCircle size={14} class="qt-spin" />
@@ -93,7 +94,7 @@ function ValidateRow(props: { tool: WebTool }) {
         {(r) => (
           <span class="qt-validation" classList={{ ok: r().ok, failed: !r().ok }} title={r().commandLine}>
             {r().ok ? <CircleCheck size={14} /> : <CircleX size={14} />}
-            <span>{r().ok ? `OK, ${r().message}` : r().message}</span>
+            <span>{r().ok ? tr("langs.webQualityTools.ok", { message: r().message }) : r().message}</span>
           </span>
         )}
       </Show>
@@ -125,14 +126,13 @@ function Found(props: { info: WebToolInfo | undefined }) {
     <Show when={props.info}>
       {(info) => (
         <div class="set-desc wqt-found">
-          <Show when={info().path} fallback={<span class="qt-missing">node_modules/{info().package} is not installed</span>}>
+          <Show when={info().path} fallback={<span class="qt-missing">{tr("langs.webQualityTools.nodeModulesIsNotInstalled", { package: info().package })}</span>}>
             <span>
-              Package: {info().path}
-              {info().version ? ` (${info().version})` : ""}
+              {tr("langs.webQualityTools.package", { path: info().path, value: info().version ? ` (${info().version})` : "" })}
             </span>
           </Show>
           <span class="wqt-sep">·</span>
-          <span>Configuration: {info().configFile ?? "none in the project root"}</span>
+          <span>{tr("langs.webQualityTools.configuration", { value: info().configFile ?? tr("langs.webQualityTools.noneInTheProjectRoot") })}</span>
         </div>
       )}
     </Show>
@@ -157,14 +157,14 @@ function ToolBlock(props: { tool: WebTool; info: WebToolInfo | undefined }) {
   return (
     <section class="qt-tool" classList={{ hit: anyHit(), modified: modified(), on: mode() !== "disabled" }} data-tool={t}>
       <header class="qt-tool-header">
-        <button class="icon-btn qt-expand" title={open() ? "Collapse" : "Expand"} onClick={() => setOpen(!open())}>
+        <button class="icon-btn qt-expand" title={open() ? tr("common.collapse") : tr("common.expand")} onClick={() => setOpen(!open())}>
           {open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         <span class="qt-tool-name" onClick={() => setOpen(!open())}>
           <Hl text={label()} />
         </span>
         <span class="qt-tool-status">
-          <Show when={status()} fallback={<span class="qt-missing">Not installed in the project</span>}>
+          <Show when={status()} fallback={<span class="qt-missing">{tr("common.notInstalledInTheProject")}</span>}>
             {(s) => <span title={s()}>{s()}</span>}
           </Show>
         </span>
@@ -195,13 +195,11 @@ export function WebQualityToolsPage() {
   const general = ["web.tools.onTheFly", "web.tools.timeout"];
   return (
     <div class="set-page qt-page wqt-page">
-      <Show when={findSpec("web.tools.onTheFly")} fallback={<div class="set-empty">No settings to show. The HTML, CSS & JavaScript plugin may be disabled.</div>}>
+      <Show when={findSpec("web.tools.onTheFly")} fallback={<div class="set-empty">{tr("langs.webQualityTools.noSettingsToShowThe")}</div>}>
         <div class="set-desc qt-intro">
-          ESLint, Prettier, Stylelint and Biome come from the project's node_modules and run with the Node.js interpreter
-          {info()?.node ? ` (${info()!.node})` : ""} where the project lives. They run the project's code (configuration
-          files, plugins), so Forge never runs them in Safe Mode.{" "}
+          {tr("langs.webQualityTools.eslintPrettierStylelintAndBiome", { value: info()?.node ? ` (${info()!.node})` : "" })}
           <button class="set-link" onClick={() => openSettings("lang.node")}>
-            Node.js settings…
+            {tr("langs.webQualityTools.nodeJsSettingsEllipsis")}
           </button>
         </div>
         <For each={general}>{(k) => <Show when={findSpec(k)}>{(s) => <SettingRow spec={s()} />}</Show>}</For>

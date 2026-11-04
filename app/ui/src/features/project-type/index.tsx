@@ -15,6 +15,7 @@ import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import type { ProjectInfo } from "@/ipc/project";
 import { announcement } from "./announce";
 import { isDialogWindow } from "@/shell/window/mode";
+import { t } from "@/i18n";
 
 /** User setting holding `<root>#<framework>` pairs already announced. */
 export const ANNOUNCED_KEY = "project.announcedFrameworks";
@@ -46,7 +47,7 @@ function ProjectTypeStatus() {
       {(p) => (
         <button
           class="status-item status-project-type"
-          title={`Detected: ${frameworkLabel(p())}${others() ? ` (also ${others()})` : ""}. Click to configure plugins`}
+          title={t("tools.projectType.detectedClickToConfigurePlugins", { value: frameworkLabel(p()), value2: others() ? ` (also ${others()})` : "" })}
           onClick={() => openSettings("plugins")}
         >
           <ProjectTypeIcon type={p().id} size={14} />
@@ -73,7 +74,7 @@ function announce(info: ProjectInfo, root: string, attempt = 0): void {
   shownThisSession.add(a.key);
   void saveSetting(ANNOUNCED_KEY, [...announced, a.key].slice(-200), "user").catch(() => {});
   const page = a.settingsPages.find((id) => settingsPages().some((p) => p.id === id)) ?? "plugins";
-  showBalloon(a.title, a.detail, 12000, [{ label: "Configure", run: () => openSettings(page) }]);
+  showBalloon(a.title, a.detail, 12000, [{ label: t("tools.projectType.configure"), run: () => openSettings(page) }]);
 }
 
 // The "support enabled" notification shows in the IDE window only.

@@ -104,7 +104,7 @@ export function ShowUsagesPopup(props: { popup: UsagesPopupState }) {
     >
       <div class="usages-popup-header">
         <span class="usages-popup-title">
-          Usages of <strong>{props.popup.answer.title}</strong> in {props.popup.answer.scope ?? "Project Files"}
+          {tr("tools.codeintel.usagesOf")} <strong>{props.popup.answer.title}</strong> in {props.popup.answer.scope ?? tr("tools.codeintel.projectFiles")}
         </span>
         <span class="usages-popup-count">{countLabel(total())}</span>
         <Show when={props.popup.origin}>

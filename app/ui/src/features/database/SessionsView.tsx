@@ -34,7 +34,7 @@ function SessionRow(props: { s: SessionInfo; now: number }) {
         <span class="db-session-state" title={props.s.running ? tr("database.sessionsView.running") : tr("database.sessionsView.idle")} />
         <Database size={13} class="db-session-ds" />
         <span class="db-session-name">{ds()?.name ?? props.s.dataSourceId}</span>
-        <span class="db-session-kind">{props.s.shared ? "shared session" : "console session"}</span>
+        <span class="db-session-kind">{props.s.shared ? tr("tools.database.sharedSession") : tr("tools.database.consoleSession")}</span>
         <Show when={(props.s.consoles ?? 1) > 1}>
           <span class="db-session-badge" title={tr("database.sessionsView.consolesUsingThisSession")}>
             <Users size={11} /> {props.s.consoles}
@@ -58,10 +58,10 @@ function SessionRow(props: { s: SessionInfo; now: number }) {
         <span>{props.s.transactions === false ? tr("database.sessionsView.txNone") : props.s.autoCommit ? tr("database.sessionsView.txAuto") : tr("database.sessionsView.txManual")}</span>
         <Show
           when={props.s.txOpen}
-          fallback={<span class="muted">{props.s.running ? "running" : "idle"} · open {since(props.s.openedAt, props.now)}</span>}
+          fallback={<span class="muted">{tr("tools.database.open", { value: props.s.running ? "running" : "idle", value2: since(props.s.openedAt, props.now) })}</span>}
         >
           <span class="db-session-tx">
-            transaction open · {props.s.txStatements ?? 0} statement{props.s.txStatements === 1 ? "" : "s"} · {since(props.s.txStartedAt, props.now)}
+            {tr("tools.database.transactionOpenStatements", { count: props.s.txStatements, value: props.s.txStatements ?? 0, value2: since(props.s.txStartedAt, props.now) })}
           </span>
         </Show>
       </div>

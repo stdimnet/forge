@@ -19,6 +19,7 @@ import { showToolWindow } from "@/state/layout";
 import { CoroutinesView } from "./CoroutinesView";
 import { isKotlinConfiguration } from "./runTypes";
 import { active } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Kotlin Debugger");
 
@@ -61,7 +62,7 @@ async function attachWhenListening(cfg: RunConfiguration, plan: KotlinDebugPlan,
       await attach(cfg, plan);
       return;
     } catch (e) {
-      if (attempt === 9) showBalloon(`Cannot attach the debugger to '${cfg.name}'`, String(e).replace(/^Error: /, ""), 8000);
+      if (attempt === 9) showBalloon(t("langs.kotlin.cannotAttachTheDebuggerTo", { name: cfg.name }), String(e).replace(/^Error: /, ""), 8000);
       await sleep(1000);
     }
   }
@@ -76,7 +77,7 @@ registerDebugLauncher({
     try {
       plan = await kotlinApi.debugPrepare(cfg);
     } catch (e) {
-      showBalloon(`Cannot debug '${cfg.name}'`, String(e).replace(/^Error: /, ""), 10000);
+      showBalloon(t("common.cannotDebug", { name: cfg.name }), String(e).replace(/^Error: /, ""), 10000);
       return;
     }
     showToolWindow("debug");
@@ -84,7 +85,7 @@ registerDebugLauncher({
       try {
         await attach(cfg, plan);
       } catch (e) {
-        showBalloon(`Cannot attach to ${plan.hostName}:${plan.jdwpPort}`, String(e).replace(/^Error: /, ""), 8000);
+        showBalloon(t("langs.kotlin.cannotAttachTo", { hostName: plan.hostName, jdwpPort: plan.jdwpPort }), String(e).replace(/^Error: /, ""), 8000);
       }
       return;
     }

@@ -9,6 +9,7 @@ import type { HookSummary } from "@/ipc/wordpress";
 import { revealSymbol } from "@/features/php/editorViews";
 import { describe, hooks, installStubs, loading, loadWordPress, wordpressInfo } from "./store";
 import { runWpCli } from "./wpcli";
+import { t } from "@/i18n";
 
 type KindFilter = "all" | "action" | "filter";
 
@@ -27,7 +28,7 @@ export function HooksView() {
     <div class="wp-panel">
       <Show
         when={wordpressInfo()}
-        fallback={<div class="placeholder-panel">{loading() ? "Indexing WordPress hooks…" : "No WordPress project detected."}</div>}
+        fallback={<div class="placeholder-panel">{loading() ? t("langs.wordpress.indexingWordpressHooksEllipsis") : t("langs.wordpress.noWordpressProjectDetected")}</div>}
       >
         {(info) => (
           <>
@@ -36,36 +37,36 @@ export function HooksView() {
                 <Search size={13} />
                 <input
                   type="text"
-                  placeholder="Filter hooks by name or file"
+                  placeholder={t("langs.wordpress.filterHooksByNameOr")}
                   value={filter()}
                   onInput={(e) => setFilter(e.currentTarget.value)}
                   spellcheck={false}
                 />
               </label>
-              <div class="wp-kinds" role="radiogroup" aria-label="Hook kind">
+              <div class="wp-kinds" role="radiogroup" aria-label={t("langs.wordpress.hookKind")}>
                 <For each={["all", "action", "filter"] as KindFilter[]}>
                   {(k) => (
                     <button role="radio" aria-checked={kind() === k} classList={{ "wp-kind": true, active: kind() === k }} onClick={() => setKind(k)}>
-                      {k === "all" ? "All" : k === "action" ? "Actions" : "Filters"}
+                      {k === "all" ? t("common.all") : k === "action" ? t("langs.wordpress.actions") : t("langs.wordpress.filters")}
                     </button>
                   )}
                 </For>
               </div>
               <span class="muted wp-count">{shown().length} hooks</span>
               <span class="wp-flex" />
-              <span class="wp-chip" title={info().wpCli ? `WP-CLI: ${info().wpCli!.path}` : "WP-CLI was not found in vendor/bin or on PATH"}>
-                WP-CLI: {info().wpCli ? (info().wpCli!.source === "project" ? info().wpCli!.path : "wp (PATH)") : "not found"}
+              <span class="wp-chip" title={info().wpCli ? `WP-CLI: ${info().wpCli!.path}` : t("langs.wordpress.wpCliWasNotFound")}>
+                {t("langs.wordpress.wpCli", { value: info().wpCli ? (info().wpCli!.source === "project" ? info().wpCli!.path : t("langs.wordpress.wpPath")) : t("common.notFound") })}
               </span>
               <Show
                 when={info().stubs}
                 fallback={
-                  <button class="link-btn wp-chip" title="composer require --dev php-stubs/wordpress-stubs" onClick={() => void installStubs()}>
-                    <Package size={12} /> Install stubs…
+                  <button class="link-btn wp-chip" title={t("langs.wordpress.composerRequireDevPhpStubs")} onClick={() => void installStubs()}>
+                    <Package size={12} /> {t("langs.wordpress.installStubsEllipsis")}
                   </button>
                 }
               >
                 <span class="wp-chip" title={info().stubs}>
-                  <Package size={12} /> Stubs installed
+                  <Package size={12} /> {t("langs.wordpress.stubsInstalled")}
                 </span>
               </Show>
             </div>
@@ -73,11 +74,11 @@ export function HooksView() {
               <table class="wp-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "38%" }}>Hook</th>
-                    <th style={{ width: "9%" }}>Kind</th>
-                    <th style={{ width: "10%" }}>Callbacks</th>
-                    <th style={{ width: "9%" }}>Fired</th>
-                    <th>Fired in</th>
+                    <th style={{ width: "38%" }}>{t("langs.wordpress.hook")}</th>
+                    <th style={{ width: "9%" }}>{t("langs.wordpress.kind")}</th>
+                    <th style={{ width: "10%" }}>{t("langs.wordpress.callbacks")}</th>
+                    <th style={{ width: "9%" }}>{t("langs.wordpress.fired")}</th>
+                    <th>{t("langs.wordpress.firedIn")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -98,7 +99,7 @@ export function HooksView() {
                         <td>{h.registrations || ""}</td>
                         <td>{h.invocations || ""}</td>
                         <td class="muted wp-ellipsis">
-                          {h.invocations ? `${h.location.path}:${h.location.line + 1}` : h.summary ? "WordPress core" : "—"}
+                          {h.invocations ? `${h.location.path}:${h.location.line + 1}` : h.summary ? t("langs.wordpress.wordpressCore") : "—"}
                         </td>
                       </tr>
                     )}
@@ -107,7 +108,7 @@ export function HooksView() {
               </table>
             </div>
             <div class="wp-footer muted">
-              {describe(info())} · {info().hooks} hook references in {info().files} PHP files{info().core ? " (WordPress core included)" : ""}
+              {t("langs.wordpress.hookReferencesInPhpFiles", { value: describe(info()), hooks: info().hooks, files: info().files, value2: info().core ? t("langs.wordpress.wordpressCoreIncluded") : "" })}
             </div>
           </>
         )}
@@ -119,10 +120,10 @@ export function HooksView() {
 export function HooksActions() {
   return (
     <>
-      <button class="icon-btn" title="WP-CLI…" onClick={() => runWpCli()}>
+      <button class="icon-btn" title={t("langs.wordpress.wpCliEllipsis")} onClick={() => runWpCli()}>
         <Play size={14} />
       </button>
-      <button class="icon-btn" classList={{ spinning: loading() }} title="Refresh" onClick={() => void loadWordPress(true)}>
+      <button class="icon-btn" classList={{ spinning: loading() }} title={t("common.refresh")} onClick={() => void loadWordPress(true)}>
         <RefreshCw size={14} />
       </button>
     </>

@@ -9,6 +9,7 @@ import { runToolsApi, type HistoryEntry, type RunAnythingAction } from "@/ipc/ru
 import { balloonsFor } from "@/keymap";
 import { debugConfiguration, launch, runConfiguration } from "@/features/run";
 import { findConfiguration, useTemporary } from "@/features/run/configStore";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Run Anything");
 
@@ -37,7 +38,7 @@ export async function execute(action: RunAnythingAction, debug: boolean): Promis
   if (action.kind === "configuration") {
     const cfg = findConfiguration(action.name);
     if (!cfg) {
-      showBalloon(`Configuration '${action.name}' not found`);
+      showBalloon(t("tools.runAnything.configurationNotFound", { name: action.name }));
       return;
     }
     void remember({ command: action.name, configuration: true });
@@ -48,7 +49,7 @@ export async function execute(action: RunAnythingAction, debug: boolean): Promis
   try {
     cfg = await runToolsApi.resolve(action.command, action.cwd);
   } catch (err) {
-    showBalloon("Cannot run command", String(err));
+    showBalloon(t("tools.runAnything.cannotRunCommand"), String(err));
     return;
   }
   void remember({ command: action.command, cwd: action.cwd || undefined });

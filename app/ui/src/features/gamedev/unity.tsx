@@ -89,10 +89,10 @@ export async function connectUnity(quiet = false): Promise<boolean> {
     setPlayMode(w.playMode);
     setCompiling(w.compiling);
     setStatus((s) => (s ? { ...s, connected: true, welcome: w, bridgeAvailable: true } : s));
-    if (!quiet) showBalloon(`Connected to Unity ${w.unityVersion}`, "", 3000);
+    if (!quiet) showBalloon(t("langs.gamedev.connectedToUnity", { unityVersion: w.unityVersion }), "", 3000);
     return true;
   } catch (e) {
-    if (!quiet) showBalloon("Cannot connect to Unity", errorText(e), 8000, bridgeActions());
+    if (!quiet) showBalloon(t("langs.gamedev.cannotConnectToUnity"), errorText(e), 8000, bridgeActions());
     return false;
   } finally {
     setConnecting(false);
@@ -103,8 +103,8 @@ export async function sendUnity(command: BridgeCommand): Promise<void> {
   if (!unityConnected() && !(await connectUnity())) return;
   try {
     const ack = await unityApi.send(command);
-    if (!ack.ok) showBalloon(`Unity could not ${command === "syncSolution" ? "regenerate the project files" : command}`, ack.message ?? "", 8000);
-    else if (command === "syncSolution") showBalloon("Project files regenerated", ack.message ?? "", 4000);
+    if (!ack.ok) showBalloon(t("langs.gamedev.unityCouldNot", { value: command === "syncSolution" ? "regenerate the project files" : command }), ack.message ?? "", 8000);
+    else if (command === "syncSolution") showBalloon(t("langs.gamedev.projectFilesRegenerated"), ack.message ?? "", 4000);
   } catch (e) {
     showBalloon(`Unity: ${command}`, errorText(e), 6000);
   }
@@ -114,22 +114,22 @@ export async function sendUnity(command: BridgeCommand): Promise<void> {
 export async function installBridge(): Promise<void> {
   const s = status() ?? (await unityApi.status().catch(() => null));
   if (!s?.project) {
-    showBalloon("Not a Unity project", "The project has no ProjectSettings/ProjectVersion.txt.", 5000);
+    showBalloon(t("langs.gamedev.notAUnityProject"), t("langs.gamedev.theProjectHasNoProjectsettings"), 5000);
     return;
   }
   const update = s.project.bridge.kind !== "none";
   const ok = await askConfirm({
-    title: update ? "Update the Forge Editor Bridge" : "Install the Forge Editor Bridge",
-    message: `Forge will copy its editor bridge package (dev.forge.unity ${s.bundledBridge}, MIT, C# source) into Packages/dev.forge.unity. Unity compiles it the next time it has focus. The bridge listens on 127.0.0.1 only and lets Forge play, pause and stop the game, refresh assets, show Unity's console and open scripts from Unity.`,
-    confirm: update ? "Update" : "Install",
+    title: update ? t("langs.gamedev.updateTheForgeEditorBridge") : t("langs.gamedev.installTheForgeEditorBridge"),
+    message: t("langs.gamedev.forgeWillCopyItsEditor", { bundledBridge: s.bundledBridge }),
+    confirm: update ? t("common.update") : t("common.install"),
   });
   if (!ok) return;
   try {
     await unityApi.installBridge();
     await refetchStatus();
-    showBalloon("Forge Editor Bridge installed", "Switch to Unity to compile it, then choose Forge in Preferences | External Tools | External Script Editor.", 10000);
+    showBalloon(t("langs.gamedev.forgeEditorBridgeInstalled"), t("langs.gamedev.switchToUnityToCompile"), 10000);
   } catch (e) {
-    showBalloon("Cannot install the editor bridge", errorText(e), 8000);
+    showBalloon(t("langs.gamedev.cannotInstallTheEditorBridge"), errorText(e), 8000);
   }
 }
 
@@ -140,7 +140,7 @@ export async function startUnity(): Promise<void> {
     void runCommandLine(cmd, "Unity Editor");
     setTimeout(() => void refetchStatus(), 4000);
   } catch (e) {
-    showBalloon("Cannot start Unity", errorText(e), 8000);
+    showBalloon(t("langs.gamedev.cannotStartUnity"), errorText(e), 8000);
   }
 }
 
@@ -150,18 +150,18 @@ export async function syncSolution(): Promise<void> {
   try {
     const cmd = await unityApi.command("syncSolution");
     const code = await runCommandLine(cmd, "Regenerate Project Files");
-    if (code === 0) showBalloon("Project files regenerated", "", 4000);
+    if (code === 0) showBalloon(t("langs.gamedev.projectFilesRegenerated"), "", 4000);
     void refetchStatus();
   } catch (e) {
-    showBalloon("Cannot regenerate the project files", errorText(e), 10000, bridgeActions());
+    showBalloon(t("langs.gamedev.cannotRegenerateTheProjectFiles"), errorText(e), 10000, bridgeActions());
   }
 }
 
 function bridgeActions() {
   const s = status();
   if (!s?.project) return [];
-  if (s.project.bridge.kind === "none") return [{ label: "Install Editor Bridge…", run: () => void installBridge() }];
-  if (!s.editorRunning) return [{ label: "Start Unity", run: () => void startUnity() }];
+  if (s.project.bridge.kind === "none") return [{ label: t("langs.gamedev.installEditorBridgeEllipsis"), run: () => void installBridge() }];
+  if (!s.editorRunning) return [{ label: t("langs.gamedev.startUnity"), run: () => void startUnity() }];
   return [];
 }
 
@@ -177,7 +177,7 @@ async function attach(port: number, host?: string, name?: string): Promise<void>
     showToolWindow("debug");
     await dapApi.start(request);
   } catch (e) {
-    showBalloon("Cannot attach to Unity", errorText(e), 12000);
+    showBalloon(t("langs.gamedev.cannotAttachToUnity"), errorText(e), 12000);
   }
 }
 
@@ -189,10 +189,10 @@ function AttachDialog() {
   return (
     <div class="popup-backdrop modal" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div class="dialog gd-attach" role="dialog" data-testid="unity-attach">
-        <div class="dialog-title">Attach to Unity Process</div>
+        <div class="dialog-title">{t("langs.gamedev.attachToUnityProcess")}</div>
         <div class="dialog-body">
           <div class="gd-attach-list">
-            <For each={list() ?? []} fallback={<div class="muted gd-pad">{list.loading ? "Looking for Unity editors…" : "No Unity editor is running"}</div>}>
+            <For each={list() ?? []} fallback={<div class="muted gd-pad">{list.loading ? t("langs.gamedev.lookingForUnityEditorsEllipsis") : t("langs.gamedev.noUnityEditorIsRunning")}</div>}>
               {(p) => (
                 <button class="gd-attach-row" onClick={() => void attach(p.debugPort, "127.0.0.1", `Unity Editor (${p.pid})`)}>
                   <Box size={14} />
@@ -200,7 +200,7 @@ function AttachDialog() {
                   <span class="muted">pid {p.pid}</span>
                   <span class="muted gd-attach-project">{p.project ?? ""}</span>
                   <Show when={p.thisProject}>
-                    <span class="gd-badge">this project</span>
+                    <span class="gd-badge">{t("langs.gamedev.thisProject")}</span>
                   </Show>
                   <span class="mono gd-attach-port">:{p.debugPort}</span>
                 </button>
@@ -208,20 +208,20 @@ function AttachDialog() {
             </For>
           </div>
           <div class="gd-attach-manual">
-            <label class="form-label">Player or other host</label>
+            <label class="form-label">{t("langs.gamedev.playerOrOtherHost")}</label>
             <input class="mono" value={host()} onInput={(e) => setHost(e.currentTarget.value)} />
             <input class="mono gd-port" placeholder="56000" value={port()} onInput={(e) => setPort(e.currentTarget.value)} />
             <button class="btn-secondary" disabled={!/^\d+$/.test(port())} onClick={() => void attach(Number(port()), host())}>
-              Attach
+              {t("langs.gamedev.attach")}
             </button>
           </div>
           <p class="muted gd-note">
-            Unity's debugger is Mono's soft debugger, not the Debug Adapter Protocol. Attaching needs a Mono debug adapter in Settings | Languages &amp; Frameworks | .NET | Unity, and the editor in Debug mode (Code Optimization On Startup: Debug).
+            {t("langs.gamedev.unitySDebuggerIsMono")}
           </p>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -271,55 +271,55 @@ function UnityToolWindow() {
   return (
     <div class="gd-tw" data-testid="unity-window">
       <div class="gd-toolbar">
-        <button class="icon-btn" classList={{ active: playMode() !== "edit" }} title="Play" disabled={!connected()} onClick={() => void sendUnity(playMode() === "edit" ? "play" : "stop")} data-testid="unity-play">
+        <button class="icon-btn" classList={{ active: playMode() !== "edit" }} title={t("langs.gamedev.play")} disabled={!connected()} onClick={() => void sendUnity(playMode() === "edit" ? "play" : "stop")} data-testid="unity-play">
           <Play size={14} />
         </button>
-        <button class="icon-btn" classList={{ active: playMode() === "paused" }} title="Pause" disabled={!connected()} onClick={() => void sendUnity(playMode() === "paused" ? "resume" : "pause")}>
+        <button class="icon-btn" classList={{ active: playMode() === "paused" }} title={t("langs.gamedev.pause")} disabled={!connected()} onClick={() => void sendUnity(playMode() === "paused" ? "resume" : "pause")}>
           <Pause size={14} />
         </button>
-        <button class="icon-btn" title="Step" disabled={!connected() || playMode() === "edit"} onClick={() => void sendUnity("step")}>
+        <button class="icon-btn" title={t("langs.gamedev.step")} disabled={!connected() || playMode() === "edit"} onClick={() => void sendUnity("step")}>
           <StepForward size={14} />
         </button>
-        <button class="icon-btn" title="Stop" disabled={!connected() || playMode() === "edit"} onClick={() => void sendUnity("stop")}>
+        <button class="icon-btn" title={t("common.stop")} disabled={!connected() || playMode() === "edit"} onClick={() => void sendUnity("stop")}>
           <Square size={13} />
         </button>
         <span class="gd-sep" />
-        <button class="icon-btn" title="Refresh Assets" disabled={!connected()} onClick={() => void sendUnity("refresh")}>
+        <button class="icon-btn" title={t("langs.gamedev.refreshAssets")} disabled={!connected()} onClick={() => void sendUnity("refresh")}>
           <RefreshCw size={14} class={compiling() ? "gd-spin" : undefined} />
         </button>
-        <button class="icon-btn" title="Regenerate Project Files" onClick={() => void syncSolution()}>
+        <button class="icon-btn" title={t("langs.gamedev.regenerateProjectFiles")} onClick={() => void syncSolution()}>
           <FileCog size={14} />
         </button>
         <span class="gd-sep" />
-        <button class="icon-btn" title="Clear" onClick={() => (setEntries([]), setSelected(null))}>
+        <button class="icon-btn" title={t("common.clear")} onClick={() => (setEntries([]), setSelected(null))}>
           <Trash2 size={14} />
         </button>
-        <button class="gd-filter gd-error" classList={{ off: !show().error }} title="Errors" onClick={() => toggle("error")}>
+        <button class="gd-filter gd-error" classList={{ off: !show().error }} title={t("langs.gamedev.errors")} onClick={() => toggle("error")}>
           <CircleX size={13} /> {counts().error}
         </button>
-        <button class="gd-filter gd-warning" classList={{ off: !show().warning }} title="Warnings" onClick={() => toggle("warning")}>
+        <button class="gd-filter gd-warning" classList={{ off: !show().warning }} title={t("langs.gamedev.warnings")} onClick={() => toggle("warning")}>
           <TriangleAlert size={13} /> {counts().warning}
         </button>
-        <button class="gd-filter" classList={{ off: !show().log }} title="Messages" onClick={() => toggle("log")}>
+        <button class="gd-filter" classList={{ off: !show().log }} title={t("langs.gamedev.messages")} onClick={() => toggle("log")}>
           <Info size={13} /> {counts().log}
         </button>
-        <input class="gd-search" placeholder="Search" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
+        <input class="gd-search" placeholder={t("langs.gamedev.search")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
         <span class="gd-spacer" />
         <Show
           when={connected()}
           fallback={
-            <button class="gd-conn" onClick={() => void connectUnity()} disabled={connecting()} title="Connect to the Forge editor bridge in Unity">
-              <Unplug size={13} /> {connecting() ? "Connecting…" : "Connect"}
+            <button class="gd-conn" onClick={() => void connectUnity()} disabled={connecting()} title={t("langs.gamedev.connectToTheForgeEditor")}>
+              <Unplug size={13} /> {connecting() ? t("langs.gamedev.connectingEllipsis") : t("langs.gamedev.connect")}
             </button>
           }
         >
           <span class="gd-conn on" title={s()?.welcome?.projectPath ?? ""} data-testid="unity-connected">
             <PlugZap size={13} /> Unity {s()?.welcome?.unityVersion}
             <Show when={playMode() !== "edit"}>
-              <span class="gd-badge">{playMode() === "paused" ? "Paused" : "Playing"}</span>
+              <span class="gd-badge">{playMode() === "paused" ? t("langs.gamedev.paused") : t("langs.gamedev.playing")}</span>
             </Show>
             <Show when={compiling()}>
-              <span class="gd-badge">Compiling</span>
+              <span class="gd-badge">{t("langs.gamedev.compiling")}</span>
             </Show>
           </span>
         </Show>
@@ -365,42 +365,42 @@ function UnityIntro() {
   const s = () => status();
   return (
     <div class="gd-intro" data-testid="unity-intro">
-      <Show when={s()?.project} fallback={<div class="muted">Open a Unity project to use this tool window.</div>}>
+      <Show when={s()?.project} fallback={<div class="muted">{t("langs.gamedev.openAUnityProjectTo")}</div>}>
         {(p) => (
           <>
             <div class="gd-intro-title">
-              <Plug size={16} /> Not connected to the Unity editor
+              <Plug size={16} /> {t("langs.gamedev.notConnectedToTheUnity")}
             </div>
             <div class="gd-intro-grid">
-              <span class="muted">Project version</span>
+              <span class="muted">{t("langs.gamedev.projectVersion")}</span>
               <span>Unity {p().version}</span>
-              <span class="muted">Editor</span>
-              <span>{s()?.editor ? `${s()!.editor!.version}${s()!.exact ? "" : " (closest installed)"} — ${s()!.editor!.path}` : "Not installed: install it with the Unity Hub"}</span>
-              <span class="muted">Editor bridge</span>
-              <span>{p().bridge.kind === "none" ? "Not installed" : `dev.forge.unity ${p().bridge.version ?? ""}${p().bridge.update ? " (an update is available)" : ""}`}</span>
+              <span class="muted">{t("langs.gamedev.editor")}</span>
+              <span>{s()?.editor ? `${s()!.editor!.version}${s()!.exact ? "" : " (closest installed)"} — ${s()!.editor!.path}` : t("langs.gamedev.notInstalledInstallItWith")}</span>
+              <span class="muted">{t("langs.gamedev.editorBridge")}</span>
+              <span>{p().bridge.kind === "none" ? t("common.notInstalled") : `dev.forge.unity ${p().bridge.version ?? ""}${p().bridge.update ? " (an update is available)" : ""}`}</span>
               <span class="muted">Unity</span>
-              <span>{s()?.editorRunning ? `Running (process ${s()!.editorRunning})` : "Not running"}</span>
+              <span>{s()?.editorRunning ? t("langs.gamedev.runningProcess", { editorRunning: s()!.editorRunning }) : t("langs.gamedev.notRunning")}</span>
             </div>
             <div class="gd-intro-actions">
               <Show when={p().bridge.kind === "none" || p().bridge.update}>
                 <button class="btn-primary" onClick={() => void installBridge()} data-testid="unity-install-bridge">
-                  {p().bridge.kind === "none" ? "Install Editor Bridge…" : "Update Editor Bridge…"}
+                  {p().bridge.kind === "none" ? t("langs.gamedev.installEditorBridgeEllipsis") : t("langs.gamedev.updateEditorBridgeEllipsis")}
                 </button>
               </Show>
               <Show when={!s()?.editorRunning && s()?.editor}>
                 <button class="btn-secondary" onClick={() => void startUnity()}>
-                  Start Unity
+                  {t("langs.gamedev.startUnity")}
                 </button>
               </Show>
               <Show when={s()?.bridgeAvailable}>
                 <button class="btn-secondary" onClick={() => void connectUnity()}>
-                  Connect
+                  {t("langs.gamedev.connect")}
                 </button>
               </Show>
             </div>
             <Show when={p().csprojects.length === 0}>
               <div class="muted gd-note">
-                There are no project files yet: C# code insight needs the .sln / .csproj files Unity's IDE packages write. Use Regenerate Project Files, or open the project in Unity with Forge as its external script editor.
+                {t("langs.gamedev.thereAreNoProjectFiles")}
               </div>
             </Show>
           </>
@@ -432,7 +432,7 @@ const inScope = (...list: string[]) => (cfg: { options?: Record<string, string> 
 registerRunConfigurationType({
   id: "unity-test",
   name: "Unity Tests",
-  description: "Run Unity Test Framework tests (Edit Mode or Play Mode) in batch mode; results from the NUnit report. Unity must not have the project open.",
+  description: t("langs.gamedev.runUnityTestFrameworkTests"),
   icon: FlaskConical,
   color: "var(--success)",
   pluginId: UNITY_PLUGIN,
@@ -442,32 +442,32 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test scope",
+      label: t("common.testScope"),
       kind: "segmented",
       default: "all",
       options: [
-        { value: "all", label: "All" },
-        { value: "class", label: "Class" },
-        { value: "method", label: "Method" },
-        { value: "filter", label: "Filter" },
+        { value: "all", label: t("common.all") },
+        { value: "class", label: t("common.class") },
+        { value: "method", label: t("common.method") },
+        { value: "filter", label: t("common.filter") },
       ],
     },
-    { key: "class", label: "Class", required: true, placeholder: "Shooter.Tests.PlayerTests", visible: inScope("class", "method") },
-    { key: "method", label: "Method", required: true, placeholder: "Jump_SetsVelocity", visible: inScope("method") },
-    { key: "filter", label: "Filter", required: true, placeholder: "a test name or a regular expression", visible: inScope("filter") },
+    { key: "class", label: t("common.class"), required: true, placeholder: t("langs.gamedev.shooterTestsPlayertests"), visible: inScope("class", "method") },
+    { key: "method", label: t("common.method"), required: true, placeholder: t("langs.gamedev.jumpSetsvelocity"), visible: inScope("method") },
+    { key: "filter", label: t("common.filter"), required: true, placeholder: "a test name or a regular expression", visible: inScope("filter") },
     {
       key: "platform",
-      label: "Test platform",
+      label: t("langs.gamedev.testPlatform"),
       kind: "enum",
       default: "",
       options: [
-        { value: "", label: "Settings | Unity (Edit Mode)" },
-        { value: "EditMode", label: "Edit Mode" },
-        { value: "PlayMode", label: "Play Mode" },
+        { value: "", label: t("langs.gamedev.settingsUnityEditMode") },
+        { value: "EditMode", label: t("langs.gamedev.editMode") },
+        { value: "PlayMode", label: t("langs.gamedev.playMode") },
       ],
     },
-    { key: "category", label: "Categories", placeholder: "Fast;Physics" },
-    { key: "assemblies", label: "Assemblies", placeholder: "Shooter.Tests.EditMode" },
+    { key: "category", label: t("langs.gamedev.categories"), placeholder: t("langs.gamedev.fastPhysics") },
+    { key: "assemblies", label: t("langs.gamedev.assemblies"), placeholder: t("langs.gamedev.shooterTestsEditmode") },
   ],
   suggestName: (cfg) => {
     switch (scope(cfg)) {
@@ -487,7 +487,7 @@ registerRunConfigurationType({
 
 const needsUnity = (run: () => void) => () => {
   if (!unityActive()) {
-    showBalloon("Not a Unity project", "Open a folder with ProjectSettings/ProjectVersion.txt, or enable the Unity plugin.", 5000);
+    showBalloon(t("langs.gamedev.notAUnityProject"), t("langs.gamedev.openAFolderWithProjectsettings"), 5000);
     return;
   }
   run();
@@ -571,8 +571,8 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           onCleanup(() => clearInterval(timer));
           void Promise.resolve(refetchStatus()).then((s) => {
             if (s?.project && !s.remote && s.project.bridge.kind === "none")
-              showBalloon("Unity project", "Install the Forge editor bridge to play, pause and stop the game, see Unity's console and open scripts from Unity.", 12000, [
-                { label: "Install Editor Bridge…", run: () => void installBridge() },
+              showBalloon(t("langs.gamedev.unityProject"), t("langs.gamedev.installTheForgeEditorBridge2"), 12000, [
+                { label: t("langs.gamedev.installEditorBridgeEllipsis"), run: () => void installBridge() },
               ]);
           });
         },

@@ -20,9 +20,10 @@ import {
   refreshColorSchemes,
   schemeNameProblem,
 } from "./store";
+import { t } from "@/i18n";
 
 const ask = (title: string, initial: string, confirm: string, except?: string) =>
-  askName({ title, label: "Name:", initial, confirm, validate: (n) => schemeNameProblem(n, except) });
+  askName({ title, label: t("common.nameLabel"), initial, confirm, validate: (n) => schemeNameProblem(n, except) });
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -55,9 +56,9 @@ async function importScheme(): Promise<void> {
       if (text === null) return;
       await importColorScheme({ text });
     }
-    showBalloon(`Scheme "${colorSchemes()?.active ?? ""}" imported`);
+    showBalloon(t("tools.colorScheme.schemeImported", { value: colorSchemes()?.active ?? "" }));
   } catch (e) {
-    showBalloon("Import failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("common.importFailed"), message(e), 6000, undefined, { type: "error" });
   }
 }
 
@@ -69,7 +70,7 @@ async function exportScheme(name: string): Promise<void> {
       const path = await save({ defaultPath: file, filters: [ICLS] });
       if (!path) return;
       await colorSchemeApi.export(name, path);
-      showBalloon(`Scheme "${name}" exported`, path);
+      showBalloon(t("tools.colorScheme.schemeExported", { name }), path);
       return;
     }
     const text = await colorSchemeApi.export(name);
@@ -79,9 +80,9 @@ async function exportScheme(name: string): Promise<void> {
     a.download = file;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon(`Scheme "${name}" exported`, file);
+    showBalloon(t("tools.colorScheme.schemeExported", { name }), file);
   } catch (e) {
-    showBalloon("Export failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("common.exportFailed"), message(e), 6000, undefined, { type: "error" });
   }
 }
 
@@ -105,7 +106,7 @@ function schemeMenu(): MenuEntry[] {
       item("Rename…", () => withName("Rename Scheme", name, "Rename", (n) => changeColorScheme({ op: "rename", scheme: name, name: n }), name)),
       item("Restore Defaults", () => void changeColorScheme({ op: "resetAll" }), undefined, { disabled: !s.modifiedCount }),
       item("Delete", () => {
-        void askConfirm({ title: "Delete Scheme", message: `Delete the color scheme "${name}"?`, confirm: "Delete" }).then((ok) => {
+        void askConfirm({ title: t("tools.colorScheme.deleteScheme"), message: t("tools.colorScheme.deleteTheColorScheme", { name }), confirm: t("common.delete") }).then((ok) => {
           if (ok) void changeColorScheme({ op: "delete", scheme: name });
         });
       }),
@@ -176,17 +177,17 @@ function AttributeEditor(props: { attr: AttributeView }) {
         <div class="csch-font">
           <label class="set-check">
             <input type="checkbox" checked={!!value().bold} disabled={disabled()} onChange={(e) => set({ bold: e.currentTarget.checked })} />
-            <span>Bold</span>
+            <span>{t("tools.colorScheme.bold")}</span>
           </label>
           <label class="set-check">
             <input type="checkbox" checked={!!value().italic} disabled={disabled()} onChange={(e) => set({ italic: e.currentTarget.checked })} />
-            <span>Italic</span>
+            <span>{t("tools.colorScheme.italic")}</span>
           </label>
         </div>
       </Show>
       <Show when={f().foreground}>
         <ColorRow
-          label="Foreground"
+          label={t("tools.colorScheme.foreground")}
           value={value().foreground}
           fallback={props.attr.parentValue.foreground ?? text()?.foreground ?? "#808080"}
           disabled={disabled()}
@@ -195,7 +196,7 @@ function AttributeEditor(props: { attr: AttributeView }) {
       </Show>
       <Show when={f().background}>
         <ColorRow
-          label="Background"
+          label={t("tools.colorScheme.background")}
           value={value().background}
           fallback={props.attr.parentValue.background ?? text()?.background ?? "#808080"}
           disabled={disabled()}
@@ -204,7 +205,7 @@ function AttributeEditor(props: { attr: AttributeView }) {
       </Show>
       <Show when={f().effect}>
         <ColorRow
-          label="Effects"
+          label={t("tools.colorScheme.effects")}
           value={value().effect ? (value().effectColor ?? value().foreground ?? text()?.foreground) : undefined}
           fallback={value().foreground ?? text()?.foreground ?? "#808080"}
           disabled={disabled()}
@@ -212,7 +213,7 @@ function AttributeEditor(props: { attr: AttributeView }) {
         />
         <div class="select-wrap csch-effect">
           <select
-            aria-label="Effect"
+            aria-label={t("tools.colorScheme.effect")}
             value={value().effect ?? "underline"}
             disabled={disabled() || !value().effect}
             onChange={(e) => set({ effect: e.currentTarget.value as Effect })}
@@ -227,16 +228,16 @@ function AttributeEditor(props: { attr: AttributeView }) {
           when={editable()}
           fallback={
             <>
-              <span>Bundled schemes cannot be changed.</span>
+              <span>{t("tools.colorScheme.bundledSchemesCannotBeChanged")}</span>
               <button class="link-btn" onClick={() => duplicate(s()?.active ?? "")}>
-                <Copy size={12} /> Duplicate…
+                <Copy size={12} /> {t("tools.colorScheme.duplicateEllipsis")}
               </button>
             </>
           }
         >
-          <Show when={!props.attr.inherited} fallback={<span>Inherited from {s()?.base}</span>}>
+          <Show when={!props.attr.inherited} fallback={<span>{t("tools.colorScheme.inheritedFrom", { base: s()?.base })}</span>}>
             <button class="link-btn" onClick={() => void changeColorScheme({ op: "setAttribute", key: props.attr.key })}>
-              <RotateCcw size={12} /> Reset to {s()?.base}
+              <RotateCcw size={12} /> {t("tools.colorScheme.resetTo", { base: s()?.base })}
             </button>
           </Show>
         </Show>
@@ -313,7 +314,7 @@ export function ColorSchemePage() {
     <div class="color-scheme-page">
       <div class="csch-top">
         <label class="form-label" for="csch-scheme">
-          Scheme:
+          {t("tools.colorScheme.schemeLabel")}
         </label>
         <div class="select-wrap">
           <select
@@ -324,7 +325,7 @@ export function ColorSchemePage() {
             <option value="">{followLabel()}</option>
             <For each={(s()?.schemes ?? []).filter((x) => x.bundled)}>{(x) => <option value={x.name}>{x.name}</option>}</For>
             <Show when={(s()?.schemes ?? []).some((x) => !x.bundled)}>
-              <optgroup label="Custom">
+              <optgroup label={t("tools.colorScheme.custom")}>
                 <For each={(s()?.schemes ?? []).filter((x) => !x.bundled)}>{(x) => <option value={x.name}>{x.name}</option>}</For>
               </optgroup>
             </Show>
@@ -333,7 +334,7 @@ export function ColorSchemePage() {
         </div>
         <button
           class="icon-btn"
-          title="Show Scheme Actions"
+          title={t("tools.colorScheme.showSchemeActions")}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             showContextMenu(schemeMenu(), r.left, r.bottom + 2);
@@ -342,14 +343,14 @@ export function ColorSchemePage() {
           <Settings size={15} />
         </button>
         <Show when={s() && !s()!.schemes.find((x) => x.name === s()!.active)?.bundled}>
-          <span class="muted csch-based">Based on {s()?.base}</span>
+          <span class="muted csch-based">{t("tools.colorScheme.basedOn", { base: s()?.base })}</span>
         </Show>
         <Show when={s()?.modifiedCount}>
           <span class="muted csch-based">{s()?.modifiedCount} changed</span>
         </Show>
       </div>
       <div class="csch-main">
-        <div class="csch-list" role="listbox" aria-label="Attributes">
+        <div class="csch-list" role="listbox" aria-label={t("tools.colorScheme.attributes")}>
           <For each={groups()}>
             {(g) => (
               <>

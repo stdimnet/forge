@@ -24,6 +24,7 @@ import { openFile } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import type { ToolBlock } from "./model";
 import { DiffDialog, DiffView } from "./DiffView";
+import { t as tr } from "@/i18n";
 
 type Icon = Component<{ size?: number; "stroke-width"?: number }>;
 
@@ -68,7 +69,7 @@ function Output(props: { text: string; lines?: number; error?: boolean }) {
       <pre>{(all() ? lines() : lines().slice(0, max())).join("\n") || "(no output)"}</pre>
       <Show when={!all() && lines().length > max()}>
         <button class="chat-link-btn" onClick={() => setAll(true)}>
-          Show all {lines().length} lines
+          {tr("tools.aiChat.showAllLines", { count: lines().length })}
         </button>
       </Show>
     </div>
@@ -77,7 +78,7 @@ function Output(props: { text: string; lines?: number; error?: boolean }) {
 
 function ResultBody(props: { block: ToolBlock }) {
   return (
-    <Show when={props.block.result !== undefined} fallback={<div class="chat-tool-pending">Waiting for result…</div>}>
+    <Show when={props.block.result !== undefined} fallback={<div class="chat-tool-pending">{tr("tools.aiChat.waitingForResultEllipsis")}</div>}>
       <Output text={props.block.result ?? ""} error={props.block.status === "error"} />
     </Show>
   );
@@ -98,11 +99,11 @@ function EditBody(props: { block: ToolBlock }) {
       <div class="chat-tool-actions">
         <button class="chat-mini-btn" onClick={() => setOpen(true)}>
           <FileDiff size={13} />
-          <span>Open diff</span>
+          <span>{tr("tools.aiChat.openDiff")}</span>
         </button>
         <button class="chat-mini-btn" onClick={() => void openFile(path()).catch(() => undefined)}>
           <FileText size={13} />
-          <span>Open file</span>
+          <span>{tr("tools.aiChat.openFile")}</span>
         </button>
       </div>
       <Show when={open()}>

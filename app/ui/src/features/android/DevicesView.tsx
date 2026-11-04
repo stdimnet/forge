@@ -14,6 +14,7 @@ import { useTemporary } from "@/features/run/configStore";
 import { launch } from "@/features/run/runStore";
 import { devicesSnapshot, loadingDevices, refreshDevices, startLogcat } from "./store";
 import { APP } from "./runTypes";
+import { t } from "@/i18n";
 import "./android.css";
 
 const STATES: Record<string, string> = {
@@ -45,20 +46,20 @@ export function DevicesView() {
   const start = async (avd: string) => {
     try {
       await androidApi.startEmulator(avd);
-      showBalloon(`Starting ${avd.replace(/_/g, " ")}`, "The emulator window opens when it has booted; Refresh lists it.", 5000);
+      showBalloon(`Starting ${avd.replace(/_/g, " ")}`, t("langs.android.theEmulatorWindowOpensWhen"), 5000);
       setTimeout(() => void refreshDevices(), 4000);
     } catch (e) {
-      showBalloon("The emulator could not be started", String(e).replace(/^Error: /, ""));
+      showBalloon(t("langs.android.theEmulatorCouldNotBe"), String(e).replace(/^Error: /, ""));
     }
   };
   return (
     <div class="android-devices" data-testid="android-devices">
       <div class="java-toolbar">
-        <button class="icon-btn" title="Refresh" data-testid="android-refresh" disabled={loadingDevices()} onClick={() => void refreshDevices()}>
+        <button class="icon-btn" title={t("common.refresh")} data-testid="android-refresh" disabled={loadingDevices()} onClick={() => void refreshDevices()}>
           <RefreshCw size={14} />
         </button>
         <span class="java-toolbar-sep" />
-        <button class="icon-btn" title="Android SDK Settings" onClick={() => openSettings("lang.android")}>
+        <button class="icon-btn" title={t("langs.android.androidSdkSettings")} onClick={() => openSettings("lang.android")}>
           <Settings size={14} />
         </button>
       </div>
@@ -74,8 +75,8 @@ export function DevicesView() {
           <span>{snap()!.error}</span>
         </div>
       </Show>
-      <div class="android-section">Devices</div>
-      <Show when={snap()?.devices.length} fallback={<div class="muted android-empty">{snap()?.adb ? "No devices. Start an emulator below or connect a device with USB debugging." : ""}</div>}>
+      <div class="android-section">{t("langs.android.devices")}</div>
+      <Show when={snap()?.devices.length} fallback={<div class="muted android-empty">{snap()?.adb ? t("langs.android.noDevicesStartAnEmulator") : ""}</div>}>
         <For each={snap()!.devices}>
           {(d) => (
             <div class="android-device-row" data-serial={d.serial}>
@@ -84,7 +85,7 @@ export function DevicesView() {
                 <span class="android-device-name">{name(d)}</span>
                 <span class="muted android-device-detail">
                   {d.serial}
-                  {d.usb ? ` · usb ${d.usb}` : ""}
+                  {d.usb ? t("langs.android.usb", { usb: d.usb }) : ""}
                   {d.product && !d.emulator ? ` · ${d.product}` : ""}
                 </span>
               </div>
@@ -94,32 +95,32 @@ export function DevicesView() {
               <button class="icon-btn" title="Logcat" disabled={d.state !== "device"} onClick={() => openLogcat(d.serial)}>
                 <ScrollText size={14} />
               </button>
-              <button class="icon-btn" title="Run 'app' on this device" disabled={d.state !== "device"} onClick={() => runOn(d.serial)}>
+              <button class="icon-btn" title={t("langs.android.runAppOnThisDevice")} disabled={d.state !== "device"} onClick={() => runOn(d.serial)}>
                 <Play size={14} class="java-ok" />
               </button>
             </div>
           )}
         </For>
       </Show>
-      <div class="android-section">Virtual</div>
-      <Show when={snap()?.avds.length} fallback={<div class="muted android-empty">{snap()?.emulator ? "No virtual devices. Create one with Android Studio's Device Manager or avdmanager." : snap()?.hint ? "" : "The Android Emulator is not installed in the SDK."}</div>}>
+      <div class="android-section">{t("langs.android.virtual")}</div>
+      <Show when={snap()?.avds.length} fallback={<div class="muted android-empty">{snap()?.emulator ? t("langs.android.noVirtualDevicesCreateOne") : snap()?.hint ? "" : t("langs.android.theAndroidEmulatorIsNot")}</div>}>
         <For each={snap()!.avds}>
           {(a) => (
             <div class="android-device-row" data-avd={a.name}>
               <TabletSmartphone size={16} class="android-device-icon" />
               <div class="android-device-text">
                 <span class="android-device-name">{a.name.replace(/_/g, " ")}</span>
-                <span class="muted android-device-detail">{a.serial ? `Running as ${a.serial}` : "Virtual device"}</span>
+                <span class="muted android-device-detail">{a.serial ? t("langs.android.runningAs", { serial: a.serial }) : t("langs.android.virtualDevice")}</span>
               </div>
               <Show
                 when={a.serial}
                 fallback={
-                  <button class="icon-btn" title="Start" data-testid="android-avd-start" onClick={() => void start(a.name)}>
+                  <button class="icon-btn" title={t("langs.android.start")} data-testid="android-avd-start" onClick={() => void start(a.name)}>
                     <Play size={14} class="java-ok" />
                   </button>
                 }
               >
-                <span class="android-state online">Running</span>
+                <span class="android-state online">{t("langs.android.running")}</span>
                 <button class="icon-btn" title="Logcat" onClick={() => openLogcat(a.serial!)}>
                   <ScrollText size={14} />
                 </button>

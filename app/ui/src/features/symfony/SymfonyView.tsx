@@ -10,6 +10,7 @@ import { revealSymbol } from "@/features/php/editorViews";
 import { activeTab, closeRun, rerun, runs, setActiveTab, stopRun, type ConsoleRun } from "./console";
 import { openConsolePopup } from "./ConsolePopup";
 import { listeners, loadSymfony, loading, parameters, routes, services, shortVersion, symfonyInfo, translations } from "./store";
+import { t as tr } from "@/i18n";
 
 export const reveal = (loc?: SourceLocation) => {
   if (loc) void revealSymbol(loc.path, { line: loc.line });
@@ -63,15 +64,15 @@ function RoutesTab() {
   const shown = createMemo(() => routes().filter((r) => matches(filter(), r.name, r.path, r.controller, r.methods?.join(" "))));
   return (
     <div class="sf-tab-body">
-      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter by name, path or controller" count={`${shown().length} routes`} />
+      <FilterBar value={filter()} onInput={setFilter} placeholder={tr("langs.symfony.filterByNamePathOr")} count={`${shown().length} routes`} />
       <div class="sf-table-wrap">
         <table class="sf-table sf-routes">
           <thead>
             <tr>
-              <th style={{ width: "22%" }}>Name</th>
-              <th style={{ width: "10%" }}>Method</th>
-              <th style={{ width: "28%" }}>Path</th>
-              <th>Controller</th>
+              <th style={{ width: "22%" }}>{tr("common.name")}</th>
+              <th style={{ width: "10%" }}>{tr("common.method")}</th>
+              <th style={{ width: "28%" }}>{tr("common.path")}</th>
+              <th>{tr("langs.symfony.controller")}</th>
             </tr>
           </thead>
           <tbody>
@@ -117,19 +118,19 @@ function ServicesTab() {
   );
   return (
     <div class="sf-tab-body">
-      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter by id, class or tag" count={`${shown().length} services`}>
+      <FilterBar value={filter()} onInput={setFilter} placeholder={tr("langs.symfony.filterByIdClassOr")} count={`${shown().length} services`}>
         <label class="sf-check">
           <input type="checkbox" checked={showContainer()} onChange={(e) => setShowContainer(e.currentTarget.checked)} />
-          Show framework services
+          {tr("langs.symfony.showFrameworkServices")}
         </label>
       </FilterBar>
       <div class="sf-table-wrap">
         <table class="sf-table sf-services">
           <thead>
             <tr>
-              <th style={{ width: "34%" }}>Service ID</th>
-              <th style={{ width: "36%" }}>Class</th>
-              <th>Tags</th>
+              <th style={{ width: "34%" }}>{tr("langs.symfony.serviceId")}</th>
+              <th style={{ width: "36%" }}>{tr("langs.symfony.class")}</th>
+              <th>{tr("langs.symfony.tags")}</th>
             </tr>
           </thead>
           <tbody>
@@ -145,13 +146,13 @@ function ServicesTab() {
                     <span class={`sf-svc-dot ${s.source}`} />
                     {s.id}
                     <Show when={s.public}>
-                      <span class="sf-flag" title="Public service">public</span>
+                      <span class="sf-flag" title={tr("langs.symfony.publicService")}>public</span>
                     </Show>
                     <Show when={!s.public && s.source !== "container"}>
-                      <Lock size={11} class="sf-private" aria-label="Private" />
+                      <Lock size={11} class="sf-private" aria-label={tr("langs.symfony.private")} />
                     </Show>
                   </td>
-                  <td class="muted sf-ellipsis" title={s.alias ? `alias for ${s.alias}` : s.class}>
+                  <td class="muted sf-ellipsis" title={s.alias ? tr("langs.symfony.aliasFor", { alias: s.alias }) : s.class}>
                     {s.alias ? `→ ${s.alias}` : s.class}
                   </td>
                   <td class="sf-ellipsis">
@@ -175,13 +176,13 @@ function ParametersTab() {
   const shown = createMemo(() => parameters().filter((p) => matches(filter(), p.name, p.value)));
   return (
     <div class="sf-tab-body">
-      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter parameters" count={`${shown().length} parameters`} />
+      <FilterBar value={filter()} onInput={setFilter} placeholder={tr("langs.symfony.filterParameters")} count={`${shown().length} parameters`} />
       <div class="sf-table-wrap">
         <table class="sf-table">
           <thead>
             <tr>
-              <th style={{ width: "36%" }}>Name</th>
-              <th>Value</th>
+              <th style={{ width: "36%" }}>{tr("common.name")}</th>
+              <th>{tr("common.value")}</th>
             </tr>
           </thead>
           <tbody>
@@ -216,22 +217,22 @@ function TranslationsTab() {
   );
   return (
     <div class="sf-tab-body">
-      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter by key or text" count={`${shown().length} keys`}>
-        <select class="sf-select" value={domain()} onChange={(e) => setDomain(e.currentTarget.value)} title="Domain">
-          <option value="">All domains</option>
+      <FilterBar value={filter()} onInput={setFilter} placeholder={tr("langs.symfony.filterByKeyOrText")} count={`${shown().length} keys`}>
+        <select class="sf-select" value={domain()} onChange={(e) => setDomain(e.currentTarget.value)} title={tr("langs.symfony.domain")}>
+          <option value="">{tr("langs.symfony.allDomains")}</option>
           <For each={table()?.domains ?? []}>{(d) => <option value={d}>{d}</option>}</For>
         </select>
         <label class="sf-check">
           <input type="checkbox" checked={missingOnly()} onChange={(e) => setMissingOnly(e.currentTarget.checked)} />
-          Only missing
+          {tr("langs.symfony.onlyMissing")}
         </label>
       </FilterBar>
       <div class="sf-table-wrap">
         <table class="sf-table sf-translations">
           <thead>
             <tr>
-              <th style={{ width: "26%" }}>Key</th>
-              <th style={{ width: "10%" }}>Domain</th>
+              <th style={{ width: "26%" }}>{tr("langs.symfony.key")}</th>
+              <th style={{ width: "10%" }}>{tr("langs.symfony.domain")}</th>
               <For each={locales()}>
                 {(l) => (
                   <th>
@@ -289,15 +290,15 @@ function EventsTab() {
   const shown = createMemo(() => listeners().filter((l) => matches(filter(), l.event, l.class, l.method, l.eventClass)));
   return (
     <div class="sf-tab-body">
-      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter by event or listener" count={`${shown().length} listeners`} />
+      <FilterBar value={filter()} onInput={setFilter} placeholder={tr("langs.symfony.filterByEventOrListener")} count={`${shown().length} listeners`} />
       <div class="sf-table-wrap">
         <table class="sf-table sf-events">
           <thead>
             <tr>
-              <th style={{ width: "30%" }}>Event</th>
-              <th style={{ width: "36%" }}>Listener</th>
-              <th style={{ width: "10%" }}>Priority</th>
-              <th>Registered by</th>
+              <th style={{ width: "30%" }}>{tr("langs.symfony.event")}</th>
+              <th style={{ width: "36%" }}>{tr("langs.symfony.listener")}</th>
+              <th style={{ width: "10%" }}>{tr("langs.symfony.priority")}</th>
+              <th>{tr("langs.symfony.registeredBy")}</th>
             </tr>
           </thead>
           <tbody>
@@ -336,10 +337,10 @@ function RunTab(props: { run: ConsoleRun }) {
   return (
     <div class="sf-run">
       <div class="sf-run-actions">
-        <button class="icon-btn" title="Rerun" onClick={() => rerun(props.run)} disabled={props.run.running}>
+        <button class="icon-btn" title={tr("langs.symfony.rerun")} onClick={() => rerun(props.run)} disabled={props.run.running}>
           <RotateCw size={14} />
         </button>
-        <button class="icon-btn" title="Stop" onClick={() => stopRun(props.run.id)} disabled={!props.run.running}>
+        <button class="icon-btn" title={tr("common.stop")} onClick={() => stopRun(props.run.id)} disabled={!props.run.running}>
           <Square size={13} class={props.run.running ? "sf-stop" : ""} />
         </button>
       </div>
@@ -348,7 +349,7 @@ function RunTab(props: { run: ConsoleRun }) {
         <For each={props.run.lines}>{(l) => <div classList={{ "sf-run-line": true, stderr: l.stderr }}>{l.text || " "}</div>}</For>
         <Show when={!props.run.running}>
           <div class="sf-run-exit" classList={{ failed: props.run.exitCode !== 0 }}>
-            {"\n"}Process finished with exit code {props.run.exitCode ?? "?"}
+            {tr("langs.symfony.processFinishedWithExitCode", { value: props.run.exitCode ?? "?" })}
           </div>
         </Show>
       </div>
@@ -383,7 +384,7 @@ export function SymfonyView() {
               {r.command}
               <button
                 class="sf-tab-close"
-                title="Close"
+                title={tr("common.close")}
                 onClick={(e) => {
                   e.stopPropagation();
                   closeRun(r.id);
@@ -397,7 +398,7 @@ export function SymfonyView() {
       </div>
       <Show
         when={symfonyInfo()}
-        fallback={<div class="placeholder-panel">{loading() ? "Indexing Symfony project…" : "No Symfony project detected."}</div>}
+        fallback={<div class="placeholder-panel">{loading() ? tr("langs.symfony.indexingSymfonyProjectEllipsis") : tr("langs.symfony.noSymfonyProjectDetected")}</div>}
       >
         <Switch>
           <Match when={activeTab() === "routes"}>
@@ -426,12 +427,12 @@ export function SymfonyActions() {
   return (
     <>
       <Show when={symfonyInfo()}>
-        {(i) => <span class="sf-header-info muted">Symfony {shortVersion(i().version)} · {i().environment}</span>}
+        {(i) => <span class="sf-header-info muted">{tr("langs.symfony.symfony", { value: shortVersion(i().version), environment: i().environment })}</span>}
       </Show>
-      <button class="icon-btn" title="Run Console Command…" onClick={() => openConsolePopup()}>
+      <button class="icon-btn" title={tr("langs.symfony.runConsoleCommandEllipsis")} onClick={() => openConsolePopup()}>
         <Play size={14} />
       </button>
-      <button class="icon-btn" classList={{ spinning: loading() }} title="Refresh" onClick={() => void loadSymfony(true)}>
+      <button class="icon-btn" classList={{ spinning: loading() }} title={tr("common.refresh")} onClick={() => void loadSymfony(true)}>
         <RefreshCw size={14} />
       </button>
     </>

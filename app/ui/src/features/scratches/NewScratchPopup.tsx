@@ -10,6 +10,7 @@ import { languageIdFor } from "@/editor/languages";
 import { activeTab } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { createScratch, recentLanguages } from "./store";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 
@@ -78,20 +79,20 @@ function NewScratchPopup() {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div class="popup scratch-popup" role="dialog" aria-label="New Scratch File" onKeyDown={onKeyDown}>
-        <div class="scratch-popup-title">New Scratch File</div>
+      <div class="popup scratch-popup" role="dialog" aria-label={t("tools.scratches.newScratchFile")} onKeyDown={onKeyDown}>
+        <div class="scratch-popup-title">{t("tools.scratches.newScratchFile")}</div>
         <label class="scratch-popup-search">
           <Search size={14} class="muted" />
           <input
             ref={input}
             value={query()}
-            placeholder="Type to search languages"
+            placeholder={t("tools.scratches.typeToSearchLanguages")}
             spellcheck={false}
             onInput={(e) => setQuery(e.currentTarget.value)}
           />
         </label>
         <div class="scratch-popup-list" ref={list} role="listbox">
-          <For each={items()} fallback={<div class="scratch-popup-empty muted">No matches</div>}>
+          <For each={items()} fallback={<div class="scratch-popup-empty muted">{t("tools.scratches.noMatches")}</div>}>
             {(lang, i) => (
               <div
                 class="scratch-popup-item"

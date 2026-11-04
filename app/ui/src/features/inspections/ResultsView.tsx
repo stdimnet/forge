@@ -41,6 +41,7 @@ import {
   setActiveResultsTab,
   type ResultsTab,
 } from "./run";
+import { t as tr } from "@/i18n";
 
 const [bySeverity, setBySeverity] = createSignal(false);
 const [byDirectory, setByDirectory] = createSignal(false);
@@ -89,7 +90,7 @@ export function ResultsTabs() {
             <span class="run-tab-title">{t.title}</span>
             <button
               class="run-tab-close"
-              title="Close Tab"
+              title={tr("common.closeTab")}
               onClick={(e) => {
                 e.stopPropagation();
                 closeResultsTab(t.id);
@@ -194,7 +195,7 @@ function ProblemDetails(props: { tab: ResultsTab; index: number }) {
       </button>
       <pre class="ir-snippet">{p().snippet}</pre>
       <Show when={p().related?.length}>
-        <div class="ir-related-title">Other copies</div>
+        <div class="ir-related-title">{tr("tools.inspections.otherCopies")}</div>
         <For each={p().related}>
           {(r) => (
             <button class="link-btn ir-location" onClick={() => void openFileAt(r.path, r.line + 1, r.column + 1)}>
@@ -205,7 +206,7 @@ function ProblemDetails(props: { tab: ResultsTab; index: number }) {
       </Show>
       <Show when={resolved()}>
         <div class="ir-resolved-note">
-          <CircleCheck size={13} /> Resolved. Rerun the inspection to refresh the results.
+          <CircleCheck size={13} /> {tr("tools.inspections.resolvedRerunTheInspectionTo")}
         </div>
       </Show>
       <div class="ir-actions">
@@ -217,10 +218,10 @@ function ProblemDetails(props: { tab: ResultsTab; index: number }) {
           )}
         </For>
         <button class="btn-secondary" disabled={resolved()} onClick={(e) => void suppressMenu(props.tab, props.index, e)}>
-          Suppress…
+          {tr("tools.inspections.suppressEllipsis")}
         </button>
         <button class="btn-secondary" onClick={() => openSettings(INSPECTIONS_PAGE, { inspection: p().inspection })}>
-          Edit Inspection Profile Setting
+          {tr("tools.inspections.editInspectionProfileSetting")}
         </button>
       </div>
     </div>
@@ -230,13 +231,13 @@ function ProblemDetails(props: { tab: ResultsTab; index: number }) {
 function DuplicatesView(props: { tab: ResultsTab }) {
   return (
     <div class="ir-dups">
-      <For each={props.tab.report.duplicates} fallback={<div class="ir-empty">No duplicates found</div>}>
+      <For each={props.tab.report.duplicates} fallback={<div class="ir-empty">{tr("tools.inspections.noDuplicatesFound")}</div>}>
         {(g, i) => (
           <div class="ir-dup" classList={{ selected: selection()?.group === i() }}>
             <div class="ir-row ir-dup-head" onClick={() => setSelection({ tab: props.tab.id, key: `dup${i()}`, group: i() })}>
               <Copy size={13} class="muted" />
               <span class="ir-label">
-                Duplicated code: {g.lines} lines, {g.tokens} tokens
+                {tr("tools.inspections.duplicatedCodeLinesTokens", { lines: g.lines, tokens: g.tokens })}
               </span>
               <span class="ir-count">{g.fragments.length} copies</span>
             </div>
@@ -246,7 +247,7 @@ function DuplicatesView(props: { tab: ResultsTab }) {
                   <FileIcon name={baseName(f.path)} />
                   <span class="ir-label">{baseName(f.path)}</span>
                   <span class="ir-dir">
-                    {f.path} lines {f.line + 1}–{f.endLine + 1}
+                    {tr("tools.inspections.lines", { path: f.path, value: f.line + 1, value2: f.endLine + 1 })}
                   </span>
                 </div>
               )}
@@ -277,32 +278,32 @@ export function ResultsView() {
         fallback={
           <div class="ir-empty">
             <ListTree size={28} class="muted" />
-            <div>Run Code | Inspect Code… to see results here</div>
+            <div>{tr("tools.inspections.runCodeInspectCodeTo")}</div>
           </div>
         }
       >
         {(t) => (
           <>
             <div class="ir-toolbar" role="toolbar">
-              <button class="ir-tool" title="Rerun Inspection" aria-label="Rerun Inspection" onClick={() => rerun(t())}>
+              <button class="ir-tool" title={tr("tools.inspections.rerunInspection")} aria-label={tr("tools.inspections.rerunInspection")} onClick={() => rerun(t())}>
                 <RotateCw size={15} />
               </button>
-              <button class="ir-tool" classList={{ on: bySeverity() }} title="Group by Severity" aria-pressed={bySeverity()} onClick={() => setBySeverity(!bySeverity())}>
+              <button class="ir-tool" classList={{ on: bySeverity() }} title={tr("tools.inspections.groupBySeverity")} aria-pressed={bySeverity()} onClick={() => setBySeverity(!bySeverity())}>
                 <TriangleAlert size={15} />
               </button>
-              <button class="ir-tool" classList={{ on: byDirectory() }} title="Group by Directory" aria-pressed={byDirectory()} onClick={() => setByDirectory(!byDirectory())}>
+              <button class="ir-tool" classList={{ on: byDirectory() }} title={tr("tools.inspections.groupByDirectory")} aria-pressed={byDirectory()} onClick={() => setByDirectory(!byDirectory())}>
                 <FolderTree size={15} />
               </button>
-              <button class="ir-tool" title="Expand All" onClick={() => setCollapsed(new Set<string>())}>
+              <button class="ir-tool" title={tr("common.expandAll2")} onClick={() => setCollapsed(new Set<string>())}>
                 <ChevronsUpDown size={15} />
               </button>
-              <button class="ir-tool" title="Collapse All" onClick={() => setCollapsed(new Set(allKeys(tree())))}>
+              <button class="ir-tool" title={tr("common.collapseAll2")} onClick={() => setCollapsed(new Set(allKeys(tree())))}>
                 <ChevronsDownUp size={15} />
               </button>
-              <button class="ir-tool" title="Export" aria-label="Export" onClick={(e) => exportMenu(t(), e)}>
+              <button class="ir-tool" title={tr("tools.inspections.export")} aria-label={tr("tools.inspections.export")} onClick={(e) => exportMenu(t(), e)}>
                 <Download size={15} />
               </button>
-              <button class="ir-tool" title="Edit Settings" aria-label="Edit Inspection Settings" onClick={() => openSettings(INSPECTIONS_PAGE)}>
+              <button class="ir-tool" title={tr("tools.inspections.editSettings")} aria-label={tr("tools.inspections.editInspectionSettings")} onClick={() => openSettings(INSPECTIONS_PAGE)}>
                 <SlidersHorizontal size={15} />
               </button>
             </div>
@@ -310,14 +311,14 @@ export function ResultsView() {
               <div class="ir-header">
                 <div class="ir-modes" role="tablist">
                   <button class="ir-mode" classList={{ active: mode() === "problems" }} onClick={() => setMode("problems")}>
-                    Problems <span class="ir-count">{t().report.problems.length}</span>
+                    {tr("tools.inspections.problems")} <span class="ir-count">{t().report.problems.length}</span>
                   </button>
                   <button class="ir-mode" classList={{ active: mode() === "duplicates" }} onClick={() => setMode("duplicates")}>
-                    Duplicates <span class="ir-count">{t().report.duplicates.length}</span>
+                    {tr("tools.inspections.duplicates")} <span class="ir-count">{t().report.duplicates.length}</span>
                   </button>
                 </div>
                 <span class="ir-summary">
-                  {t().report.files} files · profile '{t().report.profile}'{t().report.cancelled ? " · cancelled" : ""}
+                  {tr("tools.inspections.filesProfile", { files: t().report.files, profile: t().report.profile, value: t().report.cancelled ? tr("tools.inspections.cancelled") : "" })}
                 </span>
               </div>
               <Show when={t().report.errors.length}>
@@ -326,13 +327,13 @@ export function ResultsView() {
               <div class="ir-split">
                 <div class="ir-tree" role="tree">
                   <Show when={mode() === "problems"} fallback={<DuplicatesView tab={t()} />}>
-                    <For each={tree()} fallback={<div class="ir-empty">No problems found</div>}>
+                    <For each={tree()} fallback={<div class="ir-empty">{tr("tools.inspections.noProblemsFound")}</div>}>
                       {(n) => <Node tab={t()} node={n} depth={0} />}
                     </For>
                   </Show>
                 </div>
                 <div class="ir-side">
-                  <Show when={selectedProblem() !== undefined} fallback={<div class="ir-empty ir-hint">Select a problem to see its description and fixes</div>}>
+                  <Show when={selectedProblem() !== undefined} fallback={<div class="ir-empty ir-hint">{tr("tools.inspections.selectAProblemToSee")}</div>}>
                     <ProblemDetails tab={t()} index={selectedProblem()!} />
                   </Show>
                 </div>

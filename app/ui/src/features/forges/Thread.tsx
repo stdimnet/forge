@@ -5,10 +5,11 @@ import type { Discussion, Note } from "@/ipc/forges";
 import { renderMarkdown } from "./markdown";
 import { Avatar, ago, displayName } from "./ui";
 import { caps } from "./store";
+import { t } from "@/i18n";
 
 export function Markdown(props: { text: string; class?: string }) {
   return (
-    <Show when={props.text.trim()} fallback={<div class={`fg-md muted ${props.class ?? ""}`}>No description provided.</div>}>
+    <Show when={props.text.trim()} fallback={<div class={`fg-md muted ${props.class ?? ""}`}>{t("tools.forges.noDescriptionProvided")}</div>}>
       <div class={`fg-md ${props.class ?? ""}`} innerHTML={renderMarkdown(props.text, caps().numberPrefix)} />
     </Show>
   );
@@ -86,11 +87,11 @@ export function CommentEditor(props: {
         }}
       />
       <div class="fg-editor-actions">
-        <span class="muted fg-small">{props.hint ?? "Markdown supported · Ctrl+Enter to submit"}</span>
+        <span class="muted fg-small">{props.hint ?? t("tools.forges.markdownSupportedCtrlEnterTo")}</span>
         <span class="spacer" />
         <Show when={props.onCancel}>
           <button class="btn-secondary" onClick={() => props.onCancel?.()}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </Show>
         <Show when={props.secondary}>
@@ -142,9 +143,9 @@ export function ThreadView(props: {
         fallback={
           <button class="fg-thread-collapsed" onClick={() => setCollapsed(false)}>
             <CircleCheck size={13} />
-            <span>Resolved thread</span>
+            <span>{t("tools.forges.resolvedThread")}</span>
             <span class="muted">
-              · {d().notes.length} comment{d().notes.length === 1 ? "" : "s"} by {[...new Set(d().notes.map((n) => displayName(n.author)))].join(", ")}
+              {t("tools.forges.commentsBy", { count: d().notes.length })} {[...new Set(d().notes.map((n) => displayName(n.author)))].join(", ")}
             </span>
           </button>
         }
@@ -157,12 +158,12 @@ export function ThreadView(props: {
           fallback={
             <div class="fg-thread-actions">
               <button class="fg-reply-btn" onClick={() => setReplying(true)}>
-                <MessageSquare size={13} /> Reply
+                <MessageSquare size={13} /> {t("tools.forges.reply")}
               </button>
               <span class="spacer" />
               <Show when={d().resolved}>
                 <span class="fg-resolved-tag">
-                  <CircleCheck size={12} /> Resolved
+                  <CircleCheck size={12} /> {t("tools.forges.resolved")}
                 </span>
               </Show>
               <Show when={props.onResolve && d().resolvable}>
@@ -170,14 +171,14 @@ export function ThreadView(props: {
                   <Show when={d().resolved} fallback={<CircleCheck size={13} />}>
                     <Undo2 size={13} />
                   </Show>
-                  {d().resolved ? "Unresolve" : "Resolve"}
+                  {d().resolved ? t("tools.forges.unresolve") : t("tools.forges.resolve")}
                 </button>
               </Show>
             </div>
           }
         >
           <CommentEditor
-            placeholder="Reply…"
+            placeholder={t("tools.forges.replyEllipsis")}
             submitLabel="Reply"
             rows={2}
             autofocus

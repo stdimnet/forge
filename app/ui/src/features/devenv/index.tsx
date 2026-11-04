@@ -16,6 +16,7 @@ import { balloonsFor } from "@/keymap";
 import { DevContainerDialog } from "./DevContainerDialog";
 import { setRecentDevEnvOpener } from "@/features/remote/store";
 import { createDevContainer, openRecentDevEnv, openWslPath } from "./store";
+import { t } from "@/i18n";
 import "./gutter";
 import "./devenv.css";
 
@@ -27,7 +28,7 @@ registerCommand({
   category: "File",
   run: () => {
     if (!workspace() || workspace()?.remote)
-      showBalloon("Dev Containers", "Open a local project with a devcontainer.json to create its dev container.");
+      showBalloon(t("tools.devenv.devContainers"), t("tools.devenv.openALocalProjectWith"));
     else createDevContainer();
   },
 });

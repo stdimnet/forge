@@ -6,6 +6,7 @@ import { createResource, createSignal, For, onCleanup, Show } from "solid-js";
 import { Check, Copy } from "lucide-solid";
 import { mcpApi, type McpClientConfig } from "@/ipc/mcp";
 import { mcpStatus } from "./store";
+import { t } from "@/i18n";
 
 async function copyText(text: string): Promise<void> {
   try {
@@ -33,7 +34,7 @@ export function CopyButton(props: { text: string; label?: string; testId?: strin
       <Show when={copied()} fallback={<Copy size={13} />}>
         <Check size={13} />
       </Show>
-      {copied() ? "Copied" : (props.label ?? "Copy")}
+      {copied() ? t("common.copied") : (props.label ?? t("common.copy"))}
     </button>
   );
 }
@@ -47,7 +48,7 @@ export function ClientConfigs() {
   const [selected, setSelected] = createSignal("claude-code");
   const current = (): McpClientConfig | undefined => configs()?.find((c) => c.id === selected()) ?? configs()?.[0];
   return (
-    <Show when={configs()} fallback={<div class="muted mcp-note">Enable the server to get the client configurations.</div>}>
+    <Show when={configs()} fallback={<div class="muted mcp-note">{t("tools.mcp.enableTheServerToGet")}</div>}>
       <div class="mcp-clients" data-testid="mcp-client-configs">
         <div class="mcp-client-tabs" role="tablist">
           <For each={configs()}>
@@ -64,7 +65,7 @@ export function ClientConfigs() {
               <div class="mcp-code-head">
                 <span class="muted">
                   {c().target}
-                  <span class="mcp-transport">{c().transport === "http" ? "Streamable HTTP" : "stdio proxy"}</span>
+                  <span class="mcp-transport">{c().transport === "http" ? t("tools.mcp.streamableHttp") : t("tools.mcp.stdioProxy")}</span>
                 </span>
                 <CopyButton text={c().text} testId="mcp-copy-config" />
               </div>
@@ -73,7 +74,7 @@ export function ClientConfigs() {
           )}
         </Show>
         <div class="muted mcp-note">
-          The configurations contain the bearer token. Anyone with it can use Forge's tools while the server runs; regenerate it if it leaks.
+          {t("tools.mcp.theConfigurationsContainTheBearer")}
         </div>
       </div>
     </Show>

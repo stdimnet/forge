@@ -9,6 +9,7 @@ import type { EditorView } from "@codemirror/view";
 import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { injectionsApi, type InjectableLanguage } from "@/ipc/injections";
 import { showBalloon } from "@/keymap";
+import { t } from "@/i18n";
 
 interface ChooserState {
   view: EditorView;
@@ -51,7 +52,7 @@ async function inject(c: ChooserState, language: InjectableLanguage): Promise<vo
   const text = c.view.state.doc.toString();
   const edit = await injectionsApi.inject({ text, path: c.path, offset: c.pos, language: language.id }).catch(() => null);
   if (!edit) {
-    showBalloon("Inject language or reference", "Place the caret inside a string literal.", 4000);
+    showBalloon(t("tools.injections.injectLanguageOrReference"), t("tools.injections.placeTheCaretInsideA"), 4000);
     return;
   }
   if (c.view.state.doc.toString() !== text) return;
@@ -103,17 +104,17 @@ function Chooser(props: { state: ChooserState }) {
       ref={el}
       tabIndex={-1}
       role="dialog"
-      aria-label="Inject language or reference"
+      aria-label={t("tools.injections.injectLanguageOrReference")}
       style={{ left: `${props.state.x}px`, top: `${props.state.y}px` }}
       onKeyDown={onKey}
     >
       <Show when={query()}>
         <div class="intention-search">
-          Search for: <span class="intention-query">{query()}</span>
+          {t("tools.injections.searchForLabel")} <span class="intention-query">{query()}</span>
         </div>
       </Show>
       <div class="intention-list" role="listbox">
-        <For each={rows()} fallback={<div class="intention-empty">Nothing matches</div>}>
+        <For each={rows()} fallback={<div class="intention-empty">{t("tools.injections.nothingMatches")}</div>}>
           {(lang, i) => {
             const Icon = ICONS[lang.id] ?? FileCode;
             return (

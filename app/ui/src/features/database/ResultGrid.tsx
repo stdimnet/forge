@@ -37,7 +37,7 @@ export function ResultTools(props: { tools: ResultGridTools }) {
       <button class="icon-btn db-tool" classList={{ active: t.transposed() }} title={tr("database.resultGrid.transpose")} onClick={t.toggleTransposed}>
         <ArrowRightLeft size={14} />
       </button>
-      <button class="icon-btn db-tool" classList={{ active: t.side() === "value" }} title={`Value Viewer (${shortcutLabel("Database.Properties")})`} onClick={() => t.toggleSide("value")}>
+      <button class="icon-btn db-tool" classList={{ active: t.side() === "value" }} title={tr("tools.database.valueViewer", { value: shortcutLabel("Database.Properties") })} onClick={() => t.toggleSide("value")}>
         <PanelRight size={14} />
       </button>
       <button class="icon-btn db-tool" classList={{ active: t.side() === "aggregate" }} title={tr("database.resultGrid.aggregateView")} onClick={() => t.toggleSide("aggregate")}>

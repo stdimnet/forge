@@ -66,6 +66,8 @@ builtin!(
     "en" / "menu",
     "en" / "actions",
     "en" / "plugins",
+    "en" / "langs",
+    "en" / "tools",
     "de" / "common",
     "de" / "shell",
     "de" / "settings",
@@ -83,6 +85,8 @@ builtin!(
     "de" / "menu",
     "de" / "actions",
     "de" / "plugins",
+    "de" / "langs",
+    "de" / "tools",
 );
 
 /// Catalog areas whose English file is generated from code (do not edit by hand).

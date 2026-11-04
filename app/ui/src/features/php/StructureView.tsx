@@ -169,7 +169,7 @@ export function StructureActions() {
       <button
         class="icon-btn"
         classList={{ active: sortAlpha() }}
-        title="Sort Alphabetically"
+        title={t("common.sortAlphabetically")}
         aria-pressed={sortAlpha()}
         onClick={() => setSortAlpha((v) => !v)}
       >
@@ -178,13 +178,13 @@ export function StructureActions() {
       <button
         class="icon-btn"
         classList={{ active: showInherited() }}
-        title="Show Inherited"
+        title={t("langs.php.showInherited")}
         aria-pressed={showInherited()}
         onClick={() => setShowInherited((v) => !v)}
       >
         <Layers2 size={15} />
       </button>
-      <button class="icon-btn" title="Options" aria-label="Options" onClick={options}>
+      <button class="icon-btn" title={t("langs.php.options")} aria-label={t("langs.php.options")} onClick={options}>
         <EllipsisVertical size={15} />
       </button>
     </>
@@ -239,7 +239,7 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
         aria-level={props.depth + 1}
         aria-selected={selected() === key()}
         aria-expanded={kids().length ? open() : undefined}
-        title={props.node.inheritedFrom ? `Inherited from ${props.node.inheritedFrom}` : undefined}
+        title={props.node.inheritedFrom ? t("langs.php.inheritedFrom", { inheritedFrom: props.node.inheritedFrom }) : undefined}
         onClick={() => (toSource() ? navigate() : setSelected(key()))}
         onDblClick={() => !toSource() && navigate()}
       >
@@ -309,7 +309,7 @@ export function StructureView() {
     >
       <Show
         when={structure()}
-        fallback={<div class="placeholder-panel">{activeTab() ? "No structure for this file" : "No file is open"}</div>}
+        fallback={<div class="placeholder-panel">{activeTab() ? t("langs.php.noStructureForThisFile") : t("langs.php.noFileIsOpen")}</div>}
       >
         {(s) => (
           <For each={orderNodes(s().nodes, sortAlpha())}>

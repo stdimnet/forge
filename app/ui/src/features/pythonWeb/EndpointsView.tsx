@@ -22,6 +22,7 @@ import {
   webLoading,
   webProject,
 } from "./state";
+import { t as tr } from "@/i18n";
 
 const [query, setQuery] = createSignal("");
 const [framework, setFramework] = createSignal<"all" | WebRoute["framework"]>("all");
@@ -112,7 +113,7 @@ function EndpointsTable() {
           <Search size={13} />
           <input
             class="routes-search-input"
-            placeholder="Search endpoints by path, method, name or view"
+            placeholder={tr("langs.pythonWeb.searchEndpointsByPathMethod")}
             value={query()}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
@@ -121,7 +122,7 @@ function EndpointsTable() {
             spellcheck={false}
           />
           <Show when={query()}>
-            <button class="icon-btn routes-clear" title="Clear" onClick={() => setQuery("")}>
+            <button class="icon-btn routes-clear" title={tr("common.clear")} onClick={() => setQuery("")}>
               <X size={12} />
             </button>
           </Show>
@@ -129,7 +130,7 @@ function EndpointsTable() {
         <Show when={frameworks().length > 1}>
           <div class="pyweb-segmented" role="tablist">
             <button classList={{ active: framework() === "all" }} onClick={() => setFramework("all")}>
-              All
+              {tr("common.all")}
             </button>
             <For each={frameworks()}>
               {(f) => (
@@ -142,28 +143,28 @@ function EndpointsTable() {
         </Show>
         <span class="routes-summary muted">
           <Show when={webLoading() && !routes().length} fallback={`${visible().length} of ${routes().length} endpoints`}>
-            Loading endpoints…
+            {tr("langs.pythonWeb.loadingEndpointsEllipsis")}
           </Show>
         </span>
         <Show when={fastapiActive() && routes().some((r) => r.framework === "fastapi")}>
           <button class="link-btn pyweb-docs-link" title={`${serverBase("fastapi")}/docs`} onClick={openFastApiDocs}>
-            <ExternalLink size={12} /> Open /docs
+            <ExternalLink size={12} /> {tr("langs.pythonWeb.openDocs")}
           </button>
         </Show>
       </div>
       <div class="routes-scroll" tabIndex={0} onKeyDown={onKeyDown}>
         <Show
           when={visible().length}
-          fallback={<div class="routes-empty">{routes().length ? "No endpoints match the search" : "No endpoints found in urls.py, @app.route or @app.get"}</div>}
+          fallback={<div class="routes-empty">{routes().length ? tr("common.noEndpointsMatchTheSearch") : tr("langs.pythonWeb.noEndpointsFoundInUrls")}</div>}
         >
           <table class="routes-table pyweb-table">
             <thead>
               <tr>
-                <th class="col-method">Method</th>
-                <th class="col-uri">Path</th>
-                <th class="col-name">Name</th>
-                <th class="col-action">View</th>
-                <th class="pyweb-col-framework">Framework</th>
+                <th class="col-method">{tr("common.method")}</th>
+                <th class="col-uri">{tr("common.path")}</th>
+                <th class="col-name">{tr("common.name")}</th>
+                <th class="col-action">{tr("langs.pythonWeb.view")}</th>
+                <th class="pyweb-col-framework">{tr("common.framework")}</th>
                 <th class="col-open" />
               </tr>
             </thead>
@@ -199,7 +200,7 @@ function EndpointsTable() {
                       <Show when={!r.methods.includes("WS")}>
                         <button
                           class="icon-btn routes-open"
-                          title="Open in HTTP Client"
+                          title={tr("langs.pythonWeb.openInHttpClient")}
                           onClick={(e) => {
                             e.stopPropagation();
                             void openInHttpClient(r);
@@ -228,22 +229,22 @@ function TasksTable() {
       <div class="routes-toolbar">
         <div class="routes-search">
           <Search size={13} />
-          <input class="routes-search-input" placeholder="Search Celery tasks" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
+          <input class="routes-search-input" placeholder={tr("langs.pythonWeb.searchCeleryTasks")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
         </div>
         <span class="routes-summary muted">{`${tasks().length} tasks`}</span>
         <Show when={webProject()?.celery?.app}>
-          <span class="routes-source muted">celery -A {webProject()!.celery!.app}</span>
+          <span class="routes-source muted">{tr("langs.pythonWeb.celeryA", { app: webProject()!.celery!.app })}</span>
         </Show>
       </div>
       <div class="routes-scroll" tabIndex={0}>
-        <Show when={tasks().length} fallback={<div class="routes-empty">No @shared_task or @app.task functions found</div>}>
+        <Show when={tasks().length} fallback={<div class="routes-empty">{tr("langs.pythonWeb.noSharedTaskOrApp")}</div>}>
           <table class="routes-table pyweb-table">
             <thead>
               <tr>
-                <th class="pyweb-col-task">Task</th>
-                <th class="col-action">Function</th>
-                <th class="pyweb-col-decorator">Decorator</th>
-                <th>File</th>
+                <th class="pyweb-col-task">{tr("langs.pythonWeb.task")}</th>
+                <th class="col-action">{tr("langs.pythonWeb.function")}</th>
+                <th class="pyweb-col-decorator">{tr("langs.pythonWeb.decorator")}</th>
+                <th>{tr("langs.pythonWeb.file")}</th>
               </tr>
             </thead>
             <tbody>
@@ -256,7 +257,7 @@ function TasksTable() {
                     <td class="col-action">
                       <span class="routes-method">{t.function}</span>
                       <Show when={t.bound}>
-                        <span class="muted"> (bound)</span>
+                        <span class="muted"> {tr("langs.pythonWeb.bound")}</span>
                       </Show>
                     </td>
                     <td class="pyweb-col-decorator">
@@ -286,10 +287,10 @@ export function EndpointsView() {
       <Show when={hasTasks()}>
         <div class="pyweb-tabs" role="tablist">
           <button classList={{ active: tab() === "endpoints" }} onClick={() => setTab("endpoints")}>
-            <Braces size={12} /> HTTP Endpoints
+            <Braces size={12} /> {tr("langs.pythonWeb.httpEndpoints")}
           </button>
           <button classList={{ active: tab() === "tasks" }} onClick={() => setTab("tasks")} data-tab="celery-tasks">
-            <FileCode size={12} /> Celery Tasks
+            <FileCode size={12} /> {tr("langs.pythonWeb.celeryTasks")}
           </button>
         </div>
       </Show>
@@ -305,7 +306,7 @@ export function EndpointsView() {
 
 export function EndpointsActions() {
   return (
-    <button class="icon-btn" title="Refresh" onClick={() => void loadWebProject(true)}>
+    <button class="icon-btn" title={tr("common.refresh")} onClick={() => void loadWebProject(true)}>
       <RefreshCw size={14} classList={{ spin: webLoading() }} />
     </button>
   );

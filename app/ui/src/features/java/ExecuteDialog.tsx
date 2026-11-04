@@ -10,6 +10,7 @@ import { suspendKeymap } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { buildModel, refreshModel } from "./store";
 import { gradleTask, runGradle, runMaven } from "./actions";
+import { t as tr } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 const [recent, setRecent] = createSignal<string[]>([]);
@@ -89,13 +90,13 @@ function Dialog() {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">{gradle() ? "Execute Gradle Task" : "Execute Maven Goal"}</div>
+        <div class="dialog-title">{gradle() ? tr("langs.java.executeGradleTask") : tr("langs.java.executeMavenGoal")}</div>
         <div class="dialog-body">
-          <label class="form-label">{gradle() ? "Command line (tasks and arguments)" : "Command line (goals and arguments)"}</label>
+          <label class="form-label">{gradle() ? tr("langs.java.commandLineTasksAndArguments") : tr("langs.java.commandLineGoalsAndArguments")}</label>
           <input
             ref={(el) => queueMicrotask(() => el.focus())}
             value={line()}
-            placeholder={gradle() ? "clean :app:test --info" : "clean install -DskipTests"}
+            placeholder={gradle() ? tr("langs.java.cleanAppTestInfo") : tr("langs.java.cleanInstallDskiptests")}
             spellcheck={false}
             data-testid="java-execute-input"
             onInput={(e) => {
@@ -114,16 +115,16 @@ function Dialog() {
               )}
             </For>
             <Show when={!items().length}>
-              <div class="muted java-pad">{buildModel() ? "No matching tasks" : "No build in the project root"}</div>
+              <div class="muted java-pad">{buildModel() ? tr("langs.java.noMatchingTasks") : tr("langs.java.noBuildInTheProject2")}</div>
             </Show>
           </div>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!line().trim()} onClick={run}>
-            Run
+            {tr("common.run2")}
           </button>
         </div>
       </div>

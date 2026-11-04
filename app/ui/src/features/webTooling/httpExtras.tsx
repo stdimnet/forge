@@ -15,6 +15,7 @@ import { activeView } from "@/features/lsp/navigation";
 import { openInBrowser } from "@/features/run/runStore";
 import { openHttpRequest, httpEnvironment, NO_HTTP_ENV, isHttpPath } from "@/features/scratches/store";
 import { isDialogWindow } from "@/shell/window/mode";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("HTTP Client");
 
@@ -32,7 +33,7 @@ async function importCurl(command: string): Promise<boolean> {
   try {
     text = await httpExtrasApi.fromCurl(command);
   } catch (err) {
-    showBalloon("Cannot import the cURL command", String(err));
+    showBalloon(t("langs.webTooling.cannotImportTheCurlCommand"), String(err));
     return false;
   }
   const a = activeView();
@@ -51,15 +52,15 @@ async function importCurl(command: string): Promise<boolean> {
 
 async function copyAsCurl(): Promise<void> {
   const a = activeView();
-  if (!a || !isHttpPath(a.path)) return void showBalloon("Copy as cURL", "Put the caret on a request in an .http file.");
+  if (!a || !isHttpPath(a.path)) return void showBalloon(t("langs.webTooling.copyAsCurl"), t("langs.webTooling.putTheCaretOnA"));
   const state = a.view.state;
   const line = state.doc.lineAt(state.selection.main.head).number - 1;
   try {
     const cmd = await httpExtrasApi.toCurl(state.doc.toString(), line, envArg(), a.path);
     await navigator.clipboard?.writeText(cmd);
-    showBalloon("Copied as cURL", cmd.split("\n")[0]);
+    showBalloon(t("langs.webTooling.copiedAsCurl"), cmd.split("\n")[0]);
   } catch (err) {
-    showBalloon("Cannot copy as cURL", String(err));
+    showBalloon(t("langs.webTooling.cannotCopyAsCurl"), String(err));
   }
 }
 
@@ -74,7 +75,7 @@ registerCommand({
   id: "HttpClient.ClearOAuthTokens",
   title: "Clear OAuth Tokens",
   category: "Tools",
-  run: () => void httpExtrasApi.clearTokens().then(() => showBalloon("OAuth tokens cleared", "The next request logs in again.")),
+  run: () => void httpExtrasApi.clearTokens().then(() => showBalloon(t("langs.webTooling.oauthTokensCleared"), t("langs.webTooling.theNextRequestLogsIn"))),
 });
 
 function ImportCurlDialog() {
@@ -91,7 +92,7 @@ function ImportCurlDialog() {
       <div
         class="popup et-dialog wt-curl-dialog"
         role="dialog"
-        aria-label="Convert cURL to HTTP Request"
+        aria-label={t("langs.webTooling.convertCurlToHttpRequest")}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.preventDefault();
@@ -100,11 +101,11 @@ function ImportCurlDialog() {
           }
         }}
       >
-        <div class="et-title">Convert cURL to HTTP Request</div>
+        <div class="et-title">{t("langs.webTooling.convertCurlToHttpRequest")}</div>
         <textarea
           class="set-input et-mono wt-curl-input"
           rows={9}
-          placeholder={"curl 'https://api.example.com/users' \\\n  -H 'Accept: application/json'"}
+          placeholder={t("langs.webTooling.curlHttpsApiExampleCom")}
           value={text()}
           ref={(el) => queueMicrotask(() => el.focus())}
           onInput={(e) => setText(e.currentTarget.value)}
@@ -112,10 +113,10 @@ function ImportCurlDialog() {
         <div class="dialog-buttons et-buttons">
           <span class="et-spacer" />
           <button class="btn-primary" disabled={!text().trim()} onClick={() => void ok()}>
-            Convert
+            {t("langs.webTooling.convert")}
           </button>
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -129,7 +130,7 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
   render(() => <Show when={importOpen()}>{<ImportCurlDialog />}</Show>, host);
   // OAuth 2.0 Authorization Code grant: Rust waits for the redirect on a loopback port.
   void listen<string>("http-client://open-browser", (url) => {
-    showBalloon("OAuth login", "Log in in the browser; Forge receives the authorization and sends the request.");
+    showBalloon(t("langs.webTooling.oauthLogin"), t("langs.webTooling.logInInTheBrowser"));
     openInBrowser(url);
   });
 }

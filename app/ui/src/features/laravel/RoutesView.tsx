@@ -7,6 +7,7 @@ import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { FileCode, RefreshCw, Search, X } from "lucide-solid";
 import type { LaravelRoute } from "@/ipc/laravel";
 import { loadRoutes, reveal, routes, routesError, routesLoading, routesSource, shortAction } from "./state";
+import { t } from "@/i18n";
 
 const [query, setQuery] = createSignal("");
 const [selected, setSelected] = createSignal<number>(-1);
@@ -84,7 +85,7 @@ export function RoutesView() {
           <Search size={13} />
           <input
             class="routes-search-input"
-            placeholder="Search routes by URI, name, action or middleware"
+            placeholder={t("langs.laravel.searchRoutesByUriName")}
             value={query()}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
@@ -93,18 +94,18 @@ export function RoutesView() {
             spellcheck={false}
           />
           <Show when={query()}>
-            <button class="icon-btn routes-clear" title="Clear" onClick={() => setQuery("")}>
+            <button class="icon-btn routes-clear" title={t("common.clear")} onClick={() => setQuery("")}>
               <X size={12} />
             </button>
           </Show>
         </div>
         <span class="routes-summary muted">
           <Show when={routesLoading()} fallback={`${visible().length} of ${routes().length} routes`}>
-            Loading routes…
+            {t("langs.laravel.loadingRoutesEllipsis")}
           </Show>
         </span>
-        <span class="routes-source muted" title="Settings | Languages & Frameworks | PHP | Laravel">
-          {routesSource() === "artisan" ? "from artisan route:list" : routesSource() === "static" ? "from routes/*.php" : ""}
+        <span class="routes-source muted" title={t("langs.laravel.settingsLanguagesFrameworksPhpLaravel")}>
+          {routesSource() === "artisan" ? t("langs.laravel.fromArtisanRouteList") : routesSource() === "static" ? t("langs.laravel.fromRoutesPhp") : ""}
         </span>
       </div>
       <Show when={routesError()}>
@@ -114,11 +115,11 @@ export function RoutesView() {
         <table class="routes-table">
           <thead>
             <tr>
-              <th class="col-method">Method</th>
+              <th class="col-method">{t("common.method")}</th>
               <th class="col-uri">URI</th>
-              <th class="col-name">Name</th>
-              <th class="col-action">Action</th>
-              <th class="col-middleware">Middleware</th>
+              <th class="col-name">{t("common.name")}</th>
+              <th class="col-action">{t("langs.laravel.action")}</th>
+              <th class="col-middleware">{t("langs.laravel.middleware")}</th>
               <th class="col-open" />
             </tr>
           </thead>
@@ -151,7 +152,7 @@ export function RoutesView() {
                       {(s) => (
                         <button
                           class="icon-btn routes-open"
-                          title={`Go to route definition (${s().path}:${s().line + 1})`}
+                          title={t("langs.laravel.goToRouteDefinition", { path: s().path, value: s().line + 1 })}
                           onClick={(e) => {
                             e.stopPropagation();
                             void reveal(s());
@@ -168,7 +169,7 @@ export function RoutesView() {
           </tbody>
         </table>
         <Show when={!routesLoading() && !visible().length}>
-          <div class="routes-empty">{routes().length ? "No routes match the search" : "No routes found"}</div>
+          <div class="routes-empty">{routes().length ? t("langs.laravel.noRoutesMatchTheSearch") : t("langs.laravel.noRoutesFound")}</div>
         </Show>
       </div>
     </div>
@@ -177,7 +178,7 @@ export function RoutesView() {
 
 export function RoutesActions() {
   return (
-    <button class="icon-btn" title="Refresh Routes" onClick={() => void loadRoutes()} disabled={routesLoading()}>
+    <button class="icon-btn" title={t("langs.laravel.refreshRoutes")} onClick={() => void loadRoutes()} disabled={routesLoading()}>
       <RefreshCw size={14} class={routesLoading() ? "laravel-spin" : undefined} />
     </button>
   );

@@ -10,6 +10,7 @@ import { dotnetApi, type Template } from "@/ipc/dotnet";
 import { suspendKeymap } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { dotnetWorkspace, errorText, refreshSolution, runDotnetCommand, showDotnetBalloon } from "./state";
+import { t as tr } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 
@@ -18,7 +19,7 @@ export function openAddProjectDialog(): void {
 }
 
 const FRAMEWORKS = [
-  { value: "", label: "Template default" },
+  { value: "", label: tr("langs.dotnet.templateDefault") },
   { value: "net10.0", label: ".NET 10" },
   { value: "net9.0", label: ".NET 9" },
   { value: "net8.0", label: ".NET 8 (LTS)" },
@@ -95,12 +96,12 @@ function Dialog() {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Add Project from Template</div>
+        <div class="dialog-title">{tr("langs.dotnet.addProjectFromTemplate")}</div>
         <div class="dialog-body dn-add-body">
           <div class="dn-add-templates">
-            <input placeholder="Filter templates" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} spellcheck={false} />
+            <input placeholder={tr("langs.dotnet.filterTemplates")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} spellcheck={false} />
             <div class="dn-add-list" data-testid="dotnet-templates">
-              <For each={list()} fallback={<div class="muted dn-message">{templates.loading ? "Reading dotnet new list…" : "No templates"}</div>}>
+              <For each={list()} fallback={<div class="muted dn-message">{templates.loading ? tr("langs.dotnet.readingDotnetNewListEllipsis") : tr("langs.dotnet.noTemplates")}</div>}>
                 {(t) => (
                   <div class="dn-add-item" classList={{ selected: template()?.name === t.name }} onClick={() => setPicked(t)}>
                     <LayoutTemplate size={14} class="muted" />
@@ -111,37 +112,37 @@ function Dialog() {
               </For>
             </div>
             <Show when={templates() && !templates()!.fromSdk}>
-              <div class="muted dn-note">Common templates: {templates()!.error ?? "dotnet new list did not run"}</div>
+              <div class="muted dn-note">{tr("langs.dotnet.commonTemplates", { value: templates()!.error ?? tr("langs.dotnet.dotnetNewListDidNot") })}</div>
             </Show>
           </div>
           <div class="dn-add-form">
-            <label class="form-label">Name</label>
-            <input ref={(el) => queueMicrotask(() => el.focus())} value={name()} placeholder="Bookstore.Shipping" spellcheck={false} data-testid="dotnet-new-name" onInput={(e) => setName(e.currentTarget.value)} />
-            <label class="form-label">Folder</label>
+            <label class="form-label">{tr("common.name")}</label>
+            <input ref={(el) => queueMicrotask(() => el.focus())} value={name()} placeholder={tr("langs.dotnet.bookstoreShipping")} spellcheck={false} data-testid="dotnet-new-name" onInput={(e) => setName(e.currentTarget.value)} />
+            <label class="form-label">{tr("langs.dotnet.folder")}</label>
             <input value={directory()} spellcheck={false} onInput={(e) => setDir(e.currentTarget.value)} />
-            <label class="form-label">Language</label>
+            <label class="form-label">{tr("common.language")}</label>
             <select value={language()} onChange={(e) => setLanguage(e.currentTarget.value)}>
-              <option value="">{template()?.languages[0] ?? "C#"} (default)</option>
+              <option value="">{tr("langs.dotnet.default", { value: template()?.languages[0] ?? "C#" })}</option>
               <For each={(template()?.languages ?? []).slice(1)}>{(l) => <option value={l}>{l}</option>}</For>
             </select>
-            <label class="form-label">Framework</label>
+            <label class="form-label">{tr("common.framework")}</label>
             <select value={framework()} onChange={(e) => setFramework(e.currentTarget.value)}>
               <For each={FRAMEWORKS}>{(f) => <option value={f.value}>{f.label}</option>}</For>
             </select>
             <Show when={solution()}>
               <label class="dn-check">
                 <input type="checkbox" checked={addToSolution()} onChange={(e) => setAddToSolution(e.currentTarget.checked)} />
-                Add to {solution().split("/").pop()}
+                {tr("langs.dotnet.addTo2", { value: solution().split("/").pop() })}
               </label>
             </Show>
           </div>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={busy() || !name().trim() || !template()} onClick={() => void create()}>
-            Create
+            {tr("common.create")}
           </button>
         </div>
       </div>

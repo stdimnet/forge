@@ -14,6 +14,7 @@ import { showProfiler } from "@/features/profiler";
 import { formatValue, hashColor, ProfileBody, ProfileToolbar, unitOf, type FrameStyle, type ProfileTab } from "@/features/profiler/callTree";
 import { workspace } from "@/state/workspace";
 import { showGoBalloon } from "./state";
+import { t as tr } from "@/i18n";
 
 interface Opened {
   path: string;
@@ -37,10 +38,10 @@ export async function openProfile(path: string, title?: string, sampleIndex?: nu
 
 export function askForProfile(): void {
   setInputDialog({
-    title: "Open Profile",
+    title: tr("langs.go.openProfile"),
     label: "pprof file (absolute path or project file):",
     value: "cpu.pprof",
-    okLabel: "Open",
+    okLabel: tr("common.open"),
     onOk: (value) => openProfile(value.trim()),
   });
 }
@@ -71,7 +72,7 @@ const style: FrameStyle = { navigate, isOwn: isProjectFile, shortName, colorOf }
 /** Header buttons of the Profiler while it shows pprof profiles. */
 export function ProfilerActions() {
   return (
-    <button class="icon-btn" title="Open Profile (pprof)…" onClick={askForProfile}>
+    <button class="icon-btn" title={tr("langs.go.openProfilePprofEllipsis")} onClick={askForProfile}>
       <FolderOpen size={14} />
     </button>
   );
@@ -84,10 +85,10 @@ export function ProfilerView() {
         when={opened()}
         fallback={
           <div class="prof-empty muted">
-            <p>No profile is open.</p>
-            <p>Run a Go test or benchmark with a profile (Go Test configuration › Profile), or open a pprof file.</p>
+            <p>{tr("langs.go.noProfileIsOpen")}</p>
+            <p>{tr("langs.go.runAGoTestOr")}</p>
             <button class="btn-secondary" onClick={askForProfile}>
-              Open Profile…
+              {tr("langs.go.openProfileEllipsis")}
             </button>
           </div>
         }

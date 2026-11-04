@@ -31,14 +31,14 @@ function UnityPage() {
   return (
     <div class="gd-settings">
       <div class="gd-settings-info" data-testid="unity-settings-info">
-        <Show when={s()?.project} fallback={<span class="muted">The open project is not a Unity project.</span>}>
+        <Show when={s()?.project} fallback={<span class="muted">{t("langs.gamedev.theOpenProjectIsNot")}</span>}>
           {(p) => (
             <>
-              <span class="muted">Project</span>
+              <span class="muted">{t("common.project")}</span>
               <span>Unity {p().version}</span>
-              <span class="muted">Installed editors</span>
+              <span class="muted">{t("langs.gamedev.installedEditors")}</span>
               <span>
-                <For each={s()?.editors ?? []} fallback={<span class="muted">None found (Unity Hub folders, secondaryInstallPath.json, editors-v2.json)</span>}>
+                <For each={s()?.editors ?? []} fallback={<span class="muted">{t("langs.gamedev.noneFoundUnityHubFolders")}</span>}>
                   {(e) => (
                     <div class="mono gd-editor" classList={{ current: e.path === s()?.editor?.path }}>
                       {e.version} — {e.path}
@@ -46,8 +46,8 @@ function UnityPage() {
                   )}
                 </For>
               </span>
-              <span class="muted">Editor bridge</span>
-              <span>{p().bridge.kind === "none" ? `Not installed (bundled: ${s()?.bundledBridge})` : `dev.forge.unity ${p().bridge.version ?? ""}`}</span>
+              <span class="muted">{t("langs.gamedev.editorBridge")}</span>
+              <span>{p().bridge.kind === "none" ? t("langs.gamedev.notInstalledBundled", { bundledBridge: s()?.bundledBridge }) : `dev.forge.unity ${p().bridge.version ?? ""}`}</span>
             </>
           )}
         </Show>
@@ -64,17 +64,16 @@ function GodotPage() {
     <div class="gd-settings">
       <div class="gd-settings-info" data-testid="godot-settings-info">
         <span class="muted">Godot</span>
-        <span class="mono">{s()?.godot ? `${s()!.godot!.path}${s()?.version ? ` (${s()!.version!.version}${s()!.version!.dotnet ? " .NET" : ""})` : ""}` : "Not found"}</span>
+        <span class="mono">{s()?.godot ? `${s()!.godot!.path}${s()?.version ? ` (${s()!.version!.version}${s()!.version!.dotnet ? " .NET" : ""})` : ""}` : t("common.notFound2")}</span>
         <Show when={s()?.project}>
           {(p) => (
             <>
-              <span class="muted">Project</span>
+              <span class="muted">{t("common.project")}</span>
               <span>
-                {p().name} — Godot {p().version ?? "?"}
-                {p().csharp ? ", C#" : ""}
+                {t("langs.gamedev.godot", { name: p().name, value: p().version ?? "?", value2: p().csharp ? ", C#" : "" })}
               </span>
-              <span class="muted">Godot editor</span>
-              <span>{s()?.lspListening ? `Language server on ${s()!.host}:${s()!.lspPort}` : "Not running (no language server answers)"}</span>
+              <span class="muted">{t("langs.gamedev.godotEditor")}</span>
+              <span>{s()?.lspListening ? t("langs.gamedev.languageServerOn", { host: s()!.host, lspPort: s()!.lspPort }) : t("langs.gamedev.notRunningNoLanguageServer")}</span>
             </>
           )}
         </Show>

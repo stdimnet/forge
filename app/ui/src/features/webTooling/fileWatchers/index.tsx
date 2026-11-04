@@ -32,10 +32,10 @@ function WatcherProblemsView() {
     <div class="fw-problems">
       <div class="fw-problems-toolbar">
         <button class="btn-secondary" onClick={clearWatcherProblems} disabled={!watcherProblemCount()}>
-          Clear
+          {t("common.clear")}
         </button>
       </div>
-      <Show when={watcherProblems().length} fallback={<div class="set-list-empty">No problems reported by file watchers.</div>}>
+      <Show when={watcherProblems().length} fallback={<div class="set-list-empty">{t("langs.webTooling.noProblemsReportedByFile")}</div>}>
         <For each={watcherProblems()}>
           {(set) => (
             <div class="fw-problem-group">
@@ -65,7 +65,7 @@ function WatcherProblemsView() {
 
 registerProblemsTab({
   id: "file-watchers",
-  title: "File Watchers",
+  title: t("langs.webTooling.fileWatchers"),
   order: 30,
   count: watcherProblemCount,
   visible: () => fileWatchers().length > 0 || watcherProblemCount() > 0,

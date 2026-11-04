@@ -10,6 +10,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { jumpToScript, runScript } from "./npm";
 import { loaded, loadPackages, loading, packages } from "./store";
 import { showMenu } from "./popup";
+import { t } from "@/i18n";
 
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 /** `path` of a package or `path#script`. */
@@ -54,14 +55,14 @@ function contextMenu(e: MouseEvent, pkg: NpmPackage, script?: NpmScript) {
   setSelected(script ? scriptKey(pkg, script) : pkg.path);
   const items = script
     ? [
-        { label: `Run '${script.name}'`, icon: <Play size={14} />, run: () => void runScript(pkg, script.name) },
-        { label: `Debug '${script.name}'`, icon: <Bug size={14} />, run: () => void runScript(pkg, script.name, true) },
+        { label: t("common.run", { name: script.name }), icon: <Play size={14} />, run: () => void runScript(pkg, script.name) },
+        { label: t("common.debug", { name: script.name }), icon: <Bug size={14} />, run: () => void runScript(pkg, script.name, true) },
         { separator: true, label: "" },
-        { label: "Jump to Source", icon: <SquareArrowOutUpRight size={14} />, run: () => jumpToScript(pkg, script) },
+        { label: t("langs.webforge.jumpToSource"), icon: <SquareArrowOutUpRight size={14} />, run: () => jumpToScript(pkg, script) },
       ]
     : [
-        { label: "Jump to Source", icon: <SquareArrowOutUpRight size={14} />, run: () => jumpToScript(pkg) },
-        { label: "Reload Scripts", icon: <RefreshCw size={14} />, run: () => void loadPackages(true) },
+        { label: t("langs.webforge.jumpToSource"), icon: <SquareArrowOutUpRight size={14} />, run: () => jumpToScript(pkg) },
+        { label: t("langs.webforge.reloadScripts"), icon: <RefreshCw size={14} />, run: () => void loadPackages(true) },
       ];
   showMenu(items, e.clientX, e.clientY);
 }
@@ -92,7 +93,7 @@ function PackageNode(props: { pkg: NpmPackage }) {
         </span>
       </div>
       <Show when={open()}>
-        <For each={props.pkg.scripts} fallback={<div class="tree-row npm-row npm-empty-scripts muted">No scripts</div>}>
+        <For each={props.pkg.scripts} fallback={<div class="tree-row npm-row npm-empty-scripts muted">{t("langs.webforge.noScripts")}</div>}>
           {(s) => (
             <div
               class="tree-row npm-row npm-script"
@@ -123,7 +124,7 @@ export function NpmView() {
           when={packages().length}
           fallback={
             <div class="placeholder-panel">
-              {loading() || !loaded() ? "Reading package.json files…" : "No package.json in this project."}
+              {loading() || !loaded() ? t("langs.webforge.readingPackageJsonFilesEllipsis") : t("langs.webforge.noPackageJsonInThis")}
             </div>
           }
         >
@@ -132,7 +133,7 @@ export function NpmView() {
       </div>
       <Show when={packages().length}>
         <div class="npm-footer muted">
-          {total()} scripts in {packages().length} package.json {packages().length === 1 ? "file" : "files"}
+          {t("langs.webforge.scriptsInPackageJsonFiles", { count: packages().length, total: total() })}
         </div>
       </Show>
     </div>
@@ -144,12 +145,12 @@ export function NpmActions() {
   const canRun = () => !!sel()?.script;
   return (
     <>
-      <button class="icon-btn" classList={{ spinning: loading() }} title="Reload Scripts" onClick={() => void loadPackages(true)}>
+      <button class="icon-btn" classList={{ spinning: loading() }} title={t("langs.webforge.reloadScripts")} onClick={() => void loadPackages(true)}>
         <RefreshCw size={14} />
       </button>
       <button
         class="icon-btn npm-run-btn"
-        title={canRun() ? `Run '${sel()!.script!.name}'` : "Run"}
+        title={canRun() ? t("common.run", { name: sel()!.script!.name }) : t("common.run2")}
         disabled={!canRun()}
         onClick={() => sel()?.script && void runScript(sel()!.pkg, sel()!.script!.name)}
       >
@@ -157,19 +158,19 @@ export function NpmActions() {
       </button>
       <button
         class="icon-btn npm-debug-btn"
-        title={canRun() ? `Debug '${sel()!.script!.name}'` : "Debug"}
+        title={canRun() ? t("common.debug", { name: sel()!.script!.name }) : t("common.debug2")}
         disabled={!canRun()}
         onClick={() => sel()?.script && void runScript(sel()!.pkg, sel()!.script!.name, true)}
       >
         <Bug size={14} />
       </button>
-      <button class="icon-btn" title="Expand All" onClick={() => setCollapsed(new Set<string>())}>
+      <button class="icon-btn" title={t("common.expandAll2")} onClick={() => setCollapsed(new Set<string>())}>
         <ChevronsUpDown size={14} />
       </button>
-      <button class="icon-btn" title="Collapse All" onClick={() => setCollapsed(new Set(packages().map((p) => p.path)))}>
+      <button class="icon-btn" title={t("common.collapseAll2")} onClick={() => setCollapsed(new Set(packages().map((p) => p.path)))}>
         <ChevronsDownUp size={14} />
       </button>
-      <button class="icon-btn" title="Settings" onClick={() => openSettings("lang.node")}>
+      <button class="icon-btn" title={t("langs.webforge.settings")} onClick={() => openSettings("lang.node")}>
         <Settings size={14} />
       </button>
     </>

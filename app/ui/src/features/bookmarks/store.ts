@@ -10,6 +10,7 @@ import { workspace } from "@/state/workspace";
 import { onFsChanged } from "@/state/fsWatch";
 import { onPathMoved } from "@/state/editor";
 import { showBalloon } from "@/keymap";
+import { t } from "@/i18n";
 
 const EMPTY: Bookmarks = { lists: [{ name: "Bookmarks", bookmarks: [] }], defaultList: "Bookmarks", nextId: 1 };
 
@@ -35,7 +36,7 @@ export function applyBookmarks(ops: BookmarkOp[]): Promise<void> {
     try {
       setBookmarks(await bookmarksApi.apply(ops));
     } catch (e) {
-      showBalloon("Bookmarks could not be saved", String(e instanceof Error ? e.message : e));
+      showBalloon(t("tools.bookmarks.bookmarksCouldNotBeSaved"), String(e instanceof Error ? e.message : e));
     }
   });
   chain = run;

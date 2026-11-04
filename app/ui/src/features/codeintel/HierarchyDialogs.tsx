@@ -164,7 +164,7 @@ export function ExtractInterfaceDialog(props: { req: ExtractInterfaceRequest }) 
     <Frame title={tr("codeintel.hierarchyDialogs.extractInterface")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Extract interface from: <code>{info.fqn}</code>
+          {tr("tools.codeintel.extractInterfaceFromLabel")} <code>{info.fqn}</code>
         </div>
         <NewTypeFields label={tr("codeintel.hierarchyDialogs.interfaceName")} name={name()} setName={setName} namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} />
         <MemberTable
@@ -211,8 +211,8 @@ export function ExtractSuperclassDialog(props: { req: ExtractSuperclassRequest }
     <Frame title={tr("codeintel.hierarchyDialogs.extractSuperclass")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Extract superclass from: <code>{info.fqn}</code>
-          <Show when={info.parent}> (between it and {info.parent})</Show>
+          {tr("tools.codeintel.extractSuperclassFromLabel")} <code>{info.fqn}</code>
+          <Show when={info.parent}> {tr("tools.codeintel.betweenItAnd", { parent: info.parent })}</Show>
         </div>
         <NewTypeFields label={tr("codeintel.hierarchyDialogs.superclassName")} name={name()} setName={setName} namespace={ns()} setNamespace={setNs} directory={dir()} setDirectory={setDir} />
         <MemberTable
@@ -248,7 +248,7 @@ export function PullUpDialog(props: { req: PullUpRequest }) {
     <Frame title={tr("codeintel.hierarchyDialogs.pullMembersUp")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <label class="form-label">
-          Pull up members of <code>{info.fqn}</code> to:
+          {tr("tools.codeintel.pullUpMembersOf")} <code>{info.fqn}</code> to:
         </label>
         <select class="move-input" value={target()} aria-label={tr("codeintel.hierarchyDialogs.targetClass")} onChange={(e) => setTarget(e.currentTarget.value)}>
           <For each={info.targets}>
@@ -287,7 +287,7 @@ export function PushDownDialog(props: { req: PushDownRequest }) {
     <Frame title={tr("codeintel.hierarchyDialogs.pushMembersDown")} class="hierarchy-dialog" onKeyDown={keys(() => close(null), run)}>
       <div class="dialog-body">
         <div class="refactor-note">
-          Push members from <code>{info.fqn}</code> down to: {info.targets.map((t) => t.name).join(", ")}
+          {tr("tools.codeintel.pushMembersFrom")} <code>{info.fqn}</code> {tr("tools.codeintel.downToLabel")} {info.targets.map((t) => t.name).join(", ")}
         </div>
         <MemberTable
           info={info}

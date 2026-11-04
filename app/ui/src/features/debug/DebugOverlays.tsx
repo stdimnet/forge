@@ -121,7 +121,7 @@ function IncomingDialog(props: { session: SessionInfo }) {
             <span class="muted">{t("debug.debugOverlays.pathMapping")}</span>
             <span class="dbg-mono">{m().remote}</span>
             <span class="muted">→</span>
-            <span class="dbg-mono">{m().local ? `${root()}/${m().local}` : root() || "<project root>"}</span>
+            <span class="dbg-mono">{m().local ? `${root()}/${m().local}` : root() || t("tools.debug.projectRoot")}</span>
           </div>
         )}
       </Show>
@@ -192,7 +192,7 @@ function EvaluateDialog(props: { expression: string }) {
           value={expr()}
           onInput={setExpr}
           onSubmit={() => void evaluate()}
-          placeholder={pausedSession()?.adapter ? t("debug.debugOverlays.expressionEGCounterOrigin") : "PHP expression, e.g. $order->total * 1.19"}
+          placeholder={pausedSession()?.adapter ? t("debug.debugOverlays.expressionEGCounterOrigin") : t("tools.debug.phpExpressionEGOrder")}
           ref={(el) => (input = el)}
         />
         <button class="btn-primary" disabled={busy() || !pausedSession()} onClick={() => void evaluate()}>
@@ -279,8 +279,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
             {t("debug.debugOverlays.enabled")}
           </label>
           <p class="muted dbg-hint">
-            {findDebugAdapter(props.bp.adapter)?.label ?? props.bp.adapter} suspends the program on "{props.bp.description ?? props.bp.exception}" while
-            this is enabled. The filters come from the debug adapter.
+            {t("tools.debug.suspendsTheProgramOnWhile", { value: findDebugAdapter(props.bp.adapter)?.label ?? props.bp.adapter, value2: props.bp.description ?? props.bp.exception })}
           </p>
         </div>
       }
@@ -324,7 +323,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
           id={id("cond")}
           inputRef={props.conditionRef}
           value={props.bp.condition ?? ""}
-          placeholder={isPhpFile(props.bp.file) ? "e.g. $order->total > 100" : "e.g. counter > 5"}
+          placeholder={isPhpFile(props.bp.file) ? t("tools.debug.eGOrderTotal100") : t("tools.debug.eGCounter5")}
           onSave={(v) => save({ condition: text(v) })}
         />
       </Show>
@@ -354,7 +353,7 @@ export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean;
         <LazyInput
           id={id("log")}
           value={props.bp.logExpression ?? ""}
-          placeholder={isPhpFile(props.bp.file) || props.bp.kind === "exception" ? "e.g. $order->status" : "e.g. counter or counter={counter}"}
+          placeholder={isPhpFile(props.bp.file) || props.bp.kind === "exception" ? t("tools.debug.eGOrderStatus") : "e.g. counter or counter={counter}"}
           onSave={(v) => save({ logExpression: text(v) })}
         />
       </div>
@@ -588,7 +587,7 @@ function BreakpointPopupView(props: { id: number; x: number; y: number }) {
             <div class="dbg-bp-popup-title">
               {basename(b().file ?? "")}:{b().line}
               <Show when={b().temporary}>
-                <span class="muted"> (removed once hit)</span>
+                <span class="muted"> {t("tools.debug.removedOnceHit")}</span>
               </Show>
             </div>
             <BreakpointProperties bp={b()} compact conditionRef={(el) => (input = el)} />
@@ -600,7 +599,7 @@ function BreakpointPopupView(props: { id: number; x: number; y: number }) {
                   setBreakpointsDialog({ select: b().id });
                 }}
               >
-                More ({formatForKeymap(shortcutLabel("ViewBreakpoints") || "Ctrl+Shift+F8")})
+                {t("tools.debug.more", { value: formatForKeymap(shortcutLabel("ViewBreakpoints") || "Ctrl+Shift+F8") })}
               </button>
               <button class="btn-primary" onClick={close}>
                 {t("debug.debugOverlays.done")}

@@ -9,6 +9,7 @@ import { ArrowDown, ArrowUp, Minus, Plus, Share2, Undo2 } from "lucide-solid";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import type { FileColor, NamedScope } from "@/ipc/scopes";
 import { LOCAL_COLORS, swatchVar, LOCAL_SCOPES, PALETTE, SHARED_COLORS, SHARED_SCOPES, scopeEntries } from "./model";
+import { t as tr } from "@/i18n";
 
 type Table = "local" | "shared";
 const keyOf = (t: Table) => (t === "shared" ? SHARED_COLORS : LOCAL_COLORS);
@@ -92,22 +93,22 @@ export function FileColorsPage() {
         <div class="set-section-title">{props.title}</div>
         <div class="set-list scp-colors-list" classList={{ disabled: !enabled() }}>
           <div class="set-list-toolbar">
-            <button class="icon-btn" title="Add" aria-label={`Add ${props.title}`} onClick={() => add(props.table)}>
+            <button class="icon-btn" title={tr("common.add")} aria-label={`Add ${props.title}`} onClick={() => add(props.table)}>
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove" aria-label="Remove" disabled={!has()} onClick={() => remove(props.table)}>
+            <button class="icon-btn" title={tr("common.remove")} aria-label={tr("common.remove")} disabled={!has()} onClick={() => remove(props.table)}>
               <Minus size={14} />
             </button>
-            <button class="icon-btn" title="Move Up" aria-label="Move Up" disabled={!has()} onClick={() => move(props.table, -1)}>
+            <button class="icon-btn" title={tr("common.moveUp")} aria-label={tr("common.moveUp")} disabled={!has()} onClick={() => move(props.table, -1)}>
               <ArrowUp size={14} />
             </button>
-            <button class="icon-btn" title="Move Down" aria-label="Move Down" disabled={!has()} onClick={() => move(props.table, 1)}>
+            <button class="icon-btn" title={tr("common.moveDown")} aria-label={tr("common.moveDown")} disabled={!has()} onClick={() => move(props.table, 1)}>
               <ArrowDown size={14} />
             </button>
             <button
               class="icon-btn"
-              title={props.table === "local" ? "Share" : "Unshare"}
-              aria-label={props.table === "local" ? "Share" : "Unshare"}
+              title={props.table === "local" ? tr("tools.scopes.share") : tr("tools.scopes.unshare")}
+              aria-label={props.table === "local" ? tr("tools.scopes.share") : tr("tools.scopes.unshare")}
               disabled={!has()}
               onClick={() => share(props.table)}
             >
@@ -117,8 +118,8 @@ export function FileColorsPage() {
           <table class="set-table scp-colors-table">
             <thead>
               <tr>
-                <th>Scope</th>
-                <th>Color</th>
+                <th>{tr("common.scope")}</th>
+                <th>{tr("tools.scopes.color")}</th>
               </tr>
             </thead>
             <tbody>
@@ -129,7 +130,7 @@ export function FileColorsPage() {
                       <select
                         class="scp-cell-select"
                         value={row.scope}
-                        aria-label="Scope"
+                        aria-label={tr("common.scope")}
                         onChange={(e) => edit(props.table, i(), { scope: e.currentTarget.value })}
                       >
                         <For each={scopeNames().includes(row.scope) ? scopeNames() : [row.scope, ...scopeNames()]}>
@@ -142,7 +143,7 @@ export function FileColorsPage() {
                       <select
                         class="scp-cell-select"
                         value={row.color}
-                        aria-label="Color"
+                        aria-label={tr("tools.scopes.color")}
                         onChange={(e) => edit(props.table, i(), { color: e.currentTarget.value })}
                       >
                         <For each={PALETTE}>{(c) => <option value={c}>{c}</option>}</For>
@@ -154,7 +155,7 @@ export function FileColorsPage() {
             </tbody>
           </table>
           <Show when={!rows(props.table).length}>
-            <div class="set-list-empty">No colors</div>
+            <div class="set-list-empty">{tr("tools.scopes.noColors")}</div>
           </Show>
         </div>
       </div>
@@ -163,16 +164,15 @@ export function FileColorsPage() {
 
   return (
     <div class="scp-colors-page">
-      <Check key="fileColors.enabled" label="Enable file colors" />
+      <Check key="fileColors.enabled" label={tr("tools.scopes.enableFileColors")} />
       <div class="set-indent scp-indent">
-        <Check key="fileColors.useInEditorTabs" label="Use in editor tabs" disabled={!enabled()} />
-        <Check key="fileColors.useInProjectView" label="Use in project view" disabled={!enabled()} />
+        <Check key="fileColors.useInEditorTabs" label={tr("tools.scopes.useInEditorTabs")} disabled={!enabled()} />
+        <Check key="fileColors.useInProjectView" label={tr("tools.scopes.useInProjectView")} disabled={!enabled()} />
       </div>
-      <TableView table="local" title="Local colors" />
-      <TableView table="shared" title="Shared colors" />
+      <TableView table="local" title={tr("tools.scopes.localColors")} />
+      <TableView table="shared" title={tr("tools.scopes.sharedColors")} />
       <div class="set-desc">
-        Shared colors are stored in the project (<code>.forge/settings.toml</code>) and shared through version control.
-        Manage scopes on the Scopes page.
+        {tr("tools.scopes.sharedColorsAreStoredIn")}<code>.forge/settings.toml</code>{tr("tools.scopes.andSharedThroughVersionControl")}
       </div>
     </div>
   );

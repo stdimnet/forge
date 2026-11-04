@@ -12,6 +12,7 @@ import { registerStatusItem } from "@/features/statusItems";
 import { actionById, shortcutLabel } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { addCaretsToLineEnds, caretExtensions, cloneCaret, isColumnMode, setColumnMode } from "./carets";
+import { t } from "@/i18n";
 import "./carets.css";
 
 registerEditorExtension(() => caretExtensions());
@@ -53,10 +54,10 @@ function ColumnModeStatus() {
   return (
     <button
       class="status-item column-mode-status"
-      title={`Column Selection Mode is on. Click or press ${shortcutLabel("EditorToggleColumnMode")} to turn it off.`}
+      title={t("tools.carets.columnSelectionModeIsOn", { value: shortcutLabel("EditorToggleColumnMode") })}
       onClick={toggleColumnMode}
     >
-      Column
+      {t("tools.carets.column")}
     </button>
   );
 }

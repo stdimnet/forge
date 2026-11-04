@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, Database, FileCog, KeyRound, Leaf, Link2, Re
 import type { BeanRow, Entity } from "@/ipc/spring";
 import { openFile } from "@/state/editor";
 import { loadSpring, loading, overview, reveal, shortName } from "./store";
+import { t } from "@/i18n";
 
 type Tab = "beans" | "persistence" | "configuration";
 const [tab, setTab] = createSignal<Tab>("beans");
@@ -82,16 +83,16 @@ function Beans() {
                       <span class="sp-hint">{b.scope}</span>
                     </Show>
                     <Show when={b.profiles?.length}>
-                      <span class="sp-hint">@Profile({b.profiles!.join(", ")})</span>
+                      <span class="sp-hint">{t("langs.spring.profile", { profiles: b.profiles!.join(", ") })}</span>
                     </Show>
                     <span class="sp-spacer" />
                     <Show when={b.usages}>
-                      <span class="sp-usages" title={`Injected into ${b.usages} place(s)`}>
+                      <span class="sp-usages" title={t("langs.spring.injectedIntoPlaceS", { usages: b.usages })}>
                         <Link2 size={11} /> {b.usages}
                       </span>
                     </Show>
                     <Show when={b.live}>
-                      <span class="sp-live-dot" title="Exists in the running application" />
+                      <span class="sp-live-dot" title={t("langs.spring.existsInTheRunningApplication")} />
                     </Show>
                   </div>
                 )}
@@ -103,7 +104,7 @@ function Beans() {
       <Show when={!loading() && !groups().length}>
         <div class="sp-empty">
           <Leaf size={22} />
-          <div>{overview()?.beans.length ? "No beans match the search" : "No beans found"}</div>
+          <div>{overview()?.beans.length ? t("langs.spring.noBeansMatchTheSearch") : t("langs.spring.noBeansFound")}</div>
         </div>
       </Show>
     </div>
@@ -122,7 +123,7 @@ function EntityNode(props: { e: Entity }) {
           <span class="sp-hint">table {props.e.table}</span>
         </Show>
         <Show when={props.e.kind !== "entity"}>
-          <span class="sp-badge">{props.e.kind === "embeddable" ? "Embeddable" : "Mapped superclass"}</span>
+          <span class="sp-badge">{props.e.kind === "embeddable" ? t("langs.spring.embeddable") : t("langs.spring.mappedSuperclass")}</span>
         </Show>
         <span class="sp-spacer" />
         <Show when={props.e.repositories?.length}>
@@ -167,7 +168,7 @@ function Persistence() {
       <Show when={!loading() && !list().length}>
         <div class="sp-empty">
           <Table2 size={22} />
-          <div>No JPA entities found (@Entity, @Embeddable, @MappedSuperclass)</div>
+          <div>{t("langs.spring.noJpaEntitiesFoundEntity")}</div>
         </div>
       </Show>
     </div>
@@ -179,8 +180,8 @@ function Configuration() {
   return (
     <div class="sp-config" tabIndex={0}>
       <section>
-        <h4>Configuration files</h4>
-        <For each={o()?.configFiles ?? []} fallback={<div class="muted">No application.properties / application.yml</div>}>
+        <h4>{t("langs.spring.configurationFiles")}</h4>
+        <For each={o()?.configFiles ?? []} fallback={<div class="muted">{t("langs.spring.noApplicationPropertiesApplicationYml")}</div>}>
           {(f) => (
             <div class="sp-tree-row" onClick={() => void openFile(f.path)}>
               <FileCog size={13} class="sp-file-icon" />
@@ -196,8 +197,8 @@ function Configuration() {
         </For>
       </section>
       <section>
-        <h4>@ConfigurationProperties</h4>
-        <For each={o()?.configClasses ?? []} fallback={<div class="muted">None</div>}>
+        <h4>{t("langs.spring.configurationproperties")}</h4>
+        <For each={o()?.configClasses ?? []} fallback={<div class="muted">{t("langs.spring.none")}</div>}>
           {(c) => (
             <div class="sp-tree-row" title={c.keys.join("\n")} onClick={() => reveal(c.location)}>
               <Leaf size={13} class="sp-bean-icon kind-configuration" />
@@ -209,29 +210,29 @@ function Configuration() {
         </For>
       </section>
       <section>
-        <h4>Profiles</h4>
+        <h4>{t("langs.spring.profiles")}</h4>
         <div class="sp-chips">
           <For each={o()?.profiles ?? []}>{(p) => <span class="sp-badge">{p}</span>}</For>
         </div>
       </section>
       <section>
-        <h4>Configuration metadata</h4>
+        <h4>{t("langs.spring.configurationMetadata")}</h4>
         <div class="sp-hint-block">
           {o()?.metadata.properties ?? 0} properties
-          <Show when={o()?.metadata.sources.length} fallback={<span class="muted"> · no metadata found: reload the Gradle / Maven project or build it once so the jars are in the local caches</span>}>
+          <Show when={o()?.metadata.sources.length} fallback={<span class="muted"> {t("langs.spring.noMetadataFoundReloadThe")}</span>}>
             {" "}from {o()!.metadata.sources.join(", ")}
           </Show>
         </div>
         <For each={o()?.metadata.problems ?? []}>{(p) => <div class="sp-problem">{p}</div>}</For>
       </section>
       <section>
-        <h4>APIs</h4>
-        <For each={o()?.apis ?? []} fallback={<div class="muted">No Spring or Jakarta EE imports</div>}>
+        <h4>{t("langs.spring.apis")}</h4>
+        <For each={o()?.apis ?? []} fallback={<div class="muted">{t("langs.spring.noSpringOrJakartaEe")}</div>}>
           {(a) => (
             <div class="sp-tree-row sp-api" data-api={a.id}>
               <span class={`sp-ns ns-${a.namespace}`}>{a.namespace}</span>
               <span class="sp-bean-name">{a.name}</span>
-              <span class="sp-hint">{a.files} file(s)</span>
+              <span class="sp-hint">{t("langs.spring.fileS", { files: a.files })}</span>
             </div>
           )}
         </For>
@@ -252,22 +253,22 @@ export function SpringView() {
     <div class="sp-view" data-testid="spring">
       <div class="sp-tabs" role="tablist">
         <button class="sp-tab" classList={{ active: tab() === "beans" }} onClick={() => setTab("beans")}>
-          Beans <span class="sp-count">{counts().beans}</span>
+          {t("langs.spring.beans")} <span class="sp-count">{counts().beans}</span>
         </button>
         <button class="sp-tab" classList={{ active: tab() === "persistence" }} onClick={() => setTab("persistence")}>
-          Persistence <span class="sp-count">{counts().persistence}</span>
+          {t("langs.spring.persistence")} <span class="sp-count">{counts().persistence}</span>
         </button>
         <button class="sp-tab" classList={{ active: tab() === "configuration" }} onClick={() => setTab("configuration")}>
-          Configuration
+          {t("langs.spring.configuration")}
         </button>
       </div>
       <Show when={tab() !== "configuration"}>
         <div class="sp-toolbar">
           <div class="sp-search sp-search-wide">
             <Search size={13} />
-            <input class="sp-search-input" placeholder={tab() === "beans" ? "Search beans" : "Search entities"} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
+            <input class="sp-search-input" placeholder={tab() === "beans" ? t("langs.spring.searchBeans") : t("langs.spring.searchEntities")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} spellcheck={false} />
             <Show when={query()}>
-              <button class="icon-btn sp-clear" title="Clear" onClick={() => setQuery("")}>
+              <button class="icon-btn sp-clear" title={t("common.clear")} onClick={() => setQuery("")}>
                 <X size={12} />
               </button>
             </Show>
@@ -291,7 +292,7 @@ export function SpringView() {
 
 export function SpringActions() {
   return (
-    <button class="icon-btn" title="Refresh Spring Model" onClick={() => void loadSpring(true)} disabled={loading()}>
+    <button class="icon-btn" title={t("langs.spring.refreshSpringModel")} onClick={() => void loadSpring(true)} disabled={loading()}>
       <RefreshCw size={14} class={loading() ? "sp-spin" : undefined} />
     </button>
   );

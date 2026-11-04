@@ -9,6 +9,7 @@ import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
 import { commands, loadSymfony } from "./store";
 import { runConsoleCommand, splitCommandLine } from "./console";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 const [initial, setInitial] = createSignal("");
@@ -77,10 +78,10 @@ export function ConsolePopup() {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeConsolePopup()}>
-      <div class="popup se-popup sf-console-popup" role="dialog" aria-label="Run Console Command" onKeyDown={onKeyDown}>
+      <div class="popup se-popup sf-console-popup" role="dialog" aria-label={t("langs.symfony.runConsoleCommand")} onKeyDown={onKeyDown}>
         <div class="sf-console-title">
-          <span>Run Console Command</span>
-          <span class="muted">php bin/console</span>
+          <span>{t("langs.symfony.runConsoleCommand")}</span>
+          <span class="muted">{t("langs.symfony.phpBinConsole")}</span>
         </div>
         <label class="se-search">
           <SquareTerminal size={15} class="muted" />
@@ -88,13 +89,13 @@ export function ConsolePopup() {
             ref={input}
             class="se-input"
             value={query()}
-            placeholder="Command name, e.g. cache:clear --env=prod"
+            placeholder={t("langs.symfony.commandNameEGCache")}
             spellcheck={false}
             onInput={(e) => setQuery(e.currentTarget.value)}
           />
         </label>
         <div class="se-results" ref={list}>
-          <For each={shown()} fallback={<div class="se-empty">No matching commands. Press Enter to run “{parsed().command}”.</div>}>
+          <For each={shown()} fallback={<div class="se-empty">{t("langs.symfony.noMatchingCommandsPressEnter", { command: parsed().command })}</div>}>
             {(x, i) => (
               <div
                 class="se-row"
@@ -117,7 +118,7 @@ export function ConsolePopup() {
             )}
           </For>
         </div>
-        <div class="se-footer">Enter to run · Tab to complete · arguments after the command name are passed on</div>
+        <div class="se-footer">{t("langs.symfony.enterToRunTabTo")}</div>
       </div>
     </div>
   );

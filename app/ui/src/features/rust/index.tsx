@@ -34,7 +34,7 @@ import { RustSettingsPage } from "./RustSettingsPage";
 import { isRustPath, runClippy } from "./editor";
 import { downloadAnalyzer, installAnalyzer, installToolchain } from "./install";
 import { PLUGIN, refreshCargo, refreshRustStatus, runRustCommand, rustActive, showRustBalloon } from "./state";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 
@@ -62,28 +62,28 @@ registerToolWindow({
 // ---- Run configurations ------------------------------------------------------------------------
 
 const featureFields = [
-  { key: "features", label: "Features", placeholder: "json, discounts (Settings | Rust adds its features)" },
-  { key: "allFeatures", label: "Use all features", kind: "bool" as const },
-  { key: "noDefaultFeatures", label: "Do not use the default features", kind: "bool" as const },
+  { key: "features", label: tr("langs.rust.features"), placeholder: "json, discounts (Settings | Rust adds its features)" },
+  { key: "allFeatures", label: tr("langs.rust.useAllFeatures"), kind: "bool" as const },
+  { key: "noDefaultFeatures", label: tr("langs.rust.doNotUseTheDefault"), kind: "bool" as const },
   {
     key: "profile",
-    label: "Profile",
+    label: tr("langs.rust.profile"),
     kind: "enum" as const,
     default: "",
     options: [
-      { value: "", label: "Default (dev, test or bench)" },
+      { value: "", label: tr("langs.rust.defaultDevTestOrBench") },
       { value: "release", label: "release" },
       { value: "dev", label: "dev" },
     ],
   },
-  { key: "targetTriple", label: "Target triple", placeholder: "wasm32-unknown-unknown (host when empty)" },
-  { key: "toolchain", label: "Toolchain", placeholder: "nightly (Settings | Rust when empty)" },
+  { key: "targetTriple", label: tr("langs.rust.targetTriple"), placeholder: "wasm32-unknown-unknown (host when empty)" },
+  { key: "toolchain", label: tr("langs.rust.toolchain"), placeholder: "nightly (Settings | Rust when empty)" },
 ];
 
 registerRunConfigurationType({
   id: "cargo",
   name: "Cargo",
-  description: "Run a cargo command (run, test, bench, build or any other) with a toolchain, package, target, features, profile and target triple.",
+  description: tr("langs.rust.runACargoCommandRun"),
   icon: Package,
   color: "var(--warning)",
   pluginId: PLUGIN,
@@ -91,9 +91,9 @@ registerRunConfigurationType({
   debuggable: true,
   defaults: () => ({ options: { command: "run" } }),
   fields: [
-    { key: "command", label: "Command", required: true, placeholder: "run, build --release, test --doc, clippy -- -W clippy::pedantic" },
-    { key: "package", label: "Package", placeholder: "shop-cli (-p)" },
-    { key: "target", label: "Target", placeholder: "bin:shop, example:report, test:checkout" },
+    { key: "command", label: tr("langs.rust.command"), required: true, placeholder: "run, build --release, test --doc, clippy -- -W clippy::pedantic" },
+    { key: "package", label: tr("common.package"), placeholder: "shop-cli (-p)" },
+    { key: "target", label: tr("common.target"), placeholder: "bin:shop, example:report, test:checkout" },
     ...featureFields,
   ],
   suggestName: (cfg) => {
@@ -109,7 +109,7 @@ const inScope = (...list: string[]) => (cfg: RunConfiguration) => list.includes(
 registerRunConfigurationType({
   id: "cargo-test",
   name: "Cargo Test",
-  description: "Run cargo test or cargo nextest: the workspace, a package, a target, a module, a test or a doctest; benchmarks; coverage with cargo-llvm-cov.",
+  description: tr("langs.rust.runCargoTestOrCargo"),
   icon: FlaskConical,
   color: "var(--success)",
   pluginId: PLUGIN,
@@ -120,44 +120,44 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test scope",
+      label: tr("common.testScope"),
       kind: "segmented",
       default: "all",
       options: [
-        { value: "all", label: "All" },
-        { value: "package", label: "Package" },
-        { value: "target", label: "Target" },
-        { value: "test", label: "Test" },
-        { value: "pattern", label: "Filter" },
+        { value: "all", label: tr("common.all") },
+        { value: "package", label: tr("common.package") },
+        { value: "target", label: tr("common.target") },
+        { value: "test", label: tr("common.test") },
+        { value: "pattern", label: tr("common.filter") },
       ],
     },
-    { key: "package", label: "Package", required: true, placeholder: "shop-core", visible: inScope("package", "target", "test") },
-    { key: "target", label: "Target", placeholder: "lib, test:checkout, doc (doctests)", visible: inScope("target", "test", "pattern") },
-    { key: "test", label: "Test", required: true, placeholder: "cart::tests::adds_items or cart::", visible: inScope("test", "pattern") },
-    { key: "exact", label: "Exact name (--exact)", kind: "bool", visible: inScope("test") },
+    { key: "package", label: tr("common.package"), required: true, placeholder: "shop-core", visible: inScope("package", "target", "test") },
+    { key: "target", label: tr("common.target"), placeholder: "lib, test:checkout, doc (doctests)", visible: inScope("target", "test", "pattern") },
+    { key: "test", label: tr("common.test"), required: true, placeholder: "cart::tests::adds_items or cart::", visible: inScope("test", "pattern") },
+    { key: "exact", label: tr("langs.rust.exactNameExact"), kind: "bool", visible: inScope("test") },
     {
       key: "kind",
-      label: "Run",
+      label: tr("common.run2"),
       kind: "enum",
       default: "test",
       options: [
-        { value: "test", label: "Tests (cargo test)" },
-        { value: "bench", label: "Benchmarks (cargo bench)" },
+        { value: "test", label: tr("langs.rust.testsCargoTest") },
+        { value: "bench", label: tr("langs.rust.benchmarksCargoBench") },
       ],
     },
     {
       key: "runner",
-      label: "Test runner",
+      label: tr("langs.rust.testRunner"),
       kind: "enum",
       default: "auto",
       options: [
-        { value: "auto", label: "Settings | Rust" },
+        { value: "auto", label: tr("langs.rust.settingsRust") },
         { value: "cargo", label: "cargo test" },
         { value: "nextest", label: "cargo nextest" },
       ],
     },
     ...featureFields,
-    { key: "flags", label: "Cargo options", placeholder: "--release --jobs 4" },
+    { key: "flags", label: tr("langs.rust.cargoOptions"), placeholder: "--release --jobs 4" },
   ],
   suggestName: (cfg) => {
     switch (scope(cfg)) {
@@ -257,7 +257,7 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
               showRustBalloon("No Rust toolchain found", "Install Rust with rustup (rustup.rs), then reload the project.", 10000);
             else if (!s.tools.find((t) => t.tool === "rust-analyzer")?.path)
               showRustBalloon("rust-analyzer is not installed", "Code insight for Rust needs rust-analyzer.", 10000, [
-                { label: s.rustup ? "Install with rustup" : "Download…", run: () => void installAnalyzer() },
+                { label: s.rustup ? tr("langs.rust.installWithRustup") : tr("common.downloadEllipsis"), run: () => void installAnalyzer() },
               ]);
           });
         },

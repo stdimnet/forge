@@ -10,6 +10,7 @@ import { workspace } from "@/state/workspace";
 import { openSettings } from "@/features/settings/dialogState";
 import { active, clearInstall, listenForInstalls, refreshJdks, refreshStatus } from "./store";
 import { openDownloadForm } from "./JdksPage";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Java");
 const AUTO_INSTALL_KEY = "java.jdtls.autoInstall";
@@ -24,10 +25,10 @@ export async function installLanguageServer(): Promise<void> {
   try {
     const version = await javaApi.installLanguageServer();
     const status = await refreshStatus();
-    if (status?.problems.length) showBalloon(`Eclipse JDT LS ${version} installed`, status.problems.join(" "), 0, jdkActions());
-    else showBalloon(`Eclipse JDT LS ${version} installed`, "The Java language server is importing the project.", 6000);
+    if (status?.problems.length) showBalloon(t("langs.java.eclipseJdtLsInstalled", { version }), status.problems.join(" "), 0, jdkActions());
+    else showBalloon(t("langs.java.eclipseJdtLsInstalled", { version }), t("langs.java.theJavaLanguageServerIs"), 6000);
   } catch (e) {
-    showBalloon("Eclipse JDT LS could not be installed", String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installLanguageServer() }]);
+    showBalloon(t("langs.java.eclipseJdtLsCouldNot"), String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installLanguageServer() }]);
   } finally {
     installing = false;
     clearInstall();
@@ -59,8 +60,8 @@ export async function checkJavaSetup(): Promise<void> {
     if (mode === "never") return;
     if (mode === "always") return void installLanguageServer();
     showBalloon(
-      "Java language server Eclipse JDT LS is not installed",
-      `Completion, navigation, inspections and refactorings in ${workspace()?.name ?? "this project"} need it. Forge downloads it from download.eclipse.org (EPL-2.0) with the java-debug debugger.`,
+      t("langs.java.javaLanguageServerEclipseJdt"),
+      t("langs.java.completionNavigationInspectionsAndRefact", { value: workspace()?.name ?? "this project" }),
       0,
       [
         { label: "Install", run: () => void installLanguageServer() },
@@ -70,5 +71,5 @@ export async function checkJavaSetup(): Promise<void> {
     );
     return;
   }
-  if (status.problems.length) showBalloon("Eclipse JDT LS cannot start", status.problems.join(" "), 0, jdkActions());
+  if (status.problems.length) showBalloon(t("langs.java.eclipseJdtLsCannotStart"), status.problems.join(" "), 0, jdkActions());
 }

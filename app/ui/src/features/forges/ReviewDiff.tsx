@@ -11,6 +11,7 @@ import type { Draft, ExplainResult, Finding } from "@/ipc/codeReview";
 import { CommentEditor, Markdown, ThreadView } from "./Thread";
 import { DraftCard, FindingCard, ProviderLine } from "./ReviewCards";
 import { highlightLines, parserFor, type Segment } from "./highlight";
+import { t as tr } from "@/i18n";
 
 interface Row {
   kind: LineKind | "hunk";
@@ -166,12 +167,12 @@ export function ReviewDiff(props: ReviewDiffProps) {
     <div class="fg-diff">
       <Show when={outside().length || looseFindings().length}>
         <div class="fg-diff-outside">
-          <div class="muted fg-small">Comments on lines outside the diff</div>
+          <div class="muted fg-small">{tr("tools.forges.commentsOnLinesOutsideThe")}</div>
           <For each={outside()}>{thread}</For>
           <For each={looseFindings()}>{findingCard}</For>
         </div>
       </Show>
-      <Show when={props.file.hunks.length} fallback={<div class="fg-empty muted">{props.file.status === "renamed" ? "File renamed without changes" : "No textual changes (binary file or too large to show)"}</div>}>
+      <Show when={props.file.hunks.length} fallback={<div class="fg-empty muted">{props.file.status === "renamed" ? tr("tools.forges.fileRenamedWithoutChanges") : tr("tools.forges.noTextualChangesBinaryFile")}</div>}>
         <table class="fg-diff-table">
           <tbody>
             <For each={rows()}>
@@ -185,9 +186,9 @@ export function ReviewDiff(props: ReviewDiffProps) {
                           <div class="fg-hunk-row">
                             <span class="fg-hunk-text">{row.text}</span>
                             <Show when={props.onExplain}>
-                              <button class="fg-hunk-explain" title="Explain this change with AI" data-action="explain-hunk" data-hunk={row.hunk} onClick={() => void explain(row.hunk)}>
+                              <button class="fg-hunk-explain" title={tr("tools.forges.explainThisChangeWithAi")} data-action="explain-hunk" data-hunk={row.hunk} onClick={() => void explain(row.hunk)}>
                                 <Sparkles size={12} />
-                                Explain
+                                {tr("tools.forges.explain")}
                               </button>
                             </Show>
                           </div>
@@ -198,7 +199,7 @@ export function ReviewDiff(props: ReviewDiffProps) {
                       <td class="fg-dl-no">{row.newNo ?? ""}</td>
                       <td class="fg-dl-gutter">
                         <Show when={props.canComment}>
-                          <button class="fg-dl-add" title="Add a comment (Shift+click: extend to a range)" onClick={(e) => startComment(i(), e)}>
+                          <button class="fg-dl-add" title={tr("tools.forges.addACommentShiftClick")} onClick={(e) => startComment(i(), e)}>
                             <Plus size={12} />
                           </button>
                         </Show>
@@ -218,13 +219,13 @@ export function ReviewDiff(props: ReviewDiffProps) {
                           <div class="fg-explain" data-explain={row.hunk}>
                             <div class="fg-explain-head">
                               <Sparkles size={13} />
-                              <span>Explain this change</span>
+                              <span>{tr("tools.forges.explainThisChange")}</span>
                               <span class="spacer" />
-                              <button class="icon-btn fg-tiny-btn" title="Close" onClick={() => closeExplain(row.hunk)}>
+                              <button class="icon-btn fg-tiny-btn" title={tr("common.close")} onClick={() => closeExplain(row.hunk)}>
                                 <X size={13} />
                               </button>
                             </div>
-                            <Show when={res() !== "loading"} fallback={<div class="muted fg-small">Asking the AI…</div>}>
+                            <Show when={res() !== "loading"} fallback={<div class="muted fg-small">{tr("tools.forges.askingTheAiEllipsis")}</div>}>
                               <Markdown text={(res() as ExplainResult).text} />
                               <ProviderLine provider={(res() as ExplainResult).provider} model={(res() as ExplainResult).model} />
                             </Show>
@@ -259,7 +260,7 @@ export function ReviewDiff(props: ReviewDiffProps) {
                       <td colSpan={4}>
                         <div class="fg-thread fg-thread-new">
                           <CommentEditor
-                            placeholder={`Comment on ${editorTarget().label}…`}
+                            placeholder={tr("tools.forges.commentOnEllipsis", { label: editorTarget().label })}
                             submitLabel={props.onDraft ? ((props.drafts ?? []).length ? "Add Review Comment" : "Start Review") : "Add Comment"}
                             hint={props.onDraft ? "Shift+click another + for a range · Ctrl+Enter adds to the review" : undefined}
                             rows={3}
@@ -268,7 +269,7 @@ export function ReviewDiff(props: ReviewDiffProps) {
                             secondary={
                               props.onDraft
                                 ? {
-                                    label: "Add Single Comment",
+                                    label: tr("tools.forges.addSingleComment"),
                                     onSubmit: async (body) => {
                                       const ok = await props.onComment(body, positionOf(props.file, editorTarget().row));
                                       if (ok) closeEditor();

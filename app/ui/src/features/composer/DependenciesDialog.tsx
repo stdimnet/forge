@@ -12,6 +12,7 @@ import { composerApi, type ComposerProject, type InstalledPackage, type PackageD
 import { suspendKeymap } from "@/keymap";
 import { composerRevision, composerRunning, requireCommand, runComposer } from "./state";
 import { formatDownloads } from "./model";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 export const openDependenciesDialog = () => setOpen(true);
@@ -119,7 +120,7 @@ function DependenciesDialog() {
       <div
         class="dialog composer-dialog"
         role="dialog"
-        aria-label="Manage Composer Dependencies"
+        aria-label={t("langs.composer.manageComposerDependencies")}
         onKeyDown={(e) => {
           if (e.key === "Escape") close();
           else return;
@@ -127,13 +128,13 @@ function DependenciesDialog() {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Manage Composer Dependencies</div>
+        <div class="dialog-title">{t("langs.composer.manageComposerDependencies")}</div>
         <div class="composer-dialog-body">
           <div class="composer-search">
             <Search size={14} class="composer-search-icon" />
             <input
               ref={(el) => queueMicrotask(() => el.focus())}
-              placeholder="Search for packages on Packagist"
+              placeholder={t("langs.composer.searchForPackagesOnPackagist")}
               value={query()}
               spellcheck={false}
               onInput={(e) => search(e.currentTarget.value)}
@@ -148,12 +149,12 @@ function DependenciesDialog() {
           </div>
           <div class="composer-panes">
             <div class="composer-pane composer-results">
-              <div class="composer-pane-title">Available Packages</div>
+              <div class="composer-pane-title">{t("langs.composer.availablePackages")}</div>
               <div class="composer-list" role="listbox">
                 <Show when={!searchError()} fallback={<div class="composer-empty">{searchError()}</div>}>
                   <Show
                     when={hits().length}
-                    fallback={<div class="composer-empty">{searching() ? "Searching…" : query().trim() ? "No packages found" : "Type to search Packagist"}</div>}
+                    fallback={<div class="composer-empty">{searching() ? t("common.searchingEllipsis") : query().trim() ? t("langs.composer.noPackagesFound") : t("langs.composer.typeToSearchPackagist")}</div>}
                   >
                     <For each={hits()}>
                       {(h) => (
@@ -193,12 +194,12 @@ function DependenciesDialog() {
               </div>
             </div>
             <div class="composer-pane composer-details">
-              <div class="composer-pane-title">Description</div>
-              <Show when={selected()} fallback={<div class="composer-empty">Select a package</div>}>
+              <div class="composer-pane-title">{t("common.description")}</div>
+              <Show when={selected()} fallback={<div class="composer-empty">{t("langs.composer.selectAPackage")}</div>}>
                 <div class="composer-details-body">
                   <div class="composer-details-name">{selected()}</div>
                   <Show when={details.loading}>
-                    <div class="composer-muted">Loading…</div>
+                    <div class="composer-muted">{t("common.loadingEllipsis")}</div>
                   </Show>
                   <Show when={details() && "error" in details()! ? (details() as { error: string }).error : null}>
                     {(err) => <div class="composer-muted">{err()}</div>}
@@ -206,47 +207,47 @@ function DependenciesDialog() {
                   <Show when={info()}>
                     {(d) => (
                       <>
-                        <div class="composer-details-desc">{d().description || "No description"}</div>
+                        <div class="composer-details-desc">{d().description || t("langs.composer.noDescription")}</div>
                         <Show when={d().abandoned !== undefined && d().abandoned !== null}>
                           <div class="composer-warning">
-                            Abandoned{d().abandoned ? `, use ${d().abandoned} instead` : ""}
+                            {t("langs.composer.abandoned", { value: d().abandoned ? t("langs.composer.useInstead", { abandoned: d().abandoned }) : "" })}
                           </div>
                         </Show>
                         <div class="composer-links">
                           <Show when={d().homepage}>
                             <a class="composer-link" href={d().homepage} onClick={(e) => (e.preventDefault(), openLink(d().homepage!))}>
-                              Homepage <ExternalLink size={11} />
+                              {t("langs.composer.homepage")} <ExternalLink size={11} />
                             </a>
                           </Show>
                           <Show when={d().repository}>
                             <a class="composer-link" href={d().repository} onClick={(e) => (e.preventDefault(), openLink(d().repository!))}>
-                              Source <ExternalLink size={11} />
+                              {t("common.source")} <ExternalLink size={11} />
                             </a>
                           </Show>
                           <a class="composer-link" href={d().url} onClick={(e) => (e.preventDefault(), openLink(d().url))}>
-                            Packagist <ExternalLink size={11} />
+                            {t("langs.composer.packagist")} <ExternalLink size={11} />
                           </a>
                         </div>
                       </>
                     )}
                   </Show>
                   <label class="form-label composer-version-label" for="composer-version">
-                    Version to install:
+                    {t("langs.composer.versionToInstallLabel")}
                   </label>
                   <select id="composer-version" value={version()} onChange={(e) => setVersion(e.currentTarget.value)}>
-                    <option value="">Latest (Composer chooses)</option>
+                    <option value="">{t("langs.composer.latestComposerChooses")}</option>
                     <Show when={info()?.suggested}>
-                      {(s) => <option value={s()}>{s()} (recommended)</option>}
+                      {(s) => <option value={s()}>{t("langs.composer.recommended", { s: s() })}</option>}
                     </Show>
                     <For each={info()?.versions ?? []}>{(v) => <option value={v}>{v}</option>}</For>
                   </select>
                   <label class="composer-check">
                     <input type="checkbox" checked={dev()} onChange={(e) => setDev(e.currentTarget.checked)} />
-                    Development (require-dev)
+                    {t("langs.composer.developmentRequireDev")}
                   </label>
                   <div>
                     <button class="btn-primary" disabled={composerRunning() || !selected()} onClick={install}>
-                      Install
+                      {t("common.install")}
                     </button>
                   </div>
                 </div>
@@ -255,19 +256,19 @@ function DependenciesDialog() {
           </div>
           <div class="composer-pane composer-installed">
             <div class="composer-pane-title">
-              Installed Packages
+              {t("langs.composer.installedPackages")}
               <Show when={project() && !project()!.hasLock}>
-                <span class="composer-muted"> · composer.lock is missing, run Install</span>
+                <span class="composer-muted"> {t("langs.composer.composerLockIsMissingRun")}</span>
               </Show>
             </div>
             <div class="composer-installed-list">
-              <Show when={rows().length} fallback={<div class="composer-empty">{project.loading ? "Loading…" : "No packages are required"}</div>}>
+              <Show when={rows().length} fallback={<div class="composer-empty">{project.loading ? t("common.loadingEllipsis") : t("langs.composer.noPackagesAreRequired")}</div>}>
                 <table class="composer-table">
                   <thead>
                     <tr>
-                      <th>Package</th>
-                      <th>Constraint</th>
-                      <th>Installed</th>
+                      <th>{t("common.package")}</th>
+                      <th>{t("langs.composer.constraint")}</th>
+                      <th>{t("common.installed")}</th>
                       <th />
                     </tr>
                   </thead>
@@ -286,13 +287,13 @@ function DependenciesDialog() {
                             </Show>
                           </td>
                           <td class="composer-mono">{r.constraint}</td>
-                          <td class="composer-mono">{r.installed?.version ?? "not installed"}</td>
+                          <td class="composer-mono">{r.installed?.version ?? t("common.notInstalled2")}</td>
                           <td class="composer-row-actions">
                             <button class="link-btn" disabled={composerRunning()} onClick={() => void run(`Updating ${r.name}`, `update ${r.name} --with-dependencies`)}>
-                              Update
+                              {t("common.update")}
                             </button>
                             <button class="link-btn" disabled={composerRunning()} onClick={() => void run(`Removing ${r.name}`, `remove ${r.name}${r.dev ? " --dev" : ""}`)}>
-                              Remove
+                              {t("common.remove")}
                             </button>
                           </td>
                         </tr>
@@ -307,7 +308,7 @@ function DependenciesDialog() {
         <div class="dialog-buttons">
           <span class="composer-status">{status()}</span>
           <button class="btn-secondary" onClick={close}>
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

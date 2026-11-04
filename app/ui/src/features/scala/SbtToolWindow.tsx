@@ -34,6 +34,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { BuildTree, branchIds, createTreeState, type TreeNode } from "@/features/java/BuildTree";
 import { clearImportError, importBuild, importError, importing, importLog, refreshBuild, sbtBuild } from "./store";
 import { SBT_TASK } from "./runTypes";
+import { t as tr } from "@/i18n";
 import "@/features/java/java.css";
 import "./scala.css";
 
@@ -72,7 +73,7 @@ function projectNode(p: SbtProject, b: SbtBuild): TreeNode {
   const children: TreeNode[] = [
     {
       id: `${id}/tasks`,
-      label: "Tasks",
+      label: tr("langs.scala.tasks"),
       icon: FolderCog,
       iconClass: "java-build-icon",
       children: SBT_TASKS.map((t) => ({
@@ -86,7 +87,7 @@ function projectNode(p: SbtProject, b: SbtBuild): TreeNode {
     },
     {
       id: `${id}/deps`,
-      label: "Dependencies",
+      label: tr("common.dependencies"),
       secondary: b.synced ? undefined : "declared",
       icon: Network,
       iconClass: "java-build-icon",
@@ -98,7 +99,7 @@ function projectNode(p: SbtProject, b: SbtBuild): TreeNode {
   if (refs.length) {
     children.push({
       id: `${id}/refs`,
-      label: "Projects",
+      label: tr("langs.scala.projects"),
       icon: Link2,
       iconClass: "java-build-icon",
       children: refs.map(({ r, kind }) => ({
@@ -164,32 +165,32 @@ export function SbtToolWindow() {
   return (
     <div class="java-build-tw" data-testid="sbt-tool-window">
       <div class="java-toolbar">
-        <button class="icon-btn" title="Reload sbt Project" data-testid="sbt-reload" disabled={importing()} onClick={() => void importBuild()}>
+        <button class="icon-btn" title={tr("langs.scala.reloadSbtProject")} data-testid="sbt-reload" disabled={importing()} onClick={() => void importBuild()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn" title="sbt Shell" data-testid="sbt-shell" onClick={openSbtShell}>
+        <button class="icon-btn" title={tr("langs.scala.sbtShell")} data-testid="sbt-shell" onClick={openSbtShell}>
           <SquareTerminal size={14} />
         </button>
-        <button class="icon-btn" title="Run Task" disabled={!selectedTask()} onClick={() => selectedTask() && runSbtTask(selectedTask()!.p, selectedTask()!.task)}>
+        <button class="icon-btn" title={tr("langs.scala.runTask")} disabled={!selectedTask()} onClick={() => selectedTask() && runSbtTask(selectedTask()!.p, selectedTask()!.task)}>
           <Play size={14} />
         </button>
         <span class="java-toolbar-sep" />
-        <button class="icon-btn" title="Expand All" onClick={() => tree.setExpanded(new Set(branchIds(nodes(), 4)))}>
+        <button class="icon-btn" title={tr("common.expandAll2")} onClick={() => tree.setExpanded(new Set(branchIds(nodes(), 4)))}>
           <ChevronsUpDown size={14} />
         </button>
-        <button class="icon-btn" title="Collapse All" onClick={() => tree.setExpanded(new Set())}>
+        <button class="icon-btn" title={tr("common.collapseAll2")} onClick={() => tree.setExpanded(new Set())}>
           <ChevronsDownUp size={14} />
         </button>
         <span class="java-toolbar-sep" />
-        <button class="icon-btn" title="sbt Settings" onClick={() => openSettings("lang.scala")}>
+        <button class="icon-btn" title={tr("langs.scala.sbtSettings")} onClick={() => openSettings("lang.scala")}>
           <Settings size={14} />
         </button>
       </div>
       <Show when={importing()}>
         <div class="java-sync-status" data-testid="sbt-import-status">
           <LoaderCircle size={13} class="lsp-spin" />
-          <span class="java-sync-text">sbt: {last() || "starting…"}</span>
-          <button class="icon-btn" title="Stop" onClick={() => void scalaApi.sbtCancel()}>
+          <span class="java-sync-text">sbt: {last() || tr("langs.scala.startingEllipsis")}</span>
+          <button class="icon-btn" title={tr("common.stop")} onClick={() => void scalaApi.sbtCancel()}>
             <Square size={12} />
           </button>
         </div>
@@ -198,12 +199,12 @@ export function SbtToolWindow() {
         <div class="java-sync-status java-sync-failed">
           <CircleX size={13} />
           <span class="java-sync-text" title={importError()!}>{importError()}</span>
-          <button class="icon-btn" title="Close" onClick={clearImportError}>
+          <button class="icon-btn" title={tr("common.close")} onClick={clearImportError}>
             <X size={12} />
           </button>
         </div>
       </Show>
-      <BuildTree nodes={nodes()} state={tree} empty={<div class="muted java-pad">No build.sbt in the project root.</div>} />
+      <BuildTree nodes={nodes()} state={tree} empty={<div class="muted java-pad">{tr("langs.scala.noBuildSbtInThe")}</div>} />
     </div>
   );
 }

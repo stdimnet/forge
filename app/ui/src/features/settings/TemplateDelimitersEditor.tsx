@@ -12,6 +12,7 @@ import { Minus, Pencil, Plus } from "lucide-solid";
 import { filetypesApi, type ConfigurableTemplate, type DelimiterCatalog, type DelimiterField } from "@/ipc/filetypes";
 import { settingsApi, type SettingObject, type SettingSpec } from "@/ipc/settings";
 import { draftValue, setDraft } from "./dialogState";
+import { t as tr } from "@/i18n";
 
 /** The value of a field: the entry's own, else the template's default. */
 const valueOf = (entry: SettingObject, f: DelimiterField) => entry[f.key]?.trim() || f.default;
@@ -42,7 +43,7 @@ export function pairsOf(template: ConfigurableTemplate | undefined): [DelimiterF
   const pairs: [DelimiterField, DelimiterField][] = [];
   for (let i = 0; i + 1 < fields.length; i += 2) {
     const [start, end] = [fields[i], fields[i + 1]];
-    pairs.push(start.key === "left" ? [{ ...start, label: "Delimiters start" }, end] : [start, end]);
+    pairs.push(start.key === "left" ? [{ ...start, label: tr("tools.settings.delimitersStart") }, end] : [start, end]);
   }
   return pairs;
 }
@@ -118,22 +119,22 @@ export function TemplateDelimitersEditor(props: { spec: SettingSpec }) {
     <div class="set-delims">
       <div class="set-list set-table-box">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" onClick={add}>
+          <button class="icon-btn" title={tr("common.add")} onClick={add}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={sel() === null} onClick={remove}>
+          <button class="icon-btn" title={tr("common.remove")} disabled={sel() === null} onClick={remove}>
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Edit" disabled={sel() === null} onClick={edit}>
+          <button class="icon-btn" title={tr("common.edit")} disabled={sel() === null} onClick={edit}>
             <Pencil size={13} />
           </button>
         </div>
         <table class="set-table">
           <thead>
             <tr>
-              <th>Template</th>
-              <th>Language</th>
-              <th>Delimiters</th>
+              <th>{tr("tools.settings.template")}</th>
+              <th>{tr("common.language")}</th>
+              <th>{tr("tools.settings.delimiters")}</th>
             </tr>
           </thead>
           <tbody>
@@ -157,18 +158,18 @@ export function TemplateDelimitersEditor(props: { spec: SettingSpec }) {
           </tbody>
         </table>
         <Show when={!entries().length}>
-          <div class="set-list-empty">Nothing to show</div>
+          <div class="set-list-empty">{tr("common.nothingToShow")}</div>
         </Show>
       </div>
 
       <Show when={form()}>
         <div class="set-delims-form">
           <div class="set-delims-grid">
-            <label class="set-label">Template:</label>
+            <label class="set-label">{tr("tools.settings.templateLabel")}</label>
             <select class="set-input set-select" value={current()!.template} onChange={(e) => set("template", e.currentTarget.value)}>
               <For each={catalog().templates}>{(t) => <option value={t.id}>{t.label}</option>}</For>
             </select>
-            <label class="set-label">Language:</label>
+            <label class="set-label">{tr("tools.settings.languageLabel")}</label>
             <select class="set-input set-select" value={current()!.language} onChange={(e) => set("language", e.currentTarget.value)}>
               <For each={catalog().dataLanguages}>{(l) => <option value={l.id}>{l.label}</option>}</For>
             </select>
@@ -207,7 +208,7 @@ export function TemplateDelimitersEditor(props: { spec: SettingSpec }) {
               OK
             </button>
             <button class="btn-secondary set-btn" onClick={() => setForm(null)}>
-              Cancel
+              {tr("common.cancel")}
             </button>
           </div>
         </div>

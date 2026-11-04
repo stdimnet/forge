@@ -10,6 +10,7 @@ import { debugApi } from "@/features/debug/api";
 import { activeSession, frameIndex, pausedSession, selectedFrame } from "@/features/debug/store";
 import { openFileAt } from "@/editor/views";
 import { COROUTINE_DUMP_EXPRESSION, COROUTINE_INFO_EXPRESSION, kotlinApi, type Coroutine, type CoroutineDump, type CoroutineFrame } from "@/ipc/kotlin";
+import { t } from "@/i18n";
 
 const errorText = (e: unknown) => String(e).replace(/^Error: /, "");
 
@@ -72,7 +73,7 @@ function CoroutineRow(props: { c: Coroutine; open: boolean; toggle: () => void }
           "{props.c.name}
           {props.c.id !== undefined ? `#${props.c.id}` : ""}"
         </span>
-        <span class={`kt-coroutine-state kt-state-${state()}`}>{props.c.state || "UNKNOWN"}</span>
+        <span class={`kt-coroutine-state kt-state-${state()}`}>{props.c.state || t("langs.kotlin.unknown")}</span>
         <span class="kt-coroutine-meta">
           {[props.c.dispatcher, props.c.job].filter(Boolean).join(" · ")}
         </span>
@@ -80,7 +81,7 @@ function CoroutineRow(props: { c: Coroutine; open: boolean; toggle: () => void }
       <Show when={props.open}>
         <For each={props.c.frames}>{(f) => <FrameRow frame={f} />}</For>
         <Show when={props.c.creation.length}>
-          <div class="kt-frame-caption">Coroutine creation stack trace</div>
+          <div class="kt-frame-caption">{t("langs.kotlin.coroutineCreationStackTrace")}</div>
           <For each={props.c.creation}>{(f) => <FrameRow frame={f} />}</For>
         </Show>
       </Show>
@@ -111,29 +112,29 @@ export function CoroutinesView() {
   return (
     <div class="kt-coroutines" data-coroutines-view>
       <div class="kt-coroutines-bar">
-        <button class="icon-btn" title="Refresh" disabled={!pausedSession() || loading()} onClick={() => void load()}>
+        <button class="icon-btn" title={t("common.refresh")} disabled={!pausedSession() || loading()} onClick={() => void load()}>
           <RefreshCw size={14} />
         </button>
         <span class="grow">
           <Show when={result()?.kind === "coroutines"}>
-            {coroutines().length} coroutines · {coroutines().filter((c) => c.state === "SUSPENDED").length} suspended
+            {t("langs.kotlin.coroutines", { count: coroutines().length })} {coroutines().filter((c) => c.state === "SUSPENDED").length} suspended
           </Show>
         </span>
         <span>{activeSession()?.serverName}</span>
       </div>
       <Show
         when={pausedSession()}
-        fallback={<div class="kt-coroutines-empty">Coroutines are dumped while the program is suspended: pause it or stop at a breakpoint.</div>}
+        fallback={<div class="kt-coroutines-empty">{t("langs.kotlin.coroutinesAreDumpedWhileThe")}</div>}
       >
         <Show when={result()?.kind === "unavailable"}>
           <div class="kt-coroutines-empty">
             <p>{(result() as { message: string }).message}</p>
             <p>
-              Gradle: <code>testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug")</code>, then <code>DebugProbes.install()</code>.
+              {t("langs.kotlin.gradleLabel")} <code>testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug")</code>{t("langs.kotlin.then")} <code>DebugProbes.install()</code>.
             </p>
           </div>
         </Show>
-        <div class="kt-coroutines-list" role="tree" aria-label="Coroutines">
+        <div class="kt-coroutines-list" role="tree" aria-label={t("langs.kotlin.coroutines2")}>
           <For each={coroutines()}>
             {(c, i) => (
               <CoroutineRow

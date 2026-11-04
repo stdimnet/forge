@@ -7,6 +7,7 @@ import { testingApi } from "@/ipc/testing";
 import { balloonsFor } from "@/keymap";
 import { workspace } from "@/state/workspace";
 import { activeSuite, showSuite } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Coverage");
 
@@ -16,14 +17,14 @@ export async function importCoverageFile(path: string): Promise<void> {
     const suite = await testingApi.coverageImport(path);
     await showSuite(suite.id);
   } catch (err) {
-    showBalloon("Cannot read the coverage report", String(err));
+    showBalloon(t("tools.coverage.cannotReadTheCoverageReport"), String(err));
   }
 }
 
 /** Pick a report file of the project and import it. */
 export async function importReport(): Promise<void> {
   if (!isTauri()) {
-    showBalloon("Import External Coverage Report", "Right-click a report in the Project view, or use the desktop app to pick a file.");
+    showBalloon(t("tools.coverage.importExternalCoverageReport"), t("tools.coverage.rightClickAReportIn"));
     return;
   }
   const { open } = await import("@tauri-apps/plugin-dialog");
@@ -44,7 +45,7 @@ const reportName = (name: string) => `coverage-${name.replace(/[^\w.-]+/g, "-").
 export async function generateReport(): Promise<void> {
   const suite = activeSuite();
   if (!suite) {
-    showBalloon("Generate Coverage Report", "There is no coverage data: run tests with coverage or import a report first.");
+    showBalloon(t("tools.coverage.generateCoverageReport"), t("tools.coverage.thereIsNoCoverageData"));
     return;
   }
   const file = reportName(suite.name);
@@ -55,7 +56,7 @@ export async function generateReport(): Promise<void> {
       const path = await save({ defaultPath: root ? `${root}/${file}` : file, filters: [{ name: "HTML", extensions: ["html"] }] });
       if (!path) return;
       await testingApi.coverageExportHtml(suite.id, path);
-      showBalloon("Coverage report generated", path);
+      showBalloon(t("tools.coverage.coverageReportGenerated"), path);
       return;
     }
     const html = await testingApi.coverageExportHtml(suite.id);
@@ -65,8 +66,8 @@ export async function generateReport(): Promise<void> {
     a.download = file;
     a.click();
     URL.revokeObjectURL(url);
-    showBalloon("Coverage report generated", file);
+    showBalloon(t("tools.coverage.coverageReportGenerated"), file);
   } catch (err) {
-    showBalloon("Cannot generate the coverage report", String(err));
+    showBalloon(t("tools.coverage.cannotGenerateTheCoverageReport"), String(err));
   }
 }

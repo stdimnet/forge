@@ -40,7 +40,7 @@
   "settings.noEditor": "Für diese Einstellung gibt es keinen Editor.",
   "settings.page.appearance": "Darstellung",
   "settings.page.appearance.fileColors": "Dateifarben",
-  "settings.page.build.analysis": "Werkzeuge für dynamische Analyse",
+  "settings.page.build.analysis": "Dynamische Analysetools",
   "settings.page.build.cmake": "CMake",
   "settings.page.build.debugger": "Debugger",
   "settings.page.build.deployment": "Deployment",

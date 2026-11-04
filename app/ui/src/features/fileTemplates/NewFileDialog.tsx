@@ -27,6 +27,7 @@ import {
   variableLabel,
   type NewFileDialogRequest,
 } from "./model";
+import { t as tr } from "@/i18n";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const message = (e: unknown) => String(e instanceof Error ? e.message : e);
@@ -131,12 +132,12 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
         <div class="dialog-title">{title()}</div>
         <div class="dialog-body ft-form">
           <label class="form-label" for="ft-name">
-            Name:
+            {tr("common.nameLabel")}
           </label>
           <input id="ft-name" ref={focusFirst} value={name()} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
           <Show when={php()}>
             <label class="form-label" for="ft-namespace">
-              Namespace:
+              {tr("tools.fileTemplates.namespaceLabel")}
             </label>
             <input
               id="ft-namespace"
@@ -146,23 +147,23 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
               onInput={(e) => void onNamespace(e.currentTarget.value)}
             />
             <label class="form-label" for="ft-file">
-              File name:
+              {tr("tools.fileTemplates.fileNameLabel")}
             </label>
             <input id="ft-file" value={effectiveFileName()} spellcheck={false} onInput={(e) => setFileName(e.currentTarget.value)} />
             <label class="form-label" for="ft-dir">
-              Directory:
+              {tr("tools.fileTemplates.directoryLabel")}
             </label>
             <input
               id="ft-dir"
               class="ft-mono"
               value={directory()}
-              placeholder="(project root)"
+              placeholder={tr("common.projectRoot")}
               spellcheck={false}
               onInput={(e) => setDirectory(e.currentTarget.value)}
               onChange={(e) => void loadNamespace(e.currentTarget.value.trim())}
             />
             <label class="form-label" for="ft-template">
-              Template:
+              {tr("tools.fileTemplates.templateLabel")}
             </label>
             <select
               id="ft-template"
@@ -178,26 +179,26 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
             </select>
             <Show when={uses("EXTENDS")}>
               <label class="form-label" for="ft-extends">
-                Extends:
+                {tr("tools.fileTemplates.extendsLabel")}
               </label>
               <input
                 id="ft-extends"
                 class="ft-mono"
                 value={extendsName()}
-                placeholder={template().name === "PHP Interface" ? "Parent interfaces, comma separated" : "Parent class"}
+                placeholder={template().name === "PHP Interface" ? tr("tools.fileTemplates.parentInterfacesCommaSeparated") : tr("tools.fileTemplates.parentClass")}
                 spellcheck={false}
                 onInput={(e) => setExtends(e.currentTarget.value)}
               />
             </Show>
             <Show when={uses("IMPLEMENTS")}>
               <label class="form-label" for="ft-implements">
-                Implements:
+                {tr("tools.fileTemplates.implementsLabel")}
               </label>
               <input
                 id="ft-implements"
                 class="ft-mono"
                 value={implementsNames()}
-                placeholder="Interfaces, comma separated"
+                placeholder={tr("tools.fileTemplates.interfacesCommaSeparated")}
                 spellcheck={false}
                 onInput={(e) => setImplements(e.currentTarget.value)}
               />
@@ -224,7 +225,7 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!valid()} onClick={() => void submit()}>
             OK

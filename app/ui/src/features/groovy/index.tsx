@@ -58,8 +58,8 @@ function GroovyPage() {
             <CircleCheck size={14} class="java-ok" />
           </Show>
           <span>
-            Groovy SDK:{" "}
-            <b>{status()?.groovy ? `Groovy ${status()?.version ?? ""} (${SOURCES[status()?.source ?? ""] ?? status()?.source})`.replace("  ", " ") : "not found"}</b>
+            {t("langs.groovy.groovySdkLabel")}
+            <b>{status()?.groovy ? `Groovy ${status()?.version ?? ""} (${SOURCES[status()?.source ?? ""] ?? status()?.source})`.replace("  ", " ") : t("common.notFound")}</b>
             <Show when={status()?.groovy}>
               <span class="scala-path"> {status()!.groovy}</span>
             </Show>
@@ -68,14 +68,14 @@ function GroovyPage() {
         <div class="java-status-row">
           <CircleCheck size={14} class="java-ok" />
           <span>
-            Scripts run with <b>{status()?.runner === "gradle" ? "Gradle (the project's class path)" : "groovy"}</b>
+            {t("langs.groovy.scriptsRunWith")} <b>{status()?.runner === "gradle" ? t("langs.groovy.gradleTheProjectSClass") : "groovy"}</b>
             <Show when={status()?.gradleGroovy}>
-              <span class="muted"> · the Gradle build applies the groovy plugin</span>
+              <span class="muted"> {t("langs.groovy.theGradleBuildAppliesThe")}</span>
             </Show>
           </span>
         </div>
         <Show when={status() && !status()!.groovy && !status()!.gradleGroovy}>
-          <p class="muted java-hint">Install a Groovy SDK with SDKMAN! (sdk install groovy) or from groovy-lang.org, or apply Gradle's groovy plugin to run scripts with the project's class path.</p>
+          <p class="muted java-hint">{t("langs.groovy.installAGroovySdkWith")}</p>
         </Show>
       </div>
       <SchemaPage pageId="lang.groovy" />
@@ -97,26 +97,26 @@ registerSettingsPage({
 registerRunConfigurationType({
   id: SCRIPT,
   name: "Groovy Script",
-  description: "Run a Groovy script (or a class with a main method) with groovy from the Groovy SDK, or through Gradle with the project's class path.",
+  description: t("langs.groovy.runAGroovyScriptOr"),
   icon: FileCode2,
   color: "var(--syn-type)",
   pluginId: PLUGIN_ID,
   argumentsLabel: "Script parameters",
   noRunTarget: true,
   fields: [
-    { key: "script", label: "Script path", required: true, placeholder: "scripts/release.groovy" },
-    { key: "interpreterOptions", label: "VM options", placeholder: "-Xmx512m" },
+    { key: "script", label: t("langs.groovy.scriptPath"), required: true, placeholder: "scripts/release.groovy" },
+    { key: "interpreterOptions", label: t("common.vmOptions"), placeholder: "-Xmx512m" },
     {
       key: "runner",
-      label: "Run with",
+      label: t("langs.groovy.runWith"),
       kind: "enum",
       options: () => [
-        { value: "", label: "Settings | Groovy (default)" },
+        { value: "", label: t("langs.groovy.settingsGroovyDefault") },
         { value: "groovy", label: "groovy (Groovy SDK)" },
-        { value: "gradle", label: "Gradle (project class path)" },
+        { value: "gradle", label: t("langs.groovy.gradleProjectClassPath") },
       ],
     },
-    { key: "groovy", label: "Groovy launcher", placeholder: "Empty: the Groovy SDK from Settings | Groovy" },
+    { key: "groovy", label: t("langs.groovy.groovyLauncher"), placeholder: t("langs.groovy.emptyTheGroovySdkFrom") },
   ],
   validate: (cfg) => (/\.gradle(\.kts)?$/.test(opt(cfg, "script")) ? "Gradle build scripts run through Gradle tasks" : null),
   suggestName: (cfg) => baseName(opt(cfg, "script")),
@@ -130,7 +130,7 @@ const inScope =
 registerRunConfigurationType({
   id: SPOCK,
   name: "Spock",
-  description: "Run Spock specifications through Gradle or Maven: all, a package, a specification or one feature.",
+  description: t("langs.groovy.runSpockSpecificationsThroughGradle"),
   icon: TestTubes,
   color: "var(--success)",
   pluginId: PLUGIN_ID,
@@ -142,23 +142,23 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test kind",
+      label: t("common.testKind"),
       kind: "segmented",
       default: "class",
       options: [
-        { value: "all", label: "All in project" },
-        { value: "package", label: "Package" },
-        { value: "class", label: "Specification" },
-        { value: "method", label: "Feature" },
-        { value: "pattern", label: "Pattern" },
+        { value: "all", label: t("common.allInProject") },
+        { value: "package", label: t("common.package") },
+        { value: "class", label: t("langs.groovy.specification") },
+        { value: "method", label: t("langs.groovy.feature") },
+        { value: "pattern", label: t("langs.groovy.pattern") },
       ],
     },
-    { key: "package", label: "Package", required: true, placeholder: "com.acme.notes", visible: inScope("package") },
-    { key: "class", label: "Specification", required: true, placeholder: "com.acme.notes.NoteSpec", visible: inScope("class", "method") },
-    { key: "method", label: "Feature", required: true, placeholder: "saves a note", visible: inScope("method") },
-    { key: "tests", label: "Tests", kind: "text", required: true, placeholder: "com.acme.notes.NoteSpec#saves a note (one per line)", visible: inScope("pattern") },
-    { key: "module", label: "Module", placeholder: "app (empty: the root project)" },
-    { key: "testRunnerOptions", label: "Build tool arguments", placeholder: "--info" },
+    { key: "package", label: t("common.package"), required: true, placeholder: "com.acme.notes", visible: inScope("package") },
+    { key: "class", label: t("langs.groovy.specification"), required: true, placeholder: "com.acme.notes.NoteSpec", visible: inScope("class", "method") },
+    { key: "method", label: t("langs.groovy.feature"), required: true, placeholder: "saves a note", visible: inScope("method") },
+    { key: "tests", label: t("langs.groovy.tests"), kind: "text", required: true, placeholder: "com.acme.notes.NoteSpec#saves a note (one per line)", visible: inScope("pattern") },
+    { key: "module", label: t("common.module"), placeholder: "app (empty: the root project)" },
+    { key: "testRunnerOptions", label: t("common.buildToolArguments"), placeholder: "--info" },
   ],
   suggestName: (cfg) => {
     switch (opt(cfg, "scope") || "class") {
@@ -188,9 +188,9 @@ function runMenu(label: string, cfg: () => ReturnType<typeof useTemporary>): Lin
       x: e.clientX,
       y: e.clientY + 6,
       items: [
-        { label: `Run '${label}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
+        { label: t("common.run3", { label }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
         { separator: true },
-        { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(cfg().name) },
+        { label: t("common.modifyRunConfigurationEllipsis"), icon: Settings2, run: () => openRunConfigurations(cfg().name) },
       ],
     });
 }
@@ -204,8 +204,8 @@ registerLineMarkerProvider({
     if (!active()) return [];
     const r = await runnableOf(text);
     const name = baseName(path) ?? path;
-    if (r.script) return [{ line: 0, icon: Play, title: `Run '${name}'`, className: "marker-run", onClick: runMenu(name, () => scriptConfiguration(path)) }];
-    return r.mains.map((m) => ({ line: m.line, icon: Play, title: `Run '${m.name}'`, className: "marker-run", onClick: runMenu(m.name, () => scriptConfiguration(path)) }));
+    if (r.script) return [{ line: 0, icon: Play, title: t("common.run", { name }), className: "marker-run", onClick: runMenu(name, () => scriptConfiguration(path)) }];
+    return r.mains.map((m) => ({ line: m.line, icon: Play, title: t("common.run", { name: m.name }), className: "marker-run", onClick: runMenu(m.name, () => scriptConfiguration(path)) }));
   },
 });
 

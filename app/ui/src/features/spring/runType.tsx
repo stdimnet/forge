@@ -19,6 +19,7 @@ import { shortcutLabel } from "@/keymap";
 import { DEBUG_TYPES } from "@/features/java/runTypes";
 import { jdkChoices } from "@/features/java/store";
 import { overview, PLUGIN_ID, springActive } from "./store";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const simple = (cls: string) => cls.split(/[.$]/).pop() || undefined;
@@ -27,32 +28,32 @@ const springApps = () => (overview()?.applications ?? []).filter((a) => a.kind =
 registerRunConfigurationType({
   id: SPRING_BOOT,
   name: "Spring Boot",
-  description: "Run a Spring Boot application: main class, active profiles and override properties. Running applications show in Services with port, profiles and actuator health.",
+  description: t("langs.spring.runASpringBootApplication"),
   icon: Leaf,
   color: "var(--success)",
   pluginId: PLUGIN_ID,
   argumentsLabel: "Program arguments",
   debuggable: true,
   fields: [
-    { key: "mainClass", label: "Main class", required: true, placeholder: springApps()[0]?.mainClass ?? "com.acme.shop.ShopApplication" },
-    { key: "activeProfiles", label: "Active profiles", placeholder: "dev, local (comma-separated)" },
-    { key: "overrideProperties", label: "Override properties", kind: "text", placeholder: "server.port=9090 (one key=value per line)" },
-    { key: "interpreterOptions", label: "VM options", placeholder: "-Xmx1g" },
+    { key: "mainClass", label: t("langs.spring.mainClass"), required: true, placeholder: springApps()[0]?.mainClass ?? "com.acme.shop.ShopApplication" },
+    { key: "activeProfiles", label: t("langs.spring.activeProfiles"), placeholder: "dev, local (comma-separated)" },
+    { key: "overrideProperties", label: t("langs.spring.overrideProperties"), kind: "text", placeholder: "server.port=9090 (one key=value per line)" },
+    { key: "interpreterOptions", label: t("common.vmOptions"), placeholder: "-Xmx1g" },
     {
       key: "jdk",
       label: "JDK",
       kind: "enum",
-      options: () => [{ value: "", label: "Project JDK" }, ...jdkChoices()],
+      options: () => [{ value: "", label: t("langs.spring.projectJdk") }, ...jdkChoices()],
     },
-    { key: "module", label: "Module", placeholder: "app (empty: the root project)" },
+    { key: "module", label: t("common.module"), placeholder: "app (empty: the root project)" },
     {
       key: "exposeActuator",
-      label: "Run dashboard",
+      label: t("langs.spring.runDashboard"),
       kind: "segmented",
       default: "true",
       options: [
-        { value: "true", label: "Expose actuator health, beans, mappings" },
-        { value: "false", label: "Leave the actuator as configured" },
+        { value: "true", label: t("langs.spring.exposeActuatorHealthBeansMappings") },
+        { value: "false", label: t("langs.spring.leaveTheActuatorAsConfigured") },
       ],
     },
   ],
@@ -86,17 +87,17 @@ registerLineMarkerProvider({
       .map((a) => ({
         line: a.location.line,
         icon: Play,
-        title: `Run '${a.name}' (Spring Boot)`,
+        title: t("langs.spring.runSpringBoot", { name: a.name }),
         className: "marker-run",
         onClick: (_view, e) =>
           openMenu({
             x: e.clientX,
             y: e.clientY + 6,
             items: [
-              { label: `Run '${a.name}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(bootConfiguration(a)) },
-              { label: `Debug '${a.name}'`, icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(bootConfiguration(a)) },
+              { label: t("common.run", { name: a.name }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(bootConfiguration(a)) },
+              { label: t("common.debug", { name: a.name }), icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(bootConfiguration(a)) },
               { separator: true },
-              { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(bootConfiguration(a).name) },
+              { label: t("common.modifyRunConfigurationEllipsis"), icon: Settings2, run: () => openRunConfigurations(bootConfiguration(a).name) },
             ],
           }),
       }));

@@ -11,6 +11,7 @@ import { isRemoteProject, closeWorkspace, openWorkspace, restoreWorkspace, works
 import { maintenanceApi } from "@/ipc/maintenance";
 import { synchronize } from "@/features/system";
 import { refreshAllDirs } from "@/features/project/ProjectView";
+import { t } from "@/i18n";
 
 export const REPAIR_GROUP = "Repair IDE";
 const showBalloon = balloonsFor(REPAIR_GROUP);
@@ -73,8 +74,8 @@ export async function runRepairStep(index: number): Promise<void> {
   const next = REPAIR_STEPS[index + 1];
   if (!next) return;
   showBalloon(
-    `Repair IDE: step ${index + 1} of ${REPAIR_STEPS.length}`,
-    `${step.done} If the problem persists, try the next step.`,
+    t("tools.maintenance.repairIdeStepOf", { value: index + 1, count: REPAIR_STEPS.length }),
+    t("tools.maintenance.ifTheProblemPersistsTry", { done: step.done }),
     0,
     [
       { label: next.title, run: () => void runRepairStep(index + 1) },

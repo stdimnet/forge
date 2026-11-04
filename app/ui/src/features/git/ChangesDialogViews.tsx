@@ -154,7 +154,7 @@ export function CreatePatchDialog(props: { paths: string[]; shas: string[]; name
           {tr("git.changesDialogViews.copyPatchToClipboard")}
         </label>
       </div>
-      <span class="gd-note">Paths are relative to the project root; a relative file name is saved in the project.</span>
+      <span class="gd-note">{tr("tools.git.pathsAreRelativeToThe")}</span>
       <Show when={!props.shas.length}>
         <Check label={tr("git.changesDialogViews.reversePatch")} checked={reverse()} onChange={setReverse} />
       </Show>
@@ -241,7 +241,7 @@ export function ApplyPatchDialog(props: { patch: string; name: string; files: Pa
                 </Show>
               </span>
               <Show when={!f.applies}>
-                <span class="gd-patch-warn" title={`${f.message ?? "Does not apply"}: will be merged three-way`}>
+                <span class="gd-patch-warn" title={tr("tools.git.willBeMergedThreeWay", { value: f.message ?? "Does not apply" })}>
                   <TriangleAlert size={13} />
                 </span>
               </Show>
@@ -254,7 +254,7 @@ export function ApplyPatchDialog(props: { patch: string; name: string; files: Pa
       </div>
       <Show when={failing() > 0}>
         <span class="gd-note gd-warn">
-          {plural(failing(), "file")} cannot be patched as they are now; they will be merged three-way and conflicts open the merge dialog.
+          {tr("tools.git.cannotBePatchedAsThey", { value: plural(failing(), "file") })}
         </span>
       </Show>
     </Frame>

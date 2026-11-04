@@ -88,7 +88,7 @@ function OptionField(props: { option: GeneratorOption }) {
                   <button
                     class="np-browse np-refresh"
                     classList={{ spinning: refreshing() === props.option.id }}
-                    title={props.option.description ?? "Refresh"}
+                    title={props.option.description ?? t("common.refresh")}
                     aria-label={`Refresh ${props.option.label}`}
                     disabled={!!refreshing()}
                     onClick={() => void refreshOption(props.option.id)}

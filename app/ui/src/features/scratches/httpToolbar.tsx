@@ -16,6 +16,7 @@ import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { runCommand } from "@/state/commands";
 import { NO_HTTP_ENV, httpEnvironment, setHttpEnvironment } from "./store";
+import { t } from "@/i18n";
 
 const ENV_FILE = "http-client.env.json";
 const ENV_TEMPLATE = `{
@@ -30,8 +31,8 @@ function HttpToolbar() {
   const [envs, { refetch }] = createResource(() => scratchesApi.httpEnvironments().catch((): HttpEnvironments => ({ names: [] })));
   const label = () => {
     const chosen = httpEnvironment();
-    if (chosen === NO_HTTP_ENV) return "No Environment";
-    return chosen || envs()?.default || "No Environment";
+    if (chosen === NO_HTTP_ENV) return t("tools.scratches.noEnvironment");
+    return chosen || envs()?.default || t("tools.scratches.noEnvironment");
   };
   const isCurrent = (name: string) => (httpEnvironment() || envs()?.default || NO_HTTP_ENV) === name;
   let menu!: HTMLDivElement;
@@ -46,12 +47,12 @@ function HttpToolbar() {
     void setHttpEnvironment(name);
   };
   const openEnvFile = async () => {
-    if (!workspace()) return void showBalloon("Open a project first", "Environment files belong to a project.");
+    if (!workspace()) return void showBalloon(t("tools.scratches.openAProjectFirst"), t("tools.scratches.environmentFilesBelongToA"));
     if (!envs()?.names.length) {
       try {
         await workspaceApi.writeFile(ENV_FILE, ENV_TEMPLATE);
       } catch (err) {
-        return void showBalloon("Cannot create the environment file", String(err));
+        return void showBalloon(t("tools.scratches.cannotCreateTheEnvironmentFile"), String(err));
       }
     }
     await openFile(ENV_FILE);
@@ -60,7 +61,7 @@ function HttpToolbar() {
 
   return (
     <>
-      <span class="http-tb-label">Run with:</span>
+      <span class="http-tb-label">{t("tools.scratches.runWithLabel")}</span>
       <div class="http-tb-env" ref={menu}>
         <button
           class="http-tb-combo"
@@ -94,7 +95,7 @@ function HttpToolbar() {
             </Show>
             <button class="http-tb-item" role="option" aria-selected={isCurrent(NO_HTTP_ENV)} onClick={() => choose(NO_HTTP_ENV)}>
               <span class="http-tb-check">{isCurrent(NO_HTTP_ENV) && <Check size={12} />}</span>
-              No Environment
+              {t("tools.scratches.noEnvironment")}
             </button>
           </div>
         </Show>
@@ -106,27 +107,27 @@ function HttpToolbar() {
         onClick={() => void openEnvFile()}
       >
         <FileJson size={13} />
-        <span>{envs()?.names.length ? ENV_FILE : "Add Environment File"}</span>
+        <span>{envs()?.names.length ? ENV_FILE : t("tools.scratches.addEnvironmentFile")}</span>
       </button>
       <span class="http-tb-spacer" />
       <button
         class="http-tb-button"
-        title="Convert a cURL command to a request"
+        title={t("tools.scratches.convertACurlCommandTo")}
         data-testid="http-import-curl"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => void runCommand("HttpClient.ImportFromCurl")}
       >
         <Import size={13} />
-        <span>Import from cURL</span>
+        <span>{t("tools.scratches.importFromCurl")}</span>
       </button>
       <button
         class="http-tb-button"
-        title="Copy the request at the caret as a cURL command"
+        title={t("tools.scratches.copyTheRequestAtThe")}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => void runCommand("HttpClient.CopyAsCurl")}
       >
         <Copy size={13} />
-        <span>Copy as cURL</span>
+        <span>{t("tools.scratches.copyAsCurl")}</span>
       </button>
     </>
   );
