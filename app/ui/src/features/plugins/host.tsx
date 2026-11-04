@@ -30,7 +30,7 @@ import { activeView } from "@/editor/views";
 import { languageIdFor } from "@/editor/languages";
 import { workspace } from "@/state/workspace";
 import { workspaceApi } from "@/ipc/workspace";
-import runtimeSource from "./runtime.js?raw";
+import { pluginDocument, VIEW_CSP } from "./sandbox";
 
 const showBalloon = balloonsFor("Plugins");
 
@@ -57,22 +57,6 @@ const ownerOf = (contributionId: string) =>
   loaded().find((p) => contributionId.startsWith(`${p.manifest.id}.`));
 
 const canEditor = (p: InstalledPlugin, access: "read" | "write") => p.granted.editor?.includes(access) ?? false;
-
-/** Escape a script for an inline `<script>` element. */
-const inlineScript = (src: string) => src.replace(/<\/(script)/gi, "<\\/$1").replace(/<!--/g, "<\\!--");
-
-const PLUGIN_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'";
-const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:";
-
-export function pluginDocument(plugin: InstalledPlugin, bundle: string): string {
-  const info = JSON.stringify({ id: plugin.manifest.id, name: plugin.manifest.name, version: plugin.manifest.version });
-  const runtime = runtimeSource.replace("__FORGE_PLUGIN__", info);
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${PLUGIN_CSP}"></head><body>
-<script>${inlineScript(runtime)}</script>
-<script>${inlineScript(bundle)}</script>
-<script>globalThis.__forgeActivate();</script>
-</body></html>`;
-}
 
 function post(inst: Instance, message: Record<string, unknown>): void {
   inst.frame.contentWindow?.postMessage({ forgeHost: 1, ...message }, "*");
@@ -195,7 +179,7 @@ export function activate(plugin: InstalledPlugin): Promise<void> {
     window.addEventListener("message", onActivated);
     pluginsApi.bundle(plugin.manifest.id).then(
       (bundle) => {
-        frame.srcdoc = pluginDocument(plugin, bundle);
+        frame.srcdoc = pluginDocument(plugin.manifest, bundle);
         document.body.appendChild(frame);
       },
       (e: unknown) => {

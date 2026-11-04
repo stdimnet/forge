@@ -1669,6 +1669,21 @@ export function pio_command(request_json: string): string;
 export function pio_project(request_json: string): string;
 
 /**
+ * `{ index, forgeVersion, installed, query }` → `{ name, entries, warnings }`.
+ */
+export function plugins_marketplace(request_json: string): string;
+
+/**
+ * Permissions → the lines of the install prompt.
+ */
+export function plugins_permission_lines(permissions_json: string): string;
+
+/**
+ * `{ manifest, forgeVersion }` → the manifest's problems (`[]` when valid).
+ */
+export function plugins_validate_manifest(request_json: string): string;
+
+/**
  * `{ base64?, sampleIndex? }` → `ProfileView` (`pprof_open`).
  */
 export function pprof_view(request_json: string): string;
@@ -2969,6 +2984,9 @@ export interface InitOutput {
     readonly php_source_roots: (a: number, b: number, c: number) => void;
     readonly pio_command: (a: number, b: number, c: number) => void;
     readonly pio_project: (a: number, b: number, c: number) => void;
+    readonly plugins_marketplace: (a: number, b: number, c: number) => void;
+    readonly plugins_permission_lines: (a: number, b: number, c: number) => void;
+    readonly plugins_validate_manifest: (a: number, b: number, c: number) => void;
     readonly pprof_view: (a: number, b: number, c: number) => void;
     readonly profiler_demo: (a: number, b: number, c: number) => void;
     readonly profiler_parse: (a: number, b: number, c: number) => void;
