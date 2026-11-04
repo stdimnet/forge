@@ -25,7 +25,7 @@ export function liveRegion(level: Politeness = "polite", doc: Document = documen
   return el;
 }
 
-let seq = 0;
+const seqs: Record<Politeness, number> = { polite: 0, assertive: 0 };
 
 /**
  * Speak `text` through the screen reader. The region is cleared first and filled a moment
@@ -34,10 +34,10 @@ let seq = 0;
 export function announce(text: string, level: Politeness = "polite"): void {
   if (typeof document === "undefined" || !text.trim()) return;
   const el = liveRegion(level);
-  const n = ++seq;
+  const n = ++seqs[level];
   el.textContent = "";
   setTimeout(() => {
-    if (n === seq) el.textContent = text;
+    if (n === seqs[level]) el.textContent = text;
   }, 30);
 }
 

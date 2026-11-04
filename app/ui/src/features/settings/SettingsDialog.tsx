@@ -172,7 +172,7 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
     e.stopPropagation();
     if (action.type === "select") {
       setSelected(action.path);
-      queueMicrotask(() => treeEl.querySelector<HTMLElement>(`[data-node="${CSS.escape(action.path)}"]`)?.focus());
+      queueMicrotask(() => [...treeEl.querySelectorAll<HTMLElement>("[data-node]")].find((r) => r.dataset.node === action.path)?.focus());
     } else if (action.type === "expand" || action.type === "collapse") toggle(action.path);
     else tabbables(contentEl)[0]?.focus();
   };

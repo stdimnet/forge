@@ -45,30 +45,29 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
 }
 
 /**
- * Token values per theme from the theme CSS. A block whose selector list contains `:root`
- * alone applies to the default theme ("dark"); `:root[data-theme="x"]` to theme x. Later
- * blocks override earlier ones, as in the browser.
+ * Token values per theme from the theme CSS, cascaded like the browser does: a block whose
+ * selector list contains `:root` alone applies to every theme; `:root[data-theme="x"]` is more
+ * specific and overrides it for theme x. Later blocks of the same kind override earlier ones.
  */
 export function themeTokens(css: string): Map<string, Map<string, string>> {
-  const out = new Map<string, Map<string, string>>();
+  const base = new Map<string, string>();
+  const specific = new Map<string, Map<string, string>>();
   const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const block = /([^{}]+)\{([^{}]*)\}/g;
   for (let m = block.exec(text); m; m = block.exec(text)) {
     const selectors = m[1].split(",").map((s) => s.trim());
-    const themes = new Set<string>();
+    const decls = [...m[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()] as const);
+    if (selectors.includes(":root")) for (const [name, value] of decls) base.set(name, value);
     for (const sel of selectors) {
-      if (sel === ":root") themes.add("dark");
       const t = /^:root\[data-theme="([^"]+)"\]$/.exec(sel);
-      if (t) themes.add(t[1]);
-    }
-    if (!themes.size) continue;
-    const decls = [...m[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)];
-    for (const theme of themes) {
-      const map = out.get(theme) ?? new Map<string, string>();
-      for (const [, name, value] of decls) map.set(name, value.trim());
-      out.set(theme, map);
+      if (!t) continue;
+      const map = specific.get(t[1]) ?? new Map<string, string>();
+      for (const [name, value] of decls) map.set(name, value);
+      specific.set(t[1], map);
     }
   }
+  const out = new Map<string, Map<string, string>>();
+  for (const [theme, own] of specific) out.set(theme, new Map([...base, ...own]));
   return out;
 }
 
@@ -106,24 +105,27 @@ export const SYNTAX_TOKENS = [
 ];
 
 /**
- * The pairs a theme is checked on. Secondary text (`--fg-faint`: hints, line numbers,
- * placeholders) needs 3:1 in the normal themes and 7:1 in the high-contrast ones, which also
- * need visible borders.
+ * The pairs a theme is checked on. Secondary text (`--fg-faint`: hints, line numbers) is text
+ * too; the high-contrast themes also need visible borders.
  */
 export function themePairs(level: "AA" | "AAA" = "AA"): TokenPair[] {
   const pairs: TokenPair[] = [];
   for (const fg of TEXT_TOKENS) for (const bg of TEXT_BACKGROUNDS) pairs.push({ fg, bg, kind: "text" });
   for (const fg of SYNTAX_TOKENS) pairs.push({ fg, bg: "--bg-editor", kind: "text" });
   // Hints, line numbers and placeholders: secondary text.
-  for (const bg of ["--bg-panel", "--bg-editor"]) pairs.push({ fg: "--fg-faint", bg, kind: level === "AAA" ? "text" : "ui" });
+  for (const bg of ["--bg-panel", "--bg-editor", "--bg-app"]) pairs.push({ fg: "--fg-faint", bg, kind: "text" });
+  // Hints of selected rows use --fg-muted (accessibility.css).
+  pairs.push({ fg: "--fg-muted", bg: "--bg-selection", kind: "text" });
   // Text on the selection and hover rows, and the primary button.
   pairs.push({ fg: "--fg", bg: "--bg-selection", kind: "text" });
   pairs.push({ fg: "--fg", bg: "--bg-hover", kind: "text" });
   pairs.push({ fg: "--fg-strong", bg: "--bg-active", kind: "text" });
   pairs.push({ fg: "--accent-fg", bg: "--accent", kind: "text" });
   // Status colors as text (problems, VCS file names).
-  for (const fg of ["--danger", "--warning", "--success", "--info", "--vcs-modified", "--vcs-added", "--vcs-untracked"])
+  for (const fg of ["--danger", "--warning", "--success", "--info", "--vcs-modified", "--vcs-added", "--vcs-untracked", "--vcs-deleted"])
     pairs.push({ fg, bg: "--bg-panel", kind: "text" });
+  // File names keep their VCS color on the selected row.
+  for (const fg of ["--vcs-modified", "--vcs-added", "--vcs-untracked", "--vcs-deleted"]) pairs.push({ fg, bg: "--bg-active", kind: "text" });
   // UI parts: input borders, the focus ring (accent) and the accent as an icon color.
   if (level === "AAA") {
     pairs.push({ fg: "--border-strong", bg: "--bg-panel", kind: "ui" });

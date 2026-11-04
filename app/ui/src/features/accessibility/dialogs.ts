@@ -60,13 +60,27 @@ export function describeDialog(el: HTMLElement): void {
     if (title?.textContent?.trim()) el.setAttribute("aria-labelledby", ensureId(title));
   }
   if (!el.hasAttribute("aria-modal") && isModal(el)) el.setAttribute("aria-modal", "true");
+  labelControls(el);
+}
+
+/**
+ * Connect form labels to the control right after them (`<label>Name:</label><input>`), the
+ * common dialog layout, when the code did not do it with `for`.
+ */
+export function labelControls(root: ParentNode): void {
+  for (const label of root.querySelectorAll<HTMLLabelElement>("label:not([for])")) {
+    if (label.querySelector("input, select, textarea")) continue;
+    const next = label.nextElementSibling as HTMLInputElement | null;
+    if (!next?.matches("input, select, textarea")) continue;
+    if (next.hasAttribute("aria-label") || next.hasAttribute("aria-labelledby") || next.labels?.length) continue;
+    label.htmlFor = ensureId(next);
+  }
 }
 
 /** The dialog element a backdrop holds (its first element child), when it names none itself. */
 function dialogOfBackdrop(backdrop: HTMLElement): HTMLElement | null {
   if (backdrop.matches(DIALOG) || backdrop.querySelector(DIALOG)) return null;
-  const child = backdrop.firstElementChild;
-  return child instanceof HTMLElement ? child : null;
+  return backdrop.firstElementChild as HTMLElement | null;
 }
 
 const topModal = (): Open | undefined => [...open].reverse().find((o) => o.el.isConnected && isModal(o.el));
@@ -77,6 +91,8 @@ function track(el: HTMLElement): void {
   const active = el.ownerDocument.activeElement as HTMLElement | null;
   const opener = active && active !== el.ownerDocument.body && !el.contains(active) ? active : lastFocusOutside;
   open.push({ el, opener });
+  // Content shown a moment later (resources, `Show`) gets its labels too.
+  setTimeout(() => el.isConnected && labelControls(el), 120);
   // Dialogs usually focus their first field themselves; otherwise focus the first control.
   setTimeout(() => {
     if (!el.isConnected || el.contains(el.ownerDocument.activeElement)) return;
@@ -101,18 +117,24 @@ function untrack(el: HTMLElement): void {
   const [{ opener }] = open.splice(i, 1);
   const doc = el.ownerDocument;
   // Let the closing code move focus itself first (e.g. back to a tree row).
+  const lost = () => !doc.activeElement || doc.activeElement === doc.body || !doc.activeElement.isConnected;
   queueMicrotask(() => {
-    const active = doc.activeElement;
-    if (active && active !== doc.body && active.isConnected) return;
+    if (!lost()) return;
     const target = opener?.isConnected ? opener : (topModal()?.el ?? editorFallback(doc));
     target?.focus();
   });
+  // What the dialog did may replace the focused element a moment later (a file it opened
+  // replaces the editor): then the editor gets focus, as in PHPStorm.
+  setTimeout(() => {
+    if (lost()) (topModal()?.el ?? editorFallback(doc))?.focus();
+  }, 120);
 }
 
 /** Scan added or removed nodes for dialogs. */
 function scan(nodes: NodeList, added: boolean): void {
-  for (const node of nodes) {
-    if (!(node instanceof HTMLElement)) continue;
+  for (const n of nodes) {
+    if (n.nodeType !== 1 /* element */) continue;
+    const node = n as HTMLElement;
     const found = new Set<HTMLElement>();
     if (node.matches(DIALOG)) found.add(node);
     node.querySelectorAll<HTMLElement>(DIALOG).forEach((d) => found.add(d));
@@ -131,7 +153,7 @@ function scan(nodes: NodeList, added: boolean): void {
 
 function onFocusIn(e: FocusEvent): void {
   const target = e.target as HTMLElement | null;
-  if (!target || !(target instanceof HTMLElement)) return;
+  if (!target || target.nodeType !== 1 /* element */ || !target.dataset) return;
   const top = topModal();
   if (target.dataset.focusGuard !== undefined) {
     // Focus left the document's last (or first) control: wrap inside the dialog, or into the
@@ -152,7 +174,7 @@ function onFocusIn(e: FocusEvent): void {
   }
   if (top.el.contains(target) || target.closest(ALLOWED_OUTSIDE) || target.closest(DIALOG)) return;
   // Tab moved past the dialog's end (to something after it) or before its start: wrap.
-  const after = top.el.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING;
+  const after = top.el.compareDocumentPosition(target) & 4 /* DOCUMENT_POSITION_FOLLOWING */;
   const list = tabbables(top.el);
   const next = after ? list[0] : list[list.length - 1];
   (next ?? focusSelf(top.el)).focus();
@@ -163,7 +185,6 @@ function guard(doc: Document, where: "start" | "end"): HTMLElement {
   el.tabIndex = 0;
   el.dataset.focusGuard = where;
   el.className = "sr-only";
-  el.setAttribute("aria-hidden", "true");
   return el;
 }
 

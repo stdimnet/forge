@@ -4,6 +4,8 @@
  * Options (⋮): Autoscroll to Source (a click navigates) and Autoscroll from Source (the node
  * at the caret is selected; picked in Rust like the File Structure popup's caret node).
  */
+import { t } from "@/i18n";
+import { navigate as navigateTree } from "@/features/project/treeNavigation";
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { ArrowDownAZ, ChevronDown, ChevronRight, EllipsisVertical, Layers2 } from "lucide-solid";
 import { activeTab } from "@/state/editor";
@@ -189,6 +191,25 @@ export function StructureActions() {
   );
 }
 
+/** Row key → jump to its source (Enter / F4 in the tree). */
+const navigators = new Map<string, () => void>();
+/** Row key → element id (aria-activedescendant). */
+const rowIds = new Map<string, string>();
+const rowId = (key: string): string => {
+  let id = rowIds.get(key);
+  if (!id) rowIds.set(key, (id = `structure-row-${rowIds.size + 1}`));
+  return id;
+};
+
+function toggleCollapsed(key: string): void {
+  setCollapsed((s) => {
+    const n = new Set(s);
+    if (n.has(key)) n.delete(key);
+    else n.add(key);
+    return n;
+  });
+}
+
 function NodeRow(props: { node: StructureNode; depth: number; parent: string; file: string }) {
   const key = () => nodeKey(props.parent, props.node);
   const kids = () => (props.node.children ?? []).filter((c) => showInherited() || !c.inheritedFrom);
@@ -197,6 +218,11 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
     setSelected(key());
     revealStructureNode(props.file, props.node);
   };
+  createEffect(() => {
+    const k = key();
+    navigators.set(k, navigate);
+    onCleanup(() => navigators.get(k) === navigate && navigators.delete(k));
+  });
   const toSource = () => getSetting<boolean>(TO_SOURCE, true);
   return (
     <>
@@ -205,6 +231,14 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
         classList={{ selected: selected() === key(), inherited: !!props.node.inheritedFrom, deprecated: !!props.node.deprecated }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
         data-key={key()}
+        data-depth={props.depth}
+        data-dir={kids().length ? "" : undefined}
+        data-expanded={kids().length && open() ? "" : undefined}
+        id={rowId(key())}
+        role="treeitem"
+        aria-level={props.depth + 1}
+        aria-selected={selected() === key()}
+        aria-expanded={kids().length ? open() : undefined}
         title={props.node.inheritedFrom ? `Inherited from ${props.node.inheritedFrom}` : undefined}
         onClick={() => (toSource() ? navigate() : setSelected(key()))}
         onDblClick={() => !toSource() && navigate()}
@@ -214,11 +248,7 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
           onClick={(e) => {
             if (!kids().length) return;
             e.stopPropagation();
-            setCollapsed((s) => {
-              const n = new Set(s);
-              n.has(key()) ? n.delete(key()) : n.add(key());
-              return n;
-            });
+            toggleCollapsed(key());
           }}
         >
           <Show when={kids().length}>{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
@@ -248,8 +278,35 @@ export function StructureView() {
     }),
   );
   onCleanup(() => clearTimeout(timer));
+  // The tree keys of the Project view: arrows, Home/End, Enter/F4 to jump to the source.
+  const onKeyDown = (e: KeyboardEvent) => {
+    const root = e.currentTarget as HTMLElement;
+    const rows = [...root.querySelectorAll<HTMLElement>(".php-structure-row[data-key]")].map((r) => ({
+      path: r.dataset.key!,
+      isDir: r.dataset.dir !== undefined,
+      expanded: r.dataset.expanded !== undefined,
+      depth: Number(r.dataset.depth ?? 0),
+    }));
+    const action = navigateTree(rows, selected(), e.key === "F4" ? "Enter" : e.key);
+    if (action.type === "none") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (action.type === "select") {
+      setSelected(action.path);
+      if (getSetting<boolean>(TO_SOURCE, true)) navigators.get(action.path)?.();
+      document.getElementById(rowId(action.path))?.scrollIntoView?.({ block: "nearest" });
+    } else if (action.type === "open") navigators.get(action.path)?.();
+    else toggleCollapsed(action.path);
+  };
   return (
-    <div class="project-tree php-structure">
+    <div
+      class="project-tree php-structure"
+      tabIndex={0}
+      role={structure() ? "tree" : undefined}
+      aria-label={t("toolwindow.structure.title")}
+      aria-activedescendant={selected() ? rowId(selected()!) : undefined}
+      onKeyDown={onKeyDown}
+    >
       <Show
         when={structure()}
         fallback={<div class="placeholder-panel">{activeTab() ? "No structure for this file" : "No file is open"}</div>}

@@ -88,3 +88,17 @@ export function focusEditor(doc: Document = document): boolean {
   content.focus();
   return true;
 }
+
+/** Focus a tool window like PHPStorm: its tree or list, else its first control, else its body. */
+export function focusToolWindowContent(id: string, doc: Document = document): boolean {
+  const body = doc.querySelector<HTMLElement>(`[data-tool-window-panel="${id}"] .tool-window-body`);
+  if (!body) return false;
+  if (body.contains(doc.activeElement) && doc.activeElement !== body) return true;
+  const widget = body.querySelector<HTMLElement>('[role="tree"][tabindex], [role="listbox"][tabindex], [role="grid"][tabindex]');
+  (widget ?? tabbables(body)[0] ?? body).focus();
+  return true;
+}
+
+/** Ids of the tool windows shown now. */
+export const shownToolWindows = (doc: Document = document): string[] =>
+  [...doc.querySelectorAll<HTMLElement>("[data-tool-window-panel]")].map((el) => el.dataset.toolWindowPanel!);

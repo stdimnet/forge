@@ -265,7 +265,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
       ref={root}
       tabIndex={-1}
       role="navigation"
-      aria-label={t("a11y.navbar")}
+      aria-label={t(props.placement === "statusBar" ? "a11y.navbar.statusBar" : "a11y.navbar")}
       data-group={props.group}
       onKeyDown={onKeyDown}
       onFocusIn={() => setFocused(true)}

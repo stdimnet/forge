@@ -237,3 +237,10 @@ input[type="color"]:focus-visible,
     animation: none;
   }
 }
+
+/* Hints of selected rows keep AA contrast on the selection color. */
+.tree-row.selected .tree-hint,
+.se-row.selected .se-detail,
+.recent-row.selected .recent-path {
+  color: var(--fg-muted);
+}

@@ -43,7 +43,7 @@ import { navigateBack, navigateForward, reopenClosedTab } from "./history";
 import { openRecentFiles, recentOpen } from "./RecentFiles";
 import { openSettings } from "@/features/settings/dialogState";
 import { PopupHost } from "./PopupHost";
-import { tabbables } from "@/features/accessibility/dialogs";
+import { focusToolWindowContent } from "@/features/accessibility/areas";
 import "./navigation.css";
 
 function action(id: string, run: () => void | Promise<void>): void {
@@ -95,20 +95,11 @@ export const TOOL_WINDOW_ACTIONS: Record<string, string> = {
 let lastToolWindow: string | null = null;
 let hiddenLayout: Partial<Record<ToolWindowSlot, string>> | null = null;
 
-/** Focus a tool window like PHPStorm: its tree or list, else its first control, else its body. */
+/** Focus a shown tool window's content; its content may render a moment later. */
 function focusToolWindow(id: string): void {
-  const attempt = () => {
-    const body = document.querySelector<HTMLElement>(`[data-tool-window-panel="${id}"] .tool-window-body`);
-    if (!body) return false;
-    if (body.contains(document.activeElement) && document.activeElement !== body) return true;
-    const widget = body.querySelector<HTMLElement>('[role="tree"][tabindex], [role="listbox"][tabindex], [role="grid"][tabindex]');
-    (widget ?? tabbables(body)[0] ?? body).focus();
-    return true;
-  };
-  // The window's content may render a moment later (lazy components, listings).
   queueMicrotask(() => {
-    if (!attempt() || !document.querySelector(`[data-tool-window-panel="${id}"] [role="tree"], [data-tool-window-panel="${id}"] [role="listbox"]`))
-      setTimeout(attempt, 80);
+    focusToolWindowContent(id);
+    setTimeout(() => focusToolWindowContent(id), 80);
   });
 }
 

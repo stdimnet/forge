@@ -22,6 +22,12 @@ const themes = (arg("themes") ?? "dark").split(",");
 
 const run = (page, id) => page.evaluate((cmd) => window.__forgeRunCommand(cmd), id);
 
+/** Show the Project tool window (it may be open already). */
+async function projectView(page) {
+  if (!(await page.$(".project-tree"))) await page.keyboard.press("Alt+1");
+  await page.waitForSelector(".project-tree .tree-row[data-path]");
+}
+
 /**
  * Screens to audit: name → steps that bring the screen up (from the started workbench).
  * Each returns the CSS selector axe should check (the whole document by default).
@@ -30,12 +36,8 @@ const run = (page, id) => page.evaluate((cmd) => window.__forgeRunCommand(cmd), 
 const SCREENS = {
   workbench: async () => undefined,
   "project-view": async (page) => {
-    await page.keyboard.press("Alt+1");
-    await page.waitForTimeout(200);
-    if (!(await page.$(".project-tree"))) {
-      await page.keyboard.press("Alt+1");
-      await page.waitForSelector(".project-tree");
-    }
+    await projectView(page);
+    await page.click('.project-tree .tree-row[data-path="app"]');
     return undefined;
   },
   "main-menu": async (page) => {
@@ -70,12 +72,20 @@ const SCREENS = {
     return undefined;
   },
   rename: async (page) => {
-    await page.keyboard.press("Alt+1");
-    await page.waitForSelector(".project-tree .tree-row[data-path]");
+    await projectView(page);
     await page.click('.project-tree .tree-row[data-path="composer.json"]');
     await page.keyboard.press("Shift+F6");
     await page.waitForSelector("[role=dialog] input");
     return "[role=dialog]";
+  },
+  "presentation-assistant": async (page) => {
+    await page.evaluate(async () => {
+      const { saveSetting } = await import("/src/state/settings.ts");
+      await saveSetting("appearance.presentationAssistant.enabled", true);
+    });
+    await page.keyboard.press("Control+Shift+F6");
+    await page.waitForSelector("[data-presentation-assistant]");
+    return undefined;
   },
   welcome: async () => undefined,
 };

@@ -24,7 +24,8 @@
     "agents": "node scripts/build-agents.mjs",
     "langservers": "cargo run -q -p forge-langservers --bin forge-langservers --",
     "release": "node scripts/build-agents.mjs && node scripts/tauri.mjs build --config src-tauri/tauri.agents.conf.json",
-    "a11y:audit": "node scripts/a11y-audit.mjs"
+    "a11y:audit": "node scripts/a11y-audit.mjs",
+    "a11y:keyboard": "node scripts/a11y-keyboard.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",

@@ -748,6 +748,7 @@ export function CommitPanel() {
           <textarea
             ref={messageInput}
             placeholder={t("vcs.commitMessage")}
+            aria-label={t("vcs.commitMessage")}
             data-focus-context="toolwindow-input"
             value={message()}
             spellcheck={false}

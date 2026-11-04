@@ -13,6 +13,7 @@
   "a11y.editorTabs": "Editor tabs",
   "a11y.mainToolbar": "Main toolbar",
   "a11y.navbar": "Navigation Bar",
+  "a11y.navbar.statusBar": "Navigation Bar in the status bar",
   "a11y.notifications": "Notifications",
   "a11y.recent.files": "Files",
   "a11y.recent.toolWindows": "Tool windows",

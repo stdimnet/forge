@@ -13,6 +13,7 @@
   "a11y.editorTabs": "Editor-Tabs",
   "a11y.mainToolbar": "Hauptsymbolleiste",
   "a11y.navbar": "Navigationsleiste",
+  "a11y.navbar.statusBar": "Navigationsleiste in der Statusleiste",
   "a11y.notifications": "Benachrichtigungen",
   "a11y.recent.files": "Dateien",
   "a11y.recent.toolWindows": "Toolfenster",

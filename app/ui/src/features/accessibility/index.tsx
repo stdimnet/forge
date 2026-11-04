@@ -11,7 +11,7 @@ import { actionById, keymapSnapshot, registerKeymapActions } from "@/keymap";
 import { activeView } from "@/features/navigation/editorCommands";
 import { liveRegion } from "./announce";
 import { installDialogAccessibility } from "./dialogs";
-import { focusArea, focusEditor, trackAreaFocus } from "./areas";
+import { focusArea, focusEditor, focusToolWindowContent, shownToolWindows, trackAreaFocus } from "./areas";
 import { present, presentationOf } from "./presentation";
 import { PresentationAssistant } from "./PresentationAssistant";
 import "./accessibility.css";
@@ -60,6 +60,17 @@ registerCommand({
   title: "Presentation Assistant",
   category: "View",
   run: () => saveSetting("appearance.presentationAssistant.enabled", !getSetting<boolean>("appearance.presentationAssistant.enabled", false)),
+});
+
+// Activate…ToolWindow actions that a feature implements itself (toggling its window) still
+// move focus into the window they show, as Alt+<n> does in PHPStorm.
+onCommandInvoked((inv) => {
+  if (!/^Activate\w*ToolWindow$/.test(inv.command.id) || typeof document === "undefined") return;
+  const before = new Set(shownToolWindows());
+  setTimeout(() => {
+    const shown = shownToolWindows().filter((id) => !before.has(id));
+    if (shown.length === 1) focusToolWindowContent(shown[0]);
+  }, 60);
 });
 
 // Presentation Assistant: every command run through the registry.

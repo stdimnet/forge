@@ -18,8 +18,8 @@
 
   --fg: #d9d9df;
   --fg-strong: #f2f2f5;
-  --fg-muted: #8c8c98;
-  --fg-faint: #74747f;
+  --fg-muted: #a0a0ab;
+  --fg-faint: #8a8a95;
 
   --accent: #ff7a1a;
   --accent-strong: #ff8f3d;
@@ -34,7 +34,7 @@
   /* VCS file status colors (project tree, tabs, commit window) */
   --vcs-modified: #6aa7ff;
   --vcs-added: #73c48a;
-  --vcs-deleted: #8a8a94;
+  --vcs-deleted: #9a9aa4;
   --vcs-untracked: #e0806a;
   /* Project view: excluded folders and resource roots (Mark Directory as) */
   --tree-excluded: #e08a4f;
@@ -145,18 +145,23 @@
 
   --fg: #26272b;
   --fg-strong: #0f1012;
-  --fg-muted: #62656e;
-  --fg-faint: #83868f;
+  --fg-muted: #575a63;
+  --fg-faint: #686b74;
 
   --accent: #c4500a;
   --accent-strong: #a94508;
   --accent-soft: rgba(232, 98, 12, 0.12);
   --accent-fg: #ffffff;
 
-  --vcs-modified: #2463c7;
-  --vcs-added: #2a7d3f;
-  --vcs-deleted: #8a8a94;
-  --vcs-untracked: #b5492f;
+  --success: #2a7d3f;
+  --warning: #8a6200;
+  --danger: #c42b2b;
+  --info: #1f5fbf;
+
+  --vcs-modified: #1f56ad;
+  --vcs-added: #236b35;
+  --vcs-deleted: #5a5a63;
+  --vcs-untracked: #9c3d22;
   /* Project view: excluded folders and resource roots (Mark Directory as) */
   --tree-excluded: #c0580e;
   --tree-resource-root: #8a4fb5;
@@ -262,8 +267,8 @@
 
   --fg: #93a1a1;
   --fg-strong: #eee8d5;
-  --fg-muted: #8fa3a7;
-  --fg-faint: #6a838a;
+  --fg-muted: #93a7ab;
+  --fg-faint: #80979d;
 
   --accent: #268bd2;
   --accent-strong: #4aa3e3;
@@ -341,8 +346,8 @@
 
   --fg: #4f646a;
   --fg-strong: #073642;
-  --fg-muted: #55666b;
-  --fg-faint: #788787;
+  --fg-muted: #4a5a5f;
+  --fg-faint: #57686c;
 
   --success: #859900;
   --warning: #b58900;
@@ -435,7 +440,7 @@
   --vcs-modified: #94c8ff;
   --vcs-added: #85eb96;
   --vcs-deleted: #c8c8c8;
-  --vcs-untracked: #ffab94;
+  --vcs-untracked: #ffb8a6;
   --tree-excluded: #ffb27a;
   --tree-resource-root: #e0b8ff;
   --tree-test-resource-root: #a8f09a;
@@ -531,8 +536,8 @@
   --bg-panel: #ffffff;
   --bg-editor: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-hover: #e6e6e6;
-  --bg-active: #d1d1d1;
+  --bg-hover: #f0f0f0;
+  --bg-active: #e6e6e6;
   --bg-selection: #ffd9b3;
   --bg-input: #ffffff;
   --border: #5c5c5c;
@@ -548,18 +553,18 @@
   --accent-soft: rgba(154, 58, 0, 0.16);
   --accent-fg: #ffffff;
 
-  --success: #145c25;
+  --success: #104d1f;
   --warning: #5c4400;
   --danger: #a30000;
   --info: #0a4699;
 
   --vcs-modified: #0a4699;
-  --vcs-added: #145c25;
-  --vcs-deleted: #4d4d4d;
-  --vcs-untracked: #8a2a12;
+  --vcs-added: #104d1f;
+  --vcs-deleted: #3d3d3d;
+  --vcs-untracked: #7a240f;
   --tree-excluded: #8a3a00;
   --tree-resource-root: #5c1f99;
-  --tree-test-resource-root: #1f5c1f;
+  --tree-test-resource-root: #1a4d1a;
   --vcs-ignored: #4d4d4d;
   --vcs-conflict: #a30000;
 

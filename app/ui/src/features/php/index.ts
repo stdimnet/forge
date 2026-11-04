@@ -12,7 +12,6 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
 import { isLibraryPath } from "@/ipc/codeintel";
 import { registerCommand } from "@/state/commands";
-import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { isPluginActive } from "@/state/project";
 import { lspClaimsHover } from "@/features/lsp/hover";
@@ -79,7 +78,6 @@ registerCommand({ id: "php.overrideMethods", title: "Override Methods…", categ
 registerCommand({ id: "php.implementMethods", title: "Implement Methods…", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "implementMethods")) });
 registerCommand({ id: "php.generatePhpDoc", title: "Generate PHPDoc Comment", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "phpDoc")) });
 registerCommand({ id: "php.reindex", title: "Reindex PHP Files", category: "PHP", run: () => void indexWorkspace() });
-registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View", run: () => toggleToolWindow("structure") });
 
 registerToolWindow({
   id: "structure",

@@ -36,7 +36,7 @@ export function MainToolbar() {
       <div class="toolbar-left">
         <MainMenuButton />
         <button class="pill-btn project-widget" title={t("toolbar.openProject")} onClick={() => runCommand("workspace.open")}>
-          <span class="project-badge">{initials()}</span>
+          <span class="project-badge" aria-hidden="true">{initials()}</span>
           <span class="project-name">{workspace()?.name ?? t("toolbar.noProject")}</span>
           <Show when={workspace()?.collab}>
             {(c) => (

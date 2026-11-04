@@ -445,7 +445,7 @@ const EMBER: Palette = Palette {
     caret: "#ff7a1a",
     caret_row: "#1e1e23",
     selection: "#3a2a1e",
-    line_numbers: "#74747f",
+    line_numbers: "#8a8a95",
     search_result: "#483c24",
     syntax: [
         "#ff9a57", "#a5d17f", "#7cc5e8", "#80808e", "#c9a6ff", "#ffd479", "#6fd2c4", "#d0c070",
@@ -458,7 +458,7 @@ const ANVIL: Palette = Palette {
     caret: "#c4500a",
     caret_row: "#f1f2f6",
     selection: "#ffe3cc",
-    line_numbers: "#83868f",
+    line_numbers: "#686b74",
     search_result: "#f8ecd2",
     syntax: [
         "#b8460b", "#3c7d24", "#1b6fa0", "#6e717b", "#7a3fc4", "#8a5a00", "#157a6e", "#806a00",

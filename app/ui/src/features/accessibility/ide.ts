@@ -32,7 +32,11 @@ function caretInfo(view: EditorView) {
 
 /** The editor's accessible name ("Editor for User.php") and a focusable scroller for axe. */
 registerEditorExtension(({ path }) =>
-  EditorView.contentAttributes.of({ "aria-label": t("a11y.editor.label", { name: path.split("/").pop() ?? path }) }),
+  EditorView.contentAttributes.of({
+    "aria-label": t("a11y.editor.label", { name: path.split("/").pop() ?? path }),
+    // Explicit, so checkers see the scroller's content as keyboard reachable.
+    tabindex: "0",
+  }),
 );
 
 /** With screen reader support: problems at the caret are spoken when the caret reaches a new line. */
