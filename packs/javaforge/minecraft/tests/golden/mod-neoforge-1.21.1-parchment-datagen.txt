@@ -405,7 +405,7 @@ public final class ModItems {
   }
 }
 ==== src/main/templates/META-INF/neoforge.mods.toml ====
-# The mod's metadata. Gradle fills in the ${...} properties from gradle.properties
+# The mod's metadata. Gradle fills in the properties from gradle.properties
 # (generateModMetadata). See https://docs.neoforged.net/docs/gettingstarted/modfiles
 modLoader = "javafml"
 loaderVersion = "[1,)"

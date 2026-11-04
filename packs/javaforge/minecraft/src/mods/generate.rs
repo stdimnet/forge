@@ -741,7 +741,7 @@ fn fabric_mod_json(p: &ModProject) -> String {
 
 fn neoforge_mods_toml(p: &ModProject) -> String {
     let mut s = String::from(
-        "# The mod's metadata. Gradle fills in the ${...} properties from gradle.properties\n# (generateModMetadata). See https://docs.neoforged.net/docs/gettingstarted/modfiles\nmodLoader = \"javafml\"\nloaderVersion = \"[1,)\"\n",
+        "# The mod's metadata. Gradle fills in the properties from gradle.properties\n# (generateModMetadata). See https://docs.neoforged.net/docs/gettingstarted/modfiles\nmodLoader = \"javafml\"\nloaderVersion = \"[1,)\"\n",
     );
     s += &format!("license = {}\n\n", toml_str(&p.license));
     s += "[[mods]]\nmodId = \"${mod_id}\"\nversion = \"${mod_version}\"\n";
@@ -1538,6 +1538,31 @@ mod tests {
                                         mc.version,
                                         f.contents
                                     );
+                                    // Gradle's expand: only the properties it is given.
+                                    let expanded: &[&str] = match f.path.as_str() {
+                                        "src/main/resources/fabric.mod.json" => &["version"],
+                                        "src/main/templates/META-INF/neoforge.mods.toml" => &[
+                                            "mod_id",
+                                            "mod_version",
+                                            "neo_version",
+                                            "minecraft_version_range",
+                                        ],
+                                        _ => &[],
+                                    };
+                                    if !expanded.is_empty() {
+                                        for (i, _) in f.contents.match_indices("${") {
+                                            if f.contents[..i].ends_with('\\') {
+                                                continue;
+                                            }
+                                            let rest = &f.contents[i + 2..];
+                                            let name = &rest[..rest.find('}').unwrap()];
+                                            assert!(
+                                                expanded.contains(&name),
+                                                "{}: ${{{name}}}",
+                                                f.path
+                                            );
+                                        }
+                                    }
                                     if f.path.ends_with(".json") {
                                         let t = f.contents.replace("${version}", "1");
                                         serde_json::from_str::<serde_json::Value>(&t)

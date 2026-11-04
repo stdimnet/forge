@@ -736,7 +736,7 @@ The primary type appears
 | CForge | C and C++ projects |
 | DotNetForge | .NET projects (C#, F#, Visual Basic); [Unity and Godot](docs/guide/user/unity-godot.md) for Unity and Godot projects (Godot also without C#) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
-| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md). A Minecraft server or proxy API (`paper-api`, `purpur-api`, `spigot-api`, `org.bukkit:bukkit`, `velocity-api`, `bungeecord-api`, …) makes the project a Minecraft plugin (framework `minecraft`, e.g. "Paper Plugin 1.21.8") that activates [Minecraft plugins](docs/guide/user/minecraft.md) |
+| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md). A Minecraft server or proxy API (`paper-api`, `purpur-api`, `spigot-api`, `org.bukkit:bukkit`, `velocity-api`, `bungeecord-api`, …) makes the project a Minecraft plugin (framework `minecraft`, e.g. "Paper Plugin 1.21.8") that activates [Minecraft plugins](docs/guide/user/minecraft.md); a Gradle build with Fabric Loom, NeoForge's ModDevGradle (or NeoGradle), Quilt Loom or ForgeGradle makes it a mod (e.g. "Fabric Mod 26.3", the version from `minecraft_version` in `gradle.properties`) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
 | JavaForge: Scala | an sbt build (`build.sbt`, `project/build.properties`; tool `sbt`), Scala sources (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin; ScalaTest and MUnit in `build.sbt` |
 | JavaForge: Android | a Gradle module applying `com.android.application` / `com.android.library` (also catalog aliases) or a `src/main/AndroidManifest.xml`; the framework `android` with the AGP version, tool `android` |
@@ -914,7 +914,7 @@ not finished, the page says so.
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
 | [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
 | [Unity and Godot](docs/guide/user/unity-godot.md) | Unity: the project's editor from the Unity Hub, the Forge editor bridge (play, pause, stop, refresh, Unity's console, scripts opened from Unity), project files, Unity tests, attaching to Unity, ShaderLab / HLSL / asmdef; Godot: GDScript with the Godot editor's language server, the Godot run configuration, GDScript and C# debugging, GdUnit4 |
-| [Minecraft plugins](docs/guide/user/minecraft.md) | The Minecraft Plugin wizard (Paper, Purpur, Folia, Spigot, Bukkit, Velocity, BungeeCord; Gradle or Maven; Java or Kotlin), plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml completion and main class checks, Run Paper Server and event handler gutter icons |
+| [Minecraft plugins and mods](docs/guide/user/minecraft.md) | The Minecraft Plugin wizard (Paper, Purpur, Folia, Spigot, Bukkit, Velocity, BungeeCord; Gradle or Maven; Java or Kotlin) and the Minecraft Mod wizard (Fabric with Loom, NeoForge with ModDevGradle), plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml, fabric.mod.json, mixin and neoforge.mods.toml completion and class checks, Run Paper Server, the Minecraft Client / Server configurations and event handler gutter icons |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control
@@ -3374,6 +3374,7 @@ Forge picks the first match:
    | GitHub Action | `action.yml`, `action.yaml` |
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
    | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](docs/guide/user/minecraft.md)) |
+   | Minecraft mods | `fabric.mod.json` and mixin configurations (`*.mixins.json`) (schemas written for Forge, see [Minecraft mods](docs/guide/user/minecraft.md#new-project-minecraft-mod)) |
 | Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](docs/guide/user/unity-godot.md#unity-file-types)) |
 
 4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
@@ -13561,7 +13562,7 @@ JDT LS imports and builds projects, which runs code of the project (Gradle build
 annotation processors), so it does not start in [Safe Mode](docs/guide/user/project-trust.md). It runs for local
 projects; remote projects do not start it yet.
 
-Minecraft server and proxy plugins (Paper, Spigot, Velocity, …) have their own project
+Minecraft server and proxy plugins (Paper, Spigot, Velocity, …) and Fabric / NeoForge mods have their own project
 wizard, descriptor support and Run Paper Server configuration: see
 [Minecraft plugins](docs/guide/user/minecraft.md).
 
@@ -15640,11 +15641,11 @@ without the Godot editor.
 
 Source: docs/guide/user/minecraft.md
 
-# Minecraft plugins
+# Minecraft plugins and mods
 
 The **Minecraft Development** plugin (`forge.minecraft`, JavaForge pack) helps you write
-server and proxy plugins for Minecraft, in the style of IntelliJ's Minecraft Development
-plugin. It builds on [JavaForge](docs/guide/user/java.md) (Gradle, Maven, JDKs, Eclipse JDT LS) and
+server and proxy plugins and Fabric and NeoForge mods for Minecraft, in the style of
+IntelliJ's Minecraft Development plugin. It builds on [JavaForge](docs/guide/user/java.md) (Gradle, Maven, JDKs, Eclipse JDT LS) and
 [KotlinForge](docs/guide/user/kotlin.md) for Kotlin sources.
 
 ## New Project: Minecraft Plugin
@@ -15742,17 +15743,106 @@ Paper 1.21.11 (Java, run-paper, Shadow), Paper 26.3 (Kotlin), Folia 26.3 with
 `paper-plugin.yml`, Purpur 26.2 (Groovy DSL, dynamic build), Velocity 4.3.1, BungeeCord
 (Kotlin) with Gradle 9.8.2 and Spigot 26.3 with Maven were built from generated projects.
 
-Fabric, NeoForge and Forge mods are not generated yet: their templates need Loom or
-ModDevGradle with mappings and loader versions that change with every Minecraft release.
+## New Project: Minecraft Mod
 
-## Minecraft plugin projects
+**File | New Project** lists **Minecraft Mod** in the **Java** group, next to Minecraft Plugin.
+Like the plugin wizard it works offline: the files come from Forge's own templates and its
+pinned version table.
+
+![The Minecraft Mod wizard with Fabric](docs/screenshots/minecraft-mod-wizard-fabric.png)
+
+| Option | |
+| --- | --- |
+| Loader | **Fabric** (Fabric Loom, Fabric API) or **NeoForge** (ModDevGradle) |
+| Minecraft | The game version. Each version shows the Java release it needs; **Refresh** reads newer ones (see below) |
+| Loader version | Empty: the newest Fabric Loader or NeoForge version known for the Minecraft version. A NeoForge version must belong to the Minecraft version (`21.1.265` is 1.21.1, `26.3.0.101` is 26.3) |
+| Mappings | Fabric: **Mojang mappings** (`loom.officialMojangMappings()`) or **Yarn**; NeoForge: **Parchment** (Mojang's names plus parameter names) or **Official (Mojang)**. Only for Minecraft 1.21.x: from 26.1 on the game ships without obfuscation, so mods use Mojang's names directly and there are no mappings to choose |
+| Language | Java or Kotlin (Fabric, with Fabric Language Kotlin) |
+| Mod ID | Empty: from the project name (`better-chests` → `better_chests`); 2 to 64 lowercase letters, digits and `_`, starting with a letter |
+| Mod name, Version, Group ID, Authors, Description, License | Written into the metadata; the package is `<group id>.<mod id without _>`, the main class the mod id in PascalCase (`com.example.betterchests.BetterChests`) |
+| Entrypoints | **Client and server** (the main class and a client initializer), **Client only** or **Server only** (a dedicated server initializer); sets Fabric's `environment` or NeoForge's `displayTest` |
+| Mixins | A mixin configuration with an example mixin (and a client mixin) |
+| Data generation | A data generator (Fabric API's `fabric-datagen` entrypoint, NeoForge's `GatherDataEvent`) and its run configuration |
+| Create Git repository | `git init` |
+
+![The Minecraft Mod wizard with NeoForge](docs/screenshots/minecraft-mod-wizard-neoforge.png)
+
+The project contains:
+
+- `settings.gradle` (the Fabric Maven repository for Loom; the foojay toolchain resolver),
+  `build.gradle` and `gradle.properties` with the versions (`minecraft_version`,
+  `loader_version`, `loom_version`, `fabric_api_version`, `yarn_mappings` or `neo_version`,
+  `parchment_*`). Fabric 26.x builds apply `net.fabricmc.fabric-loom` and depend on the loader
+  and Fabric API with `implementation`; 1.21.x builds apply the remapping `fabric-loom` with
+  `mappings` and `modImplementation`. Fabric splits client code into `src/client`
+  (`splitEnvironmentSourceSets()`). NeoForge builds apply `net.neoforged.moddev` with the
+  `client`, `server` (and `data`) runs;
+- `gradle/gradle-daemon-jvm.properties`: Loom 1.19 only runs on Java 25, so Gradle's daemon
+  runs on a JDK 25, which Gradle downloads when none is installed (also for 1.21.x mods, whose
+  code is still compiled for Java 21 through the toolchain);
+- `src/main/resources/fabric.mod.json` (entrypoints, mixins, `depends` on Fabric Loader,
+  `~<minecraft>`, Java and Fabric API) or `src/main/templates/META-INF/neoforge.mods.toml`
+  (Gradle fills in the versions from `gradle.properties`);
+- the main class (`ModInitializer`, or `@Mod` with the mod event bus), the client initializer
+  (`ClientModInitializer`, or `@Mod(dist = Dist.CLIENT)`), `registry/ModItems` and
+  `registry/ModBlocks` with an example item and block (NeoForge: `DeferredRegister`, added to
+  the creative tabs), mixins in the `mixin` package, the data generator;
+- assets: `lang/en_us.json`, the item and block models, the blockstate, item model
+  definitions (`items/`, 1.21.4 and newer), 16×16 placeholder textures and, for Fabric, the
+  mod icon (PNGs drawn by Forge, colored by the mod ID);
+- `.gitignore`, a README and `.forge/runConfigurations.toml` with the shared **Minecraft
+  Client** (`runClient`), **Minecraft Server** (`runServer`) and, with data generation, **Data
+  Generation** (`runDatagen` / `runData`) Gradle configurations.
+
+Like every run of project code, the run configurations are refused in
+[Safe Mode](docs/guide/user/project-trust.md) until you trust the project. Accept the Minecraft EULA in
+`run/eula.txt` before the first `runServer`.
+
+### Mod versions
+
+The pinned table covers Minecraft 1.21.1, 1.21.4, 1.21.8, 1.21.10, 1.21.11, 26.1.2, 26.2 and
+26.3 (the default), checked on 2026-11-04:
+
+| Minecraft | Java | Fabric API | Yarn | NeoForge | Parchment |
+| --- | --- | --- | --- | --- | --- |
+| 26.3 | 25 | 0.165.2+26.3 | — | 26.3.0.101 | — |
+| 26.2 | 25 | 0.161.0+26.2 | — | 26.2.0.93 | — |
+| 26.1.2 | 25 | 0.155.3+26.1.2 | — | 26.1.2.126 | — |
+| 1.21.11 | 21 | 0.141.6+1.21.11 | 1.21.11+build.6 | 21.11.48 | 2025.12.20 |
+| 1.21.10 | 21 | 0.138.4+1.21.10 | 1.21.10+build.3 | 21.10.64 | 2025.10.12 |
+| 1.21.8 | 21 | 0.136.1+1.21.8 | 1.21.8+build.1 | 21.8.57 | 2025.09.14 |
+| 1.21.4 | 21 | 0.119.4+1.21.4 | 1.21.4+build.8 | 21.4.161 | 2025.03.23 |
+| 1.21.1 | 21 | 0.116.17+1.21.1 | 1.21.1+build.3 | 21.1.265 | 2024.11.17 |
+
+Fabric Loader 0.20.1, Loom 1.19.3, ModDevGradle 2.0.148, Fabric Language Kotlin
+1.14.2+kotlin.2.4.21. NeoForge names its versions after the game: `21.1.x` is Minecraft
+1.21.1, `21.11.x` is 1.21.11, and from 26.1 on `<year>.<drop>.<hotfix>.<build>`
+(`26.3.0.101` is 26.3, `26.1.2.126` is 26.1.2). Fabric API appends the game version
+(`0.165.2+26.3`); Yarn stops at 1.21.11.
+
+**Refresh** next to **Minecraft** in the mod wizard reads, only when you click it, Fabric's
+meta API (`https://meta.fabricmc.net/v2/versions/loader`, `/game`, `/yarn`), the
+`maven-metadata.xml` of Fabric API and Loom on `maven.fabricmc.net`, and of NeoForge
+(`https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml`) and
+ModDevGradle on `maven.neoforged.net`. It adds the stable Minecraft releases a loader
+supports, the newest Fabric API, Yarn and NeoForge version of each (a stable NeoForge version
+wins over a newer beta), and newer Fabric Loader, Loom and ModDevGradle versions. The result
+is cached with the plugin versions in `<cache>/forge/minecraft/versions.json`.
+
+Generated Fabric (Java and Kotlin, 26.3; Java with Yarn, 1.21.11) and NeoForge (Java, 26.3)
+mods were built with Gradle 9.8.2.
+
+## Minecraft plugin and mod projects
 
 A project is a Minecraft plugin when its build (`build.gradle(.kts)`, `pom.xml`,
 `gradle/libs.versions.toml`) depends on `paper-api`, `purpur-api`, `folia-api`, `spigot-api`,
 `org.bukkit:bukkit`, `velocity-api`, `bungeecord-api` or `waterfall-api`, or uses paperweight's
 `paperDevBundle`. The status bar shows the platform and the Minecraft version, for example
 **Paper Plugin 1.21.8**, and the plugin activates (see
-[project detection](docs/guide/getting-started/project-detection.md)).
+[project detection](docs/guide/getting-started/project-detection.md)). A Gradle build that applies
+Fabric Loom (`fabric-loom`, `net.fabricmc.fabric-loom`), Quilt Loom, NeoForge's ModDevGradle
+(`net.neoforged.moddev`) or NeoGradle, or ForgeGradle is a mod: **Fabric Mod 26.3**,
+**NeoForge Mod 1.21.1**, with the version from `minecraft_version` in `gradle.properties`.
 
 ![A generated Paper plugin with the event handler gutter icons](docs/screenshots/minecraft-project.png)
 
@@ -15771,6 +15861,26 @@ an invalid class name or a class that does not exist is an error. **Go to Declar
 
 ![plugin.yml with an unresolved main class](docs/screenshots/minecraft-plugin-yml.png)
 
+### Mod metadata
+
+`fabric.mod.json` and mixin configurations (`*.mixins.json`) get completion, documentation on
+hover and validation from schemas bundled with Forge: the entrypoint kinds (`main`, `client`,
+`server`, `fabric-datagen`, …), `environment`, `depends` and the other dependency maps,
+authors and contact, `mixins` entries; in mixin configurations `package`,
+`compatibilityLevel`, the `mixins` / `client` / `server` lists, `injectors` and `overwrites`.
+
+The classes they name are checked against the module's sources (`src/main`, `src/client` and
+`src/server`, Java or Kotlin): an entrypoint (`pkg.Class` or `pkg.Class::field`, also
+`{ "adapter": "kotlin", "value": … }`) or a mixin (`package` + entry) that does not exist is
+an error, a mixin configuration listed in `fabric.mod.json` that is missing in the resources a
+warning. **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) opens the class or the configuration.
+
+In `neoforge.mods.toml` (and Forge's `mods.toml`), completion offers the keys of the table the
+cursor is in (the root, `[[mods]]`, `[[dependencies.<modid>]]`, `[[mixins]]`,
+`[[accessTransformers]]`, `[features.<modid>]`) that it does not have yet, with what each one
+means, the values of `type`, `ordering`, `side`, `displayTest` and `modLoader`, and the table
+headers after `[`.
+
 ### Run Paper Server
 
 Projects that apply run-paper run their plugin on a real server with the **Run Paper Server**
@@ -15786,8 +15896,8 @@ Like every run of project code, Run Paper Server is refused in
 
 ### Gutter icons
 
-Methods annotated with `@EventHandler` (Bukkit, Paper, Spigot, BungeeCord) or `@Subscribe`
-(Velocity) show an icon with the event they listen to ("Listens to PlayerJoinEvent"). Turn
+Methods annotated with `@EventHandler` (Bukkit, Paper, Spigot, BungeeCord), `@Subscribe`
+(Velocity) or `@SubscribeEvent` (NeoForge) show an icon with the event they listen to ("Listens to PlayerJoinEvent"). Turn
 the icons off in Settings | Languages & Frameworks | Java | **Minecraft** (**Show gutter
 icons**).
 
@@ -15795,7 +15905,8 @@ icons**).
 
 `?project=minecraft` opens `better-chat`, a Paper plugin as the wizard generates it plus a
 chat listener. The descriptor check, Go to Declaration, the gutter icons and the wizard's
-files run in Rust through WebAssembly; **Refresh** answers with canned versions.
+files run in Rust through WebAssembly; **Refresh** answers with canned versions. The Minecraft
+Mod wizard plans its files the same way.
 
 
 ---
@@ -28763,7 +28874,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [javaforge-build](docs/guide/developer/crates/javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
 | [javaforge-fw-spring](docs/guide/developer/crates/javaforge-fw-spring.md) | JavaForge: Spring Boot and Jakarta EE (Java / Kotlin declaration scanner, beans and injection points, Spring MVC and JAX-RS endpoints, JPA entities, application.properties / application.yml assistance from spring-configuration-metadata.json and the dependency jars, the Spring Boot run configuration, actuator client and run dashboard; pure, also built to WebAssembly) |
 | [javaforge-jdk](docs/guide/developer/crates/javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
-| [javaforge-minecraft](docs/guide/developer/crates/javaforge-minecraft.md) | JavaForge: Minecraft plugins (the New Project generator for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord with a pinned version table, project detection, plugin descriptor main class checks and navigation, event handler gutter markers; pure, also built to WebAssembly) |
+| [javaforge-minecraft](docs/guide/developer/crates/javaforge-minecraft.md) | JavaForge: Minecraft plugins and mods (the New Project generators for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord plugins and Fabric and NeoForge mods with pinned version tables, project detection, plugin descriptor and mod metadata class checks and navigation, neoforge.mods.toml completion, event handler gutter markers; pure, also built to WebAssembly) |
 | [javaforge-android](docs/guide/developer/crates/javaforge-android.md) | JavaForge: Android basics (Gradle Android modules, AndroidManifest.xml, the Android SDK location, adb devices and emulator AVDs, Android App run command lines, Logcat parsing, filtering and stack trace links; pure, also built to WebAssembly) |
 | [javaforge-lang-groovy](docs/guide/developer/crates/javaforge-lang-groovy.md) | JavaForge: Groovy basics (source scanner, scripts and main classes, Spock for the shared test runner, Groovy script command lines with groovy or Gradle, Groovy SDK lookup; pure, also built to WebAssembly) |
 | [javaforge-lang-scala](docs/guide/developer/crates/javaforge-lang-scala.md) | JavaForge: Scala basics (source scanner, main objects, sbt builds from build.sbt and sbt output, sbt command lines, ScalaTest and MUnit for the shared test runner, Metals install with Coursier; pure, also built to WebAssembly) |
@@ -31547,7 +31658,8 @@ their refs accept anything.
 `tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
 and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
 Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT). Schemas written for Forge (MIT): the
-Minecraft plugin descriptors and the Unity assembly definitions (`unity-asmdef.json` for
+Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.json` for
+`fabric.mod.json`, `minecraft-mixins.json` for `*.mixins.json`) and the Unity assembly definitions (`unity-asmdef.json` for
 `*.asmdef`, `unity-asmref.json` for `*.asmref`).
 
 ## Dependencies
@@ -32809,7 +32921,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
 | `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. .NET: `.sln` / `.slnx` (the languages of their projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# files in the root or two in a folder, or `global.json` → languages `csharp`, `fsharp`, `vbnet`, pack `dotnetforge`; a `Microsoft.NET.Sdk.Web` project → framework `aspnetcore`. |
-| `generators.rs` | New Project generators (File \| New Project); the `.NET Project` generator (group `.NET`, pack `dotnetforge`) runs `dotnet new sln`, `dotnet new <template>` (`-lang`, `--framework`, any template short name) and `dotnet sln add`. The `Minecraft Plugin` generator (group `Java`, pack `javaforge`) computes its files with [`javaforge-minecraft`](docs/guide/developer/crates/javaforge-minecraft.md); options can be shown conditionally (`visibleWhen`, hidden options take their defaults), carry a `placeholder` and a `refresh` IPC command for fresh choices (`generators_with` merges refreshed Minecraft versions). |
+| `generators.rs` | New Project generators (File \| New Project); the `.NET Project` generator (group `.NET`, pack `dotnetforge`) runs `dotnet new sln`, `dotnet new <template>` (`-lang`, `--framework`, any template short name) and `dotnet sln add`. The `Minecraft Plugin` and `Minecraft Mod` generators (group `Java`, pack `javaforge`) compute their files with [`javaforge-minecraft`](docs/guide/developer/crates/javaforge-minecraft.md) (the mod's textures are binary files, `RenderedTemplate::binaries`); options can be shown conditionally (`visibleWhen`, hidden options take their defaults), carry a `placeholder` and a `refresh` IPC command for fresh choices (`generators_with` merges refreshed Minecraft versions of both generators). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
 ## Main public items
@@ -34467,12 +34579,12 @@ Source: docs/guide/developer/crates/javaforge-minecraft.md
 
 # javaforge-minecraft
 
-`packs/javaforge/minecraft` — JavaForge: Minecraft plugins (the New Project generator for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord with a pinned version table, project detection, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml main class checks and navigation, event handler gutter markers; pure, also built to WebAssembly).
+`packs/javaforge/minecraft` — JavaForge: Minecraft plugins and mods (the New Project generators for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord plugins and Fabric and NeoForge mods with pinned version tables, project detection, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml main class checks and navigation, fabric.mod.json and mixin class checks and navigation, neoforge.mods.toml completion, event handler gutter markers; pure, also built to WebAssembly).
 
 ## Purpose
 
 The logic of the Minecraft Development plugin (`forge.minecraft`) and of the New Project
-wizard's Minecraft Plugin generator. Pure Rust: the app reads files and fetches metadata, this
+wizard's Minecraft Plugin and Minecraft Mod generators. Pure Rust: the app reads files and fetches metadata, this
 crate decides. See [Minecraft plugins](docs/guide/user/minecraft.md).
 
 - `versions` is the pinned table: Minecraft versions with their Java release, the rules for
@@ -34492,8 +34604,19 @@ crate decides. See [Minecraft plugins](docs/guide/user/minecraft.md).
   module's sources and resolves Go to Declaration.
 - `markers` scans Java / Kotlin sources for `@EventHandler` / `@Subscribe` methods (with the
   event type) and `JavaPlugin` main classes.
-- `net` (feature `net`, desktop only) fetches the Minecraft versions from Paper's repository;
-  it is only called when the user clicks Refresh.
+- `mods` holds the mod side: `mods::versions` (the pinned table per Minecraft version: Java,
+  Fabric API, Yarn, NeoForge, Parchment; Fabric Loader, Loom, ModDevGradle, Fabric Language
+  Kotlin; the daemon JVM file; `resolve_versions`, `mod_version_choices`, and the parsers of
+  Fabric's meta API, the Fabric API / NeoForge / plugin `maven-metadata.xml` and NeoForge's
+  version scheme), `mods::generate` (`ModOptions` → `ModProject` → files: Gradle build,
+  `gradle.properties`, `fabric.mod.json` or `neoforge.mods.toml`, sources from
+  `mods::sources` with Mojang or Yarn names per version, assets, PNG textures from
+  `mods::png`, run configurations), `mods::editor` (a tolerant JSON scanner, entrypoint and
+  mixin references with checks and Go to Declaration), `mods::toml` (`neoforge.mods.toml`
+  completion) and `detect_mod` (Loom, ModDevGradle, NeoGradle, ForgeGradle, Quilt Loom).
+- `net` (feature `net`, desktop only) fetches the Minecraft versions from Paper's repository
+  and, with `refresh_mods`, the mod versions (Fabric meta, Fabric API, Loom, NeoForge,
+  ModDevGradle); it is only called when the user clicks Refresh.
 
 ## Modules
 
@@ -34505,16 +34628,24 @@ crate decides. See [Minecraft plugins](docs/guide/user/minecraft.md).
 | `detect.rs` | `detect`, `Detected`. |
 | `descriptor.rs` | `kind`, `main_entry`, `module_prefix`, `class_candidates`, `inspect`, `Problem`, `goto`, `Target`, `declaration_line`. |
 | `markers.rs` | `markers`, `Marker`, `MarkerKind`. |
-| `net.rs` | `fetch_mc_versions`, `default_repository` (feature `net`). |
+| `mods/versions.rs` | `Loader`, `MOD_VERSIONS`, `ModVersions`, `remember`, `resolve_versions`, `resolve_with`, `mod_version_choices`, `neoforge_mc_version`, `fabric_loader_from_meta`, `game_versions_from_meta`, `yarn_from_meta`, `fabric_api_from_metadata`, `neoforge_from_metadata`, `newest_release`. |
+| `mods/generate.rs` | `ModOptions`, `resolve`, `ModProject`, `Mappings`, `Environment`, `generate_mod`, `mod_files`, `mod_id_of`, `is_mod_id`. |
+| `mods/sources.rs`, `mods/png.rs` | Source templates and the `Api` names (Mojang / Yarn); the PNG encoder and placeholder textures. |
+| `mods/editor.rs` | `kind`, `json_strings`, `references`, `inspect`, `goto`, `class_candidates`. |
+| `mods/toml.rs` | `is_mods_toml`, `complete`, `TomlCompletion`. |
+| `mods/mod.rs` | `detect_mod`, `DetectedMod`. |
+| `net.rs` | `refresh`, `fetch_mc_versions`, `default_repositories`, `refresh_mods`, `ModSources` (feature `net`). |
 
 ## Used by
 
-- [`forge-project`](docs/guide/developer/crates/forge-project.md): the `minecraft-plugin` generator (`templates::render`)
-  and the `minecraft` framework of project detection.
+- [`forge-project`](docs/guide/developer/crates/forge-project.md): the `minecraft-plugin` and `minecraft-mod` generators
+  (`templates::render`) and the `minecraft` framework of project detection (plugins and mods).
 - The app: `commands/minecraft.rs` (`minecraft_versions_refresh`, `minecraft_inspect`,
-  `minecraft_goto`, `minecraft_gutter`), `project_generators_list` with refreshed versions.
+  `minecraft_goto`, `minecraft_complete`, `minecraft_gutter`), `project_generators_list` with
+  refreshed versions.
 - [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `minecraft_generate`, `minecraft_version_choices`,
-  `minecraft_inspect`, `minecraft_goto`, `minecraft_gutter` for the browser mode.
+  `minecraft_inspect`, `minecraft_goto`, `minecraft_complete`, `minecraft_gutter` for the
+  browser mode.
 
 ## Dependencies
 
@@ -34526,7 +34657,14 @@ Unit tests for versions, validation, every platform / build / language combinati
 detection of generated builds, descriptors and markers; golden files of six typical projects
 (`tests/golden/*.txt`, regenerate with `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p
 javaforge-minecraft --test golden`); "Refresh versions" against a local HTTP server with a
-`maven-metadata.xml` fixture. No network.
+`maven-metadata.xml` fixture. Mods: the version table's consistency, the refresh parsers on
+trimmed real answers (`tests/fixtures/fabric-meta-*.json`, `fabric-api-`, `neoforge-`,
+`moddev-maven-metadata.xml`), `refresh_mods` against a local server, validation, every
+loader / version / language / environment / mappings combination (valid JSON, only the
+properties Gradle expands), the PNG encoder, the editor checks and TOML completion, and golden
+files of five mods (`tests/golden/mod-*.txt`). `FORGE_MC_MOD_EXPORT=<dir> cargo test -p
+javaforge-minecraft --test golden export` writes generated mods for a manual Gradle build. No
+network.
 
 
 ---

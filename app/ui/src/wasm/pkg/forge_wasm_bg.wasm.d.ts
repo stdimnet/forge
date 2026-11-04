@@ -312,6 +312,7 @@ export const markdown_document: (a: number, b: number, c: number) => void;
 export const markdown_hover: (a: number, b: number, c: number) => void;
 export const markdown_parse: (a: number, b: number, c: number) => void;
 export const mcp_client_configs: (a: number, b: number, c: number) => void;
+export const minecraft_complete: (a: number, b: number, c: number) => void;
 export const minecraft_generate: (a: number, b: number, c: number) => void;
 export const minecraft_goto: (a: number, b: number, c: number) => void;
 export const minecraft_gutter: (a: number, b: number, c: number) => void;
