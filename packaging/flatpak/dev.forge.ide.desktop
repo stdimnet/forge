@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Forge
+GenericName=Integrated Development Environment
+Comment=PHPStorm-style IDE for PHP, web and Lua projects
+Exec=forge %F
+Icon=dev.forge.ide
+Terminal=false
+Categories=Development;IDE;
+Keywords=PHP;Laravel;Symfony;JavaScript;TypeScript;Lua;editor;code;
+MimeType=x-scheme-handler/forge;
+StartupWMClass=forge
+StartupNotify=true

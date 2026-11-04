@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements of the signed macOS app (hardened runtime, required for notarisation).
+  Forge is not sandboxed: it opens projects anywhere and runs PHP, Node, Git and language
+  servers, so only the hardened-runtime exceptions it needs are listed.
+-->
+<plist version="1.0">
+<dict>
+  <!-- The webview's JavaScript engine compiles code at run time. -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

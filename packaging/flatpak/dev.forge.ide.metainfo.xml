@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.forge.ide</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Forge</name>
+  <summary>IDE for PHP, web and Lua projects</summary>
+  <developer id="dev.forge">
+    <name>Forge contributors</name>
+  </developer>
+  <description>
+    <p>
+      Forge is an IDE in the style of PHPStorm: the same layout, wording and keymap, with a
+      native Rust backend. Packs add languages and frameworks:
+    </p>
+    <ul>
+      <li>PHPForge: PHP, Laravel, Symfony and Doctrine</li>
+      <li>WebForge: HTML, CSS, JavaScript, TypeScript, Vue, React and Angular</li>
+      <li>LuaForge: Lua</li>
+    </ul>
+    <p>
+      Git, databases, debugging, remote development and AI assistance are built in.
+    </p>
+  </description>
+  <launchable type="desktop-id">dev.forge.ide.desktop</launchable>
+  <url type="homepage">https://github.com/Reeperk/Forge</url>
+  <url type="bugtracker">https://github.com/Reeperk/Forge/issues</url>
+  <url type="vcs-browser">https://github.com/Reeperk/Forge</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The workbench with a Laravel project</caption>
+      <image>https://raw.githubusercontent.com/Reeperk/Forge/main/docs/screenshots/workbench-dark.png</image>
+    </screenshot>
+  </screenshots>
+  <categories>
+    <category>Development</category>
+    <category>IDE</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">900</display_length>
+  </requires>
+  <releases>
+    <release version="0.1.0" date="2026-11-04"/>
+  </releases>
+</component>

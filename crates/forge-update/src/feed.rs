@@ -9,7 +9,11 @@
 //! ```
 //!
 //! Keys are `{os}-{arch}` or `{os}-{arch}-{installer}` (`linux-x86_64-appimage`), as
-//! `tauri-plugin-updater` reads them.
+//! `tauri-plugin-updater` reads them. The release workflow adds `"channel": "beta"` to the
+//! beta feed (`latest-beta.json`); feeds without the field are stable.
+//!
+//! A channel can read several feeds ([`Channel::endpoints`]); [`pick_feed`] takes the newest
+//! release among them.
 
 use std::collections::BTreeMap;
 
@@ -36,11 +40,19 @@ pub struct Feed {
     pub pub_date: Option<String>,
     #[serde(default)]
     pub platforms: BTreeMap<String, FeedPlatform>,
+    /// `stable` or `beta`; missing means stable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
 }
 
 impl Feed {
     pub fn parse(text: &str) -> Result<Self> {
         serde_json::from_str(text).map_err(|e| UpdateError::Feed(e.to_string()))
+    }
+
+    /// The channel the feed was published for (missing or unknown: stable).
+    pub fn channel(&self) -> Channel {
+        Channel::from_setting(self.channel.as_deref())
     }
 
     /// The download for the first of `targets` the feed has (most specific first).
@@ -71,6 +83,9 @@ pub struct UpdateOffer {
     /// A simulated update: the download is fake and nothing is installed.
     #[serde(default)]
     pub simulated: bool,
+    /// The feed the offer came from; the download reads the same feed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feed: Option<String>,
 }
 
 impl UpdateOffer {
@@ -91,6 +106,7 @@ impl UpdateOffer {
             size,
             summary,
             simulated,
+            feed: None,
         }
     }
 }
@@ -177,7 +193,8 @@ pub enum CheckOutcome {
 /// The inputs of one check.
 #[derive(Debug, Clone)]
 pub struct CheckRequest<'a> {
-    pub endpoint: &'a str,
+    /// The feeds to read ([`Channel::endpoints`]), most specific first.
+    pub endpoints: &'a [String],
     pub current: &'a Version,
     pub channel: Channel,
     pub state: &'a UpdateState,
@@ -188,12 +205,59 @@ pub struct CheckRequest<'a> {
     pub targets: &'a [String],
 }
 
-/// Read the feed and decide what to offer.
+/// Choose the feed to evaluate from what each endpoint answered, in endpoint order.
+///
+/// - Endpoints that failed are ignored as long as another one answered; when all failed, the
+///   first endpoint's error is returned.
+/// - A feed published for the beta channel never counts on the stable channel.
+/// - The newest release wins; on a tie the earlier endpoint wins.
+/// - `Ok(None)`: no feed announces a release (every answer was `204` or filtered out).
+pub fn pick_feed(
+    channel: Channel,
+    answers: Vec<(String, Result<Option<Feed>>)>,
+) -> Result<Option<(String, Feed, Version)>> {
+    let mut first_error = None;
+    let mut answered = false;
+    let mut best: Option<(String, Feed, Version)> = None;
+    for (endpoint, answer) in answers {
+        let feed = match answer.and_then(|feed| match feed {
+            Some(feed) => parse_version(&feed.version).map(|v| Some((feed, v))),
+            None => Ok(None),
+        }) {
+            Ok(feed) => {
+                answered = true;
+                feed
+            }
+            Err(e) => {
+                first_error.get_or_insert(e);
+                None
+            }
+        };
+        let Some((feed, version)) = feed else {
+            continue;
+        };
+        if channel == Channel::Stable && feed.channel() == Channel::Beta {
+            continue;
+        }
+        if best.as_ref().is_none_or(|(_, _, v)| version > *v) {
+            best = Some((endpoint, feed, version));
+        }
+    }
+    match (answered, first_error) {
+        (false, Some(e)) => Err(e),
+        _ => Ok(best),
+    }
+}
+
+/// Read the channel's feeds and decide what to offer.
 pub async fn check(client: &reqwest::Client, req: &CheckRequest<'_>) -> Result<CheckOutcome> {
-    let Some(feed) = fetch_feed(client, req.endpoint).await? else {
+    let mut answers = Vec::with_capacity(req.endpoints.len());
+    for endpoint in req.endpoints {
+        answers.push((endpoint.clone(), fetch_feed(client, endpoint).await));
+    }
+    let Some((endpoint, feed, remote)) = pick_feed(req.channel, answers)? else {
         return Ok(CheckOutcome::UpToDate);
     };
-    let remote = parse_version(&feed.version)?;
     match evaluate(
         req.current,
         &remote,
@@ -215,16 +279,16 @@ pub async fn check(client: &reqwest::Client, req: &CheckRequest<'_>) -> Result<C
         .platform(req.targets)
         .ok_or_else(|| UpdateError::NoPlatform(req.targets.join(", ")))?;
     let size = download_size(client, &platform.url).await;
-    Ok(CheckOutcome::Available {
-        offer: UpdateOffer::new(
-            &remote.to_string(),
-            &req.current.to_string(),
-            feed.notes.clone(),
-            feed.pub_date.clone(),
-            size,
-            false,
-        ),
-    })
+    let mut offer = UpdateOffer::new(
+        &remote.to_string(),
+        &req.current.to_string(),
+        feed.notes.clone(),
+        feed.pub_date.clone(),
+        size,
+        false,
+    );
+    offer.feed = Some(endpoint);
+    Ok(CheckOutcome::Available { offer })
 }
 
 #[cfg(test)]

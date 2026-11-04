@@ -23,6 +23,8 @@ export interface UpdateOffer {
   summary: string;
   /** Simulated (`FORGE_SIMULATE_UPDATE`, `?simulateUpdate`): nothing is installed. */
   simulated: boolean;
+  /** The feed the offer came from (the beta channel reads two). */
+  feed?: string;
 }
 
 export interface SplashSnapshot {
