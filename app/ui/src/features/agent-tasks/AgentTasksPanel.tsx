@@ -57,15 +57,7 @@ import {
 } from "./store";
 import "./agentTasks.css";
 
-const STATUS_LABEL: Record<TaskStatus, string> = {
-  queued: "Queued",
-  running: "Running",
-  needsReview: "Needs review",
-  applied: "Applied",
-  discarded: "Discarded",
-  failed: "Failed",
-  cancelled: "Cancelled",
-};
+const statusLabel = (s: TaskStatus): string => tr(`tools.agentTasks.status.${s}`);
 
 function StatusIcon(props: { status: TaskStatus; size?: number }) {
   const size = () => props.size ?? 14;
@@ -98,28 +90,28 @@ function StatusIcon(props: { status: TaskStatus; size?: number }) {
 
 function ago(ms: number): string {
   const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  if (s < 60) return tr("tools.agentTasks.ago.now");
+  if (s < 3600) return tr("tools.agentTasks.ago.minutes", { count: Math.round(s / 60) });
+  if (s < 86400) return tr("tools.agentTasks.ago.hours", { count: Math.round(s / 3600) });
   return new Date(ms).toLocaleDateString();
 }
 
 function backendLabel(t: AgentTask): string {
   const b = t.request.backend;
   if (b.kind === "cli") return b.agentId === "gemini-cli" ? "Gemini CLI" : "Claude Code";
-  return b.model ? `Forge agent (${b.model})` : "Forge agent";
+  return b.model ? tr("tools.agentTasks.agent.forgeModel", { model: b.model }) : tr("tools.agentTasks.agent.forge");
 }
 
 function testsLabel(c: TestChoice): string {
   if (c.kind === "command") return c.command;
   if (c.kind === "configuration") return c.name;
-  return "No tests";
+  return tr("tools.agentTasks.tests.none");
 }
 
 /** Header buttons of the tool window. */
 export function AgentTasksActions() {
   return (
-    <button class="icon-btn" title="New Agent Task" onClick={() => setFormOpen(true)}>
+    <button class="icon-btn" title={tr("tools.agentTasks.new")} onClick={() => setFormOpen(true)}>
       <Plus size={15} />
     </button>
   );
@@ -159,15 +151,15 @@ function NewTaskForm() {
 
   return (
     <div class="at-form">
-      <div class="at-form-title">New Agent Task</div>
+      <div class="at-form-title">{tr("tools.agentTasks.new")}</div>
       <label class="at-label" for="at-prompt">
-        Task
+        {tr("tools.agentTasks.form.task")}
       </label>
       <textarea
         id="at-prompt"
         ref={area}
         class="at-input at-prompt"
-        placeholder="Describe what the agent should do, e.g. “Fix the failing CheckoutTest”"
+        placeholder={tr("tools.agentTasks.form.taskPlaceholder")}
         value={prompt()}
         onInput={(e) => setPrompt(e.currentTarget.value)}
         onKeyDown={(e) => {
@@ -178,68 +170,68 @@ function NewTaskForm() {
         }}
       />
       <label class="at-label" for="at-scope">
-        Files it may change
+        {tr("tools.agentTasks.form.scope")}
       </label>
       <input
         id="at-scope"
         class="at-input"
-        placeholder="Whole project (or e.g. app/Services, tests/Unit)"
+        placeholder={tr("tools.agentTasks.form.scopePlaceholder")}
         value={scope()}
         onInput={(e) => setScope(e.currentTarget.value)}
       />
       <label class="at-label" for="at-agent">
-        Agent
+        {tr("tools.agentTasks.form.agent")}
       </label>
       <select id="at-agent" class="at-input" value={agent()} onChange={(e) => setAgent(e.currentTarget.value)}>
-        <option value="builtin:">Forge agent (default AI provider)</option>
-        <For each={(providers()?.providers ?? []).filter((p) => p.enabled)}>{(p) => <option value={`builtin:${p.id}`}>Forge agent: {p.name}</option>}</For>
+        <option value="builtin:">{tr("tools.agentTasks.form.agentDefault")}</option>
+        <For each={(providers()?.providers ?? []).filter((p) => p.enabled)}>{(p) => <option value={`builtin:${p.id}`}>{tr("tools.agentTasks.form.agentProvider", { name: p.name })}</option>}</For>
         <option value="cli:claude-code">Claude Code</option>
         <option value="cli:gemini-cli">Gemini CLI</option>
       </select>
       <label class="at-label" for="at-tests">
-        Verify with
+        {tr("tools.agentTasks.form.verify")}
       </label>
       <select id="at-tests" class="at-input" value={tests()} onChange={(e) => setTests(e.currentTarget.value)}>
-        <option value="none">No tests</option>
+        <option value="none">{tr("tools.agentTasks.tests.none")}</option>
         <For each={configs()?.configurations ?? []}>{(c) => <option value={`cfg:${c.name}`}>{c.name}</option>}</For>
-        <option value="command">Command…</option>
+        <option value="command">{tr("tools.agentTasks.form.command")}</option>
       </select>
       <Show when={tests() === "command"}>
         <input class="at-input" placeholder="vendor/bin/phpunit" value={command()} onInput={(e) => setCommand(e.currentTarget.value)} />
       </Show>
-      <label class="at-check" title={tr("agentTasks.form.containerHint")}>
+      <label class="at-check" title={tr("tools.agentTasks.form.containerHint")}>
         <input type="checkbox" data-testid="at-container" checked={inContainer()} onChange={(e) => setInContainer(e.currentTarget.checked)} />
         <Container size={13} />
-        {tr("agentTasks.form.container")}
+        {tr("tools.agentTasks.form.container")}
       </label>
       <Show when={inContainer()}>
         <div class="at-container-options">
           <label class="at-check">
             <input type="checkbox" data-testid="at-network" checked={network()} onChange={(e) => setNetwork(e.currentTarget.checked)} />
-            {tr("agentTasks.form.network")}
+            {tr("tools.agentTasks.form.network")}
           </label>
           <label class="at-label" for="at-image">
-            {tr("agentTasks.form.image")}
+            {tr("tools.agentTasks.form.image")}
           </label>
           <input
             id="at-image"
             class="at-input"
-            placeholder={tr("agentTasks.form.imagePlaceholder", { image: getSetting<string>("ai.agentTasks.container.image", "php:8.3-cli") })}
+            placeholder={tr("tools.agentTasks.form.imagePlaceholder", { image: getSetting<string>("ai.agentTasks.container.image", "php:8.3-cli") })}
             value={image()}
             onInput={(e) => setImage(e.currentTarget.value)}
           />
-          <p class="at-hint muted">{tr("agentTasks.form.containerHint")}</p>
+          <p class="at-hint muted">{tr("tools.agentTasks.form.containerHint")}</p>
         </div>
       </Show>
       <p class="at-hint muted">
-        The agent works in a copy of the project (a git worktree in Forge's cache folder). Your files change only when you apply its diff.
+        {tr("tools.agentTasks.form.hint")}
       </p>
       <div class="at-form-buttons">
         <button class="btn-secondary" onClick={() => setFormOpen(false)}>
-          Cancel
+          {tr("common.cancel")}
         </button>
-        <button class="btn-primary" disabled={!prompt().trim() || busy() || (tests() === "command" && !command().trim())} onClick={submit} title="Start (Ctrl+Enter)">
-          Start
+        <button class="btn-primary" disabled={!prompt().trim() || busy() || (tests() === "command" && !command().trim())} onClick={submit} title={tr("tools.agentTasks.form.startTitle", { shortcut: "Ctrl+Enter" })}>
+          {tr("tools.agentTasks.form.start")}
         </button>
       </div>
     </div>
@@ -271,7 +263,7 @@ function StepRow(props: { task: AgentTask; step: Step }) {
         <Match when={s.kind === "tool" && s}>
           {(st) => (
             <>
-              <button class="at-step-line at-tool" onClick={() => setOpen(!open())} title={open() ? "Hide output" : "Show output"}>
+              <button class="at-step-line at-tool" onClick={() => setOpen(!open())} title={open() ? tr("tools.agentTasks.step.hideOutput") : tr("tools.agentTasks.step.showOutput")}>
                 <Wrench size={13} class={st().isError ? "at-status-failed" : "muted"} />
                 <span class="at-tool-name">{st().tool}</span>
                 <span class="at-tool-summary">{st().summary}</span>
@@ -290,16 +282,16 @@ function StepRow(props: { task: AgentTask; step: Step }) {
             <div class={`at-approval at-approval-${st().state}`}>
               <div class="at-step-line">
                 <ShieldQuestion size={13} class="at-status-review" />
-                <span>{st().state === "pending" ? "Run this command?" : st().state === "allowed" ? "Allowed" : "Denied"}</span>
+                <span>{st().state === "pending" ? tr("tools.agentTasks.approval.ask") : st().state === "allowed" ? tr("tools.agentTasks.approval.allowed") : tr("tools.agentTasks.approval.denied")}</span>
               </div>
               <code class="at-command">{st().command}</code>
               <Show when={st().state === "pending"}>
                 <div class="at-approval-buttons">
                   <button class="btn-primary" onClick={() => void approve(props.task.id, s.index, true)}>
-                    Allow
+                    {tr("tools.agentTasks.approval.allow")}
                   </button>
                   <button class="btn-secondary" onClick={() => void approve(props.task.id, s.index, false)}>
-                    Deny
+                    {tr("tools.agentTasks.approval.deny")}
                   </button>
                 </div>
               </Show>
@@ -312,10 +304,12 @@ function StepRow(props: { task: AgentTask; step: Step }) {
               <button class="at-step-line at-tool" onClick={() => setOpen(!open())}>
                 <FlaskConical size={13} class={st().result.green ? "at-status-applied" : "at-status-failed"} />
                 <span class={st().result.green ? "at-status-applied" : "at-status-failed"}>
-                  {st().result.green ? "Tests passed" : "Tests failed"}
+                  {st().result.green ? tr("tools.agentTasks.step.testsPassed") : tr("tools.agentTasks.step.testsFailed")}
                 </span>
                 <span class="muted">
-                  {st().result.passed} passed{st().result.failed ? `, ${st().result.failed} failed` : ""}
+                  {st().result.failed
+                    ? tr("tools.agentTasks.step.passedFailed", { passed: st().result.passed, failed: st().result.failed })
+                    : tr("tools.agentTasks.step.passed", { passed: st().result.passed })}
                 </span>
               </button>
               <For each={st().result.failures}>{(f) => <div class="at-failure">{f}</div>}</For>
@@ -339,7 +333,7 @@ function StepRow(props: { task: AgentTask; step: Step }) {
               <div class="at-step-line">
                 <Check size={13} class={st().outcome.kind === "completed" ? "at-status-applied" : "at-status-review"} />
                 <strong>
-                  {st().outcome.kind === "completed" ? "Done" : st().outcome.kind === "budgetExhausted" ? "Stopped: step budget used up" : "Stopped: tests still fail"}
+                  {tr(`tools.agentTasks.outcome.${st().outcome.kind}`)}
                 </strong>
               </div>
               <Show when={st().outcome.summary}>
@@ -357,57 +351,61 @@ function Review(props: { task: AgentTask }) {
   const id = () => props.task.id;
   const commit = () =>
     setInputDialog({
-      title: "Apply as Commit",
-      label: "Commit message:",
+      title: tr("tools.agentTasks.review.commitTitle"),
+      label: tr("tools.agentTasks.review.commitLabel"),
       value: props.task.title,
-      okLabel: "Commit",
+      okLabel: tr("tools.agentTasks.review.commitOk"),
       onOk: (message) => applyTask(id(), { mode: "commit", message }),
     });
   const branch = () =>
     setInputDialog({
-      title: "Apply as Branch",
-      label: "New branch name:",
+      title: tr("tools.agentTasks.review.branchTitle"),
+      label: tr("tools.agentTasks.review.branchLabel"),
       value: `agent/${props.task.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "")
         .slice(0, 40)}`,
-      okLabel: "Create Branch",
+      okLabel: tr("tools.agentTasks.review.branchOk"),
       onOk: (name) => applyTask(id(), { mode: "branch", branch: name, message: props.task.title }),
     });
   return (
     <div class="at-review">
       <div class="at-section-title">
-        Changes
-        <span class="muted">{changes() ? ` ${changes()!.length} file${changes()!.length === 1 ? "" : "s"}` : ""}</span>
+        {tr("tools.agentTasks.review.changes")}
+        <span class="muted">{changes() ? ` ${tr("tools.agentTasks.review.files", { count: changes()!.length })}` : ""}</span>
       </div>
       <Show when={applyAnswer()}>
         {(a) => (
           <div class={`at-banner ${a().applied ? "at-banner-ok" : "at-banner-warn"}`}>
-            {a().applied ? `Applied ${a().files.length} file${a().files.length === 1 ? "" : "s"}${a().created ? `: ${a().created}` : ""}` : a().message}
+            {a().applied
+              ? a().created
+                ? tr("tools.agentTasks.review.appliedCreated", { count: a().files.length, created: a().created })
+                : tr("tools.agentTasks.review.applied", { count: a().files.length })
+              : a().message}
             <Show when={a().conflicts.length}>
-              <div>Conflicts: {a().conflicts.join(", ")}</div>
+              <div>{tr("tools.agentTasks.review.conflicts", { files: a().conflicts.join(", ") })}</div>
             </Show>
           </div>
         )}
       </Show>
-      <Show when={changes()?.length} fallback={<div class="muted at-empty">{changes() ? "The agent changed no files." : "Loading changes…"}</div>}>
+      <Show when={changes()?.length} fallback={<div class="muted at-empty">{changes() ? tr("tools.agentTasks.review.noChanges") : tr("tools.agentTasks.review.loading")}</div>}>
         <div class="at-files">
           <For each={changes()}>
             {(c) => (
-              <div class="tree-row at-file" onDblClick={() => void showChange(id(), c.path)} title="Show Diff (double-click)">
+              <div class="tree-row at-file" onDblClick={() => void showChange(id(), c.path)} title={tr("tools.agentTasks.review.showDiffDouble")}>
                 <FileIcon name={c.path.split("/").pop() ?? c.path} size={14} />
                 <span class={`at-file-name at-kind-${c.kind}`}>{c.path.split("/").pop()}</span>
                 <span class="muted at-file-dir">{c.path.includes("/") ? c.path.slice(0, c.path.lastIndexOf("/")) : ""}</span>
                 <span class="at-flex" />
-                <Show when={!c.binary} fallback={<span class="muted">binary</span>}>
+                <Show when={!c.binary} fallback={<span class="muted">{tr("tools.agentTasks.review.binary")}</span>}>
                   <span class="at-add">+{c.additions}</span>
                   <span class="at-del">−{c.deletions}</span>
                 </Show>
-                <button class="icon-btn" title="Apply this file only" onClick={() => void applyTask(id(), { mode: "apply" }, [c.path])}>
+                <button class="icon-btn" title={tr("tools.agentTasks.review.applyFile")} onClick={() => void applyTask(id(), { mode: "apply" }, [c.path])}>
                   <Check size={13} />
                 </button>
-                <button class="icon-btn" title="Show Diff" onClick={() => void showChange(id(), c.path)}>
+                <button class="icon-btn" title={tr("tools.agentTasks.review.showDiff")} onClick={() => void showChange(id(), c.path)}>
                   <ListChecks size={13} />
                 </button>
               </div>
@@ -415,14 +413,14 @@ function Review(props: { task: AgentTask }) {
           </For>
         </div>
         <div class="at-review-buttons">
-          <button class="btn-primary" disabled={busy()} onClick={() => void applyTask(id(), { mode: "apply" })} title="Patch the working tree (all or nothing)">
-            Apply
+          <button class="btn-primary" disabled={busy()} onClick={() => void applyTask(id(), { mode: "apply" })} title={tr("tools.agentTasks.review.applyTitle")}>
+            {tr("tools.agentTasks.review.apply")}
           </button>
-          <button class="btn-secondary" disabled={busy()} onClick={commit} title="Apply and commit the changed files">
-            <GitCommitHorizontal size={13} /> Commit…
+          <button class="btn-secondary" disabled={busy()} onClick={commit} title={tr("tools.agentTasks.review.commitButtonTitle")}>
+            <GitCommitHorizontal size={13} /> {tr("tools.agentTasks.review.commitButton")}
           </button>
-          <button class="btn-secondary" disabled={busy()} onClick={branch} title="Commit on a new branch; the working tree stays as it is">
-            <GitBranch size={13} /> Branch…
+          <button class="btn-secondary" disabled={busy()} onClick={branch} title={tr("tools.agentTasks.review.branchButtonTitle")}>
+            <GitBranch size={13} /> {tr("tools.agentTasks.review.branchButton")}
           </button>
         </div>
       </Show>
@@ -439,20 +437,20 @@ function Details(props: { task: AgentTask }) {
         <span class="at-details-title">{t().title}</span>
       </div>
       <div class="at-meta muted">
-        <span>{STATUS_LABEL[t().status]}</span>
+        <span>{statusLabel(t().status)}</span>
         <span>{backendLabel(t())}</span>
         <span>
           <FlaskConical size={11} /> {testsLabel(t().request.tests)}
         </span>
         <Show when={t().request.container}>
           {(c) => (
-            <span title={tr("agentTasks.form.containerHint")}>
-              <Container size={11} /> {c().network ? tr("agentTasks.meta.containerNetwork") : tr("agentTasks.meta.container")}
+            <span title={tr("tools.agentTasks.form.containerHint")}>
+              <Container size={11} /> {c().network ? tr("tools.agentTasks.meta.containerNetwork") : tr("tools.agentTasks.meta.container")}
             </span>
           )}
         </Show>
         <Show when={t().request.scope.length}>
-          <span>Scope: {t().request.scope.join(", ")}</span>
+          <span>{tr("tools.agentTasks.meta.scope", { scope: t().request.scope.join(", ") })}</span>
         </Show>
         <Show when={t().applied}>
           <span>{t().applied}</span>
@@ -461,29 +459,29 @@ function Details(props: { task: AgentTask }) {
       <div class="at-details-buttons">
         <Show when={isActive(t().status)}>
           <button class="btn-secondary" onClick={() => void cancelTask(t().id)}>
-            <Square size={12} /> Stop
+            <Square size={12} /> {tr("tools.agentTasks.stop")}
           </button>
         </Show>
         <Show when={isReviewable(t().status)}>
-          <button class="btn-secondary" disabled={busy()} onClick={() => void discardTask(t().id)} title="Remove the sandbox without applying anything">
-            <Undo2 size={12} /> Discard
+          <button class="btn-secondary" disabled={busy()} onClick={() => void discardTask(t().id)} title={tr("tools.agentTasks.discardTitle")}>
+            <Undo2 size={12} /> {tr("tools.agentTasks.discard")}
           </button>
         </Show>
         <Show when={!isActive(t().status)}>
-          <button class="btn-secondary" disabled={busy()} onClick={() => void removeTask(t().id)} title="Remove the task from the list">
-            <Trash2 size={12} /> Remove
+          <button class="btn-secondary" disabled={busy()} onClick={() => void removeTask(t().id)} title={tr("tools.agentTasks.removeTitle")}>
+            <Trash2 size={12} /> {tr("tools.agentTasks.remove")}
           </button>
         </Show>
       </div>
       <Show when={isReviewable(t().status) && t().sandbox}>
         <Review task={t()} />
       </Show>
-      <div class="at-section-title">Steps</div>
+      <div class="at-section-title">{tr("tools.agentTasks.steps")}</div>
       <div class="at-steps">
         <For each={t().steps}>{(s) => <StepRow task={t()} step={s} />}</For>
         <Show when={t().status === "running"}>
           <div class="at-step-line muted">
-            <LoaderCircle size={13} class="at-spin" /> Working…
+            <LoaderCircle size={13} class="at-spin" /> {tr("tools.agentTasks.working")}
           </div>
         </Show>
       </div>
@@ -509,16 +507,16 @@ export function AgentTasksPanel() {
           <Show when={!formOpen()}>
             <div class="at-empty-state">
               <ListChecks size={28} class="muted" />
-              <div>No agent tasks yet</div>
-              <div class="muted">An agent works on a copy of the project, runs the tests and leaves a diff for you to review.</div>
+              <div>{tr("tools.agentTasks.empty")}</div>
+              <div class="muted">{tr("tools.agentTasks.emptyHint")}</div>
               <button class="btn-primary" onClick={() => setFormOpen(true)}>
-                New Agent Task
+                {tr("tools.agentTasks.new")}
               </button>
             </div>
           </Show>
         }
       >
-        <div class="at-list" role="listbox" aria-label="Agent tasks">
+        <div class="at-list" role="listbox" aria-label={tr("tools.agentTasks.listLabel")}>
           <For each={tasks()}>
             {(t) => (
               <div
@@ -531,7 +529,7 @@ export function AgentTasksPanel() {
                 <StatusIcon status={t.status} />
                 <span class="at-row-title">{t.title}</span>
                 <span class="at-flex" />
-                <span class="muted at-row-meta">{STATUS_LABEL[t.status]}</span>
+                <span class="muted at-row-meta">{statusLabel(t.status)}</span>
                 <span class="muted at-row-meta">{ago(t.created)}</span>
               </div>
             )}
