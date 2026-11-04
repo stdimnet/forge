@@ -5181,12 +5181,42 @@ Source: docs/guide/user/file-types.md
 
 Like PHPStorm's Settings | Editor | File Types, Forge decides a file's type from, in this order:
 
-1. **file names and path patterns**, e.g. `Dockerfile`, `.env.local`, `composer.lock`,
+1. a **manual override** (File | File Properties | **Override File Type**, below);
+2. **file names and path patterns**, e.g. `Dockerfile`, `.env.local`, `composer.lock`,
    `config/services.yaml` (in Symfony projects);
-2. the **longest matching extension**, so `user.blade.php` is Blade, not PHP, and
+3. the **longest matching extension**, so `user.blade.php` is Blade, not PHP, and
    `page.html.twig` is Twig;
-3. the **interpreter of a `#!` line** for files without an extension (`#!/usr/bin/env bash`,
-   `#!/usr/bin/env python3`, `#!/usr/bin/env lua`).
+4. the **interpreter of a `#!` line** for files without a known name or extension;
+5. a **Vim or Emacs modeline** on the first line: `# vim: set ft=php:`, `// vi: filetype=javascript`,
+   `# -*- mode: python -*-`, `;; -*- lisp -*-`.
+
+### Scripts with a `#!` line
+
+Laravel's `artisan`, Symfony's `bin/console`, Composer's `bin/*` scripts and other files without
+an extension open in their language when their first line names an interpreter:
+
+| Language | Interpreters |
+| --- | --- |
+| PHP | `php` (also `php8.3`), `php-cgi`, `hhvm` |
+| JavaScript | `node`, `nodejs`, `bun`, `zx` |
+| TypeScript | `ts-node`, `tsx`, `deno` |
+| Shell Script | `sh`, `bash`, `zsh`, `ksh`, `dash`, `ash`, `fish` |
+| Python, Ruby, Lua, Perl | `python3`, `pypy`, `uv`; `ruby`, `jruby`; `lua`, `luajit`; `perl` |
+| others | `groovy`, `kotlin`, `scala`, `gorun`, `rust-script`, `swift`, `dart`, `elixir`, `escript`, `runghc`, `Rscript`, `julia`, `tclsh`, `pwsh`, `make -f`, … |
+
+The [file types reference](docs/guide/reference/file-types.md#shebang-interpreters) lists all of them.
+Every common form works: `#!/usr/bin/php`, `#!/usr/local/bin/php -q`,
+`#!/opt/homebrew/bin/php`, `#!/usr/bin/env php`, `#!/usr/bin/env -S php -d memory_limit=-1`,
+`#!/usr/bin/env -i php` and `#!/usr/bin/env APP_ENV=dev php`. Version suffixes match
+(`php8.3`, `python3.12`). A known file name or extension still wins: `deploy.sh` stays a shell
+script whatever its `#!` line says.
+
+The type follows the first line while you type: typing or pasting `#!/usr/bin/env php` into a
+new extensionless file switches it from Plain text to PHP right away, with highlighting, the
+PHP language server (php-lsp or Intelephense) and PHP's editor features. Language servers
+receive such files under their detected type, not only by extension.
+
+![artisan opens as PHP](docs/screenshots/file-type-shebang.png)
 
 Files that match nothing are "Plain text". The type is shown in the status bar and decides the
 highlighting, the indentation (2 or 4 spaces), the language server and the file icon.
@@ -5196,6 +5226,33 @@ Plugins add types or replace bundled ones while they are active: in a Symfony pr
 
 The complete list of types, extensions and file names is in the
 [file types reference](docs/guide/reference/file-types.md).
+
+## Override File Type
+
+When a file's type is detected wrongly, or not at all, choose it by hand like in PHPStorm:
+**File | File Properties | Override File Type**, the same entry in the editor tab and Project
+view context menus, Find Action (`Ctrl+Shift+A`, "Override File Type") or a click on the file
+type in the status bar. A searchable list of all file types opens; picking one re-highlights the
+file at once and switches its language support (language server, inspections, structure,
+formatter). **Plain text** turns all of that off for the file.
+
+![Override File Type](docs/screenshots/file-type-override.png)
+
+![An overridden file and the tab menu](docs/screenshots/file-type-override-applied.png)
+
+- **Revert File Type Override** (shown for overridden files only) goes back to the detected type.
+- **Associate with File Type…** (offered for files without a type) adds the file's pattern
+  (`*.ext`, or its name when it has no extension) to a file type in Settings | Editor | File
+  Types, for every file like it.
+- The status bar shows the effective type; for an overridden file its tooltip, and the tab's,
+  say "(overridden)".
+- Overrides are kept per project in the `fileTypes.overrides` setting (`.forge/settings.toml`),
+  never in your files, so they survive restarts. They follow the file when it is renamed or
+  moved, also with its folder, and disappear when it is deleted.
+- A type whose plugin is off for the project (for example Symfony Services outside a Symfony
+  project) is marked "*plugin* off" in the list. Picking it still works: the file gets that
+  type's highlighting and language server, while the plugin's other features stay off until you
+  enable it in Settings | Plugins.
 
 ## Changing file types
 
@@ -24979,10 +25036,47 @@ Source: docs/guide/reference/file-types.md
 
 # File types reference
 
-Detection order: file names and path patterns, then the longest matching extension, then the
-interpreter of a `#!` line. File names may contain `*` anywhere and `/` to match a path suffix
+Detection order: a manual override (Override File Type), file names and path patterns, then the
+longest matching extension, then the interpreter of a `#!` line, then a Vim or Emacs modeline. File names may contain `*` anywhere and `/` to match a path suffix
 (`config/services*.yaml`). Bundled types indent with 4 spaces unless a plugin type says
 otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.md).
+
+## Shebang interpreters
+
+Interpreters that select a type from the `#!` line of a file without a known name or extension.
+A name also matches with a version suffix (`php` matches `php8.3`). `/usr/bin/env` with flags
+(`-S`, `-i`, `-u NAME`), variable assignments and absolute paths are understood.
+
+| Type | Interpreters |
+| --- | --- |
+| `php` | `php`, `php-cgi`, `hhvm` |
+| `javascript` | `node`, `nodejs`, `bun`, `zx`, `qjs`, `gjs` |
+| `typescript` | `ts-node`, `ts-node-esm`, `tsx`, `deno` |
+| `shell` | `sh`, `bash`, `zsh`, `ksh`, `mksh`, `dash`, `ash`, `busybox`, `fish` |
+| `python` | `python`, `python3`, `pypy`, `pypy3`, `uv`, `pythonw` |
+| `ruby` | `ruby`, `jruby`, `truffleruby`, `macruby` |
+| `lua` | `lua`, `luajit`, `tarantool` |
+| `perl` | `perl` |
+| `groovy` | `groovy` |
+| `kotlin` | `kotlin`, `kotlinc` |
+| `scala` | `scala`, `scala-cli`, `amm` |
+| `go` | `gorun` |
+| `rust` | `rust-script` |
+| `swift`, `dart`, `crystal`, `julia`, `ocaml`, `octave`, `elixir` | the same name |
+| `csharp` | `dotnet-script` |
+| `erlang` | `escript` |
+| `haskell` | `runghc`, `runhaskell`, `stack` |
+| `clojure` | `clojure`, `clj`, `bb` |
+| `lisp` | `sbcl`, `clisp` |
+| `scheme` | `guile`, `racket`, `chicken`, `csi` |
+| `coffeescript` | `coffee` |
+| `r` | `Rscript` |
+| `tcl` | `tclsh`, `wish`, `expect` |
+| `powershell` | `pwsh`, `powershell` |
+| `makefile` | `make`, `gmake` (`#!/usr/bin/make -f`) |
+
+Modelines name a type by its id, name, extension or interpreter, or by a Vim/Emacs mode name
+(`sh`, `shell-script`, `js`, `c++`, `cperl`, …).
 
 ## Bundled file types
 
@@ -31213,8 +31307,12 @@ language between the template tags.
 
 The bundled types (`builtin_file_types`) are extended or replaced by the file types of
 plugin manifests (`[[plugin.contributions.fileTypes]]`). Detection prefers, in order:
-file names and path patterns, the longest matching extension (so `x.blade.php` beats
-`php`), and the interpreter of a `#!` line. Later registrations win ties.
+a manual override (`overrides`, the `fileTypes.overrides` setting), file names and path
+patterns, the longest matching extension (so `x.blade.php` beats `php`), the interpreter of
+a `#!` line (`shebang_interpreter`: `/usr/bin/env` with `-S`, `-i`, `-u NAME`, assignments,
+absolute paths, `.exe`) and a Vim/Emacs modeline on the first line. Later registrations win
+ties; a plugin type without `interpreters` keeps those of the bundled type with its id. An
+override to a type of an inactive plugin uses that type for the overridden file only.
 
 The crate is pure so the desktop app (IPC) and the browser-mode UI (WebAssembly) share it.
 The UI only maps a file type id to its CodeMirror syntax mode.
@@ -31226,6 +31324,8 @@ The UI only maps a file type id to its CodeMirror syntax mode.
 | `builtin.rs` | File types every Forge installation knows (PHPStorm's bundled file types). Plugins add more, or replace one of these by contributing a file type with the same id, through `[[plugin.contributions.fileTypes]]` in their manifests. |
 | `data.rs` | Template Data Languages (as in PHPStorm): the language of the content *between* template tags. |
 | `glob.rs` | The two pattern flavours of file type settings. |
+| `modeline.rs` | Vim (`vim: set ft=php:`) and Emacs (`-*- mode: python -*-`) modelines on the first line. |
+| `overrides.rs` | Override File Type: `fileTypes.overrides` entries (`{ path, fileType }`), `edit_overrides` (set, unset, follow renames/moves, drop deleted files), `association_pattern`, `FileTypeRegistry::override_choices` (the popup's list). |
 | `user.rs` | Settings \| Editor \| File Types: patterns added to or removed from a type (`fileTypes.associations`; a pattern added to one type leaves the others), custom file types with their `CustomSyntax` (`fileTypes.custom`), `FileTypeRegistry::customized` and `rows` (the page's list), `DEFAULT_IGNORED_FILES`. |
 
 ## Main public items
@@ -31234,6 +31334,8 @@ The UI only maps a file type id to its CodeMirror syntax mode.
 pub use builtin::builtin_file_types;
 pub use data::{data_language_for, DataLanguage, DATA_LANGUAGES};
 pub use glob::{matches_glob_list, wildcard_match};
+pub use overrides::{edit_overrides, override_for, parse_overrides, association_pattern, OverrideEdit, OverrideChoices, PLAIN_TEXT_ID, …};
+pub fn shebang_interpreter(line: &str) -> Option<String>;
 pub struct FileTypeSpec { … }
 pub struct FileTypeRegistry { … }
 pub struct DetectRequest { … }
@@ -31243,8 +31345,10 @@ pub struct FileTypeInfo { … }
 
 ## Used by
 
-- IPC: `filetypes_detect`, `filetypes_list`; `fs_list_dir` hides `fileTypes.ignoredFiles`
-- UI: `app/ui/src/editor/fileTypes.ts`, `app/ui/src/features/fileTypes` (the settings page),
+- IPC: `filetypes_detect`, `filetypes_list`, `filetypes_override_choices`,
+  `filetypes_edit_overrides`; `fs_list_dir` hides `fileTypes.ignoredFiles`
+- UI: `app/ui/src/editor/fileTypes.ts` (re-detects open files when their first line changes),
+  `app/ui/src/features/fileTypes` (the settings page, `override.tsx`: Override File Type),
   `app/ui/src/editor/customFileType.ts` (highlighting of custom types)
 - Browser mode: built into `forge-wasm`
 
@@ -31255,7 +31359,8 @@ pub struct FileTypeInfo { … }
 
 ## Tests
 
-5 source files, about 1004 lines; 12 unit tests.
+8 source files; unit tests for names, extensions, shebangs with every `env` form, modelines,
+override priority and renames.
 
 ```sh
 cargo test -p forge-filetypes
@@ -32131,7 +32236,9 @@ Forge's generic Language Server Protocol client.
 - `framing`: `Content-Length` JSON-RPC framing over stdio.
 - `LspClient`: one server process; request/response correlation, notifications,
   answers to server→client requests, document sync and typed feature requests.
-- `LspManager`: routes files to servers by extension and starts them lazily; several
+- `LspManager`: routes files to servers by extension (or, with `set_document_language`, by the
+  editor's detected file type: an extensionless `artisan` goes to the PHP server, an
+  overridden file to its new type's servers, `text` to none) and starts them lazily; several
   servers may serve one file and their results are merged.
 - `model`: editor-friendly result types consumed by the UI.
 - `launch`: how server processes start (`LocalLauncher` here, or on a remote host). A

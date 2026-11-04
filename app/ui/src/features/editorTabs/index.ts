@@ -28,7 +28,7 @@ import {
 import { workspace } from "@/state/workspace";
 import { showToolWindow } from "@/state/layout";
 import { groupView } from "@/editor/views";
-import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
+import { item, providedEntries, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { registerMainMenuEntries } from "@/features/mainMenu";
 import { action as menuAction } from "@/features/mainMenu/model";
 import { selectInTree } from "@/features/project/ProjectView";
@@ -188,6 +188,9 @@ export function tabMenuEntries(group: number, id: string): MenuEntry[] {
       item(t("editor.tabs.selectInProject"), () => selectInProject(id), "SelectInProjectView"),
       item(t("editor.tabs.showIn", { fileManager: fileManagerName() }), () => revealInFileManager(id)),
     );
+    // Override File Type and friends (features/fileTypes).
+    const more = providedEntries("editor.tab", id);
+    if (more.length) entries.push(separator, ...more);
   }
   if (canDetach(id)) {
     entries.push(separator, item(t("editor.tabs.openInNewWindow"), () => openTabInNewWindow(group, id), "EditSourceInNewWindow"));

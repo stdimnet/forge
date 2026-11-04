@@ -5,7 +5,7 @@
  * never wait for a file type here.
  */
 import { registerMock } from "@/ipc";
-import type { DelimiterCatalog, DetectRequest, FileTypeInfo, FileTypeRow } from "@/ipc/filetypes";
+import type { DelimiterCatalog, DetectRequest, FileTypeInfo, FileTypeOverride, FileTypeRow, OverrideChoices } from "@/ipc/filetypes";
 import { setSyncFileTypeResolver } from "@/editor/fileTypes";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
@@ -22,6 +22,14 @@ registerMock("filetypes_detect", async ({ request }) =>
 
 registerMock("filetypes_list", async ({ request }) =>
   callWasmSync<FileTypeRow[]>((await loaded).filetypes_list, request as DetectRequest),
+);
+
+registerMock("filetypes_override_choices", async ({ request }) =>
+  callWasmSync<OverrideChoices>((await loaded).filetypes_override_choices, request as DetectRequest),
+);
+
+registerMock("filetypes_edit_overrides", async ({ request }) =>
+  callWasmSync<FileTypeOverride[]>((await loaded).filetypes_edit_overrides, request),
 );
 
 registerMock("filetypes_template_delimiters", async () =>

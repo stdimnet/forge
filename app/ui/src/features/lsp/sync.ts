@@ -2,10 +2,13 @@
 import { ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { lspApi } from "@/ipc/lsp";
 import { onFileSaved } from "@/state/editor";
-import { fileTypeOf } from "@/editor/fileTypes";
+import { fileTypeOf, PLAIN_TEXT_ID } from "@/editor/fileTypes";
 
-/** The file type servers are told (`artisan` is PHP by its `#!` line). */
-const languageOf = (path: string): string => fileTypeOf(path).id ?? "";
+/** The file type servers are told: detected or overridden (`text` keeps them all away). */
+function languageOf(path: string): string {
+  const info = fileTypeOf(path);
+  return info.id ?? (info.overridden ? PLAIN_TEXT_ID : "");
+}
 
 const CHANGE_DEBOUNCE_MS = 200;
 

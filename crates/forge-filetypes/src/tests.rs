@@ -276,6 +276,92 @@ fn modelines_select_a_type_after_names_and_shebangs() {
     assert_eq!(id("a.yaml", "# vim: set ft=php:").as_deref(), Some("yaml"));
 }
 
+fn resolve_one(r: &FileTypeRegistry, req: &DetectRequest, path: &str, first: Option<&str>) -> FileTypeInfo {
+    let req = DetectRequest {
+        files: vec![FileRef {
+            path: path.into(),
+            first_line: first.map(str::to_string),
+        }],
+        ..req.clone()
+    };
+    r.resolve(&req).remove(0)
+}
+
+#[test]
+fn overrides_win_over_names_extensions_and_shebangs() {
+    let mut r = FileTypeRegistry::with_builtins();
+    r.register(
+        spec("symfony-services", "Symfony Services", &[], &["config/services.yaml"]),
+        Some("forge.symfony-services"),
+    );
+    let req = DetectRequest {
+        overrides: vec![
+            serde_json::json!({ "path": "LICENSE", "fileType": "php" }),
+            serde_json::json!({ "path": "deploy.sh", "fileType": "python" }),
+            serde_json::json!({ "path": "bin/tool", "fileType": "shell" }),
+            serde_json::json!({ "path": "app/User.php", "fileType": "text" }),
+            serde_json::json!({ "path": "gone.txt", "fileType": "no-such-type" }),
+            serde_json::json!({ "path": "config/other.yaml", "fileType": "symfony-services" }),
+            serde_json::json!({ "path": "notes.md", "fileType": "my-type" }),
+        ],
+        inactive_plugins: vec!["forge.symfony-services".into()],
+        custom_types: vec![serde_json::json!({ "name": "My Type" })],
+        ..Default::default()
+    };
+    let info = resolve_one(&r, &req, "LICENSE", None);
+    assert_eq!((info.id.as_deref(), info.overridden), (Some("php"), true));
+    assert_eq!(resolve_one(&r, &req, "deploy.sh", None).label, "Python");
+    assert_eq!(
+        resolve_one(&r, &req, "bin/tool", Some("#!/usr/bin/env php")).id.as_deref(),
+        Some("shell")
+    );
+    let plain = resolve_one(&r, &req, "app/User.php", None);
+    assert_eq!((plain.id, plain.label.as_str(), plain.overridden), (None, "Plain text", true));
+    // An unknown type is ignored.
+    let unknown = resolve_one(&r, &req, "gone.txt", None);
+    assert_eq!((unknown.id, unknown.overridden), (None, false));
+    // A type of an inactive plugin is activated for the overridden file only.
+    assert_eq!(
+        resolve_one(&r, &req, "config/other.yaml", None).id.as_deref(),
+        Some("symfony-services")
+    );
+    assert_eq!(
+        resolve_one(&r, &req, "config/services.yaml", None).id.as_deref(),
+        Some("yaml")
+    );
+    // Custom file types can be chosen too.
+    let custom = custom_id("My Type");
+    let req = DetectRequest {
+        overrides: vec![serde_json::json!({ "path": "notes.md", "fileType": custom })],
+        ..req
+    };
+    let info = resolve_one(&r, &req, "notes.md", None);
+    assert_eq!(info.label, "My Type");
+    assert!(info.custom.is_some());
+    // Not overridden: detected as usual.
+    assert!(!resolve_one(&r, &req, "README.md", None).overridden);
+}
+
+#[test]
+fn override_choices_list_every_type_once() {
+    let mut r = FileTypeRegistry::with_builtins();
+    r.register(spec("php", "PHP", &["php", "module"], &[]), Some("forge.cms"));
+    r.register(spec("symfony-services", "Symfony Services", &[], &[]), Some("forge.symfony-services"));
+    let inactive = vec!["forge.symfony-services".to_string()];
+    let overrides = vec![serde_json::json!({ "path": "artisan", "fileType": "php" })];
+    let c = r.override_choices("artisan", &inactive, &UserFileTypes::default(), &overrides);
+    assert_eq!(c.choices.iter().filter(|c| c.id == "php").count(), 1);
+    assert!(c.choices.iter().any(|c| c.id == "text" && c.name == "Plain text"));
+    let symfony = c.choices.iter().find(|c| c.id == "symfony-services").unwrap();
+    assert_eq!(symfony.inactive_plugin.as_deref(), Some("forge.symfony-services"));
+    let names: Vec<String> = c.choices.iter().map(|c| c.name.to_lowercase()).collect();
+    let mut sorted = names.clone();
+    sorted.sort();
+    assert_eq!(names, sorted);
+    assert_eq!(c.current.as_deref(), Some("php"));
+    assert_eq!(c.pattern, "artisan");
+}
+
 #[test]
 fn template_files_get_their_data_language() {
     let r = FileTypeRegistry::with_builtins();

@@ -4,7 +4,8 @@
 //!
 //! The bundled types ([`builtin_file_types`]) are extended or replaced by the file types of
 //! plugin manifests (`[[plugin.contributions.fileTypes]]`). Detection prefers, in order:
-//! file names and path patterns, the longest matching extension (so `x.blade.php` beats `php`), the
+//! a manual override (File | File Properties | Override File Type, [`overrides`]), file names
+//! and path patterns, the longest matching extension (so `x.blade.php` beats `php`), the
 //! interpreter of a `#!` line (`#!/usr/bin/env php`) and a Vim or Emacs modeline on the first
 //! line (`# vim: set ft=php:`, `-*- mode: python -*-`). Later registrations win ties.
 //!
@@ -24,12 +25,17 @@ pub mod data;
 pub mod delimiters;
 pub mod glob;
 mod modeline;
+pub mod overrides;
 pub mod user;
 
 pub use builtin::builtin_file_types;
 pub use data::{data_language_for, DataLanguage, DATA_LANGUAGES};
 pub use delimiters::{delimiter_catalog, resolve_delimiters, DelimiterCatalog, Delimiters};
 pub use glob::{matches_glob_list, wildcard_match};
+pub use overrides::{
+    association_pattern, edit_overrides, override_for, parse_overrides, EditOverridesRequest,
+    FileTypeOverride, OverrideChoice, OverrideChoices, OverrideEdit, PLAIN_TEXT_ID,
+};
 pub use user::{
     custom_id, Association, CustomFileType, CustomSyntax, FileTypeRow, UserFileTypes,
     DEFAULT_IGNORED_FILES,
@@ -110,6 +116,9 @@ pub struct DetectRequest {
     /// The `fileTypes.custom` setting: the user's own file types.
     #[serde(default)]
     pub custom_types: Vec<serde_json::Value>,
+    /// The `fileTypes.overrides` setting: file types chosen by hand (Override File Type).
+    #[serde(default)]
+    pub overrides: Vec<serde_json::Value>,
 }
 
 impl DetectRequest {
@@ -148,6 +157,9 @@ pub struct FileTypeInfo {
     /// Highlighting of a custom file type (Settings | Editor | File Types).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom: Option<CustomSyntax>,
+    /// The type was chosen by hand (Override File Type), not detected.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub overridden: bool,
 }
 
 impl FileTypeRegistry {
@@ -214,6 +226,15 @@ impl FileTypeRegistry {
             .map_or(&[], |e| &e.spec.interpreters)
     }
 
+    /// The type registered under `id`: the active one, else one of an inactive plugin (an
+    /// override activates the type for that file).
+    pub fn spec_by_id(&self, id: &str, inactive_plugins: &[String]) -> Option<&FileTypeSpec> {
+        self.active(inactive_plugins)
+            .into_iter()
+            .find(|t| t.id == id)
+            .or_else(|| self.entries.iter().rev().map(|e| &e.spec).find(|t| t.id == id))
+    }
+
     /// The file type of `path`, or `None` for plain text.
     pub fn detect(
         &self,
@@ -253,11 +274,28 @@ impl FileTypeRegistry {
 
     /// Resolve one file for the editor.
     pub fn info(&self, file: &FileRef, req: &DetectRequest) -> FileTypeInfo {
-        let spec = self.detect(
-            &file.path,
-            file.first_line.as_deref(),
-            &req.inactive_plugins,
-        );
+        self.info_with(file, req, &parse_overrides(&req.overrides))
+    }
+
+    fn info_with(
+        &self,
+        file: &FileRef,
+        req: &DetectRequest,
+        overrides: &[FileTypeOverride],
+    ) -> FileTypeInfo {
+        let forced = override_for(overrides, &file.path);
+        let overridden = forced.is_some_and(|id| {
+            id == PLAIN_TEXT_ID || self.spec_by_id(id, &req.inactive_plugins).is_some()
+        });
+        let spec = match forced {
+            Some(PLAIN_TEXT_ID) => None,
+            Some(id) if overridden => self.spec_by_id(id, &req.inactive_plugins),
+            _ => self.detect(
+                &file.path,
+                file.first_line.as_deref(),
+                &req.inactive_plugins,
+            ),
+        };
         let soft_wrap = req
             .soft_wrap_files
             .as_deref()
@@ -271,6 +309,7 @@ impl FileTypeRegistry {
                 soft_wrap,
                 delimiters: None,
                 custom: None,
+                overridden,
             };
         };
         let data_language = spec
@@ -290,17 +329,26 @@ impl FileTypeRegistry {
             soft_wrap,
             delimiters,
             custom: self.custom.get(&spec.id).cloned(),
+            overridden,
         }
     }
 
     /// Resolve every file of a request, with the user's file type settings applied.
     pub fn resolve(&self, req: &DetectRequest) -> Vec<FileTypeInfo> {
         let user = req.user_file_types();
+        let overrides = parse_overrides(&req.overrides);
         if user.is_empty() {
-            return req.files.iter().map(|f| self.info(f, req)).collect();
+            return req
+                .files
+                .iter()
+                .map(|f| self.info_with(f, req, &overrides))
+                .collect();
         }
         let registry = self.customized(&user);
-        req.files.iter().map(|f| registry.info(f, req)).collect()
+        req.files
+            .iter()
+            .map(|f| registry.info_with(f, req, &overrides))
+            .collect()
     }
 }
 

@@ -637,6 +637,18 @@ hidden = true
 order = 10
 
 [[contributions.settings]]
+key = "fileTypes.overrides"
+title = "File type overrides"
+description = "Files whose type was chosen with File | File Properties | Override File Type: `{ path = \"artisan\", fileType = \"php\" }`, the path relative to the project. `fileType = \"text\"` makes a file plain text."
+type = "objects"
+unique = ["path"]
+default = []
+group = "editor.file-types"
+project = true
+hidden = true
+order = 15
+
+[[contributions.settings]]
 key = "fileTypes.ignoredFiles"
 title = "Ignored Files and Folders"
 description = "Files and folders with these names are hidden from the Project view, separated by ';' (`*` and `?` wildcards)."

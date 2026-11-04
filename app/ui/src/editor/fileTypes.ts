@@ -15,6 +15,7 @@ import { getSetting, settingsState } from "@/state/settings";
 import { isPluginActive } from "@/state/project";
 
 export type { FileTypeInfo } from "@/ipc/filetypes";
+export { PLAIN_TEXT_ID } from "@/ipc/filetypes";
 
 export const PLAIN_TEXT: FileTypeInfo = { id: null, label: "Plain text", indent: "    ", dataLanguage: null, softWrap: false, delimiters: null };
 
@@ -45,6 +46,7 @@ function config(): Omit<DetectRequest, "files"> {
     templateDelimiters: getSetting<SettingObject[]>("templates.delimiters", []),
     associations: getSetting<SettingObject[]>("fileTypes.associations", []),
     customTypes: getSetting<SettingObject[]>("fileTypes.custom", []),
+    overrides: getSetting<SettingObject[]>("fileTypes.overrides", []),
   };
 }
 

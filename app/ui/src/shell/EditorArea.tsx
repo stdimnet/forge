@@ -20,6 +20,7 @@ import type { TabGroup } from "@/state/tabGroups";
 import { statusOf } from "@/state/vcs";
 import { getSetting } from "@/state/settings";
 import { CodeEditor } from "@/editor/CodeEditor";
+import { fileTypeOf } from "@/editor/fileTypes";
 import { FileIcon } from "./FileIcon";
 import { editorViewFor, fileEditorFor } from "./editorViews";
 import { canDragTabsOut, openTabMenu, tabDraggedOut } from "./tabMenu";
@@ -95,6 +96,11 @@ function Tab(props: { group: TabGroup; id: string }) {
   };
   const label = (): JSX.Element => doc()?.name ?? custom()?.title ?? props.id;
   const color = () => (doc() ? tabColor(props.id) : undefined);
+  // An overridden file type shows in the tooltip (File | File Properties | Override File Type).
+  const fileTooltip = () => {
+    const info = doc() && !props.id.includes("://") ? fileTypeOf(props.id) : undefined;
+    return info?.overridden ? `${props.id}\n${t("statusbar.fileType.overridden", { type: info.label })}` : props.id;
+  };
   return (
     <div
       class="editor-tab"
@@ -103,7 +109,7 @@ function Tab(props: { group: TabGroup; id: string }) {
       role="tab"
       aria-selected={active()}
       tabIndex={active() ? 0 : -1}
-      title={custom()?.tooltip ?? custom()?.title ?? props.id}
+      title={custom()?.tooltip ?? custom()?.title ?? fileTooltip()}
       data-tab-id={props.id}
       onClick={() => activateTab(props.group.id, props.id)}
       onKeyDown={(e) => onTabKey(e, props.group, props.id)}

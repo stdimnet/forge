@@ -158,6 +158,7 @@
   "menu.NextTab": "Select _Next Tab",
   "menu.OpenFile": "_Open...",
   "menu.OptimizeImports": "O_ptimize Imports",
+  "menu.OverrideFileTypeAction": "_Override File Type",
   "menu.OverrideMethods": "_Override Methods...",
   "menu.ParameterInfo": "Parameter _Info",
   "menu.PasteMultiple": "Paste from _History...",
