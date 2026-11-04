@@ -1,6 +1,7 @@
 /** Browser-mode backend. Features add their own `*Mock.ts` imports here. */
 import "./settingsMock";
 import "./maintenanceMock";
+import "./pluginsMock";
 import "./keymapMock";
 import "./colorSchemeMock";
 import { fileTypesReady } from "./filetypesMock";

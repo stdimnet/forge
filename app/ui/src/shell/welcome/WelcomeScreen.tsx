@@ -181,6 +181,7 @@ export function WelcomeScreen() {
                   action("ImportSettings", "Import Settings..."),
                   action("ExportSettings", "Export Settings..."),
                   action("RestoreDefaultSettings", "Restore Default Settings..."),
+                  action("SettingsSync.Open", "Settings Sync..."),
                   separator,
                   action("InvalidateCaches", "Invalidate Caches..."),
                 ],

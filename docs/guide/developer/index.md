@@ -31,6 +31,7 @@ skills in [`.claude/skills/`](../../../.claude/skills/); the detailed IPC contra
 | [Contribution points](contribution-points.md) | every `register*` API of the UI with examples |
 | [IPC commands and browser mocks](ipc-and-mocks.md) | Rust command, typed client, mock |
 | [Writing a plugin or pack](plugins-and-packs.md) | manifest, crate, UI feature, activation — a walkthrough |
+| [Plugin SDK](plugins/index.md) | third-party plugins: sandbox, manifest, `forge` API, permissions, marketplace index |
 | [Adding a language](adding-a-language.md) | file types, syntax modes, template data languages, language packs |
 | [Settings](settings.md) | declaring, reading and showing settings |
 | [Keymap actions](keymap-actions.md) | shortcuts through the keymap engine |

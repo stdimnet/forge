@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [solid()],
   clearScreen: false,
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
-  server: { port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/**"] } },
+  // The browser mock loads the SDK's example plugin from sdk/examples.
+  server: { port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/**"] }, fs: { allow: [".", "../../sdk"] } },
   envPrefix: ["VITE_", "TAURI_ENV_"],
   build: {
     target: "es2022",

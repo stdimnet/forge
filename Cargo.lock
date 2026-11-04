@@ -2673,6 +2673,7 @@ dependencies = [
  "forge-mcp",
  "forge-open",
  "forge-plugin-api",
+ "forge-plugins",
  "forge-ports",
  "forge-process",
  "forge-profiler",
@@ -3279,8 +3280,10 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "hex",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "zip 2.6.1",
 ]
@@ -3352,6 +3355,28 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "toml 0.8.23",
+]
+
+[[package]]
+name = "forge-plugins"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "dirs 6.0.0",
+ "ed25519-dalek",
+ "forge-keymap",
+ "forge-langservers",
+ "forge-plugin-api",
+ "hex",
+ "reqwest 0.12.28",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "url",
+ "zip 2.6.1",
 ]
 
 [[package]]
@@ -3736,6 +3761,7 @@ dependencies = [
  "forge-mcp",
  "forge-output",
  "forge-plugin-api",
+ "forge-plugins",
  "forge-profiler",
  "forge-remote",
  "forge-runtargets",

@@ -9,3 +9,5 @@ app/src-tauri/gen/
 /test-results
 /playwright-report
 .claude/worktrees/
+# The SDK example is committed built, so browser mode and the tests load it.
+!sdk/examples/*/dist/

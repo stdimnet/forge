@@ -1,13 +1,13 @@
 ---
 title: forge-maintenance
-description: "Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings."
+description: "Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings and Settings Sync."
 order: 145
-tags: [crate, rust, invalidate caches, settings, export, import]
+tags: [crate, rust, invalidate caches, settings, export, import, settings sync]
 ---
 
 # forge-maintenance
 
-`crates/forge-maintenance` — Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings.
+`crates/forge-maintenance` — Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings and Settings Sync.
 
 ## Purpose
 
@@ -24,13 +24,25 @@ The logic behind PHPStorm's File | Invalidate Caches… and File | Manage IDE Se
   `<data dir>/forge/pending-maintenance.json`; `run_pending` runs it once at startup (the
   app calls it before the settings load), removing the marker first.
 - **Settings groups** (`groups`): PHPStorm's export components as setting key prefixes
-  (the longest prefix wins, the rest is "Other settings") or whole configuration files;
-  `count_groups` lists the non-empty ones for the dialogs.
+  (the longest prefix wins, every `<language>.codeStyle.*` key is Code Style, the rest is
+  "Other settings") or whole configuration files (including `installed-plugins.json`, the
+  installed third-party plugins, written by the app); `count_groups` lists the non-empty
+  ones for the dialogs.
 - **Settings archive** (`archive`): `export_settings` writes a zip with `forge-settings.json`
   (format, version, groups), the chosen keys as `settings.toml` and the chosen files;
   `read_archive` reads one back (unknown entries ignored, size-limited); `SettingsArchive::plan`
   replaces the chosen groups of the current user settings (keys the archive does not set are
   removed).
+- **Settings Sync** (`sync`): `local_components` turns the chosen groups into one blob each
+  (TOML of the group's keys, or the file; `settingsSync.*` stays local); `decide` compares
+  local, shared and last-synced hashes (one side changed → it wins; both → the newer wins);
+  `sync_folder` writes `forge-settings-sync/{sync.json,components/<id>.data}` in the user's
+  folder, backs up conflict losers (shared ones in `backups/<ms>/`, local ones in
+  `<config dir>/forge/settings-sync-backups/<ms>/`) and returns the groups to apply;
+  `apply_plan` turns them into settings changes and files like Import Settings;
+  `sync_git` does the same in a clone of the user's repository in the cache dir (fetch,
+  reset, sync, commit, push, one retry after a rejected push). `SyncState`
+  (`settings-sync-state.json`) remembers the last synced hashes.
 - **Restore Default Settings** (`restore`): `backup_settings` copies `<config dir>/forge` to
   `forge-backup-<UTC timestamp>`; `reset_settings` removes `settings.toml`,
   `new-project-settings.toml` and `dialog-windows.json` at the next start.
@@ -51,6 +63,9 @@ pub fn group_of_key(key: &str) -> &'static str { … }
 pub fn export_settings(values, files, groups, version) -> Result<Vec<u8>, String> { … }
 pub fn read_archive(bytes: &[u8]) -> Result<SettingsArchive, String> { … }
 pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, String> { … }
+pub fn decide(local: Option<(&str, u64)>, remote: Option<(&str, u64)>, base: Option<&str>) -> Action { … }
+pub fn sync_folder(folder: &Path, input: &SyncInput, state: &mut SyncState) -> Result<(SyncReport, Vec<Pulled>), String> { … }
+pub fn sync_git(remote: &GitRemote, clone_dir: &Path, input: &SyncInput, state: &mut SyncState) -> Result<(SyncReport, Vec<Pulled>), String> { … }
 ```
 
 ## Used by
@@ -58,7 +73,8 @@ pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, Strin
 - IPC: `maintenance_invalidate_model`, `maintenance_invalidate_caches`, `maintenance_restart`,
   `maintenance_rescan_indexes`, `settings_export_info`, `settings_export`,
   `settings_import_preview`, `settings_import`, `settings_restore_defaults`
-  (`app/src-tauri/src/commands/maintenance.rs`).
+  (`app/src-tauri/src/commands/maintenance.rs`); `settings_sync_status`, `settings_sync_now`
+  (`commands/settings_sync.rs`).
 - UI: `app/ui/src/features/maintenance` (Invalidate Caches dialog, Repair IDE balloons,
   Export / Import Settings chooser, Restore Default Settings).
 - Browser mode: the pure models (`caches`, `groups`) are built into `forge-wasm`
@@ -67,10 +83,10 @@ pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, Strin
 ## Dependencies
 
 - Workspace crates: `forge-core` (feature `disk`)
-- External: `serde`, `serde_json`, `dirs`, `zip` (MIT, deflate only; feature `disk`)
+- External: `serde`, `serde_json`, `dirs`, `zip` (MIT, deflate only), `sha2`, `hex` (feature `disk`); `git` (installed by the user) for git sync
 
 ## Tests
 
-7 source files; 9 unit tests (dialog model, cleanup plan with every option in a temporary
+8 source files; 14 unit tests (sync decisions, two machines sharing a folder with conflicts both ways, pulled groups replacing local ones, git sync through a local bare repository, dialog model, cleanup plan with every option in a temporary
 folder, the marker running once, settings groups, archive round trip and plans, foreign
 archives, UTC timestamps, backups and reset).

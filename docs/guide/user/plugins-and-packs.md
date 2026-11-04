@@ -25,7 +25,8 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
-All plugins are built in; there is no separate download.
+The packs are built in; there is no separate download. Third-party plugins can be added from
+the [Marketplace](#marketplace) or a `.forgeplugin` file (see [Third-party plugins](#third-party-plugins)).
 
 ## When plugins are active
 
@@ -50,6 +51,48 @@ also disables Laravel, Symfony, Doctrine, Composer, PHPUnit and Xdebug.
 
 Disabled plugins are remembered in the user settings (`plugins.disabled`, a list of plugin ids).
 
-> **Note:** the **Marketplace** tab is not available yet, and third-party plugins cannot be
-> installed. New integrations are added to Forge itself; see
-> [Writing a plugin or pack](../developer/plugins-and-packs.md).
+## Third-party plugins
+
+Plugins from other publishers are installed from the **Marketplace** tab or with the gear menu
+⚙ | **Install Plugin from Disk…** (a `.forgeplugin` file). They are listed under
+**Downloaded** on the Installed tab, where you can enable, disable and **Uninstall** them.
+
+![Plugin permissions](../../screenshots/plugins-permission-prompt.png)
+
+Before a plugin is installed or updated, Forge shows what it may do, most sensitive first:
+
+| Permission | Means |
+| --- | --- |
+| Start programs | run the named programs (for example `git`) in the project folder |
+| Write files | write in the open project or only in the plugin's own data folder |
+| Connect to the internet | send requests to the named hosts only |
+| Edit the open file | change the text of the active editor |
+| Read files | read the open project (or a folder of it) or its own data folder |
+| Read and change IDE settings | the named settings; a plugin's own settings need no permission |
+| Read the open file | text, selection and file name of the active editor |
+
+An update that asks for more marks the new permissions. Forge enforces them: the plugin's code
+runs in a sandbox and every request outside of it is checked. Plugins never load native code.
+
+Third-party plugins live in Forge's data folder (`<data dir>/forge/plugins`, their data in
+`<data dir>/forge/plugin-data`), never in a project. In [Safe Mode](project-trust.md) plugins
+that may start programs or write project files are not loaded, and no plugin may start
+programs or write project files.
+
+## Marketplace
+
+![Marketplace](../../screenshots/plugins-marketplace.png)
+
+The Marketplace tab reads a plugin index from the URL set with ⚙ | **Marketplace URL…**
+(setting `plugins.marketplace.url`). It lists the plugins with search, details, permissions,
+**Install** and **Update**; ⚙ | **Check for Updates** reports installed plugins with newer
+versions. Every download is checked against the SHA-256 checksum in the index. With trusted
+publisher keys (setting `plugins.marketplace.trustedKeys`, base64 Ed25519 public keys) a
+valid signature from one of them is required as well.
+
+> **Note:** no public Forge marketplace is live yet. The default URL
+> `https://plugins.forge.example/index.json` is a placeholder, so the tab says that no
+> marketplace is configured until you enter the URL of an index, for example one your team
+> hosts. The index format is described in [Publishing plugins](../developer/plugins/publishing.md).
+
+To write a plugin, see the [plugin SDK](../developer/plugins/index.md).

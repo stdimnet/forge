@@ -56,6 +56,7 @@ mod maintenance;
 mod mcp;
 mod minecraft;
 mod php_interpreters;
+mod plugins;
 mod profiler;
 mod project_structure;
 mod python;

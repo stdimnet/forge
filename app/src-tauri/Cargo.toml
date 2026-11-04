@@ -26,6 +26,7 @@ forge-scopes.workspace = true
 forge-inspections.workspace = true
 forge-ssr.workspace = true
 forge-plugin-api.workspace = true
+forge-plugins = { workspace = true, features = ["net"] }
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true
 forge-maintenance = { workspace = true, features = ["disk"] }

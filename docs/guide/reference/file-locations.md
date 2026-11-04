@@ -34,6 +34,8 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `updates.json` | update checks: time of the last check, the skipped version and a postponed ("Later") version |
 | `scratches/` | scratch files and buffers |
 | `scratches.json` | per-scratch options (the data source of SQL scratches) |
+| `settings-sync-state.json` | [Settings Sync](../user/settings-and-themes.md#settings-sync): the groups' hashes at the last sync and its report |
+| `settings-sync-backups/<ms>/<group>.data` | local settings groups that lost a Settings Sync conflict |
 
 ## Caches — `<cache dir>/forge/`
 
@@ -53,6 +55,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
+| `settings-sync-git/` | the clone of your Settings Sync git repository |
 | `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
 The search index lives in `<cache dir>/Forge/search/<hash of the project root>.bin`. The
@@ -68,6 +71,8 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | Path | Content |
 | --- | --- |
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`; `bin/` and `pypi-tools.json` for ruff and ty from PyPI) |
+| `plugins/installed.json`, `plugins/<id>/` | [third-party plugins](../user/plugins-and-packs.md#third-party-plugins): versions, enablement, granted permissions, and each unpacked package |
+| `plugin-data/<id>/` | a plugin's own data (`${pluginData}`), removed with the plugin |
 | `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |

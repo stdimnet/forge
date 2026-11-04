@@ -11,6 +11,9 @@ A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`, `javaforg
 `core`). A **plugin** is a manifest, plus an optional Rust crate, plus an optional UI feature.
 Recipe: [`add-plugin-or-pack`](../../../.claude/skills/add-plugin-or-pack/SKILL.md).
 
+This page is about plugins built into Forge. Plugins that users install themselves (a
+`.forgeplugin` file or the Marketplace) use the [Plugin SDK](plugins/index.md) instead.
+
 This walkthrough builds a small plugin, "Makefile targets": a tool window that lists the targets
 of the project's `Makefile` and runs them.
 

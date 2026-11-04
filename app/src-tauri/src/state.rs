@@ -27,16 +27,33 @@ pub struct AppState {
     pub safe_mode: forge_trust::SafeMode,
     /// Where trusted projects and locations are stored (`None`: nowhere, e.g. no config dir).
     pub trust_path: Option<PathBuf>,
+    /// Installed third-party plugins (`<data dir>/forge/plugins`).
+    pub plugin_store: Option<forge_plugins::PluginStore>,
 }
 
 impl AppState {
     /// State with the built-in plugins registered, their setting defaults applied, and the
     /// user settings (including disabled plugins) loaded.
     pub fn new() -> Self {
-        let registry = plugins::builtin_registry().unwrap_or_else(|e| {
+        let mut registry = plugins::builtin_registry().unwrap_or_else(|e| {
             tracing::error!("{e}");
             PluginRegistry::new()
         });
+        let plugin_store = forge_plugins::PluginStore::default_location();
+        let third_party = plugin_store
+            .as_ref()
+            .map(|s| {
+                s.list().unwrap_or_else(|e| {
+                    tracing::warn!("installed plugins not loaded: {e}");
+                    Vec::new()
+                })
+            })
+            .unwrap_or_default();
+        for p in &third_party {
+            if let Err(e) = registry.register_descriptor(forge_plugins::store::descriptor(p)) {
+                tracing::warn!("plugin {} not loaded: {e}", p.manifest.id);
+            }
+        }
         let mut settings = Settings::new();
         settings.set_defaults(
             registry
@@ -63,11 +80,18 @@ impl AppState {
             plugins: RwLock::new(registry),
             safe_mode: forge_trust::SafeMode::default(),
             trust_path: forge_trust::TrustStore::default_path(),
+            plugin_store,
         };
-        let disabled: Vec<String> = state
+        let mut disabled: Vec<String> = state
             .read_settings()
             .get_as(DISABLED_PLUGINS_KEY)
             .unwrap_or_default();
+        disabled.extend(
+            third_party
+                .iter()
+                .filter(|p| !p.enabled)
+                .map(|p| p.manifest.id.clone()),
+        );
         let mut registry = state.plugins.write().expect("plugins lock poisoned");
         for id in disabled {
             if let Err(e) = registry.set_enabled(&id, false) {
@@ -97,6 +121,18 @@ impl AppState {
             .filter(|p| !p.enabled)
             .map(|p| p.manifest.id.clone())
             .collect();
+        if let Some(store) = &self.plugin_store {
+            let registry = self.plugins.read().expect("plugins lock poisoned");
+            for p in registry
+                .list()
+                .iter()
+                .filter(|p| p.manifest.pack == forge_plugins::store::THIRD_PARTY_PACK)
+            {
+                if let Err(e) = store.set_enabled(&p.manifest.id, p.enabled) {
+                    tracing::warn!("{e}");
+                }
+            }
+        }
         self.write_settings().set(
             DISABLED_PLUGINS_KEY,
             serde_json::json!(disabled),

@@ -9,6 +9,7 @@ import "./ai-chat";
 import "./ai-editor";
 import "./settings";
 import "./maintenance";
+import "./plugins";
 import "./fileTypes";
 import "./codeStyle";
 import "./langservers";

@@ -89,6 +89,15 @@ impl PluginRegistry {
         Ok(())
     }
 
+    /// Remove an uninstalled plugin; returns whether it was registered. Required plugins
+    /// stay.
+    pub fn unregister(&mut self, id: &str) -> bool {
+        let before = self.plugins.len();
+        self.plugins
+            .retain(|p| p.manifest.id != id || p.manifest.required);
+        self.plugins.len() != before
+    }
+
     pub fn list(&self) -> &[PluginInfo] {
         &self.plugins
     }
@@ -358,6 +367,15 @@ mod tests {
             .register_descriptor(descriptor("forge.php", &[], ""))
             .is_err());
         assert_eq!(r.list().len(), 3);
+    }
+
+    #[test]
+    fn unregisters_uninstalled_plugins() {
+        let mut r = registry();
+        assert!(r.unregister("forge.php"));
+        assert!(!r.unregister("forge.php"));
+        assert!(r.get("forge.php").is_none());
+        assert_eq!(r.list().len(), 2);
     }
 
     #[test]
