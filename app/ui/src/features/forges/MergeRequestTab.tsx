@@ -34,6 +34,7 @@ import { reviewApi, type Draft, type ExplainResult, type Finding, type ReviewEve
 import { AiReviewView, SubmitReview } from "./ReviewPanel";
 import { notify } from "@/features/git/store";
 import { Avatar, BranchPill, CiIcon, ciLabels, LabelPill, MrStateIcon, StateBadge, ago, displayName } from "./ui";
+import { t as tr } from "@/i18n";
 
 type View = "overview" | "files" | "ai";
 
@@ -76,7 +77,7 @@ export function MergeRequestTab(props: { number: number }) {
       patch({ drafts: await reviewApi.saveDraft(props.number, draft) });
       return true;
     } catch (e) {
-      notify("error", "Could not save the review comment", errorText(e));
+      notify("error", tr("tools.forges.couldNotSaveTheReview"), errorText(e));
       return false;
     }
   };
@@ -114,7 +115,7 @@ export function MergeRequestTab(props: { number: number }) {
     try {
       return await reviewApi.explain(props.number, path, hunk);
     } catch (e) {
-      notify("error", "Explain this change failed", errorText(e));
+      notify("error", tr("tools.forges.explainThisChangeFailed"), errorText(e));
       return null;
     }
   };
@@ -151,12 +152,12 @@ export function MergeRequestTab(props: { number: number }) {
           <div class="fg-empty">
             <div class="fg-error-text">{errorText(mr.error)}</div>
             <button class="btn-secondary" onClick={reload}>
-              Retry
+              {tr("common.retry")}
             </button>
           </div>
         </Match>
         <Match when={!mr()}>
-          <div class="fg-empty muted">Loading {requestName().toLowerCase()} {ref(props.number)}…</div>
+          <div class="fg-empty muted">{tr("tools.forges.loadingEllipsis", { requestName: requestName().toLowerCase(), value: ref(props.number) })}</div>
         </Match>
         <Match when={mr()}>
           {(d) => (
@@ -164,7 +165,7 @@ export function MergeRequestTab(props: { number: number }) {
               <Header mr={d()} reload={reload} />
               <div class="git-tabs fg-mr-tabs">
                 <button class="git-tab" classList={{ active: view() === "overview" }} onClick={() => setView("overview")}>
-                  Overview
+                  {tr("tools.forges.overview")}
                 </button>
                 <button
                   class="git-tab"
@@ -173,16 +174,16 @@ export function MergeRequestTab(props: { number: number }) {
                   onMouseEnter={() => setFilesWanted(true)}
                   data-view="files"
                 >
-                  Files
+                  {tr("tools.forges.files")}
                   <Show when={session()}>
-                    <span class="fg-count" title={`${viewedCount()} of ${session()!.files.length} files viewed`}>
+                    <span class="fg-count" title={tr("tools.forges.ofFilesViewed", { viewedCount: viewedCount(), count: session()!.files.length })}>
                       {viewedCount()}/{session()!.files.length}
                     </span>
                   </Show>
                 </button>
                 <button class="git-tab" classList={{ active: view() === "ai" }} onClick={() => setView("ai")} data-view="ai">
                   <Sparkles size={13} />
-                  AI Review
+                  {tr("tools.forges.aiReview")}
                   <Show when={session()?.findings?.findings.length}>
                     <span class="fg-count">{session()!.findings!.findings.length}</span>
                   </Show>
@@ -192,7 +193,7 @@ export function MergeRequestTab(props: { number: number }) {
                 <Overview mr={d()} discussions={discussions() ?? []} comment={comment} reply={reply} resolve={resolve} openFile={openFileThread} />
               </Show>
               <Show when={view() === "ai"}>
-                <Show when={session()} fallback={<div class="fg-empty muted">{session.error ? errorText(session.error) : "Loading changes…"}</div>}>
+                <Show when={session()} fallback={<div class="fg-empty muted">{session.error ? errorText(session.error) : tr("tools.forges.loadingChangesEllipsis")}</div>}>
                   {(s) => (
                     <AiReviewView
                       ai={s().ai}
@@ -256,11 +257,11 @@ function Header(props: { mr: MergeRequestDetails; reload: () => void }) {
       <div class="fg-mr-sub">
         <Avatar user={mr().author} size={18} />
         <span class="fg-note-author">{displayName(mr().author)}</span>
-        <span class="muted">{mr().state === "merged" ? "merged" : "wants to merge"}</span>
+        <span class="muted">{mr().state === "merged" ? tr("tools.forges.merged") : tr("tools.forges.wantsToMerge")}</span>
         <BranchPill name={mr().sourceBranch} />
-        <span class="muted">into</span>
+        <span class="muted">{tr("tools.forges.into")}</span>
         <BranchPill name={mr().targetBranch} />
-        <span class="muted">· opened {ago(mr().createdAt)}</span>
+        <span class="muted">{tr("tools.forges.opened", { value: ago(mr().createdAt) })}</span>
       </div>
       <div class="fg-mr-actions">
         <Show when={open()}>
@@ -269,27 +270,27 @@ function Header(props: { mr: MergeRequestDetails; reload: () => void }) {
               <Show when={approvedByMe()} fallback={<ThumbsUp size={14} />}>
                 <Check size={14} />
               </Show>
-              {approvedByMe() ? "Approved" : "Approve"}
+              {approvedByMe() ? tr("tools.forges.approved") : tr("tools.forges.approve")}
             </button>
           </Show>
-          <button class="btn-primary" disabled={mr().draft} title={mr().draft ? "Mark as ready before merging" : undefined} onClick={() => setDialog({ kind: "merge", mr: mr(), onDone: props.reload })} data-action="merge">
+          <button class="btn-primary" disabled={mr().draft} title={mr().draft ? tr("tools.forges.markAsReadyBeforeMerging") : undefined} onClick={() => setDialog({ kind: "merge", mr: mr(), onDone: props.reload })} data-action="merge">
             <GitMerge size={14} />
-            Merge…
+            {tr("tools.forges.mergeEllipsis")}
           </button>
           <button class="btn-secondary" onClick={() => confirmClose(mr(), props.reload)} data-action="close">
             <X size={14} />
-            Close
+            {tr("common.close")}
           </button>
         </Show>
-        <button class="btn-secondary" onClick={() => void checkoutRequest(mr())} title={`Check out ${mr().sourceBranch}`} data-action="checkout">
+        <button class="btn-secondary" onClick={() => void checkoutRequest(mr())} title={tr("tools.forges.checkOut2", { sourceBranch: mr().sourceBranch })} data-action="checkout">
           <GitBranch size={14} />
-          Check Out
+          {tr("tools.forges.checkOut")}
         </button>
         <span class="spacer" />
-        <button class="icon-btn" title="Open in Browser" onClick={() => window.open(mr().webUrl, "_blank")}>
+        <button class="icon-btn" title={tr("tools.forges.openInBrowser")} onClick={() => window.open(mr().webUrl, "_blank")}>
           <ExternalLink size={15} />
         </button>
-        <button class="icon-btn" title="Refresh" onClick={props.reload}>
+        <button class="icon-btn" title={tr("common.refresh")} onClick={props.reload}>
           <RefreshCw size={14} />
         </button>
       </div>
@@ -313,7 +314,7 @@ function Overview(props: {
           <div class="fg-note-head">
             <Avatar user={mr().author} size={20} />
             <span class="fg-note-author">{displayName(mr().author)}</span>
-            <span class="muted fg-small">opened {ago(mr().createdAt)}</span>
+            <span class="muted fg-small">{tr("tools.forges.openedAgo", { value: ago(mr().createdAt) })}</span>
           </div>
           <Markdown text={mr().description} class="fg-description-body" />
         </div>
@@ -343,12 +344,12 @@ function Overview(props: {
           </For>
         </div>
         <div class="fg-card fg-new-comment">
-          <CommentEditor placeholder="Leave a comment…" submitLabel="Comment" onSubmit={(b) => props.comment(b)} />
+          <CommentEditor placeholder={tr("tools.forges.leaveACommentEllipsis")} submitLabel="Comment" onSubmit={(b) => props.comment(b)} />
         </div>
       </div>
       <aside class="fg-sidebar">
-        <Section title="Reviewers">
-          <Show when={mr().reviewers.length} fallback={<div class="muted fg-small">No reviewers</div>}>
+        <Section title={tr("tools.forges.reviewers")}>
+          <Show when={mr().reviewers.length} fallback={<div class="muted fg-small">{tr("tools.forges.noReviewers")}</div>}>
             <For each={mr().reviewers}>
               {(r) => (
                 <div class="fg-side-row" title={reviewText[r.state]}>
@@ -376,13 +377,12 @@ function Overview(props: {
           </Show>
           <Show when={caps().approvals && (mr().approvals.required || mr().approvals.approvedBy.length)}>
             <div class="muted fg-small fg-approvals">
-              {mr().approvals.approvedBy.length}
-              {mr().approvals.required ? ` of ${mr().approvals.required}` : ""} approval{(mr().approvals.required || mr().approvals.approvedBy.length) === 1 ? "" : "s"}
+              {tr("tools.forges.approvals", { count: (mr().approvals.required || mr().approvals.approvedBy.length), count2: mr().approvals.approvedBy.length, value: mr().approvals.required ? ` of ${mr().approvals.required}` : "" })}
             </div>
           </Show>
         </Section>
-        <Section title="Assignees">
-          <Show when={mr().assignees.length} fallback={<div class="muted fg-small">None</div>}>
+        <Section title={tr("tools.forges.assignees")}>
+          <Show when={mr().assignees.length} fallback={<div class="muted fg-small">{tr("tools.forges.none")}</div>}>
             <For each={mr().assignees}>
               {(u) => (
                 <div class="fg-side-row">
@@ -394,21 +394,21 @@ function Overview(props: {
           </Show>
         </Section>
         <Show when={mr().labels.length}>
-          <Section title="Labels">
+          <Section title={tr("tools.forges.labels")}>
             <div class="fg-labels">
               <For each={mr().labels}>{(l) => <LabelPill label={l} />}</For>
             </div>
           </Section>
         </Show>
-        <Section title="Pipeline">
-          <Show when={mr().pipeline} fallback={<div class="muted fg-small">No pipeline for this commit</div>}>
+        <Section title={tr("tools.forges.pipeline")}>
+          <Show when={mr().pipeline} fallback={<div class="muted fg-small">{tr("tools.forges.noPipelineForThisCommit")}</div>}>
             {(p) => (
               <>
                 <div class="fg-side-row fg-pipeline-head">
                   <CiIcon status={p().status} size={15} />
                   <span class="fg-side-name">{ciLabels[p().status]}</span>
                   <Show when={p().webUrl}>
-                    <button class="icon-btn fg-tiny-btn" title="Open in Browser" onClick={() => window.open(p().webUrl!, "_blank")}>
+                    <button class="icon-btn fg-tiny-btn" title={tr("tools.forges.openInBrowser")} onClick={() => window.open(p().webUrl!, "_blank")}>
                       <ExternalLink size={13} />
                     </button>
                   </Show>
@@ -429,23 +429,23 @@ function Overview(props: {
           </Show>
         </Section>
         <Show when={mr().state === "open"}>
-          <Section title="Merge">
+          <Section title={tr("tools.forges.merge")}>
             <div class="fg-side-row">
-              <Switch fallback={<span class="muted fg-small">Checking mergeability…</span>}>
+              <Switch fallback={<span class="muted fg-small">{tr("tools.forges.checkingMergeabilityEllipsis")}</span>}>
                 <Match when={mr().conflicts}>
                   <span class="fg-review fg-review-changesRequested">
                     <CircleAlert size={14} />
                   </span>
-                  <span class="fg-small">Has conflicts with {mr().targetBranch}</span>
+                  <span class="fg-small">{tr("tools.forges.hasConflictsWith", { targetBranch: mr().targetBranch })}</span>
                 </Match>
                 <Match when={mr().draft}>
-                  <span class="muted fg-small">Draft: mark as ready to merge</span>
+                  <span class="muted fg-small">{tr("tools.forges.draftMarkAsReadyTo")}</span>
                 </Match>
                 <Match when={mr().mergeable === true}>
                   <span class="fg-review fg-review-approved">
                     <CircleCheck size={14} />
                   </span>
-                  <span class="fg-small">No conflicts with {mr().targetBranch}</span>
+                  <span class="fg-small">{tr("tools.forges.noConflictsWith", { targetBranch: mr().targetBranch })}</span>
                 </Match>
               </Switch>
             </div>
@@ -525,17 +525,17 @@ function FilesView(props: {
         <div class="fg-empty fg-error-text">{props.error}</div>
       </Match>
       <Match when={!props.files}>
-        <div class="fg-empty muted">Loading changes…</div>
+        <div class="fg-empty muted">{tr("tools.forges.loadingChangesEllipsis")}</div>
       </Match>
       <Match when={props.files}>
         <div class="fg-files">
           <div class="fg-files-tree">
             <div class="fg-files-summary muted fg-small">
-              {props.files!.length} file{props.files!.length === 1 ? "" : "s"} changed
+              {tr("common.filesChanged", { count: props.files!.length })}
               <span class="fg-add">+{totals()[0]}</span>
               <span class="fg-del">−{totals()[1]}</span>
               <span class="spacer" />
-              <span title="Files marked as viewed">
+              <span title={tr("tools.forges.filesMarkedAsViewed")}>
                 {props.session?.files.filter((f) => f.viewed).length ?? 0}/{props.files!.length} viewed
               </span>
             </div>
@@ -567,7 +567,7 @@ function FilesView(props: {
                             <input
                               type="checkbox"
                               class="fg-viewed-box"
-                              title={viewed(f.path) ? "Viewed (click to mark as not viewed)" : "Mark as viewed"}
+                              title={viewed(f.path) ? tr("tools.forges.viewedClickToMarkAs") : tr("tools.forges.markAsViewed")}
                               checked={viewed(f.path)}
                               disabled={!props.session}
                               data-viewed={f.path}
@@ -578,18 +578,18 @@ function FilesView(props: {
                             <span class={`tree-label vcs-${f.status === "renamed" ? "modified" : f.status}`}>{name}</span>
                             <span class="spacer" />
                             <Show when={pendingOn(f.path)}>
-                              <span class="fg-file-pending" title="Pending review comments">
+                              <span class="fg-file-pending" title={tr("tools.forges.pendingReviewComments")}>
                                 {pendingOn(f.path)}
                               </span>
                             </Show>
                             <Show when={findingsOn(f.path)}>
-                              <span class="fg-file-findings" title="AI Review findings">
+                              <span class="fg-file-findings" title={tr("tools.forges.aiReviewFindings")}>
                                 <Sparkles size={10} />
                                 {findingsOn(f.path)}
                               </span>
                             </Show>
                             <Show when={props.threadCount(f.path)}>
-                              <span class="fg-file-threads" title="Unresolved threads">
+                              <span class="fg-file-threads" title={tr("tools.forges.unresolvedThreads")}>
                                 <MessageSquare size={11} />
                                 {props.threadCount(f.path)}
                               </span>
@@ -617,11 +617,11 @@ function FilesView(props: {
                     <span class="spacer" />
                     <label class="fg-viewed-label">
                       <input type="checkbox" checked={viewed(f().path)} disabled={!props.session} onChange={(e) => props.setViewed(f().path, e.currentTarget.checked)} />
-                      Viewed
+                      {tr("tools.forges.viewed")}
                     </label>
-                    <button class="pill-btn" title="Show Diff (side by side)" onClick={() => void showRequestDiff(props.mr, f())}>
+                    <button class="pill-btn" title={tr("tools.forges.showDiffSideBySide")} onClick={() => void showRequestDiff(props.mr, f())}>
                       <Columns2 size={14} />
-                      Show Diff
+                      {tr("tools.forges.showDiff")}
                     </button>
                     <Show when={props.mr.state === "open" && props.session}>
                       <SubmitReview pending={props.session!.drafts.length} events={props.session!.events} submit={props.submitReview} />

@@ -17,6 +17,7 @@ import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
 import { toLsp } from "@/features/lsp/util";
 import type { HierarchyScope, TypeView } from "./model";
+import { t as tr } from "@/i18n";
 
 export const HIERARCHY_WINDOW = "hierarchy";
 
@@ -232,7 +233,7 @@ export async function refreshTab(tabId: number): Promise<void> {
       });
     }
   } catch (e) {
-    showBalloon("Hierarchy could not be refreshed", errorText(e));
+    showBalloon(tr("tools.hierarchy.hierarchyCouldNotBeRefreshed"), errorText(e));
   }
 }
 

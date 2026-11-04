@@ -16,6 +16,7 @@ import { registerDebugLauncher } from "@/features/run";
 import { balloonsFor } from "@/keymap/dispatch";
 import { showToolWindow } from "@/state/layout";
 import { DEBUG_TYPES } from "./runTypes";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Java Debugger");
 
@@ -56,7 +57,7 @@ async function attachWhenListening(cfg: RunConfiguration, plan: DebugPlan, runId
       await attach(cfg, plan);
       return;
     } catch (e) {
-      if (attempt === 9) showBalloon(`Cannot attach the debugger to '${cfg.name}'`, String(e).replace(/^Error: /, ""), 8000);
+      if (attempt === 9) showBalloon(t("langs.java.cannotAttachTheDebuggerTo", { name: cfg.name }), String(e).replace(/^Error: /, ""), 8000);
       await sleep(1000);
     }
   }
@@ -71,7 +72,7 @@ registerDebugLauncher({
     try {
       plan = await javaApi.debugPrepare(cfg);
     } catch (e) {
-      showBalloon(`Cannot debug '${cfg.name}'`, String(e).replace(/^Error: /, ""), 10000);
+      showBalloon(t("common.cannotDebug", { name: cfg.name }), String(e).replace(/^Error: /, ""), 10000);
       return;
     }
     showToolWindow("debug");
@@ -79,7 +80,7 @@ registerDebugLauncher({
       try {
         await attach(cfg, plan);
       } catch (e) {
-        showBalloon(`Cannot attach to ${plan.hostName}:${plan.jdwpPort}`, String(e).replace(/^Error: /, ""), 8000);
+        showBalloon(t("langs.java.cannotAttachTo", { hostName: plan.hostName, jdwpPort: plan.jdwpPort }), String(e).replace(/^Error: /, ""), 8000);
       }
       return;
     }

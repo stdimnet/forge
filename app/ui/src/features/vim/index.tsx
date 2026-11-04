@@ -81,12 +81,12 @@ function VimStatusWidget() {
     <button
       class="status-item vim-status"
       data-mode={status().mode}
-      title="Vim emulation. Click to configure it in Settings | Editor | Vim."
+      title={t("tools.vim.vimEmulationClickToConfigure")}
       onClick={() => openSettings("editor.vim")}
     >
       <span class="vim-status-mode">{MODE_LABELS[status().mode]}</span>
       <Show when={status().recording}>
-        <span class="vim-status-recording">recording @{status().recording}</span>
+        <span class="vim-status-recording">{t("tools.vim.recording", { recording: status().recording })}</span>
       </Show>
       <Show when={status().showcmd}>
         <span class="vim-status-showcmd">{status().showcmd}</span>
@@ -115,7 +115,7 @@ export async function reloadVimRc(notify = false): Promise<void> {
   try {
     rc = await vimApi.readRc(getSetting<string>(RC_KEY, ""));
   } catch (e) {
-    showBalloon("Cannot read .ideavimrc", String(e), 6000, undefined, { type: "error" });
+    showBalloon(t("tools.vim.cannotReadIdeavimrc"), String(e), 6000, undefined, { type: "error" });
     return;
   }
   const report = vimEngine.loadRc(rc.text);
@@ -124,31 +124,31 @@ export async function reloadVimRc(notify = false): Promise<void> {
   const problems = report.problems.map((p) => `Line ${p.line}: ${p.message}`).join("\n");
   if (report.problems.length) {
     showBalloon(
-      `${rc.path ?? ".ideavimrc"}: ${report.problems.length} line${report.problems.length === 1 ? "" : "s"} ignored`,
+      t("tools.vim.linesIgnored", { count: report.problems.length, value: rc.path ?? ".ideavimrc" }),
       problems,
       8000,
-      [{ label: "Vim Settings", run: () => openSettings("editor.vim") }],
+      [{ label: t("tools.vim.vimSettings"), run: () => openSettings("editor.vim") }],
       { type: "warning" },
     );
   } else if (notify) {
-    showBalloon(rc.path ? `Reloaded ${rc.path}` : "No .ideavimrc found", undefined, 3000, undefined, { log: false });
+    showBalloon(rc.path ? `Reloaded ${rc.path}` : t("tools.vim.noIdeavimrcFound"), undefined, 3000, undefined, { log: false });
   }
 }
 
 function RcStatus() {
   return (
     <div class="vim-rc-status" data-testid="vim-rc-status">
-      <Show when={rcState()} fallback={<span>The configuration file is read when Vim emulation is turned on.</span>}>
+      <Show when={rcState()} fallback={<span>{t("tools.vim.theConfigurationFileIsRead")}</span>}>
         {(s) => (
           <>
             <span>
               {s().path
-                ? `${s().path}: ${s().report.applied} command${s().report.applied === 1 ? "" : "s"} applied`
-                : "No ~/.ideavimrc found."}
-              {s().report.problems.length ? `, ${s().report.problems.length} ignored` : ""}
+                ? t("tools.vim.commandsApplied", { count: s().report.applied, path: s().path })
+                : t("tools.vim.noIdeavimrcFound2")}
+              {s().report.problems.length ? t("tools.vim.ignored", { count: s().report.problems.length }) : ""}
             </span>
             <button class="btn-secondary" onClick={() => void reloadVimRc(true)}>
-              Reload
+              {t("common.reload")}
             </button>
           </>
         )}
@@ -168,7 +168,7 @@ setVimHost({
     try {
       await openFile(rel);
     } catch (e) {
-      showBalloon(`Cannot open ${path}`, String(e), 4000, undefined, { type: "error" });
+      showBalloon(t("tools.vim.cannotOpen", { path }), String(e), 4000, undefined, { type: "error" });
     }
   },
   reloadRc: () => reloadVimRc(true),

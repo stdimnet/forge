@@ -10,6 +10,7 @@ import { CallLog } from "./CallLog";
 import { ClientConfigs } from "./ClientConfigs";
 import { MCP_PAGE_ID } from "./McpStatusItem";
 import { clearLog, clientsText, mcpLog, mcpStatus, refreshStatus } from "./store";
+import { t } from "@/i18n";
 
 function Section(props: { title: string; children: unknown }) {
   return (
@@ -31,8 +32,8 @@ function ServerStatusLine() {
       </Show>
       <span>
         <Show when={s()?.running} fallback={s()?.error ?? "Not running. Enable it above and click Apply."}>
-          Listening on <span class="mono">{s()!.url}</span> (this computer only)
-          <Show when={clientsText(s())}>{(c) => <> · connected: {c()}</>}</Show>
+          {t("tools.mcp.listeningOn")} <span class="mono">{s()!.url}</span> {t("tools.mcp.thisComputerOnly")}
+          <Show when={clientsText(s())}>{(c) => <> {t("tools.mcp.connected", { c: c() })}</>}</Show>
         </Show>
       </span>
     </div>
@@ -53,34 +54,32 @@ export function McpServerPage() {
   return (
     <div class="mcp-page" data-testid="mcp-page">
       <div class="muted mcp-intro">
-        External AI agents such as Claude Code, Claude Desktop, Cursor, Gemini CLI and Codex can connect to Forge and use its tools on the open
-        project: read and search files, navigate, see problems, edit in the editor (undoable), run configurations and tests, Git, terminal commands
-        and read-only database queries. Projects in Safe Mode, files in .aiignore and projects with AI features turned off stay protected.
+        {t("tools.mcp.externalAiAgentsSuchAs")}
       </div>
       <SchemaPage pageId={MCP_PAGE_ID} />
-      <Section title="Status">
+      <Section title={t("common.status")}>
         <ServerStatusLine />
         <Show when={mcpStatus()?.running}>
           <div class="mcp-row">
             <span class="muted">
               {mcpStatus()?.tokenPersistent
-                ? "The bearer token is stored in the system keychain."
-                : "The system keychain is unavailable: the token changes when Forge restarts."}
+                ? t("tools.mcp.theBearerTokenIsStored")
+                : t("tools.mcp.theSystemKeychainIsUnavailable")}
             </span>
             <button class="btn-secondary" disabled={busy()} onClick={() => void regenerate()}>
-              <RefreshCw size={13} /> Regenerate Token
+              <RefreshCw size={13} /> {t("tools.mcp.regenerateToken")}
             </button>
           </div>
         </Show>
       </Section>
-      <Section title="Client Configuration">
+      <Section title={t("tools.mcp.clientConfiguration")}>
         <ClientConfigs />
       </Section>
-      <Section title="Call Log">
+      <Section title={t("tools.mcp.callLog")}>
         <div class="mcp-row">
-          <span class="muted">Every tool call of every client, newest first.</span>
+          <span class="muted">{t("tools.mcp.everyToolCallOfEvery")}</span>
           <button class="btn-secondary" disabled={!mcpLog().length} onClick={() => void clearLog()}>
-            Clear
+            {t("common.clear")}
           </button>
         </div>
         <CallLog entries={mcpLog()} />

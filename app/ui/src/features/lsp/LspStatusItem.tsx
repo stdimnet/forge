@@ -70,7 +70,7 @@ export function LspStatusItem() {
         <button
           class="status-item lsp-status"
           data-state={s().server.state}
-          title={`${tooltip()}\n\nClick to manage language servers`}
+          title={t("tools.lsp.clickToManageLanguageServers", { tooltip: tooltip() })}
           onClick={() => openSettings("lang.servers")}
         >
           <Switch>
@@ -100,7 +100,7 @@ export function LspStatusItem() {
               {(r) => (
                 <>
                   <Braces size={12} />
-                  <span>{r().count > 1 ? `${r().count} language servers` : r().server.name}</span>
+                  <span>{r().count > 1 ? t("tools.lsp.languageServers", { count: r().count }) : r().server.name}</span>
                   <Check size={12} class="lsp-ok" />
                 </>
               )}

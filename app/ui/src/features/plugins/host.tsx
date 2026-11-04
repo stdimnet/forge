@@ -31,6 +31,7 @@ import { languageIdFor } from "@/editor/languages";
 import { workspace } from "@/state/workspace";
 import { workspaceApi } from "@/ipc/workspace";
 import { pluginDocument, VIEW_CSP } from "./sandbox";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Plugins");
 
@@ -172,7 +173,7 @@ export function activate(plugin: InstalledPlugin): Promise<void> {
       if (event.source !== frame.contentWindow || m?.forgePlugin !== 1 || m.kind !== "activated") return;
       window.removeEventListener("message", onActivated);
       if (m.error) {
-        showBalloon(`${plugin.manifest.name} failed to start`, m.error.split("\n")[0], 8000, undefined, { type: "error" });
+        showBalloon(t("tools.plugins.failedToStart", { name: plugin.manifest.name }), m.error.split("\n")[0], 8000, undefined, { type: "error" });
         reject(new Error(m.error));
       } else resolve();
     };
@@ -186,7 +187,7 @@ export function activate(plugin: InstalledPlugin): Promise<void> {
         window.removeEventListener("message", onActivated);
         instances.delete(plugin.manifest.id);
         const msg = e instanceof Error ? e.message : String(e);
-        showBalloon(`${plugin.manifest.name} was not loaded`, msg, 8000, undefined, { type: "warning" });
+        showBalloon(t("tools.plugins.wasNotLoaded", { name: plugin.manifest.name }), msg, 8000, undefined, { type: "warning" });
         reject(new Error(msg));
       },
     );
@@ -244,7 +245,7 @@ function PluginToolWindow(props: { id: string; plugin: InstalledPlugin }): JSX.E
   return (
     <div class="plugin-toolwindow">
       <Show when={toolWindowHtml()[props.id] === undefined}>
-        <div class="set-empty">Loading {props.plugin.manifest.name}…</div>
+        <div class="set-empty">{t("tools.plugins.loadingEllipsis", { name: props.plugin.manifest.name })}</div>
       </Show>
       <iframe
         ref={frame}
@@ -307,7 +308,7 @@ function contribute(p: InstalledPlugin): void {
       order: 900,
       keywords: [p.manifest.name, "plugin"],
       component: () => (
-        <Show when={isLoaded(p.manifest.id)} fallback={<div class="set-empty">The plugin {p.manifest.name} is disabled.</div>}>
+        <Show when={isLoaded(p.manifest.id)} fallback={<div class="set-empty">{t("tools.plugins.thePluginIsDisabled", { name: p.manifest.name })}</div>}>
           <SchemaPage pageId={page.id} />
         </Show>
       ),

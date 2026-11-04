@@ -11,6 +11,7 @@ import { jsonSchemaApi, type BuiltinSchema, type SchemaMapping } from "@/ipc/jso
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { entryKind, fileLines, newMappingName, SCHEMA_VERSIONS, type MappingKind } from "./mappings";
 import { MAPPINGS_KEY } from "./state";
+import { t } from "@/i18n";
 
 const KIND_ICON = { file: FileText, directory: Folder, pattern: Asterisk } as const;
 const KIND_LABEL: Record<MappingKind, string> = { file: "File", directory: "Directory", pattern: "File path pattern" };
@@ -73,15 +74,15 @@ export function JsonSchemaMappingsPage() {
       <div class="json-schema-split">
         <div class="set-list json-schema-list">
           <div class="set-list-toolbar">
-            <button class="icon-btn" title="Add" onClick={add}>
+            <button class="icon-btn" title={t("common.add")} onClick={add}>
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={sel() === null} onClick={remove}>
+            <button class="icon-btn" title={t("common.remove")} disabled={sel() === null} onClick={remove}>
               <Minus size={14} />
             </button>
           </div>
           <div class="set-list-items json-schema-names">
-            <Index each={list()} fallback={<div class="set-list-empty">No user mappings</div>}>
+            <Index each={list()} fallback={<div class="set-list-empty">{t("tools.jsonSchema.noUserMappings")}</div>}>
               {(m, i) => (
                 <button
                   class="json-schema-name"
@@ -93,7 +94,7 @@ export function JsonSchemaMappingsPage() {
                   }}
                 >
                   <FileJson size={13} />
-                  <span>{m().name || "Unnamed"}</span>
+                  <span>{m().name || t("tools.jsonSchema.unnamed")}</span>
                 </button>
               )}
             </Index>
@@ -101,37 +102,37 @@ export function JsonSchemaMappingsPage() {
         </div>
         <Show
           when={current()}
-          fallback={<div class="set-desc json-schema-hint">Add a mapping to validate files with a JSON schema of your own.</div>}
+          fallback={<div class="set-desc json-schema-hint">{t("tools.jsonSchema.addAMappingToValidate")}</div>}
         >
           {(m) => (
             <div class="json-schema-form">
               <div class="set-line">
-                <label class="set-label json-schema-label">Name:</label>
+                <label class="set-label json-schema-label">{t("common.nameLabel")}</label>
                 <input class="set-input" value={m().name} spellcheck={false} onInput={(e) => update({ name: e.currentTarget.value })} />
               </div>
               <div class="set-line">
-                <label class="set-label json-schema-label">Schema file or URL:</label>
+                <label class="set-label json-schema-label">{t("tools.jsonSchema.schemaFileOrUrlLabel")}</label>
                 <input
                   class="set-input set-path"
                   value={m().schema}
-                  placeholder="schemas/app.schema.json or https://…"
+                  placeholder={t("tools.jsonSchema.schemasAppSchemaJsonOrEllipsis")}
                   spellcheck={false}
                   onInput={(e) => update({ schema: e.currentTarget.value })}
                 />
               </div>
               <div class="set-line">
-                <label class="set-label json-schema-label">Schema version:</label>
+                <label class="set-label json-schema-label">{t("tools.jsonSchema.schemaVersionLabel")}</label>
                 <select class="set-select" value={m().version ?? ""} onChange={(e) => update({ version: e.currentTarget.value })}>
                   <For each={SCHEMA_VERSIONS}>{(v) => <option value={v.value}>{v.label}</option>}</For>
                 </select>
               </div>
               <Show when={!m().schema.trim()}>
-                <div class="set-desc">Without a schema, the files below are not validated (“No JSON schema”).</div>
+                <div class="set-desc">{t("tools.jsonSchema.withoutASchemaTheFiles")}</div>
               </Show>
               <div class="set-list json-schema-entries">
                 <div class="set-list-toolbar">
                   <div class="json-schema-add">
-                    <button class="icon-btn" title="Add" onClick={() => setAdding((a) => !a)}>
+                    <button class="icon-btn" title={t("common.add")} onClick={() => setAdding((a) => !a)}>
                       <Plus size={14} />
                     </button>
                     <Show when={adding()}>
@@ -142,7 +143,7 @@ export function JsonSchemaMappingsPage() {
                             return (
                               <button class="context-menu-item" role="menuitem" onClick={() => addEntry(kind)}>
                                 <Icon size={13} />
-                                <span>Add {KIND_LABEL[kind]}</span>
+                                <span>{t("tools.jsonSchema.add", { value: KIND_LABEL[kind] })}</span>
                               </button>
                             );
                           }}
@@ -150,12 +151,12 @@ export function JsonSchemaMappingsPage() {
                       </div>
                     </Show>
                   </div>
-                  <button class="icon-btn" title="Remove" disabled={entrySel() === null} onClick={removeEntry}>
+                  <button class="icon-btn" title={t("common.remove")} disabled={entrySel() === null} onClick={removeEntry}>
                     <Minus size={14} />
                   </button>
                 </div>
                 <div class="set-list-items" ref={entriesEl}>
-                  <Index each={entries()} fallback={<div class="set-list-empty">No files are mapped yet</div>}>
+                  <Index each={entries()} fallback={<div class="set-list-empty">{t("tools.jsonSchema.noFilesAreMappedYet")}</div>}>
                     {(entry, i) => {
                       const kind = () => entryKind(entry());
                       return (
@@ -178,8 +179,8 @@ export function JsonSchemaMappingsPage() {
                 </div>
               </div>
               <div class="set-desc">
-                Paths are relative to the project root. A directory ends with <code>/</code>; patterns use <code>*</code>,{" "}
-                <code>**</code>, <code>?</code> and <code>{"{a,b}"}</code> and match file names when they contain no <code>/</code>.
+                {t("tools.jsonSchema.pathsAreRelativeToThe")} <code>/</code>{t("tools.jsonSchema.patternsUse")} <code>*</code>,{" "}
+                <code>**</code>, <code>?</code> and <code>{"{a,b}"}</code> {t("tools.jsonSchema.andMatchFileNamesWhen")} <code>/</code>.
               </div>
             </div>
           )}
@@ -187,14 +188,14 @@ export function JsonSchemaMappingsPage() {
       </div>
       <section class="set-section">
         <div class="set-section-title">
-          <span>Built-in Mappings</span>
+          <span>{t("tools.jsonSchema.builtInMappings")}</span>
         </div>
         <div class="set-section-body indented">
           <table class="set-table json-schema-builtins">
             <thead>
               <tr>
-                <th>Schema</th>
-                <th>Files</th>
+                <th>{t("tools.jsonSchema.schema")}</th>
+                <th>{t("tools.jsonSchema.files")}</th>
               </tr>
             </thead>
             <tbody>
@@ -209,8 +210,7 @@ export function JsonSchemaMappingsPage() {
             </tbody>
           </table>
           <div class="set-desc">
-            Bundled with Forge. A <code>"$schema"</code> in the file, or <code># yaml-language-server: $schema=…</code> in YAML, picks
-            another schema; your mappings win over both.
+            {t("tools.jsonSchema.bundledWithForgeA")} <code>"$schema"</code> {t("tools.jsonSchema.inTheFileOr")} <code># yaml-language-server: $schema=…</code> {t("tools.jsonSchema.inYamlPicksAnotherSchema")}
           </div>
         </div>
       </section>

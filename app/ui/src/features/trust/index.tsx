@@ -25,7 +25,7 @@ async function decide(check: Parameters<typeof askTrust>[0], path?: string): Pro
   try {
     await trustApi.trust(path, answer.trustLocation ? check.parent : undefined);
   } catch (e) {
-    showBalloon("Cannot trust the project", String(e));
+    showBalloon(t("tools.trust.cannotTrustTheProject"), String(e));
     return "safe";
   }
   return "trust";
@@ -55,9 +55,9 @@ export async function trustOpenProject(): Promise<void> {
   try {
     await trustApi.trust(undefined, answer.trustLocation ? status.parent : undefined);
     await refreshTrust();
-    showBalloon("Project trusted", "Scripts, run configurations and tools of the project can run now.");
+    showBalloon(t("tools.trust.projectTrusted"), t("tools.trust.scriptsRunConfigurationsAndTools"));
   } catch (e) {
-    showBalloon("Cannot trust the project", String(e));
+    showBalloon(t("tools.trust.cannotTrustTheProject"), String(e));
   }
 }
 
@@ -75,11 +75,10 @@ export function SafeModeBanner() {
       <div class="safe-mode-banner" role="status" data-testid="safe-mode-banner">
         <ShieldAlert size={14} class="safe-mode-banner-icon" />
         <span class="safe-mode-banner-text">
-          <strong>Safe mode, limited functionality.</strong> Trust the project to run its scripts, run configurations,
-          tests and tools.
+          <strong>{t("tools.trust.safeModeLimitedFunctionality")}</strong> {t("tools.trust.trustTheProjectToRun")}
         </span>
         <button class="safe-mode-banner-link" onClick={() => void trustOpenProject()} data-testid="safe-mode-trust">
-          Trust Project…
+          {t("tools.trust.trustProjectEllipsis")}
         </button>
       </div>
     </Show>

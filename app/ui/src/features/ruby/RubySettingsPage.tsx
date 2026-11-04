@@ -15,6 +15,7 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { LanguageServersPage } from "@/features/langservers/LanguageServersPage";
 import { installGem, installRubyLsp } from "./install";
 import { errorText, refreshRubyStatus } from "./state";
+import { t as tr } from "@/i18n";
 import "./ruby.css";
 
 const REASONS: Record<string, string> = {
@@ -25,13 +26,13 @@ const REASONS: Record<string, string> = {
 };
 
 const TOOLS: { tool: string; label: string; gem?: "debug" | "rubocop"; licence: string }[] = [
-  { tool: "bundle", label: "Bundler", licence: "MIT" },
+  { tool: "bundle", label: tr("langs.ruby.bundler"), licence: "MIT" },
   { tool: "rake", label: "Rake", licence: "MIT" },
-  { tool: "rspec", label: "RSpec", licence: "MIT" },
-  { tool: "rubocop", label: "RuboCop", gem: "rubocop", licence: "MIT" },
+  { tool: "rspec", label: tr("langs.ruby.rspec"), licence: "MIT" },
+  { tool: "rubocop", label: tr("langs.ruby.rubocop"), gem: "rubocop", licence: "MIT" },
   { tool: "rdbg", label: "rdbg (debug gem)", gem: "debug", licence: "BSD-2-Clause" },
   { tool: "irb", label: "IRB", licence: "BSD-2-Clause" },
-  { tool: "ruby-lsp", label: "Ruby LSP", licence: "MIT" },
+  { tool: "ruby-lsp", label: tr("langs.ruby.rubyLsp"), licence: "MIT" },
 ];
 
 export function RubySettingsPage() {
@@ -61,16 +62,16 @@ export function RubySettingsPage() {
   };
   return (
     <div class="ruby-settings">
-      <h3 class="set-section-title">Ruby SDK</h3>
+      <h3 class="set-section-title">{tr("langs.ruby.rubySdk")}</h3>
       <div class="ruby-row">
         <select data-testid="ruby-interpreter" value={chosen()} onChange={(e) => setDraft("ruby.interpreter", e.currentTarget.value)}>
           <option value="">{`Automatic${status()?.chosen ? ` (${status()!.chosen!.interpreter.name})` : ": no interpreter found"}`}</option>
           <For each={status()?.interpreters ?? []}>{(i) => <option value={i.path}>{i.name}</option>}</For>
         </select>
         <button class="btn-secondary" onClick={() => setAdding(!adding())}>
-          <Plus size={13} /> Add Interpreter…
+          <Plus size={13} /> {tr("langs.ruby.addInterpreterEllipsis")}
         </button>
-        <button class="icon-btn" title="Detect interpreters again" onClick={() => void refetch()}>
+        <button class="icon-btn" title={tr("langs.ruby.detectInterpretersAgain")} onClick={() => void refetch()}>
           <RefreshCw size={13} />
         </button>
       </div>
@@ -78,7 +79,7 @@ export function RubySettingsPage() {
         <div class="ruby-row">
           <input placeholder="/opt/rubies/ruby-3.4.1/bin/ruby" value={newPath()} onInput={(e) => setNewPath(e.currentTarget.value)} />
           <button class="btn-secondary" disabled={!newPath().trim()} onClick={() => void add()}>
-            Add
+            {tr("common.add")}
           </button>
         </div>
         <Show when={addError()}>
@@ -86,7 +87,7 @@ export function RubySettingsPage() {
         </Show>
       </Show>
       <div class="ruby-interpreters" role="listbox">
-        <For each={status()?.interpreters ?? []} fallback={<div class="ruby-interpreter muted">No Ruby found. Install one with rbenv, rvm, chruby, asdf, mise or your system's package manager.</div>}>
+        <For each={status()?.interpreters ?? []} fallback={<div class="ruby-interpreter muted">{tr("langs.ruby.noRubyFoundInstallOne")}</div>}>
           {(i) => (
             <div
               class="ruby-interpreter"
@@ -106,21 +107,21 @@ export function RubySettingsPage() {
       <Show when={status()}>
         {(s) => (
           <div class="ruby-facts">
-            <span>Project Ruby</span>
+            <span>{tr("langs.ruby.projectRuby")}</span>
             <span class="ruby-mono">
               {s().chosen
                 ? `${s().chosen!.interpreter.name} — ${REASONS[s().chosen!.reason] ?? ""}${s().chosen!.reason === "versionFile" && s().chosen!.request ? ` ${s().chosen!.request!.file}` : ""}`
                 : "none"}
             </span>
-            <span>Version file</span>
+            <span>{tr("langs.ruby.versionFile")}</span>
             <span class="ruby-mono" classList={{ "ruby-missing": !!s().request && s().chosen?.reason !== "versionFile" && !s().setting }}>
               {s().request
                 ? `${s().request!.file}: ${s().request!.version}${s().chosen?.reason !== "versionFile" && !s().setting ? " (not installed)" : ""}`
                 : "none"}
             </span>
-            <span>Version managers</span>
+            <span>{tr("langs.ruby.versionManagers")}</span>
             <span class="ruby-mono">{s().managers.join(", ") || "none"}</span>
-            <span>Gems</span>
+            <span>{tr("langs.ruby.gems")}</span>
             <span class="ruby-mono" title={s().probe?.gemPath.join("\n")}>
               {s().probe?.userDir || "unknown"}
             </span>
@@ -128,7 +129,7 @@ export function RubySettingsPage() {
         )}
       </Show>
 
-      <h3 class="set-section-title">Tools</h3>
+      <h3 class="set-section-title">{tr("common.tools")}</h3>
       <table class="ruby-tools">
         <tbody>
           <For each={TOOLS}>
@@ -138,14 +139,14 @@ export function RubySettingsPage() {
                 <tr data-ruby-tool={t.tool}>
                   <td>{t.label}</td>
                   <td class="ruby-tool-path" classList={{ "ruby-missing": !path() }} title={path() ?? ""}>
-                    {path() ?? (status()?.bundler && t.tool !== "ruby-lsp" ? "not found (bundle exec)" : "not found")}
-                    {t.tool === "ruby-lsp" && status()?.lsp.managed ? " (installed by Forge)" : ""}
+                    {path() ?? (status()?.bundler && t.tool !== "ruby-lsp" ? tr("langs.ruby.notFoundBundleExec") : tr("common.notFound"))}
+                    {t.tool === "ruby-lsp" && status()?.lsp.managed ? tr("langs.ruby.installedByForge") : ""}
                   </td>
                   <td class="muted">{t.licence}</td>
                   <td>
                     <Show when={!path() && (t.gem || t.tool === "ruby-lsp")}>
                       <button class="pill-btn" onClick={() => void install(t.tool, t.gem)}>
-                        Install
+                        {tr("common.install")}
                       </button>
                     </Show>
                   </td>
@@ -156,7 +157,7 @@ export function RubySettingsPage() {
         </tbody>
       </table>
       <SchemaPage pageId="lang.ruby" />
-      <h3 class="set-section-title">Language Server</h3>
+      <h3 class="set-section-title">{tr("common.languageServer")}</h3>
       <LanguageServersPage groups={["Ruby"]} />
     </div>
   );

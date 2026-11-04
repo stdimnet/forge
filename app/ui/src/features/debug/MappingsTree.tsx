@@ -49,7 +49,7 @@ function Row(props: { name: string; path: string; depth: number; root?: boolean 
           value={remote()}
           placeholder={props.root ? "/var/www/html" : " "}
           disabled={props.disabled}
-          aria-label={`Absolute path on the server for ${props.path || "the project root"}`}
+          aria-label={t("tools.debug.absolutePathOnTheServer", { value: props.path || "the project root" })}
           onChange={(e) => props.onChange(props.path, e.currentTarget.value.trim())}
         />
       </div>

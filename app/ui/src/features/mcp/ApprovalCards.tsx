@@ -8,6 +8,7 @@ import { Portal } from "solid-js/web";
 import { Ban, Check, CheckCheck, PlugZap } from "lucide-solid";
 import type { McpApprovalRequest } from "@/ipc/mcp";
 import { answerApproval, mcpApprovals } from "./store";
+import { t } from "@/i18n";
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
@@ -41,28 +42,28 @@ function Preview(props: { req: McpApprovalRequest }) {
 function Card(props: { req: McpApprovalRequest }) {
   const r = () => props.req;
   return (
-    <div class="mcp-approval" role="alertdialog" aria-label={`${r().client} wants to ${r().summary}`} data-tool={r().tool}>
+    <div class="mcp-approval" role="alertdialog" aria-label={t("tools.mcp.wantsTo", { client: r().client, summary: r().summary })} data-tool={r().tool}>
       <div class="mcp-approval-head">
         <PlugZap size={15} />
         <span>
-          <strong>{r().client}</strong> wants to <strong>{r().summary}</strong>
+          <strong>{r().client}</strong> {t("tools.mcp.wantsTo2")} <strong>{r().summary}</strong>
         </span>
       </div>
       <div class="muted mcp-approval-tool">
-        MCP tool <span class="mono">{r().tool}</span>
+        {t("tools.mcp.mcpTool")} <span class="mono">{r().tool}</span>
       </div>
       <Preview req={r()} />
       <div class="mcp-approval-actions">
         <button class="btn-primary" onClick={() => void answerApproval(r().id, "once")}>
-          <Check size={13} /> Allow
+          <Check size={13} /> {t("tools.mcp.allow")}
         </button>
         <Show when={r().sessionAllowed}>
-          <button class="btn-secondary" title={`Don't ask again for ${r().tool} until ${r().client} disconnects`} onClick={() => void answerApproval(r().id, "session")}>
-            <CheckCheck size={13} /> Allow for This Session
+          <button class="btn-secondary" title={t("tools.mcp.donTAskAgainFor", { tool: r().tool, client: r().client })} onClick={() => void answerApproval(r().id, "session")}>
+            <CheckCheck size={13} /> {t("tools.mcp.allowForThisSession")}
           </button>
         </Show>
         <button class="btn-secondary" onClick={() => void answerApproval(r().id, "deny")}>
-          <Ban size={13} /> Deny
+          <Ban size={13} /> {t("tools.mcp.deny")}
         </button>
       </div>
     </div>

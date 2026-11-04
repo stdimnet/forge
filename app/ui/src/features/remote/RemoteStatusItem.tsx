@@ -10,6 +10,7 @@ import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { StatusPopup } from "@/shell/StatusPopup";
 import { remoteStatus } from "./store";
+import { t } from "@/i18n";
 
 /** Latency class: fast / slow / very slow, colored in the widget. */
 export function latencyLevel(ms: number | null | undefined): "good" | "fair" | "poor" | "unknown" {
@@ -42,7 +43,7 @@ export function RemoteStatusItem() {
     try {
       await remoteApi.reconnect();
     } catch (e) {
-      showBalloon("Cannot reconnect", String((e as Error)?.message ?? e));
+      showBalloon(t("tools.remote.cannotReconnect"), String((e as Error)?.message ?? e));
     }
   };
 
@@ -52,7 +53,7 @@ export function RemoteStatusItem() {
         class="status-item remote-status"
         data-state={remoteStatus()?.state ?? "connected"}
         data-latency={latencyLevel(remoteStatus()?.state === "connected" ? (remoteStatus() as { latencyMs?: number }).latencyMs : null)}
-        title={workspace()?.remote?.kind ? label() : `Remote host: ${label()}`}
+        title={workspace()?.remote?.kind ? label() : t("tools.remote.remoteHost", { label: label() })}
         onClick={() => setOpen((v) => !v)}
         data-testid="remote-status"
       >
@@ -68,19 +69,19 @@ export function RemoteStatusItem() {
         <Show when={remoteStatus()}>{(s) => <span class="remote-status-detail">{statusText(s())}</span>}</Show>
       </button>
       <Show when={open()}>
-        <StatusPopup anchor={el!} class="remote-popup" label="Remote Host" onClose={() => setOpen(false)}>
+        <StatusPopup anchor={el!} class="remote-popup" label={t("tools.remote.remoteHost2")} onClose={() => setOpen(false)}>
           <div class="remote-popup-title">
             <Server size={14} /> {label()}
           </div>
           <dl class="remote-popup-grid">
-            <dt>Project</dt>
+            <dt>{t("common.project")}</dt>
             <dd class="mono">{workspace()?.remote?.path}</dd>
-            <dt>Status</dt>
+            <dt>{t("common.status")}</dt>
             <dd>
               <Show when={remoteStatus()} fallback="Connected">
                 {(s) => (
                   <Switch>
-                    <Match when={s().state === "connected"}>Connected</Match>
+                    <Match when={s().state === "connected"}>{t("tools.remote.connected")}</Match>
                     <Match when={s().state === "reconnecting" && (s() as Extract<RemoteStatus, { state: "reconnecting" }>)}>
                       {(r) => `Reconnecting (attempt ${r().attempt}, next try in ${r().nextRetrySecs} s): ${r().error}`}
                     </Match>
@@ -93,22 +94,21 @@ export function RemoteStatusItem() {
               </Show>
             </dd>
             <Show when={remoteStatus()?.state === "connected"}>
-              <dt>Latency</dt>
+              <dt>{t("tools.remote.latency")}</dt>
               <dd>{statusText(remoteStatus()!)}</dd>
             </Show>
-            <dt>Services</dt>
+            <dt>{t("tools.remote.services")}</dt>
             <dd>
-              Indexing, language servers, git and terminals run{" "}
-              {workspace()?.remote?.kind?.type === "devContainer"
-                ? "in the container"
+              {t("tools.remote.indexingLanguageServersGitAnd", { value: workspace()?.remote?.kind?.type === "devContainer"
+                ? t("tools.remote.inTheContainer")
                 : workspace()?.remote?.kind?.type === "wsl"
-                  ? "in the distribution"
-                  : "on the host"}
+                  ? t("tools.remote.inTheDistribution")
+                  : t("tools.remote.onTheHost") })}
             </dd>
           </dl>
           <div class="remote-popup-actions">
             <button class="btn-secondary" onClick={() => void reconnect()}>
-              Reconnect
+              {t("tools.remote.reconnect")}
             </button>
           </div>
         </StatusPopup>

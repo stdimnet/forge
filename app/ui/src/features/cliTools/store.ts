@@ -13,6 +13,7 @@ import { balloonsFor } from "@/keymap";
 import { saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { isPluginActive } from "@/state/project";
+import { t as tr } from "@/i18n";
 
 export const TOOL_WINDOW_ID = "commandLineTools";
 export const PLUGIN_ID = "forge.command-line-tools";
@@ -36,7 +37,7 @@ export async function loadTools(): Promise<CliTool[]> {
     setTools(list);
     return list;
   } catch (err) {
-    showBalloon("Cannot load command line tools", String(err));
+    showBalloon(tr("tools.cliTools.cannotLoadCommandLineTools"), String(err));
     return tools();
   } finally {
     setToolsLoaded(true);
@@ -204,7 +205,7 @@ export async function runInput(input: string, target?: ShowConsoleIn): Promise<C
 export async function stopRun(id: string | null | undefined = state.active): Promise<void> {
   const run = findRun(id);
   if (!run?.runId || !isLive(run)) return;
-  await runApi.stop(run.runId).catch((err) => showBalloon("Cannot stop the command", String(err)));
+  await runApi.stop(run.runId).catch((err) => showBalloon(tr("tools.cliTools.cannotStopTheCommand"), String(err)));
 }
 
 export async function rerun(id: string | null | undefined = state.active): Promise<void> {
@@ -240,7 +241,7 @@ export async function closeRun(id: string): Promise<void> {
 export async function sendInput(id: string, text: string): Promise<void> {
   const run = findRun(id);
   if (!run?.runId || !isLive(run)) return;
-  await runApi.write(run.runId, text).catch((err) => showBalloon("Cannot send input", String(err)));
+  await runApi.write(run.runId, text).catch((err) => showBalloon(tr("tools.cliTools.cannotSendInput"), String(err)));
 }
 
 /** Tool window tabs (popup runs are shown in the popup only). */

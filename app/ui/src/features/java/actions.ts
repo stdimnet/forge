@@ -6,6 +6,7 @@ import { useTemporary } from "@/features/run/configStore";
 import { launch } from "@/features/run/runStore";
 import type { ProjectModel } from "@/ipc/java";
 import { buildModel, buildView, refreshBuild, syncError, syncProject } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Java");
 
@@ -13,7 +14,7 @@ const showBalloon = balloonsFor("Java");
 export async function buildProject(): Promise<void> {
   const b = buildView() ?? (await refreshBuild());
   if (!b) {
-    showBalloon("Nothing to build", "The project has no Maven or Gradle build in its root.", 5000);
+    showBalloon(t("langs.java.nothingToBuild"), t("langs.java.theProjectHasNoMaven"), 5000);
     return;
   }
   const gradle = b.project.tool === "gradle";
@@ -21,10 +22,10 @@ export async function buildProject(): Promise<void> {
   if (gradle && getSetting<string>("java.gradle.buildAndRunUsing", "gradle") === "idea") {
     try {
       const status = await javaApi.buildWorkspace();
-      if (status === 1) showBalloon("Build completed", "Eclipse JDT LS compiled the project.", 3000);
-      else showBalloon("Build completed with errors", "See the Problems tool window.", 6000);
+      if (status === 1) showBalloon(t("langs.java.buildCompleted"), t("langs.java.eclipseJdtLsCompiledThe"), 3000);
+      else showBalloon(t("langs.java.buildCompletedWithErrors"), t("langs.java.seeTheProblemsToolWindow"), 6000);
     } catch (e) {
-      showBalloon("Cannot build the project", String(e).replace(/^Error: /, ""), 8000);
+      showBalloon(t("langs.java.cannotBuildTheProject"), String(e).replace(/^Error: /, ""), 8000);
     }
     return;
   }
@@ -42,9 +43,9 @@ export async function reloadProject(): Promise<void> {
   const m = await syncProject();
   if (m) {
     const n = m.projects.length;
-    showBalloon(`${m.tool === "gradle" ? "Gradle" : "Maven"} sync finished`, `${n} project${n === 1 ? "" : "s"} synced; Eclipse JDT LS re-imports the build.`, 4000);
+    showBalloon(t("langs.java.syncFinished", { value: m.tool === "gradle" ? "Gradle" : "Maven" }), t("langs.java.projectsSyncedEclipseJdtLs", { count: n }), 4000);
   } else if (syncError()) {
-    showBalloon(`${buildView()?.project.tool === "maven" ? "Maven" : "Gradle"} sync failed`, syncError()!, 8000);
+    showBalloon(t("langs.java.syncFailed", { value: buildView()?.project.tool === "maven" ? "Maven" : "Gradle" }), syncError()!, 8000);
   }
 }
 

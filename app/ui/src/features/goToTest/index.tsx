@@ -18,6 +18,7 @@ import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { CreateTestDialogHost } from "./CreateTestDialog";
 import { chooserTitle, CREATE_NEW_TEST, nothingFound, setCreateTestPlan } from "./model";
+import { t as tr } from "@/i18n";
 
 const warn = (what: string) => (e: unknown) => {
   console.warn(what, e);
@@ -39,7 +40,7 @@ export async function createNewTest(): Promise<void> {
   if (!cur) return;
   const plan = await codeApi.newTestPlan(cur.path, cur.content).catch(warn("create test failed"));
   if (plan) setCreateTestPlan(plan);
-  else showBalloon("Tests cannot be created for this file");
+  else showBalloon(tr("tools.goToTest.testsCannotBeCreatedFor"));
 }
 
 async function gotoTest(): Promise<void> {

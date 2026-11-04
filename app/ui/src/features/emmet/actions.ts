@@ -12,6 +12,7 @@ import { showBalloon } from "@/keymap/dispatch";
 import { emmetApi } from "@/ipc/emmet";
 import { applyEdits, applyExpansion, emmetOptions, markupEnabled } from "./model";
 import { openAbbreviationPopup } from "./AbbreviationPopup";
+import { t as tr } from "@/i18n";
 
 /** The active file editor, if any. */
 function target(): { path: string; view: EditorView } | null {
@@ -32,7 +33,7 @@ export function surroundWithEmmet(t = target()): void {
   if (!t) return;
   const { path, view } = t;
   if (!markupEnabled(languageIdFor(path))) {
-    showBalloon("Emmet is not available in this file");
+    showBalloon(tr("tools.emmet.emmetIsNotAvailableIn"));
     return;
   }
   openAbbreviationPopup(view, {
@@ -45,7 +46,7 @@ export function surroundWithEmmet(t = target()): void {
       try {
         applyExpansion(view, await emmetApi.wrap(wrapRequest(path, view, abbr)));
       } catch (e) {
-        showBalloon("Invalid abbreviation", message(e));
+        showBalloon(tr("tools.emmet.invalidAbbreviation"), message(e));
         view.focus();
       }
     },

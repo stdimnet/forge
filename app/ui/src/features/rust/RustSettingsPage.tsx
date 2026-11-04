@@ -14,6 +14,7 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { LanguageServersPage } from "@/features/langservers/LanguageServersPage";
 import { installAnalyzer, installCargoPlugin, installComponent, installToolchain } from "./install";
 import { refreshRustStatus } from "./state";
+import { t as tr } from "@/i18n";
 import "./cargo.css";
 
 export function reasonLabel(r: ActiveReason | undefined): string {
@@ -45,20 +46,20 @@ export function RustSettingsPage() {
   const channelOf = (name: string) => name.replace(/-(x86_64|aarch64|i686|armv7|riscv64gc)-.*$/, "");
   return (
     <div class="rust-settings">
-      <h3 class="set-section-title">Toolchain</h3>
+      <h3 class="set-section-title">{tr("langs.rust.toolchain")}</h3>
       <div class="rust-row">
         <select data-testid="rust-toolchain" value={chosen()} onChange={(e) => setDraft("rust.toolchain", e.currentTarget.value)}>
           <option value="">
-            {`rustup's choice${status()?.active ? ` (${status()!.active!.name}, ${reasonLabel(status()!.active!.reason)})` : ": no toolchain found"}`}
+            {tr("langs.rust.rustupSChoice", { value: status()?.active ? ` (${status()!.active!.name}, ${reasonLabel(status()!.active!.reason)})` : ": no toolchain found" })}
           </option>
           <For each={(status()?.toolchains ?? []).filter((t) => t.source === "rustup")}>
             {(t) => <option value={channelOf(t.name)}>{t.name}</option>}
           </For>
         </select>
         <button class="btn-secondary" onClick={() => installToolchain()}>
-          <Download size={13} /> Install…
+          <Download size={13} /> {tr("common.installEllipsis")}
         </button>
-        <button class="icon-btn" title="Detect toolchains again" onClick={() => void refetch()}>
+        <button class="icon-btn" title={tr("langs.rust.detectToolchainsAgain")} onClick={() => void refetch()}>
           <RefreshCw size={13} />
         </button>
       </div>
@@ -66,22 +67,22 @@ export function RustSettingsPage() {
         {(s) => (
           <div class="rust-facts">
             <span>rustc</span>
-            <span class="rust-mono">{s().rustc ? `${s().rustc!.release} (${s().rustc!.host})` : "not found"}</span>
-            <span>Toolchain file</span>
+            <span class="rust-mono">{s().rustc ? `${s().rustc!.release} (${s().rustc!.host})` : tr("common.notFound")}</span>
+            <span>{tr("langs.rust.toolchainFile")}</span>
             <span class="rust-mono">
               {s().toolchainFile ? `${s().toolchainFile!.path}: ${s().toolchainFile!.file?.channel || s().toolchainFile!.error || ""}` : "none"}
             </span>
-            <span>Sysroot</span>
+            <span>{tr("langs.rust.sysroot")}</span>
             <span class="rust-mono" title={s().sysroot ?? ""}>
               {s().sysroot ?? "unknown"}
             </span>
-            <span>Standard library</span>
+            <span>{tr("langs.rust.standardLibrary")}</span>
             <span class="rust-mono" classList={{ "rust-missing": !s().stdlibSources }}>
-              {s().stdlibSources ?? "rust-src is not installed"}
+              {s().stdlibSources ?? tr("langs.rust.rustSrcIsNotInstalled")}
               <Show when={!s().stdlibSources && s().rustup}>
                 {" "}
                 <button class="pill-btn" onClick={() => void installComponent("rust-src").then(() => refetch())}>
-                  Install
+                  {tr("common.install")}
                 </button>
               </Show>
             </span>
@@ -89,7 +90,7 @@ export function RustSettingsPage() {
         )}
       </Show>
 
-      <h3 class="set-section-title">Tools</h3>
+      <h3 class="set-section-title">{tr("common.tools")}</h3>
       <table class="rust-tools">
         <tbody>
           <For each={status()?.tools ?? []}>
@@ -97,13 +98,13 @@ export function RustSettingsPage() {
               <tr>
                 <td>{t.label}</td>
                 <td class="rust-tool-path" classList={{ "rust-missing": !t.path }}>
-                  {t.path ?? "not found"}
+                  {t.path ?? tr("common.notFound")}
                 </td>
                 <td class="muted">{t.licence}</td>
                 <td>
                   <Show when={t.install && !t.path}>
                     <button class="pill-btn" onClick={() => void install(t.tool)}>
-                      {t.install === "download" ? "Download…" : "Install"}
+                      {t.install === "download" ? tr("common.downloadEllipsis") : tr("common.install")}
                     </button>
                   </Show>
                 </td>
@@ -113,7 +114,7 @@ export function RustSettingsPage() {
         </tbody>
       </table>
       <SchemaPage pageId="lang.rust" />
-      <h3 class="set-section-title">Language Server</h3>
+      <h3 class="set-section-title">{tr("common.languageServer")}</h3>
       <LanguageServersPage groups={["Rust"]} />
     </div>
   );

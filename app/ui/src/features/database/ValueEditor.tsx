@@ -157,7 +157,7 @@ export function ValueEditor(props: {
       </div>
       <div class="db-side-body db-value-body">
         <Show when={isDefault(props.value)}>
-          <div class="db-pending-note">Set to DEFAULT ({props.column.defaultValue ?? "generated"})</div>
+          <div class="db-pending-note">{tr("tools.database.setToDefault", { value: props.column.defaultValue ?? "generated" })}</div>
         </Show>
         <Show when={props.value === null}>
           <div class="db-pending-note muted">{tr("database.valueEditor.theValueIsNull")}</div>
@@ -198,7 +198,7 @@ export function ValueEditor(props: {
             fallback={
               <select class="db-value-select" disabled={!props.editable} value={text()} onChange={(e) => edit(e.currentTarget.value)}>
                 <Show when={!enumValues().includes(text())}>
-                  <option value={text()}>{text() || "(empty)"}</option>
+                  <option value={text()}>{text() || tr("tools.database.empty")}</option>
                 </Show>
                 <For each={enumValues()}>{(v) => <option value={v}>{v}</option>}</For>
               </select>
@@ -261,13 +261,13 @@ export function ValueEditor(props: {
         <Show when={error()}>
           {(e) => (
             <div class="db-value-error" data-testid="db-value-error">
-              {k() === "json" ? tr("database.valueEditor.invalidJson") : tr("database.valueEditor.invalidXml")}: {e().message} (line {e().line}, column {e().column})
+              {tr("tools.database.lineColumn", { value: k() === "json" ? tr("database.valueEditor.invalidJson") : tr("database.valueEditor.invalidXml"), message: e().message, line: e().line, column: e().column })}
             </div>
           )}
         </Show>
         <Show when={(k() === "json" || k() === "xml") && !error() && text().trim()}>
           <div class="db-value-ok">
-            <Check size={12} /> Valid {k() === "json" ? "JSON" : "XML"}
+            <Check size={12} /> {tr("tools.database.valid", { value: k() === "json" ? "JSON" : "XML" })}
           </div>
         </Show>
         <Show when={applyError()}>
@@ -278,12 +278,12 @@ export function ValueEditor(props: {
         <div class="db-side-foot">
           <Show when={props.column.nullable !== false}>
             <button class="db-btn" onClick={() => props.onApply(null)}>
-              Set NULL
+              {tr("tools.database.setNull")}
             </button>
           </Show>
           <Show when={props.column.defaultValue != null || props.column.autoIncrement}>
             <button class="db-btn" onClick={() => props.onApply(DEFAULT_MARKER)}>
-              Set DEFAULT
+              {tr("tools.database.setDefault")}
             </button>
           </Show>
           <span class="db-spacer" />

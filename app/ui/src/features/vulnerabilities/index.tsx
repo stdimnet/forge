@@ -55,7 +55,7 @@ registerCommand({
 
 registerProblemsTab({
   id: VULNERABILITIES_TAB,
-  title: "Vulnerable Dependencies",
+  title: t("tools.vulnerabilities.vulnerableDependencies"),
   order: 10,
   count: vulnerabilityCount,
   visible: active,

@@ -60,10 +60,10 @@ export async function syncNow(quiet = false): Promise<void> {
     const r = await settingsSyncApi.syncNow();
     setLastSync(r);
     if (!quiet || r.pulled.length || r.conflicts.length) {
-      showBalloon("Settings synced", describe(r) + (r.restartNeeded ? " Restart Forge to load the received configuration files." : ""));
+      showBalloon(t("tools.plugins.settingsSynced"), describe(r) + (r.restartNeeded ? " Restart Forge to load the received configuration files." : ""));
     }
   } catch (e) {
-    showBalloon("Settings Sync failed", message(e), 8000, undefined, { type: "error" });
+    showBalloon(t("tools.plugins.settingsSyncFailed"), message(e), 8000, undefined, { type: "error" });
   } finally {
     setSyncing(false);
   }
@@ -85,7 +85,7 @@ function SettingsSyncPage() {
       <div class="sync-status" data-testid="settings-sync-status">
         <div class="sync-status-row">
           <button class="btn-primary set-btn" disabled={syncing()} onClick={() => void syncNow()}>
-            {syncing() ? "Syncing…" : "Sync Now"}
+            {syncing() ? t("tools.plugins.syncingEllipsis") : t("tools.plugins.syncNow")}
           </button>
           <span class="muted">
             <Show when={report()} fallback={"Not synced yet."}>
@@ -94,15 +94,13 @@ function SettingsSyncPage() {
           </span>
         </div>
         <div class="set-section-title" style={{ "margin-top": "10px" }}>
-          Synced settings
+          {t("tools.plugins.syncedSettings")}
         </div>
         <div class="sync-groups">
           <For each={synced()}>{(g) => <span>{g}</span>}</For>
         </div>
         <p class="muted">
-          Each group is synced as a whole: when it changed on both machines, the newer change wins and the other version is
-          backed up (in the sync folder, or in Forge's config folder under settings-sync-backups). API keys and passwords stay in
-          the system keychain and are never synced. Forge runs no sync service: the folder or repository is yours.
+          {t("tools.plugins.eachGroupIsSyncedAs")}
         </p>
       </div>
     </div>

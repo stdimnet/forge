@@ -11,6 +11,7 @@ import { hasFileStructure } from "@/features/php/StructureView";
 import { scopesAt, structureOf } from "@/features/codeStructure/model";
 import { showBalloon } from "@/keymap";
 import { fileStructureSession, showFileStructure, type FileStructureSession } from "./FileStructurePopup";
+import { t } from "@/i18n";
 import "./fileStructure.css";
 
 /** The popup's input for the active editor: its text, the caret line and the scopes around it. */
@@ -45,7 +46,7 @@ registerCommand({
     if (!hasFileStructure(s.path)) {
       const a = activeView();
       if (a) showHint(a.view, a.view.state.selection.main.head, "No structure for this file");
-      else showBalloon("No structure for this file");
+      else showBalloon(t("tools.fileStructure.noStructureForThisFile"));
       return;
     }
     showFileStructure(s);

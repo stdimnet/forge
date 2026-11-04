@@ -30,6 +30,7 @@ import {
   type Snippet,
 } from "./integrations";
 import { formatAgo, formatCountdown, formatPairingCode } from "./format";
+import { t } from "@/i18n";
 
 const PAGE_ID = "tools.browser-companion";
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);
@@ -62,11 +63,11 @@ function CopyButton(props: { text: string; label?: string }) {
     timer = setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <button class="bc-copy" classList={{ done: copied() }} title="Copy to Clipboard" onClick={copy}>
+    <button class="bc-copy" classList={{ done: copied() }} title={t("tools.browserCompanion.copyToClipboard")} onClick={copy}>
       <Show when={copied()} fallback={<Copy size={13} />}>
         <Check size={13} />
       </Show>
-      {props.label ?? (copied() ? "Copied" : "Copy")}
+      {props.label ?? (copied() ? t("common.copied") : t("common.copy"))}
     </button>
   );
 }
@@ -112,7 +113,7 @@ function ServerStatusLine(props: { status?: { running: boolean; port?: number | 
           when={props.status?.running}
           fallback={props.status?.error ?? "Not running. Enable it above and click Apply."}
         >
-          Listening on <span class="mono">127.0.0.1:{props.status!.port}</span> (local connections only)
+          {t("tools.browserCompanion.listeningOn")} <span class="mono">127.0.0.1:{props.status!.port}</span> {t("tools.browserCompanion.localConnectionsOnly")}
         </Show>
       </span>
     </div>
@@ -128,14 +129,14 @@ function ClientRow(props: { client: PairedClient; onRevoke: () => void }) {
       <div class="bc-client-text">
         <div class="bc-client-name">{c().name}</div>
         <div class="muted bc-small">
-          {browser()} extension · paired {formatAgo(c().createdAt, nowSecs())}
+          {t("tools.browserCompanion.extensionPaired", { browser: browser(), value: formatAgo(c().createdAt, nowSecs()) })}
         </div>
       </div>
       <div class="muted bc-small bc-client-used">
-        {c().lastUsedAt ? `Last used ${formatAgo(c().lastUsedAt!, nowSecs())}` : "Never used"}
+        {c().lastUsedAt ? t("tools.browserCompanion.lastUsed", { value: formatAgo(c().lastUsedAt!, nowSecs()) }) : t("tools.browserCompanion.neverUsed")}
       </div>
       <button class="btn-secondary bc-btn-small" onClick={props.onRevoke}>
-        Unpair
+        {t("tools.browserCompanion.unpair")}
       </button>
     </div>
   );
@@ -148,23 +149,23 @@ function PairingCard(props: { code: PairingCode; onCancel: () => void }) {
   const left = () => Math.max(0, props.code.expiresAt - now());
   return (
     <div class="bc-pairing" data-testid="bc-pairing">
-      <div class="bc-pairing-code" aria-label="Pairing code">
+      <div class="bc-pairing-code" aria-label={t("tools.browserCompanion.pairingCode")}>
         {formatPairingCode(props.code.code)}
       </div>
       <div class="bc-pairing-text">
-        <div class="bc-pairing-title">Enter this code in the Forge Companion extension</div>
+        <div class="bc-pairing-title">{t("tools.browserCompanion.enterThisCodeInThe")}</div>
         <div class="muted bc-small">
-          Click the Forge icon in the browser toolbar and type the code. It works once and only on this computer.
+          {t("tools.browserCompanion.clickTheForgeIconIn")}
         </div>
         <div class="bc-row-actions bc-pairing-actions">
           <span class="bc-small bc-countdown" classList={{ expired: left() === 0 }}>
             <Show when={left() > 0} fallback="Expired">
-              Expires in {formatCountdown(left())}
+              {t("tools.browserCompanion.expiresIn", { value: formatCountdown(left()) })}
             </Show>
           </span>
-          <CopyButton text={props.code.code} label="Copy Code" />
+          <CopyButton text={props.code.code} label={t("tools.browserCompanion.copyCode")} />
           <button class="btn-secondary bc-btn-small" onClick={props.onCancel}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -199,7 +200,7 @@ function IntegrationCard(props: {
         <div class="bc-card-title">
           {i().title}
           <Show when={props.detected}>
-            <span class="bc-badge">Detected</span>
+            <span class="bc-badge">{t("common.detected")}</span>
           </Show>
         </div>
         <Show when={i().apply}>
@@ -207,20 +208,20 @@ function IntegrationCard(props: {
             when={!props.applied}
             fallback={
               <span class="bc-applied">
-                <Check size={14} /> Set in {i().apply!.file}
+                <Check size={14} /> {t("tools.browserCompanion.setIn", { file: i().apply!.file })}
               </span>
             }
           >
             <button
               class="btn-secondary bc-btn-small"
               disabled={!props.canApply || busy()}
-              title={props.canApply ? `Set ${i().apply!.key} in ${i().apply!.file}` : "Open a project first"}
+              title={props.canApply ? t("tools.browserCompanion.setIn2", { key: i().apply!.key, file: i().apply!.file }) : t("tools.browserCompanion.openAProjectFirst")}
               onClick={apply}
             >
               <Show when={busy()} fallback={<Wand2 size={13} />}>
                 <LoaderCircle size={13} class="spin" />
               </Show>
-              Apply to {i().apply!.file}…
+              {t("tools.browserCompanion.applyToEllipsis", { file: i().apply!.file })}
             </button>
           </Show>
         </Show>
@@ -276,9 +277,9 @@ export function BrowserCompanionPage() {
 
   async function revoke(client: PairedClient) {
     const ok = await confirmDialog({
-      title: "Unpair Browser",
+      title: t("tools.browserCompanion.unpairBrowser"),
       message: `“${client.name}” will no longer be able to open files in Forge.`,
-      okLabel: "Unpair",
+      okLabel: t("tools.browserCompanion.unpair"),
     });
     if (!ok) return;
     await companionApi.revokeClient(client.id);
@@ -290,10 +291,10 @@ export function BrowserCompanionPage() {
     const line = `${change.key}=${change.value}`;
     const ok = await confirmDialog({
       title: `Apply ${i.title.split(" (")[0]}`,
-      message: `Forge will set this variable in ${change.file} of “${workspace()?.name ?? "the project"}”:`,
+      message: t("tools.browserCompanion.forgeWillSetThisVariableLabel", { file: change.file, value: workspace()?.name ?? "the project" }),
       detail: line,
       question: "An existing value of the variable is replaced; nothing else in the file changes.",
-      okLabel: "Apply",
+      okLabel: t("common.apply"),
     });
     if (!ok) return;
     await companionApi.setEnvVar(change.file, change.key, change.value);
@@ -312,8 +313,7 @@ export function BrowserCompanionPage() {
   return (
     <div class="bc-page">
       <p class="muted bc-intro">
-        Click a component in the browser to open its source in Forge, and let error pages, debuggers and the terminal
-        open files at the right line.
+        {t("tools.browserCompanion.clickAComponentInThe")}
       </p>
 
       <SchemaPage pageId={PAGE_ID} />
@@ -321,13 +321,13 @@ export function BrowserCompanionPage() {
         <ServerStatusLine status={status()?.server} />
       </div>
 
-      <Section title="Paired Browsers">
+      <Section title={t("tools.browserCompanion.pairedBrowsers")}>
         <div class="bc-clients">
           <For
             each={status()?.clients ?? []}
             fallback={
               <div class="bc-empty muted">
-                No browser is paired yet. Install the Forge Companion extension, then click “Pair New Browser…”.
+                {t("tools.browserCompanion.noBrowserIsPairedYet")}
               </div>
             }
           >
@@ -341,10 +341,10 @@ export function BrowserCompanionPage() {
             <div class="bc-row-actions">
               <button class="btn-secondary" data-testid="bc-pair" onClick={startPairing}>
                 <Plus size={14} />
-                Pair New Browser…
+                {t("tools.browserCompanion.pairNewBrowserEllipsis")}
               </button>
               <span class="muted bc-small">
-                Extension: build <span class="mono">browser-extension/</span> and load it unpacked (see its README).
+                {t("tools.browserCompanion.extensionBuild")} <span class="mono">browser-extension/</span> {t("tools.browserCompanion.andLoadItUnpackedSee")}
               </span>
             </div>
           }
@@ -356,12 +356,12 @@ export function BrowserCompanionPage() {
         </Show>
       </Section>
 
-      <Section title="Links and Launcher">
+      <Section title={t("tools.browserCompanion.linksAndLauncher")}>
         <div class="bc-grid">
           <Link2 size={16} class="bc-grid-icon" />
           <div>
             <div>
-              Tools with a custom editor URL can open files in Forge with{" "}
+              {t("tools.browserCompanion.toolsWithACustomEditor")}
               <span class="mono bc-inline-code">{FORGE_URL_TEMPLATE}</span>
             </div>
             <div class="bc-row-actions bc-test-link">
@@ -369,11 +369,11 @@ export function BrowserCompanionPage() {
                 class="set-input mono bc-link-input"
                 value={linkUrl()}
                 spellcheck={false}
-                aria-label="Link to test"
+                aria-label={t("tools.browserCompanion.linkToTest")}
                 onInput={(e) => setLinkUrl(e.currentTarget.value)}
               />
               <button class="btn-secondary bc-btn-small" onClick={testLink}>
-                Open Link
+                {t("tools.browserCompanion.openLink")}
               </button>
             </div>
             <Show when={linkError()}>
@@ -382,18 +382,18 @@ export function BrowserCompanionPage() {
           </div>
           <SquareTerminal size={16} class="bc-grid-icon" />
           <div>
-            From a terminal: <span class="mono bc-inline-code">forge app/Models/User.php:42</span>{" "}
-            <span class="muted">or</span> <span class="mono bc-inline-code">forge --line 42 app/Models/User.php</span>
-            <div class="muted bc-small">A running Forge window opens the file; otherwise Forge starts with its project.</div>
+            {t("tools.browserCompanion.fromATerminalLabel")} <span class="mono bc-inline-code">{t("tools.browserCompanion.forgeAppModelsUserPhp")}</span>{" "}
+            <span class="muted">or</span> <span class="mono bc-inline-code">{t("tools.browserCompanion.forgeLine42AppModels")}</span>
+            <div class="muted bc-small">{t("tools.browserCompanion.aRunningForgeWindowOpens")}</div>
           </div>
         </div>
       </Section>
 
-      <Section title="Framework Integrations">
-        <Show when={workspace()} fallback={<div class="muted bc-small">Open a project to see the integrations it needs first.</div>}>
+      <Section title={t("tools.browserCompanion.frameworkIntegrations")}>
+        <Show when={workspace()} fallback={<div class="muted bc-small">{t("tools.browserCompanion.openAProjectToSee")}</div>}>
           <div class="muted bc-small bc-detected-line">
             <Show when={detectedCount()} fallback="No supported framework was found in this project; all integrations are shown.">
-              Showing what was found in composer.json and package.json of “{workspace()!.name}”.
+              {t("tools.browserCompanion.showingWhatWasFoundIn", { name: workspace()!.name })}
             </Show>
           </div>
         </Show>
@@ -415,7 +415,7 @@ export function BrowserCompanionPage() {
             <Show when={showAll()} fallback={<ChevronRight size={14} />}>
               <ChevronDown size={14} />
             </Show>
-            {showAll() ? "Show detected only" : `Show all integrations (${ranked().length - detectedCount()} more)`}
+            {showAll() ? t("tools.browserCompanion.showDetectedOnly") : t("tools.browserCompanion.showAllIntegrationsMore", { value: ranked().length - detectedCount() })}
           </button>
         </Show>
       </Section>

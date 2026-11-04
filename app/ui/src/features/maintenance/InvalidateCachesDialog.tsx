@@ -7,6 +7,7 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { TriangleAlert } from "lucide-solid";
 import { closeDialog } from "@/shell/window/dialogs";
 import { maintenanceApi, type CacheOption } from "@/ipc/maintenance";
+import { t } from "@/i18n";
 
 export const INVALIDATE_DIALOG = "invalidate-caches";
 
@@ -40,8 +41,8 @@ export function InvalidateCachesDialog() {
                   <TriangleAlert size={14} /> {m().warning}
                 </p>
               </Show>
-              <p class="mnt-muted">Always cleared: {m().always.join(", ")}.</p>
-              <div class="mnt-section">Optional:</div>
+              <p class="mnt-muted">{t("tools.maintenance.alwaysCleared", { always: m().always.join(", ") })}</p>
+              <div class="mnt-section">{t("tools.maintenance.optionalLabel")}</div>
               <For each={m().options}>
                 {(o) => (
                   <label class="mnt-check" data-option={o.id}>
@@ -60,7 +61,7 @@ export function InvalidateCachesDialog() {
               </button>
               <span class="mnt-spacer" />
               <button class="btn-secondary set-btn" onClick={() => close(null)}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button class="btn-primary set-btn" data-testid="invalidate-restart" onClick={() => close({ options: chosen(), invalidate: true })}>
                 {m().invalidateLabel}

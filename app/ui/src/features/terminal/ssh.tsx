@@ -22,6 +22,7 @@ import { SshForm } from "@/features/remote/SshForm";
 import { blankConfig } from "@/features/remote/store";
 import { testConnection } from "@/features/remote/TestConnection";
 import { isDialogWindow } from "@/shell/window/mode";
+import { t } from "@/i18n";
 import "@/features/remote/remote.css";
 
 /** One entry of the chooser. */
@@ -106,19 +107,19 @@ function Chooser(props: { request: ChooserRequest }) {
   );
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && props.request.pick(null)}>
-      <div class="popup term-ssh-chooser" role="dialog" aria-label="Start SSH Session" tabIndex={-1} ref={popup} onKeyDown={onKeyDown}>
-        <div class="term-ssh-title">Start SSH Session</div>
+      <div class="popup term-ssh-chooser" role="dialog" aria-label={t("tools.terminal.startSshSession")} tabIndex={-1} ref={popup} onKeyDown={onKeyDown}>
+        <div class="term-ssh-title">{t("tools.terminal.startSshSession")}</div>
         <div class="term-ssh-list" role="listbox">
           <Show when={configs().length}>
-            <div class="term-ssh-group muted">SSH Configurations</div>
+            <div class="term-ssh-group muted">{t("tools.terminal.sshConfigurations")}</div>
             <For each={configs()}>{(c, i) => row(c, i)}</For>
           </Show>
           <Show when={servers().length}>
-            <div class="term-ssh-group muted">Deployment Servers</div>
+            <div class="term-ssh-group muted">{t("tools.terminal.deploymentServers")}</div>
             <For each={servers()}>{(c, i) => row(c, () => configs().length + i())}</For>
           </Show>
           <Show when={!props.request.choices.length}>
-            <div class="term-ssh-empty muted">No SSH configurations or SFTP deployment servers yet.</div>
+            <div class="term-ssh-empty muted">{t("tools.terminal.noSshConfigurationsOrSftp")}</div>
           </Show>
         </div>
         <div class="term-ssh-footer">
@@ -131,7 +132,7 @@ function Chooser(props: { request: ChooserRequest }) {
             onClick={() => props.request.pick("credentials")}
           >
             <Pencil size={13} />
-            <span class="term-ssh-name">Edit credentials…</span>
+            <span class="term-ssh-name">{t("tools.terminal.editCredentialsEllipsis")}</span>
           </div>
         </div>
       </div>
@@ -181,13 +182,13 @@ function CredentialsDialog(props: { request: CredentialsRequest }) {
       <div
         class="ssh-dialog term-ssh-credentials"
         role="dialog"
-        aria-label="SSH Session"
+        aria-label={t("tools.terminal.sshSession")}
         data-testid="ssh-credentials"
         onKeyDown={(e) => e.key === "Escape" && props.request.done(null)}
       >
         <div class="ssh-titlebar">
-          <span>SSH Session</span>
-          <button class="icon-btn" title="Close" onClick={() => props.request.done(null)}>
+          <span>{t("tools.terminal.sshSession")}</span>
+          <button class="icon-btn" title={t("common.close")} onClick={() => props.request.done(null)}>
             <X size={15} />
           </button>
         </div>
@@ -208,10 +209,10 @@ function CredentialsDialog(props: { request: CredentialsRequest }) {
         <div class="ssh-footer">
           <span class="ssh-error-text ssh-small">{error()}</span>
           <button class="btn-secondary" onClick={() => props.request.done(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={busy() || problems().length > 0} onClick={() => void ok()} data-testid="ssh-credentials-ok">
-            Connect
+            {t("tools.terminal.connect")}
           </button>
         </div>
       </div>
@@ -247,15 +248,15 @@ const needsSecret = (c: SshConfigView) => (c.auth === "password" && (!c.hasSecre
 export async function startSession(choice: SshChoice): Promise<void> {
   let config = choice.config;
   if (!config) {
-    showBalloon("Cannot start the SSH session", `The SSH configuration ${choice.detail} of ${choice.title} does not exist anymore.`);
+    showBalloon(t("tools.terminal.cannotStartTheSshSession"), t("tools.terminal.theSshConfigurationOfDoes", { detail: choice.detail, title: choice.title }));
     return;
   }
   const target: SshTarget = choice.kind === "server" ? { serverId: choice.id } : { configId: choice.id };
   if (choice.kind === "server" && safeMode()) {
     const ok = await askConfirm({
-      title: "Start SSH Session",
-      message: `The deployment server ${choice.title} is defined in the files of this untrusted project. Connect to ${config.label} over SSH with your credentials?`,
-      confirm: "Connect",
+      title: t("tools.terminal.startSshSession"),
+      message: t("tools.terminal.theDeploymentServerIsDefined", { title: choice.title, label: config.label }),
+      confirm: t("tools.terminal.connect"),
     });
     if (!ok) return;
     target.confirmed = true;

@@ -25,6 +25,7 @@ import { showBalloon } from "@/keymap";
 import { activeTab, closeTab, displayTitle, setActiveTab, tabs, updateTab, type TerminalProgram, type TerminalSource } from "./store";
 import { isLinkActivation, linkTarget, parseOsc, terminalKeySequence, type Progress } from "./osc";
 import { terminalOptions, terminalRenderer, type TerminalRenderer } from "./options";
+import { t as tr } from "@/i18n";
 
 interface Session {
   term: Terminal;
@@ -86,7 +87,7 @@ export function applyThemeToAll(): void {
 
 async function openFileLink(rel: string, line?: number, column?: number): Promise<void> {
   const ok = await revealLocation(rel, { line: Math.max(0, (line ?? 1) - 1), character: Math.max(0, (column ?? 1) - 1) });
-  if (!ok) showBalloon(`Cannot open ${rel}`);
+  if (!ok) showBalloon(tr("tools.terminal.cannotOpen", { rel }));
 }
 
 function openUrl(uri: string): void {
@@ -98,7 +99,7 @@ function openLink(uri: string): void {
   const target = linkTarget(uri, workspace()?.root);
   if (target?.kind === "url") openUrl(target.url);
   else if (target?.kind === "file") void openFileLink(target.path, target.line);
-  else showBalloon("Cannot open link", uri);
+  else showBalloon(tr("tools.terminal.cannotOpenLink"), uri);
 }
 
 const linkHint = (s: Session) => s.host.querySelector<HTMLElement>(".term-link-hint");

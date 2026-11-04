@@ -8,6 +8,7 @@ import { Droplets, ShieldAlert, TriangleAlert, Zap, CircleAlert, Brain, Bug } fr
 import type { SanitizerReport, ValgrindError, ValgrindReport, Leaked } from "@/ipc/cppTools";
 import type { RunEvent } from "@/ipc/run";
 import { IssueTree, type Issue } from "./IssueTree";
+import { t } from "@/i18n";
 
 const SANITIZER_ICONS = {
   address: { icon: ShieldAlert, color: "var(--danger)" },
@@ -43,7 +44,7 @@ export function SanitizerPanel(props: { data: unknown }) {
       empty="No sanitizer reports."
       header={
         <span>
-          <b>{reports().length}</b> {reports().length === 1 ? "problem" : "problems"} reported by {tools()}
+          <b>{reports().length}</b> {t("langs.cpp.problemsReportedBy", { count: reports().length, tools: tools() })}
         </span>
       }
     />
@@ -82,10 +83,10 @@ export function ValgrindPanel(props: { data: unknown }) {
           <span>
             <b>{report().errorCount}</b> {report().errorCount === 1 ? "error" : "errors"}
           </span>
-          <span title="Definitely lost">Definitely lost: {bytes(s().definitelyLost)}</span>
-          <span title="Indirectly lost">Indirectly lost: {bytes(s().indirectlyLost)}</span>
-          <span title="Possibly lost">Possibly lost: {bytes(s().possiblyLost)}</span>
-          <span title="Still reachable">Still reachable: {bytes(s().stillReachable)}</span>
+          <span title={t("langs.cpp.definitelyLost2")}>{t("langs.cpp.definitelyLost", { value: bytes(s().definitelyLost) })}</span>
+          <span title={t("langs.cpp.indirectlyLost2")}>{t("langs.cpp.indirectlyLost", { value: bytes(s().indirectlyLost) })}</span>
+          <span title={t("langs.cpp.possiblyLost2")}>{t("langs.cpp.possiblyLost", { value: bytes(s().possiblyLost) })}</span>
+          <span title={t("langs.cpp.stillReachable2")}>{t("langs.cpp.stillReachable", { value: bytes(s().stillReachable) })}</span>
         </span>
       }
     />

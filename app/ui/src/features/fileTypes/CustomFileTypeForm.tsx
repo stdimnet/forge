@@ -7,6 +7,7 @@ import { createSignal, For, onCleanup, Show } from "solid-js";
 import type { SettingObject } from "@/ipc/settings";
 import { suspendKeymap } from "@/keymap";
 import { newCustomId } from "./model";
+import { t as tr } from "@/i18n";
 
 const TEXT_FIELDS: [key: string, label: string][] = [
   ["blockCommentStart", "Block comment start:"],
@@ -61,22 +62,22 @@ export function CustomFileTypeForm(props: {
   };
   return (
     <div class="popup-backdrop modal ft-backdrop" onMouseDown={(e) => e.target === e.currentTarget && props.onCancel()}>
-      <div class="dialog ft-dialog" role="dialog" aria-label="New File Type" onKeyDown={onKeyDown}>
-        <div class="dialog-title">{props.entry ? "Edit File Type" : "New File Type"}</div>
+      <div class="dialog ft-dialog" role="dialog" aria-label={tr("tools.fileTypes.newFileType")} onKeyDown={onKeyDown}>
+        <div class="dialog-title">{props.entry ? tr("tools.fileTypes.editFileType") : tr("tools.fileTypes.newFileType")}</div>
         <div class="ft-form">
-          <label class="set-label">Name:</label>
+          <label class="set-label">{tr("common.nameLabel")}</label>
           <input class="set-input" value={entry().name ?? ""} ref={(el) => queueMicrotask(() => el.focus())} onInput={(e) => set("name", e.currentTarget.value)} data-testid="ft-name" />
-          <label class="set-label">Description:</label>
+          <label class="set-label">{tr("common.descriptionLabel")}</label>
           <input class="set-input" value={entry().description ?? ""} onInput={(e) => set("description", e.currentTarget.value)} />
         </div>
-        <div class="ft-group-title">Syntax Highlighting</div>
+        <div class="ft-group-title">{tr("tools.fileTypes.syntaxHighlighting")}</div>
         <div class="ft-form">
-          <label class="set-label">Line comment:</label>
+          <label class="set-label">{tr("tools.fileTypes.lineCommentLabel")}</label>
           <div class="ft-inline">
             <input class="set-input ft-short" value={entry().lineComment ?? ""} spellcheck={false} onInput={(e) => set("lineComment", e.currentTarget.value)} />
             <label class="set-check">
               <input type="checkbox" checked={flag("lineCommentAtStart", false)} onChange={(e) => set("lineCommentAtStart", String(e.currentTarget.checked))} />
-              <span>Only at line start</span>
+              <span>{tr("tools.fileTypes.onlyAtLineStart")}</span>
             </label>
           </div>
           <For each={TEXT_FIELDS}>
@@ -106,7 +107,7 @@ export function CustomFileTypeForm(props: {
               </button>
             )}
           </For>
-          <span class="ft-muted">Keywords, one per line</span>
+          <span class="ft-muted">{tr("tools.fileTypes.keywordsOnePerLine")}</span>
         </div>
         <textarea
           class="set-input ft-keywords"
@@ -120,7 +121,7 @@ export function CustomFileTypeForm(props: {
             <span class="set-error">{problem()}</span>
           </Show>
           <button class="btn-secondary" onClick={() => props.onCancel()}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!!problem()} onClick={save}>
             OK

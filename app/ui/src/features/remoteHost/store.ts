@@ -13,6 +13,7 @@ import { showBalloon } from "@/keymap";
 import { askChoice, askConfirm, askName } from "@/features/contextMenu/dialogs";
 import { compareWithDeployed, config, defaultServer, transfer } from "@/features/deployment/store";
 import { openFile } from "@/state/editor";
+import { t as tr } from "@/i18n";
 
 export const ROOT = "";
 /** Editor paths of Edit Remote File tabs: `remote-host://<server id>/<path>`. */
@@ -133,7 +134,7 @@ export function absolutePath(path: string): string {
 function withServer(run: (s: ServerView) => Promise<void>): Promise<void> {
   const s = currentServer();
   if (!s) {
-    showBalloon("No deployment server", "Add a server in Settings | Build, Execution, Deployment | Deployment.");
+    showBalloon(tr("tools.remoteHost.noDeploymentServer"), tr("tools.remoteHost.addAServerInSettings"));
     return Promise.resolve();
   }
   return run(s);
@@ -155,7 +156,7 @@ export const editRemoteFile = (node: RemoteNode) =>
     try {
       await openFile(editPath(s.id, node.path));
     } catch (e) {
-      showBalloon(`Cannot edit ${node.name}`, message(e), 5000);
+      showBalloon(tr("tools.remoteHost.cannotEdit", { name: node.name }), message(e), 5000);
     }
   });
 
@@ -180,26 +181,26 @@ export async function saveRemoteEdit(editorPath: string, text: string): Promise<
     if (choice !== "overwrite") throw new Error(`${target.path} was not uploaded: the server copy changed`);
     outcome = await remoteHostApi.saveEdit(target.server, target.path, text, true);
   }
-  showBalloon(`Uploaded ${target.path.split("/").pop()} to ${name}`);
+  showBalloon(tr("tools.remoteHost.uploadedTo", { value: target.path.split("/").pop(), name }));
   if (currentServer()?.id === target.server) void load(parentOf(target.path));
 }
 
 export const downloadFromHere = (node: RemoteNode) =>
   withServer(async (s) => {
-    if (node.local === null) return void showBalloon(`${node.name} is not mapped to a project path`, "Add a mapping in the server's Mappings tab.");
+    if (node.local === null) return void showBalloon(tr("tools.remoteHost.isNotMappedToA", { name: node.name }), tr("tools.remoteHost.addAMappingInThe"));
     await transfer(s, "download", [node.local]);
   });
 
 export const uploadToHere = (node: RemoteNode) =>
   withServer(async (s) => {
-    if (node.local === null) return void showBalloon(`${node.name} is not mapped to a project path`, "Add a mapping in the server's Mappings tab.");
+    if (node.local === null) return void showBalloon(tr("tools.remoteHost.isNotMappedToA", { name: node.name }), tr("tools.remoteHost.addAMappingInThe"));
     await transfer(s, "upload", [node.local]);
     await refresh(node.dir ? node.path : parentOf(node.path));
   });
 
 export const compareWithLocal = (node: RemoteNode) =>
   withServer(async (s) => {
-    if (node.local === null) return void showBalloon(`${node.name} is not mapped to a project path`);
+    if (node.local === null) return void showBalloon(tr("tools.remoteHost.isNotMappedToA", { name: node.name }));
     await compareWithDeployed(node.local, s);
   });
 
@@ -221,7 +222,7 @@ export const createEntry = (folder: boolean, at: string | null = tree.selected) 
       select(node.path);
       if (!folder) await editRemoteFile(node);
     } catch (e) {
-      showBalloon(`Cannot create ${name}`, message(e), 5000);
+      showBalloon(tr("tools.remoteHost.cannotCreate", { name }), message(e), 5000);
     }
   });
 
@@ -234,7 +235,7 @@ export const renameEntry = (node: RemoteNode) =>
       await load(parentOf(node.path));
       select(path);
     } catch (e) {
-      showBalloon(`Cannot rename ${node.name}`, message(e), 5000);
+      showBalloon(tr("tools.remoteHost.cannotRename", { name: node.name }), message(e), 5000);
     }
   });
 
@@ -251,12 +252,12 @@ export const deleteEntry = (node: RemoteNode) =>
       if (tree.selected === node.path) select(null);
       await load(parentOf(node.path));
     } catch (e) {
-      showBalloon(`Cannot delete ${node.name}`, message(e), 5000);
+      showBalloon(tr("tools.remoteHost.cannotDelete", { name: node.name }), message(e), 5000);
     }
   });
 
 export async function copyPath(node: RemoteNode): Promise<void> {
   const text = absolutePath(node.path);
   await navigator.clipboard?.writeText(text).catch(() => undefined);
-  showBalloon("Path copied", text);
+  showBalloon(tr("tools.remoteHost.pathCopied"), text);
 }

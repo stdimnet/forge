@@ -17,6 +17,7 @@ import { DataGrid, type GridApi } from "@/features/database/DataGrid";
 import type { GridColumn } from "@/features/database/grid";
 import "@/features/database/database.css";
 import { columnTitles, delimiterName, minimalChange } from "./model";
+import { t as tr } from "@/i18n";
 
 export type CsvMode = "text" | "table";
 
@@ -130,27 +131,27 @@ function TableView(props: { tab: EditorTab; group?: number }) {
 
   return (
     <div class="csv-table">
-      <div class="csv-toolbar" role="toolbar" aria-label="Table">
-        <button class="img-btn" title="Add Row" onClick={() => addRow()}>
+      <div class="csv-toolbar" role="toolbar" aria-label={tr("common.table")}>
+        <button class="img-btn" title={tr("tools.csv.addRow")} onClick={() => addRow()}>
           <Rows3 size={14} />
           <Plus size={10} class="csv-badge" />
         </button>
-        <button class="img-btn" title="Delete Rows" onClick={removeRows}>
+        <button class="img-btn" title={tr("tools.csv.deleteRows")} onClick={removeRows}>
           <Rows3 size={14} />
           <Minus size={10} class="csv-badge" />
         </button>
-        <button class="img-btn" title="Add Column" onClick={() => addColumn()}>
+        <button class="img-btn" title={tr("tools.csv.addColumn")} onClick={() => addColumn()}>
           <Columns3 size={14} />
           <Plus size={10} class="csv-badge" />
         </button>
-        <button class="img-btn" title="Delete Columns" onClick={removeColumns}>
+        <button class="img-btn" title={tr("tools.csv.deleteColumns")} onClick={removeColumns}>
           <Columns3 size={14} />
           <Minus size={10} class="csv-badge" />
         </button>
         <span class="img-sep" />
         <label class="csv-check">
           <input type="checkbox" checked={header()} onChange={(e) => setHeaders((h) => ({ ...h, [path]: e.currentTarget.checked }))} />
-          First row is header
+          {tr("tools.csv.firstRowIsHeader")}
         </label>
         <span class="img-info">{info()}</span>
       </div>
@@ -160,7 +161,7 @@ function TableView(props: { tab: EditorTab; group?: number }) {
           rows={rows()}
           editable
           nullText=""
-          emptyText="No rows"
+          emptyText={tr("common.noRows")}
           sort={sort() ? [sort()!] : []}
           onSort={(column) =>
             setSort((s) => (s?.column !== column ? { column, desc: false } : s.desc ? null : { column, desc: true }))
@@ -168,13 +169,13 @@ function TableView(props: { tab: EditorTab; group?: number }) {
           onEdit={(row, column, value) => void edit([{ op: "setCell", row: fileRow(row), column, value: value === null ? "" : String(value) }])}
           ref={(api) => (grid = api)}
           menu={() => [
-            { label: "Add Row Above", run: () => addRow(false) },
-            { label: "Add Row Below", run: () => addRow(true) },
-            { label: "Add Column Left", run: () => addColumn(false) },
-            { label: "Add Column Right", run: () => addColumn(true) },
+            { label: tr("tools.csv.addRowAbove"), run: () => addRow(false) },
+            { label: tr("tools.csv.addRowBelow"), run: () => addRow(true) },
+            { label: tr("tools.csv.addColumnLeft"), run: () => addColumn(false) },
+            { label: tr("tools.csv.addColumnRight"), run: () => addColumn(true) },
             { separator: true, label: "" },
-            { label: "Delete Rows", icon: <Trash2 size={13} />, danger: true, run: removeRows },
-            { label: "Delete Columns", icon: <Trash2 size={13} />, danger: true, run: removeColumns },
+            { label: tr("tools.csv.deleteRows"), icon: <Trash2 size={13} />, danger: true, run: removeRows },
+            { label: tr("tools.csv.deleteColumns"), icon: <Trash2 size={13} />, danger: true, run: removeColumns },
           ]}
         />
       </Show>
@@ -199,10 +200,10 @@ export function CsvEditor(props: { tab: EditorTab; group?: number }) {
       </div>
       <div class="csv-tabs" role="tablist">
         <button class="csv-tab" classList={{ active: mode() === "text" }} role="tab" aria-selected={mode() === "text"} onClick={() => setCsvMode(path, "text")}>
-          Text
+          {tr("tools.csv.text")}
         </button>
         <button class="csv-tab" classList={{ active: mode() === "table" }} role="tab" aria-selected={mode() === "table"} onClick={() => setCsvMode(path, "table")}>
-          Table
+          {tr("common.table")}
         </button>
       </div>
     </div>

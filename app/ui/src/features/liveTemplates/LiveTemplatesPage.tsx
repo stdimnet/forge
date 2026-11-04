@@ -31,6 +31,7 @@ import {
   type CustomEntry,
 } from "./model";
 import type { NewTemplateArgs } from "./actions";
+import { t as tr } from "@/i18n";
 
 const EMPTY: TemplateCatalog = { groups: [], contexts: [], functions: [] };
 
@@ -188,18 +189,18 @@ export function LiveTemplatesPage() {
 
       <div class="set-list lt-tree-box">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add Live Template" onClick={() => addTemplate()}>
+          <button class="icon-btn" title={tr("tools.liveTemplates.addLiveTemplate")} onClick={() => addTemplate()}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={!selectedTemplate()} onClick={removeSelected}>
+          <button class="icon-btn" title={tr("common.remove")} disabled={!selectedTemplate()} onClick={removeSelected}>
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Restore Defaults" disabled={!canRestore()} onClick={restore}>
+          <button class="icon-btn" title={tr("tools.liveTemplates.restoreDefaults")} disabled={!canRestore()} onClick={restore}>
             <RotateCcw size={13} />
           </button>
           <input
             class="set-input lt-filter"
-            placeholder="Search templates"
+            placeholder={tr("tools.liveTemplates.searchTemplates")}
             spellcheck={false}
             value={filter()}
             onInput={(e) => setFilter(e.currentTarget.value)}
@@ -228,13 +229,13 @@ export function LiveTemplatesPage() {
 
       <Show
         when={form.t}
-        fallback={<div class="lt-hint">{selected()?.startsWith("group:") ? "Select a template to edit it." : "Select a template or add one with +."}</div>}
+        fallback={<div class="lt-hint">{selected()?.startsWith("group:") ? tr("tools.liveTemplates.selectATemplateToEdit") : tr("tools.liveTemplates.selectATemplateOrAdd")}</div>}
       >
         {(t) => (
           <div class="lt-editor">
             <div class="lt-editor-fields">
               <label class="set-label" for="lt-abbr">
-                Abbreviation:
+                {tr("tools.liveTemplates.abbreviationLabel")}
               </label>
               <input
                 id="lt-abbr"
@@ -246,23 +247,23 @@ export function LiveTemplatesPage() {
                 onInput={(e) => edit("abbreviation", e.currentTarget.value.trim())}
               />
               <label class="set-label lt-desc-label" for="lt-desc">
-                Description:
+                {tr("common.descriptionLabel")}
               </label>
               <input id="lt-desc" class="set-input lt-desc" value={t().description} onInput={(e) => edit("description", e.currentTarget.value)} />
             </div>
             <div class="lt-text-row">
               <div class="lt-text-col">
                 <label class="set-label-block" for="lt-text">
-                  Template text:
+                  {tr("tools.liveTemplates.templateTextLabel")}
                 </label>
                 <textarea id="lt-text" class="lt-text" spellcheck={false} value={t().text} onInput={(e) => void editText(e.currentTarget.value)} />
               </div>
               <div class="lt-side">
                 <button class="btn-secondary set-btn" onClick={() => setShowVariables((v) => !v)} disabled={!t().variables.length}>
-                  Edit Variables
+                  {tr("tools.liveTemplates.editVariables")}
                 </button>
                 <div class="lt-side-hint">
-                  Use <code>$NAME$</code> for variables, <code>$END$</code> for the caret and <code>$SELECTION$</code> for the surrounded text.
+                  {tr("tools.liveTemplates.use")} <code>$NAME$</code> {tr("tools.liveTemplates.forVariables")} <code>$END$</code> {tr("tools.liveTemplates.forTheCaretAnd")} <code>$SELECTION$</code> {tr("tools.liveTemplates.forTheSurroundedText")}
                 </div>
               </div>
             </div>
@@ -274,13 +275,13 @@ export function LiveTemplatesPage() {
               />
             </Show>
             <div class="lt-applicable">
-              <Show when={t().contexts.length} fallback={<span class="lt-warning">No applicable contexts.</span>}>
+              <Show when={t().contexts.length} fallback={<span class="lt-warning">{tr("tools.liveTemplates.noApplicableContexts")}</span>}>
                 <span>
-                  Applicable in {selectedTemplate()?.applicable || t().contexts.join(", ")}.
+                  {tr("tools.liveTemplates.applicableIn", { value: selectedTemplate()?.applicable || t().contexts.join(", ") })}
                 </span>
               </Show>
               <button class="set-link lt-link" onClick={() => setShowContexts((v) => !v)}>
-                {t().contexts.length ? "Change" : "Define"}
+                {t().contexts.length ? tr("tools.liveTemplates.change") : tr("tools.liveTemplates.define")}
               </button>
             </div>
             <Show when={showContexts()}>
@@ -353,7 +354,7 @@ function GroupRows(props: {
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => props.setEnabled([t.id], e.currentTarget.checked)}
               />
-              <span class="lt-abbr-name">{t.abbreviation || "<no abbreviation>"}</span>
+              <span class="lt-abbr-name">{t.abbreviation || tr("tools.liveTemplates.noAbbreviation")}</span>
               <Show when={t.description}>
                 <span class="lt-row-detail">({t.description})</span>
               </Show>
@@ -377,10 +378,10 @@ function VariablesTable(props: {
       <table class="set-table lt-vars-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Expression</th>
-            <th>Default value</th>
-            <th>Skip if defined</th>
+            <th>{tr("common.name")}</th>
+            <th>{tr("tools.liveTemplates.expression")}</th>
+            <th>{tr("tools.liveTemplates.defaultValue")}</th>
+            <th>{tr("tools.liveTemplates.skipIfDefined")}</th>
           </tr>
         </thead>
         <tbody>

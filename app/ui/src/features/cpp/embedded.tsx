@@ -39,7 +39,7 @@ import { PeripheralsView, setSessionSvd, svdOf } from "./PeripheralsView";
 import { PlatformIOToolWindow } from "./PlatformIOToolWindow";
 import { buildFirst, cppActive, executableTargets, runTool, showCppBalloon } from "./state";
 import "./embedded.css";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 const [info, setInfo] = createSignal<EmbeddedInfo | null>(null);
 export { info as embeddedInfo };
@@ -123,10 +123,10 @@ function chooseBoard(then?: (board: string) => void): void {
   const z = info()?.zephyr;
   const known = z?.localBoards ?? [];
   setInputDialog({
-    title: "Zephyr Board",
-    label: `Board to build for${known.length ? ` (this application: ${known.join(", ")})` : ""}:`,
+    title: tr("langs.cpp.zephyrBoard"),
+    label: tr("langs.cpp.boardToBuildForLabel", { value: known.length ? ` (this application: ${known.join(", ")})` : "" }),
     value: z?.board ?? known[0] ?? "nrf52840dk/nrf52840",
-    okLabel: "Select",
+    okLabel: tr("langs.cpp.select"),
     onOk: (value) => {
       const board = value.trim();
       if (!board) return;
@@ -153,18 +153,18 @@ async function west(action: WestAction, board?: string): Promise<void> {
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const targetField = {
   key: "target",
-  label: "Target",
+  label: tr("common.target"),
   kind: "enum" as const,
   options: () => [{ value: "", label: "(use the executable)" }, ...executableTargets().map((t) => ({ value: t.name, label: t.name }))],
 };
-const elfField = { key: "executable", label: "Executable (ELF)", kind: "path" as const, placeholder: "Empty: the target's executable" };
-const svdField = { key: "svdFile", label: "SVD file (Peripherals view)", kind: "path" as const, placeholder: "Empty: Settings | Embedded Development" };
-const gdbField = { key: "gdb", label: "GDB", kind: "path" as const, placeholder: "Empty: the cross toolchain's GDB or gdb-multiarch" };
+const elfField = { key: "executable", label: tr("langs.cpp.executableElf"), kind: "path" as const, placeholder: tr("langs.cpp.emptyTheTargetSExecutable") };
+const svdField = { key: "svdFile", label: tr("langs.cpp.svdFilePeripheralsView"), kind: "path" as const, placeholder: tr("langs.cpp.emptySettingsEmbeddedDevelopment") };
+const gdbField = { key: "gdb", label: "GDB", kind: "path" as const, placeholder: tr("langs.cpp.emptyTheCrossToolchainS") };
 
 registerRunConfigurationType({
   id: "openocd",
   name: "OpenOCD Download & Run",
-  description: "Flash the target's ELF with OpenOCD, run it on the board or debug it with GDB through OpenOCD's GDB server.",
+  description: tr("langs.cpp.flashTheTargetSElf"),
   icon: Cpu,
   color: "var(--syn-keyword)",
   pluginId: "forge.cpp",
@@ -175,21 +175,21 @@ registerRunConfigurationType({
   fields: [
     targetField,
     elfField,
-    { key: "boardConfig", label: "Board config file", kind: "string", placeholder: "board/st_nucleo_f4.cfg" },
-    { key: "gdbPort", label: "GDB port", kind: "string", default: "3333" },
+    { key: "boardConfig", label: tr("langs.cpp.boardConfigFile"), kind: "string", placeholder: "board/st_nucleo_f4.cfg" },
+    { key: "gdbPort", label: tr("langs.cpp.gdbPort"), kind: "string", default: "3333" },
     {
       key: "download",
-      label: "Download",
+      label: tr("langs.cpp.download"),
       kind: "segmented",
       default: "always",
       options: [
-        { value: "always", label: "Always" },
-        { value: "never", label: "Never" },
+        { value: "always", label: tr("langs.cpp.always") },
+        { value: "never", label: tr("langs.cpp.never") },
       ],
     },
     svdField,
     gdbField,
-    { key: "openocdArguments", label: "OpenOCD arguments", kind: "string" },
+    { key: "openocdArguments", label: tr("langs.cpp.openocdArguments"), kind: "string" },
   ],
   suggestName: (cfg) => opt(cfg, "target") || baseName(opt(cfg, "executable")),
   // Run: flash and reset the board.
@@ -204,7 +204,7 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: "embedded-gdb-server",
   name: "Embedded GDB Server",
-  description: "Start a GDB server (J-Link, ST-LINK, pyOCD, QEMU) and debug the target's ELF with GDB connected to it.",
+  description: tr("langs.cpp.startAGdbServerJ"),
   icon: Microchip,
   color: "var(--syn-keyword)",
   pluginId: "forge.cpp",
@@ -216,8 +216,8 @@ registerRunConfigurationType({
     targetField,
     elfField,
     { key: "targetRemote", label: "'target remote' args", kind: "string", default: "localhost:3333" },
-    { key: "gdbServer", label: "GDB server", kind: "path", placeholder: "JLinkGDBServer, st-util, pyocd (empty: already running)" },
-    { key: "gdbServerArguments", label: "GDB server args", kind: "string", placeholder: "-device STM32F401RE -if SWD -port 3333" },
+    { key: "gdbServer", label: tr("langs.cpp.gdbServer"), kind: "path", placeholder: tr("langs.cpp.jlinkgdbserverStUtilPyocdEmpty") },
+    { key: "gdbServerArguments", label: tr("langs.cpp.gdbServerArgs"), kind: "string", placeholder: "-device STM32F401RE -if SWD -port 3333" },
     svdField,
     gdbField,
   ],
@@ -290,7 +290,7 @@ registerDebugLauncher({
 
 registerDebugTab({
   id: "peripherals",
-  title: "Peripherals",
+  title: tr("langs.cpp.peripherals"),
   when: (s) => !!s && !!svdOf(s.id),
   component: PeripheralsView,
 });

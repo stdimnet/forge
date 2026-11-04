@@ -9,6 +9,7 @@ import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { SQL_DIALECTS, type DialectMapping } from "@/ipc/sql";
 import type { SettingObject } from "@/ipc/settings";
 import { sources } from "@/features/database/store";
+import { t } from "@/i18n";
 
 const GLOBAL = "sql.dialect.default";
 const PROJECT = "sql.dialect.project";
@@ -38,7 +39,7 @@ export function SqlDialectsPage() {
       <div class="set-section-body">
         <div class="set-row">
           <div class="set-line">
-            <span class="set-label">Global SQL Dialect:</span>
+            <span class="set-label">{t("tools.sqlEditor.globalSqlDialectLabel")}</span>
             <select class="set-input set-select" value={draftValue<string>(GLOBAL) ?? "generic"} onChange={(e) => setDraft(GLOBAL, e.currentTarget.value)}>
               <For each={SQL_DIALECTS}>{(d) => <option value={d.id}>{d.label}</option>}</For>
             </select>
@@ -46,34 +47,32 @@ export function SqlDialectsPage() {
         </div>
         <div class="set-row">
           <div class="set-line">
-            <span class="set-label">Project SQL Dialect:</span>
+            <span class="set-label">{t("tools.sqlEditor.projectSqlDialectLabel")}</span>
             <select class="set-input set-select" value={draftValue<string>(PROJECT) ?? ""} onChange={(e) => setDraft(PROJECT, e.currentTarget.value)}>
-              <option value="">&lt;Global&gt;</option>
+              <option value="">{t("tools.sqlEditor.ltGlobalGt")}</option>
               <For each={SQL_DIALECTS}>{(d) => <option value={d.id}>{d.label}</option>}</For>
             </select>
           </div>
         </div>
       </div>
       <div class="set-desc sql-dialects-intro">
-        Files and folders with their own dialect, and the data source whose tables and columns their names resolve
-        against (for completion, Ctrl+B and the SQL inspections). The most specific path wins; consoles use their data
-        source's dialect.
+        {t("tools.sqlEditor.filesAndFoldersWithTheir")}
       </div>
       <div class="set-list sql-mappings">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" onClick={add}>
+          <button class="icon-btn" title={t("common.add")} onClick={add}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={sel() === null} onClick={remove}>
+          <button class="icon-btn" title={t("common.remove")} disabled={sel() === null} onClick={remove}>
             <Minus size={14} />
           </button>
         </div>
         <table class="set-table sql-mappings-table">
           <thead>
             <tr>
-              <th>Path</th>
-              <th>SQL Dialect</th>
-              <th>Data Source</th>
+              <th>{t("common.path")}</th>
+              <th>{t("tools.sqlEditor.sqlDialect2")}</th>
+              <th>{t("tools.sqlEditor.dataSource")}</th>
             </tr>
           </thead>
           <tbody>
@@ -85,13 +84,13 @@ export function SqlDialectsPage() {
                   </td>
                   <td>
                     <select class="set-input" value={m.dialect ?? ""} onChange={(e) => update(i(), { dialect: e.currentTarget.value as DialectMapping["dialect"] })}>
-                      <option value="">&lt;Inherited&gt;</option>
+                      <option value="">{t("tools.sqlEditor.ltInheritedGt")}</option>
                       <For each={SQL_DIALECTS}>{(d) => <option value={d.id}>{d.label}</option>}</For>
                     </select>
                   </td>
                   <td>
                     <select class="set-input" value={m.dataSource ?? ""} onChange={(e) => update(i(), { dataSource: e.currentTarget.value })}>
-                      <option value="">&lt;None&gt;</option>
+                      <option value="">{t("tools.sqlEditor.ltNoneGt")}</option>
                       <For each={sqlSources()}>{(s) => <option value={s.id}>{s.name}</option>}</For>
                     </select>
                   </td>
@@ -101,7 +100,7 @@ export function SqlDialectsPage() {
           </tbody>
         </table>
         <Show when={!mappings().length}>
-          <div class="set-list-empty">No mappings: every SQL file uses the project dialect</div>
+          <div class="set-list-empty">{t("tools.sqlEditor.noMappingsEverySqlFile")}</div>
         </Show>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { pluginsApi, type InstalledPlugin, type MarketplaceEntry, type Permissio
 import { balloonsFor } from "@/keymap";
 import { loadSettings } from "@/state/settings";
 import { reloadPlugins } from "./host";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Plugins");
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -74,12 +75,12 @@ export async function installFromDisk(path?: string): Promise<void> {
       update: !!info.installedVersion,
       accept: async () => {
         await pluginsApi.installFile(file, info.sha256);
-        showBalloon(`${m.name} ${m.version} installed`, "The plugin is active now.");
+        showBalloon(`${m.name} ${m.version} installed`, t("tools.plugins.thePluginIsActiveNow"));
         await afterChange();
       },
     });
   } catch (e) {
-    showBalloon("Plugin was not installed", message(e), 8000, undefined, { type: "error" });
+    showBalloon(t("tools.plugins.pluginWasNotInstalled"), message(e), 8000, undefined, { type: "error" });
   }
 }
 
@@ -100,7 +101,7 @@ export function installFromMarketplace(entry: MarketplaceEntry, onDone?: () => v
       setBusy(entry.id);
       try {
         await pluginsApi.marketplaceInstall(entry.id, entry.latest.version);
-        showBalloon(`${entry.name} ${entry.latest.version} installed`, "Checksum verified. The plugin is active now.");
+        showBalloon(`${entry.name} ${entry.latest.version} installed`, t("tools.plugins.checksumVerifiedThePluginIs"));
         await afterChange();
         onDone?.();
       } finally {
@@ -117,17 +118,17 @@ export async function acceptPrompt(): Promise<void> {
   try {
     await p.accept();
   } catch (e) {
-    showBalloon(`${p.name} was not installed`, message(e), 8000, undefined, { type: "error" });
+    showBalloon(t("tools.plugins.wasNotInstalled", { name: p.name }), message(e), 8000, undefined, { type: "error" });
   }
 }
 
 export async function uninstall(id: string, name: string): Promise<void> {
   try {
     await pluginsApi.uninstall(id);
-    showBalloon(`${name} uninstalled`, "Its files and data were removed.");
+    showBalloon(`${name} uninstalled`, t("tools.plugins.itsFilesAndDataWere"));
     await afterChange();
   } catch (e) {
-    showBalloon("Uninstall failed", message(e), 6000, undefined, { type: "error" });
+    showBalloon(t("tools.plugins.uninstallFailed"), message(e), 6000, undefined, { type: "error" });
   }
 }
 
@@ -137,14 +138,14 @@ export async function checkPluginUpdates(quiet = false): Promise<MarketplaceEntr
     const updates = await pluginsApi.updates();
     if (updates.length) {
       showBalloon(
-        "Plugin updates available",
+        t("tools.plugins.pluginUpdatesAvailable"),
         updates.map((u) => `${u.name} ${u.installedVersion} → ${u.latest.version}`).join(", "),
         8000,
       );
-    } else if (!quiet) showBalloon("Plugins are up to date", "");
+    } else if (!quiet) showBalloon(t("tools.plugins.pluginsAreUpToDate"), "");
     return updates;
   } catch (e) {
-    if (!quiet) showBalloon("Plugin update check failed", message(e), 6000, undefined, { type: "warning" });
+    if (!quiet) showBalloon(t("tools.plugins.pluginUpdateCheckFailed"), message(e), 6000, undefined, { type: "warning" });
     return [];
   }
 }

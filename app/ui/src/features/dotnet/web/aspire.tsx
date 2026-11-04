@@ -17,6 +17,7 @@ import { allConfigurations, useTemporary } from "@/features/run/configStore";
 import { launch, openInBrowser, runningFor, stopConfiguration } from "@/features/run/runStore";
 import { getSetting } from "@/state/settings";
 import { dotnetActive, dotnetWorkspace, PLUGIN, projectByPath, showDotnetBalloon } from "../state";
+import { t } from "@/i18n";
 
 const [hosts, { refetch }] = createRoot(() => createResource(
   () => (dotnetActive() ? dotnetWorkspace() : null),
@@ -51,7 +52,7 @@ async function track(runId: string, project: string): Promise<void> {
         if (aspire.dashboardUrl && !notified) {
           notified = true;
           if (getSetting<boolean>("dotnet.aspire.openDashboard", false)) openInBrowser(aspire.dashboardUrl);
-          else showDotnetBalloon("Aspire dashboard", aspire.dashboardUrl.replace(/\?.*$/, ""), 12000, [{ label: "Open Dashboard", run: () => openInBrowser(aspire.dashboardUrl!) }]);
+          else showDotnetBalloon("Aspire dashboard", aspire.dashboardUrl.replace(/\?.*$/, ""), 12000, [{ label: t("langs.dotnet.openDashboard"), run: () => openInBrowser(aspire.dashboardUrl!) }]);
         }
       });
     } else if (e.type === "exited") {
@@ -74,7 +75,7 @@ let seq = 0;
 registerRunConfigurationType({
   id: "dotnet-aspire",
   name: ".NET Aspire",
-  description: "Run a .NET Aspire AppHost with dotnet run: its resources show up in the Services tool window, the dashboard link in the console.",
+  description: t("langs.dotnet.runANetAspireApphost"),
   icon: Boxes,
   color: "var(--syn-type)",
   pluginId: PLUGIN,
@@ -85,10 +86,10 @@ registerRunConfigurationType({
     return { options: { project: h?.path ?? "", profile: projectByPath(h?.path ?? "")?.launchProfiles?.[0]?.name ?? "" } };
   },
   fields: [
-    { key: "project", label: "AppHost project", kind: "enum", required: true, options: () => (hosts() ?? []).map((h) => ({ value: h.path, label: h.name })) },
+    { key: "project", label: t("langs.dotnet.apphostProject"), kind: "enum", required: true, options: () => (hosts() ?? []).map((h) => ({ value: h.path, label: h.name })) },
     {
       key: "profile",
-      label: "Launch profile",
+      label: t("langs.dotnet.launchProfile"),
       kind: "enum",
       default: "",
       options: () => {
@@ -96,18 +97,18 @@ registerRunConfigurationType({
         for (const h of hosts() ?? [])
           for (const p of projectByPath(h.path)?.launchProfiles ?? [])
             if (p.commandName === "Project" && !seen.has(p.name)) seen.set(p.name, `${p.name}${p.applicationUrl ? ` (${p.applicationUrl.split(";")[0]})` : ""}`);
-        return [{ value: "", label: "Default (the first profile)" }, ...[...seen].map(([value, label]) => ({ value, label }))];
+        return [{ value: "", label: t("langs.dotnet.defaultTheFirstProfile") }, ...[...seen].map(([value, label]) => ({ value, label }))];
       },
     },
     {
       key: "configuration",
-      label: "Configuration",
+      label: t("langs.dotnet.configuration"),
       kind: "enum",
       default: "",
       options: [
-        { value: "", label: "Settings | .NET" },
-        { value: "Debug", label: "Debug" },
-        { value: "Release", label: "Release" },
+        { value: "", label: t("langs.dotnet.settingsNet") },
+        { value: "Debug", label: t("common.debug2") },
+        { value: "Release", label: t("langs.dotnet.release") },
       ],
     },
     { key: "dotnetArgs", label: "dotnet run options", placeholder: "--property:Foo=Bar" },
@@ -182,14 +183,14 @@ function details(nodeId: string): ServiceDetails | null {
     tabs: ["dashboard"],
     sections: [
       {
-        title: "AppHost",
+        title: t("langs.dotnet.apphost"),
         rows: [
-          { label: "Status", value: up ? (running()[host.path]?.started ? "Running" : "Starting") : "Not started", status: up ? "running" : "stopped" },
-          { label: "Dashboard", value: url ? url.replace(/\?.*$/, "") : up ? "Waiting for the dashboard URL…" : "Starts with the AppHost", url: url ?? undefined },
-          { label: "Project", value: host.path },
+          { label: t("common.status"), value: up ? (running()[host.path]?.started ? "Running" : "Starting") : "Not started", status: up ? "running" : "stopped" },
+          { label: t("langs.dotnet.dashboard"), value: url ? url.replace(/\?.*$/, "") : up ? "Waiting for the dashboard URL…" : "Starts with the AppHost", url: url ?? undefined },
+          { label: t("common.project"), value: host.path },
         ],
       },
-      { title: "Resources", table: { columns: ["Name", "Type", "Details", "References", "External"], rows } },
+      { title: t("langs.dotnet.resources"), table: { columns: ["Name", "Type", "Details", "References", "External"], rows } },
     ],
     actions: up ? ["stop", "restart"] : ["start"],
   };

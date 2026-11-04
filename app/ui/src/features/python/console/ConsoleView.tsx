@@ -20,27 +20,28 @@ import {
   toggleExpanded,
   toggleVariables,
 } from "./store";
+import { t } from "@/i18n";
 
 export function ConsoleActions() {
   const running = () => consoleState.status === "running" || consoleState.status === "starting";
   return (
     <>
-      <button class="icon-btn" title="Rerun Python Console" onClick={() => void restartConsole()}>
+      <button class="icon-btn" title={t("langs.python.rerunPythonConsole")} onClick={() => void restartConsole()}>
         <RotateCw size={14} />
       </button>
-      <button class="icon-btn" title="Stop Console" disabled={!running()} onClick={() => void stopConsole()}>
+      <button class="icon-btn" title={t("langs.python.stopConsole")} disabled={!running()} onClick={() => void stopConsole()}>
         <Square size={13} />
       </button>
       <button
         class="icon-btn"
         classList={{ active: consoleState.showVariables }}
-        title="Show Variables"
+        title={t("langs.python.showVariables")}
         aria-pressed={consoleState.showVariables}
         onClick={toggleVariables}
       >
         <Variable size={14} />
       </button>
-      <button class="icon-btn" title="Clear All" onClick={clearConsole}>
+      <button class="icon-btn" title={t("common.clearAll")} onClick={clearConsole}>
         <Eraser size={14} />
       </button>
     </>
@@ -110,7 +111,7 @@ function PromptInput() {
         spellcheck={false}
         value={text()}
         disabled={consoleState.status !== "running"}
-        placeholder={consoleState.status === "running" ? "" : consoleState.status === "starting" ? "Starting the console…" : "The console is not running"}
+        placeholder={consoleState.status === "running" ? "" : consoleState.status === "starting" ? t("langs.python.startingTheConsoleEllipsis") : t("langs.python.theConsoleIsNotRunning")}
         onInput={(e) => setText(e.currentTarget.value)}
         onKeyDown={onKeyDown}
         data-testid="python-console-input"
@@ -127,18 +128,18 @@ export function ConsoleView() {
     <div class="pycon" data-testid="python-console">
       <div class="pycon-main">
         <div class="pycon-output">
-          <Console lines={consoleLines} version={consoleVersion} softWrap={true} scrollToEnd={true} emptyText="Starting the Python Console…" />
+          <Console lines={consoleLines} version={consoleVersion} softWrap={true} scrollToEnd={true} emptyText={t("langs.python.startingThePythonConsoleEllipsis")} />
         </div>
         <PromptInput />
       </div>
       <Show when={consoleState.showVariables}>
         <div class="pycon-vars" data-testid="python-console-variables">
           <div class="pycon-vars-head">
-            <Variable size={12} /> Variables
+            <Variable size={12} /> {t("langs.python.variables")}
             <span class="muted">{consoleState.interpreter}</span>
           </div>
           <div class="pycon-vars-list">
-            <Show when={consoleState.vars.length} fallback={<div class="muted pycon-vars-empty">No variables yet</div>}>
+            <Show when={consoleState.vars.length} fallback={<div class="muted pycon-vars-empty">{t("langs.python.noVariablesYet")}</div>}>
               <VariableRows vars={consoleState.vars} depth={0} />
             </Show>
           </div>
@@ -146,7 +147,7 @@ export function ConsoleView() {
       </Show>
       <Show when={consoleState.status === "exited"}>
         <button class="pill-btn pycon-restart" onClick={() => void restartConsole()}>
-          <Play size={12} /> Start Console
+          <Play size={12} /> {t("langs.python.startConsole")}
         </button>
       </Show>
     </div>

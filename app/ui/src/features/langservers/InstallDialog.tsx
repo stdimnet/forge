@@ -10,6 +10,7 @@ import { CircleCheck, CircleX, Copy, ExternalLink, LoaderCircle, TriangleAlert, 
 import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
 import { workspace } from "@/state/workspace";
 import { applyServers, onInstallOutput } from "./store";
+import { t } from "@/i18n";
 
 type Phase = "confirm" | "running" | "done";
 
@@ -87,19 +88,19 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
         >
           <header class="ls-dialog-title">
             <span>
-              Install {props.row.name}
+              {t("tools.langservers.install", { name: props.row.name })}
               <Show when={host()}>
                 {(h) => <span class="ls-dialog-host"> on {h()}</span>}
               </Show>
             </span>
-            <button class="icon-btn" title="Close" onClick={close}>
+            <button class="icon-btn" title={t("common.close")} onClick={close}>
               <X size={15} />
             </button>
           </header>
           <div class="ls-dialog-body">
             <Show when={phase() === "confirm"}>
               <p class="ls-dialog-text">
-                {props.row.languages.join(", ")} support needs <b>{props.row.command}</b>. Choose how to install it:
+                {t("tools.langservers.supportNeeds", { languages: props.row.languages.join(", ") })} <b>{props.row.command}</b>{t("tools.langservers.chooseHowToInstallItLabel")}
               </p>
               <div class="ls-options">
                 <For each={options()}>
@@ -108,7 +109,7 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
                       <input type="radio" name="ls-install" checked={choice() === o.index} onChange={() => setChoice(o.index)} />
                       <span class="ls-tool">{o.tool}</span>
                       <span class="ls-option-hint muted">
-                        {o.url ? "download from the release page" : !o.runnable ? "needs administrator rights" : o.available ? "" : `${o.command.split(" ")[0]} not found`}
+                        {o.url ? t("tools.langservers.downloadFromTheReleasePage") : !o.runnable ? t("tools.langservers.needsAdministratorRights") : o.available ? "" : t("tools.langservers.notFound", { value: o.command.split(" ")[0] })}
                       </span>
                     </label>
                   )}
@@ -116,31 +117,30 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
               </div>
               <div class="ls-command">
                 <code>{option()?.command}</code>
-                <button class="icon-btn" title={copied() ? "Copied" : "Copy"} onClick={() => void copy()}>
+                <button class="icon-btn" title={copied() ? t("common.copied") : t("common.copy")} onClick={() => void copy()}>
                   {copied() ? <CircleCheck size={14} /> : <Copy size={14} />}
                 </button>
               </div>
               <Switch>
                 <Match when={option()?.url}>
-                  <p class="ls-hint">Download the server for your platform and set its path in the Language Servers settings.</p>
+                  <p class="ls-hint">{t("tools.langservers.downloadTheServerForYour")}</p>
                 </Match>
                 <Match when={!option()?.runnable}>
-                  <p class="ls-hint">Run this command in a terminal; it needs administrator rights.</p>
+                  <p class="ls-hint">{t("tools.langservers.runThisCommandInA")}</p>
                 </Match>
                 <Match when={option()?.managed}>
                   <p class="ls-hint">
-                    Forge downloads the package from the npm registry (checking its sha512 hash) into its own server
-                    directory{host() ? ` on ${host()}` : ""}, and Node.js too if none is installed there. npm is not needed.
+                    {t("tools.langservers.forgeDownloadsThePackageFrom", { value: host() ? ` on ${host()}` : "" })}
                   </p>
                 </Match>
                 <Match when={!option()?.available}>
                   <p class="ls-hint ls-warn">
-                    <TriangleAlert size={13} /> {option()?.command.split(" ")[0]} was not found on {machine()}.
+                    <TriangleAlert size={13} /> {t("tools.langservers.wasNotFoundOn", { value: option()?.command.split(" ")[0], machine: machine() })}
                   </p>
                 </Match>
                 <Match when={true}>
                   <p class="ls-hint">
-                    Forge runs this command on {host() ?? "your machine"} and shows its output. This may take a few minutes.
+                    {t("tools.langservers.forgeRunsThisCommandOn", { value: host() ?? t("tools.langservers.yourMachine") })}
                   </p>
                 </Match>
               </Switch>
@@ -151,8 +151,7 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
                   <Match when={phase() === "running"}>
                     <LoaderCircle size={14} class="lsp-spin" />
                     <span>
-                      Installing {props.row.name}
-                      {host() ? ` on ${host()}` : ""}…
+                      {t("tools.langservers.installingEllipsis", { name: props.row.name, value: host() ? ` on ${host()}` : "" })}
                     </span>
                   </Match>
                   <Match when={succeeded()}>
@@ -161,7 +160,7 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
                   </Match>
                   <Match when={true}>
                     <CircleX size={14} class="ls-bad" />
-                    <span>{error() ?? (outcome() ? outcomeText(outcome()!, props.row.name) : "The installation failed.")}</span>
+                    <span>{error() ?? (outcome() ? outcomeText(outcome()!, props.row.name) : t("tools.langservers.theInstallationFailed"))}</span>
                   </Match>
                 </Switch>
               </div>
@@ -174,35 +173,35 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
           </div>
           <footer class="ls-dialog-footer">
             <a class="ls-link" href={props.row.homepage} target="_blank" rel="noreferrer noopener">
-              {props.row.license} · Homepage <ExternalLink size={12} />
+              {t("tools.langservers.homepage", { license: props.row.license })} <ExternalLink size={12} />
             </a>
             <span class="ls-spacer" />
             <Switch>
               <Match when={phase() === "confirm"}>
                 <button class="btn-secondary" onClick={close}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <Show
                   when={option()?.runnable && option()?.available}
                   fallback={
                     <button class="btn-primary" onClick={() => void copy()}>
-                      {copied() ? "Copied" : "Copy Command"}
+                      {copied() ? t("common.copied") : t("tools.langservers.copyCommand")}
                     </button>
                   }
                 >
                   <button class="btn-primary" onClick={() => void start()}>
-                    Install
+                    {t("common.install")}
                   </button>
                 </Show>
               </Match>
               <Match when={phase() === "running"}>
                 <button class="btn-secondary" onClick={() => void langserversApi.cancelInstall(props.row.id)}>
-                  Stop
+                  {t("common.stop")}
                 </button>
               </Match>
               <Match when={true}>
                 <button class="btn-primary" onClick={props.onClose}>
-                  Close
+                  {t("common.close")}
                 </button>
               </Match>
             </Switch>

@@ -9,6 +9,7 @@ import { item, showContextMenu } from "@/features/contextMenu/state";
 import { openFileAt } from "@/editor/views";
 import { setPreviewLayout } from "@/editor/TextEditorWithPreview";
 import { generateHttpRequest, loadOpenApi, openApiFiles, openApiLoading } from "./store";
+import { t } from "@/i18n";
 
 const [query, setQuery] = createSignal("");
 
@@ -29,9 +30,9 @@ export function OpenApiEndpointsView() {
     <div class="wt-endpoints" data-testid="openapi-endpoints">
       <div class="wt-search">
         <Search size={13} class="muted" />
-        <input placeholder="Search endpoints" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
+        <input placeholder={t("langs.webTooling.searchEndpoints")} value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
       </div>
-      <Show when={groups().length} fallback={<div class="set-list-empty">{openApiLoading() ? "Scanning…" : "No OpenAPI documents in the project."}</div>}>
+      <Show when={groups().length} fallback={<div class="set-list-empty">{openApiLoading() ? t("langs.webTooling.scanningEllipsis") : t("langs.webTooling.noOpenapiDocumentsInThe")}</div>}>
         <For each={groups()}>
           {(g) => (
             <div class="wt-group">
@@ -66,7 +67,7 @@ export function OpenApiEndpointsView() {
                     <span class="muted wt-grow">{e.summary ?? e.operationId ?? ""}</span>
                     <button
                       class="icon-btn"
-                      title="Generate HTTP Request"
+                      title={t("common.generateHttpRequest")}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         void generateHttpRequest(g.file.path, e.method, e.path);
@@ -87,7 +88,7 @@ export function OpenApiEndpointsView() {
 
 export function OpenApiEndpointsActions() {
   return (
-    <button class="icon-btn" title="Refresh" aria-label="Refresh" onClick={() => void loadOpenApi()}>
+    <button class="icon-btn" title={t("common.refresh")} aria-label={t("common.refresh")} onClick={() => void loadOpenApi()}>
       <RefreshCw size={14} />
     </button>
   );

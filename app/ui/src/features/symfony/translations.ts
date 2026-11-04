@@ -19,6 +19,7 @@ import { revealSymbol } from "@/features/php/editorViews";
 import { showBalloon } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { symfonyActive } from "./store";
+import { t as tr } from "@/i18n";
 
 const SOURCE = "symfony-translations";
 
@@ -214,14 +215,14 @@ registerContextActionHandler("Symfony.CreateTranslationKey", async (data, ctx) =
     const created = await symfonyApi.createTranslation(d.domain, d.key, d.locales);
     const first = created[0];
     showBalloon(
-      `Translation key '${d.key}' created`,
+      tr("langs.symfony.translationKeyCreated", { key: d.key }),
       created.map((l) => l.path).join(", "),
       4000,
       first ? [{ label: "Open", run: () => void revealSymbol(first.path, { line: first.line }) }] : undefined,
       { group: "Symfony" },
     );
   } catch (e) {
-    showBalloon("Could not create the translation key", String(e), 5000, undefined, { group: "Symfony", type: "error" });
+    showBalloon(tr("langs.symfony.couldNotCreateTheTranslation"), String(e), 5000, undefined, { group: "Symfony", type: "error" });
   }
   ctx.view.dispatch({ effects: refresh.of(null) });
 });

@@ -126,10 +126,10 @@ action(
 );
 // Ctrl+Alt+Down / Up: the next or previous result of the Find tool window's active tab.
 action("NextOccurence", "Next Occurrence", "Navigate", () => {
-  if (!gotoFindOccurrence(1, findGroupByType())) showBalloon(t("codeintel.main.thereAreNoOccurrences"), "Search with Find Usages (Alt+F7) or Find in Files first.");
+  if (!gotoFindOccurrence(1, findGroupByType())) showBalloon(t("codeintel.main.thereAreNoOccurrences"), t("tools.codeintel.searchWithFindUsagesAlt"));
 });
 action("PreviousOccurence", "Previous Occurrence", "Navigate", () => {
-  if (!gotoFindOccurrence(-1, findGroupByType())) showBalloon(t("codeintel.main.thereAreNoOccurrences"), "Search with Find Usages (Alt+F7) or Find in Files first.");
+  if (!gotoFindOccurrence(-1, findGroupByType())) showBalloon(t("codeintel.main.thereAreNoOccurrences"), t("tools.codeintel.searchWithFindUsagesAlt"));
 });
 registerMainMenuEntries("Navigate", [menuAction("NextOccurence"), menuAction("PreviousOccurence")], {
   after: "GotoPreviousError",

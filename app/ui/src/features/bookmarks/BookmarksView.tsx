@@ -14,6 +14,7 @@ import type { Bookmark } from "@/ipc/workbench";
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
 import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { applyBookmarks, bookmarks } from "./store";
+import { t as tr } from "@/i18n";
 
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
@@ -32,8 +33,8 @@ const [texts, setTexts] = createSignal<Record<string, string>>({});
 
 export async function editDescription(b: Bookmark): Promise<void> {
   const description = await askName({
-    title: "Edit Bookmark Description",
-    label: "Description",
+    title: tr("tools.bookmarks.editBookmarkDescription"),
+    label: tr("common.description"),
     initial: b.description ?? "",
     confirm: "OK",
     validate: () => null,
@@ -42,16 +43,16 @@ export async function editDescription(b: Bookmark): Promise<void> {
 }
 
 async function newList(): Promise<void> {
-  const name = await askName({ title: "New Bookmark List", label: "Name", initial: "", confirm: "Create", validate: (n) => (n.trim() ? null : "Enter a name") });
+  const name = await askName({ title: tr("tools.bookmarks.newBookmarkList"), label: tr("common.name"), initial: "", confirm: tr("common.create"), validate: (n) => (n.trim() ? null : "Enter a name") });
   if (name) await applyBookmarks([{ op: "addList", name }]);
 }
 
 async function renameList(from: string): Promise<void> {
   const to = await askName({
-    title: "Rename Bookmark List",
-    label: "Name",
+    title: tr("tools.bookmarks.renameBookmarkList"),
+    label: tr("common.name"),
     initial: from,
-    confirm: "Rename",
+    confirm: tr("tools.bookmarks.rename"),
     validate: (n) => (!n.trim() ? "Enter a name" : n !== from && bookmarks().lists.some((l) => l.name === n) ? "A list with this name exists" : null),
   });
   if (to && to !== from) await applyBookmarks([{ op: "renameList", from, to }]);
@@ -59,7 +60,7 @@ async function renameList(from: string): Promise<void> {
 
 async function deleteList(name: string): Promise<void> {
   const count = bookmarks().lists.find((l) => l.name === name)?.bookmarks.length ?? 0;
-  if (count && !(await askConfirm({ title: "Delete Bookmark List", message: `Delete "${name}" and its ${count} bookmark${count === 1 ? "" : "s"}?`, confirm: "Delete" }))) return;
+  if (count && !(await askConfirm({ title: tr("tools.bookmarks.deleteBookmarkList"), message: tr("tools.bookmarks.deleteAndItsBookmarks", { count, name }), confirm: tr("common.delete") }))) return;
   await applyBookmarks([{ op: "removeList", name }]);
 }
 
@@ -72,7 +73,7 @@ function bookmarkMenu(b: Bookmark & { list: string }): MenuEntry[] {
       ...others.map((l) => item(l.name, () => void applyBookmarks([{ op: "moveToList", id: b.id, list: l.name }]))),
       ...(others.length ? [separator] : []),
       item("New List…", async () => {
-        const name = await askName({ title: "New Bookmark List", label: "Name", initial: "", confirm: "Move", validate: (n) => (n.trim() ? null : "Enter a name") });
+        const name = await askName({ title: tr("tools.bookmarks.newBookmarkList"), label: tr("common.name"), initial: "", confirm: tr("tools.bookmarks.move"), validate: (n) => (n.trim() ? null : "Enter a name") });
         if (name) await applyBookmarks([{ op: "moveToList", id: b.id, list: name }]);
       }),
     ]),
@@ -200,7 +201,7 @@ export function BookmarksView() {
         }}
       </For>
       <Show when={!bookmarks().lists.some((l) => l.bookmarks.length)}>
-        <div class="bookmarks-empty muted">No bookmarks yet. Press F11 in the editor to add one, Ctrl+F11 for a mnemonic.</div>
+        <div class="bookmarks-empty muted">{tr("tools.bookmarks.noBookmarksYetPressF11")}</div>
       </Show>
     </div>
   );
@@ -220,15 +221,15 @@ export function BookmarksActions() {
   };
   return (
     <>
-      <button class="icon-btn" title="New List…" onClick={() => void newList()}>
+      <button class="icon-btn" title={tr("tools.bookmarks.newListEllipsis")} onClick={() => void newList()}>
         <FolderPlus size={15} />
       </button>
-      <button class="icon-btn" title="Edit Description…" disabled={!selectedBookmark()} onClick={() => selectedBookmark() && void editDescription(selectedBookmark()!)}>
+      <button class="icon-btn" title={tr("tools.bookmarks.editDescriptionEllipsis")} disabled={!selectedBookmark()} onClick={() => selectedBookmark() && void editDescription(selectedBookmark()!)}>
         <Pencil size={15} />
       </button>
       <button
         class="icon-btn"
-        title="Delete"
+        title={tr("common.delete")}
         disabled={!selectedBookmark()}
         onClick={() => selectedBookmark() && void applyBookmarks([{ op: "remove", id: selectedBookmark()!.id }])}
       >

@@ -196,8 +196,8 @@ function showConflictsBalloon(): void {
   hideBalloon();
   const n = conflictedPaths().length;
   balloon = showBalloon(
-    "Merge conflicts",
-    `${n} file${n === 1 ? " has" : "s have"} unresolved conflicts`,
+    t("tools.git.mergeConflicts"),
+    t("tools.git.fileUnresolvedConflicts", { n, value: n === 1 ? " has" : "s have" }),
     0,
     [{ label: t("git.conflicts.resolve"), run: resolveConflicts }],
     { group: VCS_GROUP, type: "warning" },

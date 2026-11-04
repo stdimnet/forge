@@ -26,6 +26,7 @@ import { isPluginActive } from "@/state/project";
 import { showToolWindow } from "@/state/layout";
 import { getSetting } from "@/state/settings";
 import { balloonsFor } from "@/keymap/dispatch";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("JavaScript Debugger");
 const PLUGIN = "forge.js-debugger";
@@ -146,14 +147,14 @@ async function install(status: JsDebugStatus): Promise<boolean> {
     okLabel: "Download",
   });
   if (!ok) return false;
-  showBalloon(`Downloading js-debug ${r.version}…`, "The debug session starts when the download is complete.", 4000);
+  showBalloon(t("langs.webforge.downloadingJsDebugEllipsis", { version: r.version }), t("langs.webforge.theDebugSessionStartsWhen"), 4000);
   try {
     const done = await jsDebugApi.install();
     await refreshDebugAdapters();
-    showBalloon(`js-debug ${done.release.version} is ready`, done.server ?? "", 4000);
+    showBalloon(t("langs.webforge.jsDebugIsReady", { version: done.release.version }), done.server ?? "", 4000);
     return !!done.server;
   } catch (e) {
-    showBalloon("Cannot download js-debug", String(e).replace(/^Error: /, ""), 10000);
+    showBalloon(t("langs.webforge.cannotDownloadJsDebug"), String(e).replace(/^Error: /, ""), 10000);
     return false;
   }
 }
@@ -187,7 +188,7 @@ registerDebugLauncher({
       showToolWindow("debug");
       await dapApi.start(request);
     } catch (e) {
-      showBalloon(`Cannot debug '${cfg.name}'`, String(e).replace(/^Error: /, ""), 8000);
+      showBalloon(t("common.cannotDebug", { name: cfg.name }), String(e).replace(/^Error: /, ""), 8000);
     }
   },
 });
@@ -198,7 +199,7 @@ registerCommand({
   category: "Run",
   run: async () => {
     const status = await jsDebugApi.status();
-    if (status.server) showBalloon(`js-debug ${status.custom ? "" : `${status.release.version} `}is installed`, status.server, 4000);
+    if (status.server) showBalloon(t("langs.webforge.jsDebugIsInstalled", { value: status.custom ? "" : `${status.release.version} ` }), status.server, 4000);
     else await ensureJsDebug();
   },
 });

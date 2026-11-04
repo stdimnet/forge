@@ -10,6 +10,7 @@ import { openFileAt } from "@/editor/views";
 import { showProfiler } from "@/features/profiler";
 import { formatValue, hashColor, ProfileBody, ProfileToolbar, unitOf, type FrameStyle, type ProfileTab } from "@/features/profiler/callTree";
 import { workspace } from "@/state/workspace";
+import { t } from "@/i18n";
 
 const [profile, setProfile] = createSignal<PerfProfile | null>(null);
 const [tab, setTab] = createSignal<ProfileTab>("flame");
@@ -55,8 +56,8 @@ export function PerfView() {
         when={profile()}
         fallback={
           <div class="prof-empty muted">
-            <p>No perf profile yet.</p>
-            <Show when={unsupported()} fallback={<p>Run a CMake Application, Google Test or Catch2 configuration with Run | Profile with perf.</p>}>
+            <p>{t("langs.cpp.noPerfProfileYet")}</p>
+            <Show when={unsupported()} fallback={<p>{t("langs.cpp.runACmakeApplicationGoogle")}</p>}>
               <p>{unsupported()}</p>
             </Show>
           </div>

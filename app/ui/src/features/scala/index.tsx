@@ -53,9 +53,9 @@ export async function installMetals(): Promise<void> {
   try {
     const version = await scalaApi.installMetals();
     await refreshStatus();
-    showBalloon(`Metals ${version} installed`, "Metals is importing the sbt build (through Bloop).", 6000);
+    showBalloon(t("langs.scala.metalsInstalled", { version }), t("langs.scala.metalsIsImportingTheSbt"), 6000);
   } catch (e) {
-    showBalloon("Metals could not be installed", String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installMetals() }]);
+    showBalloon(t("langs.scala.metalsCouldNotBeInstalled"), String(e).replace(/^Error: /, ""), 0, [{ label: t("common.retry"), run: () => void installMetals() }]);
   } finally {
     off();
     installing = false;
@@ -74,15 +74,15 @@ async function checkScalaSetup(): Promise<void> {
   offered = true;
   if (getSetting<string>("scala.metals.autoInstall", "ask") === "never") return;
   showBalloon(
-    "Scala language server Metals is not installed",
+    t("langs.scala.scalaLanguageServerMetalsIs"),
     s.coursier
-      ? `Completion, navigation and diagnostics in ${workspace()?.name ?? "this project"} need it. Forge installs Metals ${s.pinnedVersion} with Coursier (${s.coursier}) into its data directory.`
-      : "Completion, navigation and diagnostics need it. Install Coursier (get-coursier.io), then Forge installs Metals with it, or put metals on the PATH.",
+      ? t("langs.scala.completionNavigationAndDiagnosticsIn", { value: workspace()?.name ?? "this project", pinnedVersion: s.pinnedVersion, coursier: s.coursier })
+      : t("langs.scala.completionNavigationAndDiagnosticsNeed"),
     0,
     [
-      ...(s.coursier ? [{ label: "Install", run: () => void installMetals() }] : []),
-      { label: "Settings…", run: () => openSettings("lang.scala") },
-      { label: "Don't ask again", run: () => void saveSetting("scala.metals.autoInstall", "never") },
+      ...(s.coursier ? [{ label: t("common.install"), run: () => void installMetals() }] : []),
+      { label: t("langs.scala.settingsEllipsis"), run: () => openSettings("lang.scala") },
+      { label: t("langs.scala.donTAskAgain"), run: () => void saveSetting("scala.metals.autoInstall", "never") },
     ],
   );
 }
@@ -112,20 +112,19 @@ function ScalaPage() {
   return (
     <div class="java-page" data-scala-page>
       <div class="java-status" data-scala-status>
-        <Row ok={!!s()?.metals} label="Metals" value={s()?.metals ? (s()?.metalsVersion ?? "installed") : "not installed"} path={s()?.metals} />
-        <Row ok={!!s()?.coursier} label="Coursier" value={s()?.coursier ? "found" : "not found (get-coursier.io)"} path={s()?.coursier} />
+        <Row ok={!!s()?.metals} label={t("langs.scala.metals")} value={s()?.metals ? (s()?.metalsVersion ?? "installed") : "not installed"} path={s()?.metals} />
+        <Row ok={!!s()?.coursier} label={t("langs.scala.coursier")} value={s()?.coursier ? "found" : "not found (get-coursier.io)"} path={s()?.coursier} />
         <Row ok={!!s()?.sbt} label="sbt" value={s()?.sbt ? "found" : "not found (sdk install sbt, scala-sbt.org)"} path={s()?.sbt} />
         <Show when={s()?.problems.length}>
           <p class="java-error">{s()!.problems.join(" ")}</p>
         </Show>
         <div class="java-buttons java-buttons-left">
           <button class="btn-secondary" disabled={busy() || !!metalsInstalling() || !s()?.coursier} onClick={async () => (setBusy(true), await installMetals(), setBusy(false))}>
-            {s()?.metals ? `Reinstall Metals ${s()?.pinnedVersion ?? ""}` : `Install Metals ${s()?.pinnedVersion ?? ""}`}
+            {s()?.metals ? t("langs.scala.reinstallMetals", { value: s()?.pinnedVersion ?? "" }) : t("langs.scala.installMetals", { value: s()?.pinnedVersion ?? "" })}
           </button>
         </div>
         <p class="muted java-hint">
-          Metals (Apache-2.0, scalameta.org) is installed with your Coursier (cs bootstrap, pinned version, checksums verified by Coursier) into Forge's data directory, never into the
-          project; Forge never downloads it without asking. Metals imports the sbt build through Bloop, which runs the build definition: in Safe Mode it does not start.
+          {t("langs.scala.metalsApache20Scalameta")}
         </p>
       </div>
       <SchemaPage pageId="lang.scala" />
@@ -166,7 +165,7 @@ registerStatusItem({
   component: () => (
     <span class="status-item ls-install-status" title={metalsInstalling() ?? ""}>
       <LoaderCircle size={13} class="lsp-spin" />
-      <span class="ls-install-status-name">Installing Metals:</span>
+      <span class="ls-install-status-name">{t("langs.scala.installingMetalsLabel")}</span>
       <span class="ls-install-status-text">{metalsInstalling()}</span>
     </span>
   ),
@@ -195,9 +194,9 @@ function runMenu(label: string, cfg: () => ReturnType<typeof useTemporary>): Lin
       x: e.clientX,
       y: e.clientY + 6,
       items: [
-        { label: `Run '${label}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
+        { label: t("common.run3", { label }), icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(cfg()) },
         { separator: true },
-        { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(cfg().name) },
+        { label: t("common.modifyRunConfigurationEllipsis"), icon: Settings2, run: () => openRunConfigurations(cfg().name) },
       ],
     });
 }
@@ -210,7 +209,7 @@ registerLineMarkerProvider({
   markers: async (path, text) => {
     if (!active()) return [];
     const mains = await mainsOf(text);
-    return mains.map((m) => ({ line: m.line, icon: Play, title: `Run '${m.name}'`, className: "marker-run", onClick: runMenu(m.name, () => mainConfiguration(path, m)) }));
+    return mains.map((m) => ({ line: m.line, icon: Play, title: t("common.run", { name: m.name }), className: "marker-run", onClick: runMenu(m.name, () => mainConfiguration(path, m)) }));
   },
 });
 

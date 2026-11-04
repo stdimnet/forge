@@ -9,6 +9,7 @@ import { createEffect, createResource, createSignal, For, on, Show } from "solid
 import { ChevronDown, ChevronRight, RefreshCw, Search } from "lucide-solid";
 import { cppToolsApi, type RegisterValue } from "@/ipc/cppTools";
 import { activeSession, pausedSession } from "@/features/debug/store";
+import { t } from "@/i18n";
 
 const [svds, setSvds] = createSignal<Record<string, string>>({});
 
@@ -117,19 +118,19 @@ export function PeripheralsView() {
     <div class="periph-view">
       <div class="periph-toolbar">
         <Search size={13} class="muted" />
-        <input class="periph-filter" placeholder="Filter peripherals" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
+        <input class="periph-filter" placeholder={t("langs.cpp.filterPeripherals")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
         <span class="muted periph-device">{device() ? `${device()!.name}${device()!.vendor ? ` · ${device()!.vendor}` : ""}` : ""}</span>
-        <button class="icon-btn" title="Reload SVD File" onClick={() => void refetch()}>
+        <button class="icon-btn" title={t("langs.cpp.reloadSvdFile")} onClick={() => void refetch()}>
           <RefreshCw size={14} />
         </button>
       </div>
       <Show when={!device.error} fallback={<div class="periph-error">{String(device.error).replace(/^Error: /, "")}</div>}>
         <div class="periph-header">
           <span class="periph-toggle" />
-          <span class="periph-name">Name</span>
-          <span class="periph-address">Address</span>
-          <span class="periph-value">Value</span>
-          <span class="periph-access">Access</span>
+          <span class="periph-name">{t("common.name")}</span>
+          <span class="periph-address">{t("langs.cpp.address")}</span>
+          <span class="periph-value">{t("common.value")}</span>
+          <span class="periph-access">{t("langs.cpp.access")}</span>
         </div>
         <div class="periph-tree">
           <For each={shown()}>

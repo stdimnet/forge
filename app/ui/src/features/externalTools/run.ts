@@ -14,6 +14,7 @@ import { launch, registerRunConfigurationType, type RunHandle } from "@/features
 import { refreshDirs } from "@/features/project/ProjectView";
 import { Wrench } from "lucide-solid";
 import { findTool, toolRef } from "./model";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("External Tools");
 
@@ -94,11 +95,11 @@ export async function runExternalTool(tool: ExternalTool, path?: string): Promis
   try {
     cmd = await runToolsApi.command(tool, context);
   } catch (err) {
-    showBalloon(`Cannot run '${tool.name}'`, String(err));
+    showBalloon(tr("tools.externalTools.cannotRun", { name: tool.name }), String(err));
     return null;
   }
   const missing = (cmd.missing ?? []).filter((m) => m !== "$Prompt$");
-  if (missing.length) showBalloon(`'${tool.name}': no value for ${missing.join(", ")}`, "The macros were replaced with empty text.");
+  if (missing.length) showBalloon(tr("tools.externalTools.noValueFor", { name: tool.name, missing: missing.join(", ") }), tr("tools.externalTools.theMacrosWereReplacedWith"));
   const cfg: RunConfiguration = {
     name: tool.name,
     type: TOOL_TYPE,
@@ -135,7 +136,7 @@ export async function runExternalTool(tool: ExternalTool, path?: string): Promis
 export async function runToolAndWait(ref: string, path?: string): Promise<boolean> {
   const tool = findTool(ref);
   if (!tool) {
-    showBalloon(`External tool '${ref}' not found`, "Check Settings | Tools | External Tools.");
+    showBalloon(tr("tools.externalTools.externalToolNotFound", { ref }), tr("tools.externalTools.checkSettingsToolsExternalTools"));
     return false;
   }
   const handle = await runExternalTool(tool, path);

@@ -15,6 +15,7 @@ import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { ssrApi, type SsrConstraint, type SsrFileType, type SsrSavedTemplate, type SsrTemplateCheck } from "@/ipc/ssr";
 import { ScopeSelect } from "@/features/scopes/ScopeSelect";
 import { closeSsrDialog, FILE_TYPES, runSsr, setSsrForm, ssrForm, useTemplate, type SsrMode } from "./state";
+import { t as tr } from "@/i18n";
 
 const variableMarks = new MatchDecorator({
   regexp: /\$[A-Za-z_][A-Za-z0-9_]*\$/g,
@@ -108,8 +109,8 @@ function TemplateLibrary(props: { onPick: (t: SsrSavedTemplate) => void }) {
       return next;
     });
   return (
-    <div class="ssr-library" role="tree" aria-label="Existing Templates">
-      <div class="ssr-library-title">Existing Templates</div>
+    <div class="ssr-library" role="tree" aria-label={tr("tools.ssr.existingTemplates")}>
+      <div class="ssr-library-title">{tr("tools.ssr.existingTemplates")}</div>
       <For each={groups()}>
         {(g) => (
           <>
@@ -142,40 +143,40 @@ function Filters(props: { name: string }) {
   return (
     <div class="ssr-filters">
       <div class="ssr-filter-title">
-        Filters for <span class="ssr-var">${props.name}$</span>
+        {tr("tools.ssr.filtersFor")} <span class="ssr-var">${props.name}$</span>
       </div>
       <div class="ssr-filter-row">
-        <span class="ssr-filter-label">Count:</span>
-        <input class="ssr-num" type="number" min="0" value={min()} aria-label="Minimum count" onInput={(e) => set({ minCount: Math.max(0, Number(e.currentTarget.value) || 0) })} />
+        <span class="ssr-filter-label">{tr("tools.ssr.countLabel")}</span>
+        <input class="ssr-num" type="number" min="0" value={min()} aria-label={tr("tools.ssr.minimumCount")} onInput={(e) => set({ minCount: Math.max(0, Number(e.currentTarget.value) || 0) })} />
         <span>to</span>
         <Show
           when={max() !== null}
           fallback={<span class="ssr-infinite">∞</span>}
         >
-          <input class="ssr-num" type="number" min="0" value={max() ?? 1} aria-label="Maximum count" onInput={(e) => set({ maxCount: Math.max(0, Number(e.currentTarget.value) || 0) })} />
+          <input class="ssr-num" type="number" min="0" value={max() ?? 1} aria-label={tr("tools.ssr.maximumCount")} onInput={(e) => set({ maxCount: Math.max(0, Number(e.currentTarget.value) || 0) })} />
         </Show>
         <label class="form-label check">
           <input type="checkbox" checked={max() === null} onChange={(e) => set({ maxCount: e.currentTarget.checked ? null : Math.max(1, min()) })} />
-          Unlimited
+          {tr("tools.ssr.unlimited")}
         </label>
       </div>
       <div class="ssr-filter-row">
-        <span class="ssr-filter-label">Text:</span>
-        <input class="ssr-text" value={c().text ?? ""} placeholder="Regular expression" spellcheck={false} onInput={(e) => set({ text: e.currentTarget.value })} />
+        <span class="ssr-filter-label">{tr("tools.ssr.textLabel")}</span>
+        <input class="ssr-text" value={c().text ?? ""} placeholder={tr("tools.ssr.regularExpression")} spellcheck={false} onInput={(e) => set({ text: e.currentTarget.value })} />
         <label class="form-label check">
           <input type="checkbox" checked={!!c().invertText} onChange={(e) => set({ invertText: e.currentTarget.checked })} />
-          Invert
+          {tr("tools.ssr.invert")}
         </label>
       </div>
       <div class="ssr-filter-row">
-        <span class="ssr-filter-label">Type:</span>
-        <input class="ssr-text" value={c().type ?? ""} placeholder="Order|string" spellcheck={false} onInput={(e) => set({ type: e.currentTarget.value })} />
+        <span class="ssr-filter-label">{tr("common.typeLabel")}</span>
+        <input class="ssr-text" value={c().type ?? ""} placeholder={tr("tools.ssr.orderString")} spellcheck={false} onInput={(e) => set({ type: e.currentTarget.value })} />
         <label class="form-label check">
           <input type="checkbox" checked={!!c().invertType} onChange={(e) => set({ invertType: e.currentTarget.checked })} />
-          Invert
+          {tr("tools.ssr.invert")}
         </label>
       </div>
-      <div class="ssr-filter-hint muted">Type works where the code shows it: literals, new expressions, typed parameters, $this.</div>
+      <div class="ssr-filter-hint muted">{tr("tools.ssr.typeWorksWhereTheCode")}</div>
     </div>
   );
 }
@@ -226,7 +227,7 @@ export function SsrDialog(props: { mode: SsrMode }) {
       <div
         class="dialog ssr-dialog"
         role="dialog"
-        aria-label={replace() ? "Structural Replace" : "Structural Search"}
+        aria-label={replace() ? tr("tools.ssr.structuralReplace") : tr("tools.ssr.structuralSearch")}
         onKeyDown={(e) => {
           if (e.key === "Escape") closeSsrDialog();
           else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void run();
@@ -239,23 +240,23 @@ export function SsrDialog(props: { mode: SsrMode }) {
           <button
             class="icon-btn"
             classList={{ on: showLibrary() }}
-            title="Show Templates"
-            aria-label="Show Templates"
+            title={tr("tools.ssr.showTemplates")}
+            aria-label={tr("tools.ssr.showTemplates")}
             aria-pressed={showLibrary()}
             onClick={() => setShowLibrary(!showLibrary())}
           >
             <PanelLeft size={15} />
           </button>
-          {replace() ? "Structural Replace" : "Structural Search"}
+          {replace() ? tr("tools.ssr.structuralReplace") : tr("tools.ssr.structuralSearch")}
         </div>
         <div class="ssr-body">
           <Show when={showLibrary()}>
             <TemplateLibrary onPick={useTemplate} />
           </Show>
           <div class="ssr-main">
-            <div class="ssr-label">Search template:</div>
+            <div class="ssr-label">{tr("tools.ssr.searchTemplateLabel")}</div>
             <TemplateEditor
-              label="Search template"
+              label={tr("tools.ssr.searchTemplate")}
               value={ssrForm.template}
               fileType={ssrForm.fileType}
               autofocus
@@ -265,39 +266,39 @@ export function SsrDialog(props: { mode: SsrMode }) {
               <div class="ssr-error">{check().error}</div>
             </Show>
             <Show when={replace()}>
-              <div class="ssr-label">Replace template:</div>
+              <div class="ssr-label">{tr("tools.ssr.replaceTemplateLabel")}</div>
               <TemplateEditor
-                label="Replace template"
+                label={tr("tools.ssr.replaceTemplate")}
                 value={ssrForm.replacement}
                 fileType={ssrForm.fileType}
                 onChange={(v) => setSsrForm("replacement", v)}
               />
               <Show when={check().unknownInReplacement?.length}>
                 <div class="ssr-error">
-                  Not in the search template: {check().unknownInReplacement!.map((v) => `$${v}$`).join(", ")}
+                  {tr("tools.ssr.notInTheSearchTemplateLabel")} {check().unknownInReplacement!.map((v) => `$${v}$`).join(", ")}
                 </div>
               </Show>
             </Show>
             <div class="ssr-options">
               <label class="form-label check">
                 <input type="checkbox" checked={ssrForm.matchCase} onChange={(e) => setSsrForm("matchCase", e.currentTarget.checked)} />
-                Match case
+                {tr("tools.ssr.matchCase")}
               </label>
               <label class="ssr-option">
-                File type:
-                <select value={ssrForm.fileType} aria-label="File type" onChange={(e) => setSsrForm("fileType", e.currentTarget.value as SsrFileType)}>
+                {tr("tools.ssr.fileTypeLabel")}
+                <select value={ssrForm.fileType} aria-label={tr("tools.ssr.fileType")} onChange={(e) => setSsrForm("fileType", e.currentTarget.value as SsrFileType)}>
                   <For each={FILE_TYPES}>{(t) => <option value={t.value}>{t.label}</option>}</For>
                 </select>
               </label>
               <label class="ssr-option">
-                Scope:
+                {tr("common.scopeLabel")}
                 <ScopeSelect value={ssrForm.scopeName} onChange={(n) => setSsrForm("scopeName", n)} />
               </label>
             </div>
           </div>
           <div class="ssr-side">
             <div class="ssr-vars">
-              <For each={check().variables} fallback={<div class="muted ssr-novars">No variables. Add $name$ to the template.</div>}>
+              <For each={check().variables} fallback={<div class="muted ssr-novars">{tr("tools.ssr.noVariablesAddNameTo")}</div>}>
                 {(v) => (
                   <button class="ssr-var-chip" classList={{ selected: selectedVar() === v }} onClick={() => setSelectedVar(v)}>
                     ${v}$
@@ -313,10 +314,10 @@ export function SsrDialog(props: { mode: SsrMode }) {
         <div class="dialog-buttons">
           <span class="dialog-checkbox muted ssr-hint">Ctrl+Enter to {replace() ? "replace" : "find"}</span>
           <button class="btn-secondary" onClick={closeSsrDialog}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={busy() || !ssrForm.template.trim() || !!check().error} onClick={() => void run()}>
-            {replace() ? "Replace" : "Find"}
+            {replace() ? tr("tools.ssr.replace") : tr("tools.ssr.find")}
           </button>
         </div>
       </div>

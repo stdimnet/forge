@@ -14,6 +14,7 @@ import { registerStatusItem } from "@/features/statusItems";
 import { getSetting } from "@/state/settings";
 import { saveAll } from "@/state/editor";
 import { dotnetActive, showDotnetBalloon } from "../state";
+import { t } from "@/i18n";
 
 export interface HotReloadStatus {
   runId: string;
@@ -46,7 +47,7 @@ function apply(runId: string, name: string, events: WatchEvent[]) {
     setStatus({ runId, name, state: e.state, message: e.message, at: Date.now(), prompt: e.prompt });
     if (e.state === "buildFailed") showDotnetBalloon(`Hot Reload: ${name}`, e.message, 6000);
     if (e.prompt)
-      showDotnetBalloon(`Hot Reload: ${name}`, "A rude edit needs a restart of the application.", 15000, [{ label: "Restart", run: () => void runApi.write(runId, "y\n").catch(() => undefined) }]);
+      showDotnetBalloon(`Hot Reload: ${name}`, "A rude edit needs a restart of the application.", 15000, [{ label: t("langs.dotnet.restart"), run: () => void runApi.write(runId, "y\n").catch(() => undefined) }]);
   }
 }
 
@@ -104,7 +105,7 @@ function HotReloadItem() {
           class="status-item dn-hot-reload"
           classList={{ bad: s().state === "buildFailed" || s().state === "rudeEdit", ok: s().state === "applied" }}
           data-status="hot-reload"
-          title={`Hot Reload (${s().name}): ${LABELS[s().state]}${s().message ? `\n${s().message}` : ""}\nApply Changes: Ctrl+F10`}
+          title={t("langs.dotnet.hotReloadApplyChangesCtrl", { name: s().name, value: LABELS[s().state], value2: s().message ? `\n${s().message}` : "" })}
           onClick={() => void applyChanges()}
         >
           <Flame size={13} />

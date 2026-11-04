@@ -8,6 +8,7 @@ import { balloonsFor } from "@/keymap";
 import { stacktraceApi } from "@/ipc/stacktrace";
 import { openOutputTab } from "@/features/run/runStore";
 import { closeAnalyzeDialog, openAnalyzeDialog } from "./state";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Run");
 
@@ -16,10 +17,10 @@ export async function analyzeStackTrace(text: string): Promise<boolean> {
   try {
     const a = await stacktraceApi.analyze(text);
     openOutputTab({ name: "Stack Trace", type: "stacktrace", lines: a.lines, rerun: () => openAnalyzeDialog(text) });
-    if (a.frames > 0 && a.resolved === 0) showBalloon("No frame of the stack trace is a project file", "Check the path mappings of the PHP servers or Docker Compose bind mounts.");
+    if (a.frames > 0 && a.resolved === 0) showBalloon(t("tools.stacktrace.noFrameOfTheStack"), t("tools.stacktrace.checkThePathMappingsOf"));
     return true;
   } catch (e) {
-    showBalloon("Cannot analyze the stack trace", String(e instanceof Error ? e.message : e));
+    showBalloon(t("tools.stacktrace.cannotAnalyzeTheStackTrace"), String(e instanceof Error ? e.message : e));
     return false;
   }
 }
@@ -46,7 +47,7 @@ export function AnalyzeDialog(props: { text: string }) {
       <div
         class="dialog stacktrace-dialog"
         role="dialog"
-        aria-label="Analyze Stack Trace"
+        aria-label={t("tools.stacktrace.analyzeStackTrace")}
         onKeyDown={(e) => {
           if (e.key === "Escape") closeAnalyzeDialog();
           else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void analyze();
@@ -55,10 +56,10 @@ export function AnalyzeDialog(props: { text: string }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Analyze Stack Trace</div>
+        <div class="dialog-title">{t("tools.stacktrace.analyzeStackTrace")}</div>
         <div class="dialog-body stacktrace-body">
           <label class="form-label" for="stacktrace-text">
-            Put a stack trace here:
+            {t("tools.stacktrace.putAStackTraceHereLabel")}
           </label>
           <textarea
             id="stacktrace-text"
@@ -67,20 +68,19 @@ export function AnalyzeDialog(props: { text: string }) {
             spellcheck={false}
             wrap="off"
             value={text()}
-            placeholder={"#0 /var/www/html/app/Http/Controllers/OrderController.php(42): App\\Models\\Order::findOrFail()\n    at Cart.add (/app/src/cart.ts:12:9)\nmain.lua:12: in function 'load'"}
+            placeholder={t("tools.stacktrace.n0VarWwwHtmlApp")}
             onInput={(e) => setText(e.currentTarget.value)}
           />
           <div class="muted stacktrace-hint">
-            PHP, Laravel, Symfony and Xdebug traces, JavaScript / Node and Lua. Server and container paths are mapped with the
-            PHP servers' path mappings and Docker Compose bind mounts.
+            {t("tools.stacktrace.phpLaravelSymfonyAndXdebug")}
           </div>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={closeAnalyzeDialog}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!text().trim() || busy()} onClick={() => void analyze()}>
-            Analyze
+            {t("tools.stacktrace.analyze")}
           </button>
         </div>
       </div>

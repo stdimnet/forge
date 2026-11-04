@@ -17,6 +17,7 @@ import { groupRows, jsonError, shortenHome, skipText, STATUS_LABEL } from "./mod
 import { applyServers, loading, refreshRows, rows } from "./store";
 import { managedOption, progressText } from "./autoInstall";
 import { installFor, installManaged } from "./managed";
+import { t } from "@/i18n";
 
 /**
  * Install button of a row: Forge's own installer when it can do it (npm servers: one click,
@@ -44,20 +45,20 @@ function InstallButton(props: { row: ServerRow; onDialog: () => void }) {
               props.onDialog();
             }}
           >
-            <Download size={13} /> Install…
+            <Download size={13} /> {t("common.installEllipsis")}
           </button>
         }
       >
         <button
           class="btn-secondary ls-small-btn"
           data-testid={`install-${props.row.id}`}
-          title="Forge downloads it into its own server directory (and Node.js, if needed)"
+          title={t("tools.langservers.forgeDownloadsItIntoIts")}
           onClick={(e) => {
             e.stopPropagation();
             void installManaged(props.row);
           }}
         >
-          <Download size={13} /> Install
+          <Download size={13} /> {t("common.install")}
         </button>
       </Show>
     </Show>
@@ -114,51 +115,51 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
         <span class="muted">{row().languages.join(", ")}</span>
         <span class="ls-spacer" />
         <a class="ls-link" href={row().homepage} target="_blank" rel="noreferrer noopener">
-          {row().license} · Homepage <ExternalLink size={12} />
+          {t("tools.langservers.homepage", { license: row().license })} <ExternalLink size={12} />
         </a>
       </div>
       <Show when={row().note}>
         <p class="ls-note">{row().note}</p>
       </Show>
       <div class="ls-form">
-        <span class="ls-form-label">Command:</span>
+        <span class="ls-form-label">{t("tools.langservers.commandLabel")}</span>
         <code class="ls-code">{[row().command, ...row().args].join(" ")}</code>
 
         <Show when={!isPack()}>
           <label class="ls-form-label" for="ls-custom-path">
-            Executable:
+            {t("tools.langservers.executableLabel")}
           </label>
           <input
             id="ls-custom-path"
             class="ls-input ls-path-input"
             spellcheck={false}
-            placeholder={row().path && !row().customPath ? `Detected: ${shortenHome(row().path)}` : "Detect automatically"}
+            placeholder={row().path && !row().customPath ? `Detected: ${shortenHome(row().path)}` : t("tools.langservers.detectAutomatically")}
             value={serverValue<string>(row().id, "path", row().customPath ?? "")}
             onInput={(e) => setDraft(serverKey(row().id, "path"), e.currentTarget.value.trim())}
           />
         </Show>
         <Show when={isPack()}>
-          <span class="ls-form-label">Executable:</span>
+          <span class="ls-form-label">{t("tools.langservers.executableLabel")}</span>
           <span class="ls-path-text">
-            {row().builtinVersion ? `Built into Forge · version ${row().builtinVersion}` : row().path ? shortenHome(row().path) : "Not found"}
-            <span class="muted"> · configured in </span>
+            {row().builtinVersion ? t("tools.langservers.builtIntoForgeVersion", { builtinVersion: row().builtinVersion }) : row().path ? shortenHome(row().path) : t("common.notFound2")}
+            <span class="muted"> {t("tools.langservers.configuredIn")} </span>
             <button class="ls-link" onClick={() => openSettings("lang.php")}>
-              Languages & Frameworks | PHP
+              {t("tools.langservers.languagesFrameworksPhp")}
             </button>
           </span>
         </Show>
 
         <Show when={row().status === "failed" && row().detail}>
-          <span class="ls-form-label">Error:</span>
+          <span class="ls-form-label">{t("tools.langservers.errorLabel")}</span>
           <span class="ls-start-error" data-testid="ls-start-error">
             {row().detail}
           </span>
         </Show>
 
-        <span class="ls-form-label">Log:</span>
+        <span class="ls-form-label">{t("tools.langservers.logLabel")}</span>
         <span>
           <button class="ls-link" data-testid="ls-log-toggle" onClick={() => void toggleLog()}>
-            {shownLog() ? "Hide Log" : "Show Log"}
+            {shownLog() ? t("tools.langservers.hideLog") : t("tools.langservers.showLog")}
           </button>
         </span>
         <Show when={shownLog()}>
@@ -170,21 +171,21 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
         </Show>
 
         <Show when={skip() && row().enabled && row().status !== "running"}>
-          <span class="ls-form-label">Project:</span>
+          <span class="ls-form-label">{t("tools.langservers.projectLabel")}</span>
           <span class="muted">{skip()}</span>
         </Show>
 
         <Show when={row().status === "notInstalled" || (row().install.length > 0 && !row().path)}>
-          <span class="ls-form-label">Install:</span>
+          <span class="ls-form-label">{t("tools.langservers.installLabel")}</span>
           <span class="ls-install-line">
             <Show when={managedOption(row())} fallback={<code class="ls-code">{row().install[0]?.command}</code>}>
-              <span class="muted">From the npm registry into Forge's server directory, with Node.js if needed.</span>
+              <span class="muted">{t("tools.langservers.fromTheNpmRegistryInto")}</span>
             </Show>
             <span class="ls-install-actions">
               <InstallButton row={row()} onDialog={props.onInstall} />
               <Show when={managedOption(row()) && row().install.length > 1}>
                 <button class="ls-link" onClick={props.onInstall}>
-                  Other ways…
+                  {t("tools.langservers.otherWaysEllipsis")}
                 </button>
               </Show>
             </span>
@@ -192,10 +193,10 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
         </Show>
 
         <Show when={row().id === "lua-language-server"}>
-          <span class="ls-form-label">Environment:</span>
+          <span class="ls-form-label">{t("tools.langservers.environmentLabel")}</span>
           <span>
             <button class="ls-link" onClick={() => openSettings("lang.lua")}>
-              Lua runtime, LÖVE and Neovim APIs…
+              {t("tools.langservers.luaRuntimeLVeAndEllipsis")}
             </button>
           </span>
         </Show>
@@ -203,10 +204,10 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
 
       <Show when={!isPack()}>
         <div class="ls-json-head">
-          <span>Extra settings (JSON):</span>
+          <span>{t("tools.langservers.extraSettingsJsonLabel")}</span>
           <span class="ls-spacer" />
           <button class="ls-link" onClick={() => setShowDefaults((v) => !v)}>
-            {showDefaults() ? "Hide Defaults" : "Show Defaults"}
+            {showDefaults() ? t("tools.langservers.hideDefaults") : t("tools.langservers.showDefaults")}
           </button>
         </div>
         <Show when={showDefaults()}>
@@ -224,7 +225,7 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
           when={extraError()}
           fallback={
             <p class="ls-hint">
-              Merged into the server's settings. Put startup options under an "initializationOptions" key.
+              {t("tools.langservers.mergedIntoTheServerS")}
             </p>
           }
         >
@@ -266,17 +267,13 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
     <div class="ls-page" data-testid="language-servers-page">
       <Show when={!props.groups}>
       <p class="ls-intro muted">
-        Language servers are separate programs. Forge looks in the project's node_modules, in its own server directory
-        (~/.local/share/forge/langservers), on PATH and in pip, cargo, go and Mason directories. Install puts npm
-        servers into that directory only, never globally, and needs nothing else: Forge downloads Node.js too when
-        it is missing.
+        {t("tools.langservers.languageServersAreSeparatePrograms")}
       </p>
       </Show>
       <Show when={workspace()?.remote}>
         {(r) => (
           <p class="ls-remote-note" data-testid="ls-remote-note">
-            This project is on <b>{r().label}</b>: its language servers run there, the list shows what is installed on
-            that host, and Install downloads Node.js and the servers into Forge's directory on the host.
+            {t("tools.langservers.thisProjectIsOn")} <b>{r().label}</b>{t("tools.langservers.itsLanguageServersRunThere")}
           </p>
         )}
       </Show>
@@ -290,7 +287,7 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
         <div class="ls-filter">
           <Search size={13} class="muted" />
           <input
-            placeholder="Filter servers or languages"
+            placeholder={t("tools.langservers.filterServersOrLanguages")}
             spellcheck={false}
             value={filter()}
             onInput={(e) => setFilter(e.currentTarget.value)}
@@ -298,31 +295,31 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
         </div>
         <label class="set-check ls-project-only">
           <input type="checkbox" checked={projectOnly()} onChange={(e) => setProjectOnly(e.currentTarget.checked)} />
-          <span>Project languages only</span>
+          <span>{t("tools.langservers.projectLanguagesOnly")}</span>
         </label>
         <span class="ls-spacer" />
         <span class="ls-counts muted">
-          {counts().running} running · {counts().installed} installed
+          {t("tools.langservers.runningInstalled", { running: counts().running, installed: counts().installed })}
         </span>
-        <button class="icon-btn" title="Detect Again" onClick={() => void applyServers()}>
+        <button class="icon-btn" title={t("tools.langservers.detectAgain")} onClick={() => void applyServers()}>
           <RefreshCw size={14} classList={{ "lsp-spin": loading() }} />
         </button>
       </div>
 
-      <div class="ls-table" role="table" aria-label="Language servers">
+      <div class="ls-table" role="table" aria-label={t("tools.langservers.languageServers")}>
         <div class="ls-tr ls-th" role="row">
-          <span>Server</span>
-          <span>Status</span>
-          <span>Path</span>
+          <span>{t("tools.langservers.server")}</span>
+          <span>{t("common.status")}</span>
+          <span>{t("common.path")}</span>
         </div>
         <div class="ls-tbody">
-          <For each={groups()} fallback={<div class="ls-empty muted">{loading() ? "Detecting language servers…" : "Nothing to show"}</div>}>
+          <For each={groups()} fallback={<div class="ls-empty muted">{loading() ? t("tools.langservers.detectingLanguageServersEllipsis") : t("common.nothingToShow")}</div>}>
             {(g) => (
               <>
                 <div class="ls-group" role="row">
                   {g.title}
                   <Show when={g.rows.some((r) => r.inProject)}>
-                    <span class="ls-group-hint">used in this project</span>
+                    <span class="ls-group-hint">{t("tools.langservers.usedInThisProject")}</span>
                   </Show>
                 </div>
                 <For each={g.rows}>
@@ -337,7 +334,7 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
                       <span class="ls-name-cell">
                         <input
                           type="checkbox"
-                          title={r.source === "catalog" ? "Enabled" : "Chosen in Languages & Frameworks | PHP"}
+                          title={r.source === "catalog" ? t("common.enabled") : t("tools.langservers.chosenInLanguagesFrameworksPhp")}
                           checked={enabled(r)}
                           disabled={r.source !== "catalog"}
                           onClick={(e) => e.stopPropagation()}
@@ -353,7 +350,7 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
                           when={!r.builtinVersion}
                           fallback={
                             <span class="ls-path ls-builtin" title={r.path ?? ""} data-testid="ls-builtin">
-                              Built-in · {r.builtinVersion}
+                              {t("tools.langservers.builtIn", { builtinVersion: r.builtinVersion })}
                             </span>
                           }
                         >

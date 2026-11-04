@@ -11,6 +11,7 @@ import { openMenu } from "@/features/run/PopupMenu";
 import { openHttpRequest } from "@/features/scratches/store";
 import { openFileAt } from "@/editor/views";
 import { dotnetActive, dotnetWorkspace, errorText, showDotnetBalloon } from "../state";
+import { t } from "@/i18n";
 
 /** ASP.NET Core is used: a web project in the solution. */
 export const aspnetActive = () => dotnetActive() && (dotnetWorkspace()?.projects ?? []).some((p) => p.web);
@@ -57,11 +58,11 @@ function rowMenu(e: Endpoint, ev: MouseEvent) {
     x: ev.clientX,
     y: ev.clientY,
     items: [
-      { label: "Generate HTTP Request", icon: Send, iconColor: "var(--success)", run: () => void generateHttpRequest(e) },
-      { label: "Go to Declaration", icon: FileCode, run: () => reveal(e) },
+      { label: t("common.generateHttpRequest"), icon: Send, iconColor: "var(--success)", run: () => void generateHttpRequest(e) },
+      { label: t("langs.dotnet.goToDeclaration"), icon: FileCode, run: () => reveal(e) },
       { separator: true },
-      { label: "Copy URL", icon: Copy, run: () => void copy(urlOf(e)) },
-      { label: "Copy Route", run: () => void copy(e.path) },
+      { label: t("langs.dotnet.copyUrl"), icon: Copy, run: () => void copy(urlOf(e)) },
+      { label: t("langs.dotnet.copyRoute"), run: () => void copy(e.path) },
     ],
   });
 }
@@ -93,9 +94,9 @@ export function AspNetEndpointsView() {
       <div class="dn-ep-toolbar">
         <div class="dn-ep-search">
           <Search size={13} />
-          <input placeholder="Search endpoints by method, route or handler" value={query()} spellcheck={false} onInput={(e) => (setQuery(e.currentTarget.value), setSelected(-1))} />
+          <input placeholder={t("langs.dotnet.searchEndpointsByMethodRoute")} value={query()} spellcheck={false} onInput={(e) => (setQuery(e.currentTarget.value), setSelected(-1))} />
           <Show when={query()}>
-            <button class="icon-btn" title="Clear" onClick={() => setQuery("")}>
+            <button class="icon-btn" title={t("common.clear")} onClick={() => setQuery("")}>
               <X size={12} />
             </button>
           </Show>
@@ -105,22 +106,22 @@ export function AspNetEndpointsView() {
             {(f) => (
               <Show when={f === "all" || present().has(f)}>
                 <button classList={{ active: kind() === f }} onClick={() => setKind(f)}>
-                  {f === "all" ? "All" : FRAMEWORKS[f]}
+                  {f === "all" ? t("common.all") : FRAMEWORKS[f]}
                 </button>
               </Show>
             )}
           </For>
         </div>
-        <span class="muted dn-ep-summary">{model.loading && !model() ? "Scanning sources…" : `${visible().length} of ${model()?.endpoints.length ?? 0} endpoints`}</span>
+        <span class="muted dn-ep-summary">{model.loading && !model() ? t("langs.dotnet.scanningSourcesEllipsis") : t("langs.dotnet.ofEndpoints", { count: visible().length, value: model()?.endpoints.length ?? 0 })}</span>
       </div>
       <div class="dn-ep-scroll" tabIndex={0}>
         <table class="dn-ep-table">
           <thead>
             <tr>
-              <th class="dn-ep-method">Method</th>
-              <th>Route</th>
-              <th>Handler</th>
-              <th class="dn-ep-kind">Kind</th>
+              <th class="dn-ep-method">{t("common.method")}</th>
+              <th>{t("langs.dotnet.route")}</th>
+              <th>{t("langs.dotnet.handler")}</th>
+              <th class="dn-ep-kind">{t("langs.dotnet.kind")}</th>
               <th class="dn-ep-actions" />
             </tr>
           </thead>
@@ -139,7 +140,7 @@ export function AspNetEndpointsView() {
                   <td>
                     <Route path={e.path} />
                     <Show when={e.authorized}>
-                      <span title="Requires authorization">
+                      <span title={t("langs.dotnet.requiresAuthorization")}>
                         <Lock size={11} class="dn-ep-lock" />
                       </span>
                     </Show>
@@ -157,7 +158,7 @@ export function AspNetEndpointsView() {
                     <Show when={e.framework === "minimal" || e.framework === "controller"}>
                       <button
                         class="icon-btn"
-                        title="Generate HTTP Request"
+                        title={t("common.generateHttpRequest")}
                         data-testid="generate-http-request"
                         onClick={(ev) => {
                           ev.stopPropagation();
@@ -176,7 +177,7 @@ export function AspNetEndpointsView() {
         <Show when={!model.loading && !visible().length}>
           <div class="dn-ep-empty">
             <Globe size={22} />
-            <div>{model()?.endpoints.length ? "No endpoints match the search" : "No endpoints found: MapGet / MapPost routes, [Http*] controller actions and @page directives appear here"}</div>
+            <div>{model()?.endpoints.length ? t("common.noEndpointsMatchTheSearch") : t("langs.dotnet.noEndpointsFoundMapgetMappost")}</div>
           </div>
         </Show>
       </div>
@@ -188,10 +189,10 @@ export function AspNetEndpointsActions() {
   const current = () => (selected() >= 0 ? visible()[selected()] : undefined);
   return (
     <>
-      <button class="icon-btn" title="Generate HTTP Request" disabled={!current()} onClick={() => current() && void generateHttpRequest(current()!)}>
+      <button class="icon-btn" title={t("common.generateHttpRequest")} disabled={!current()} onClick={() => current() && void generateHttpRequest(current()!)}>
         <Send size={14} />
       </button>
-      <button class="icon-btn" title="Refresh Endpoints" onClick={() => void refetch()} disabled={model.loading}>
+      <button class="icon-btn" title={t("langs.dotnet.refreshEndpoints")} onClick={() => void refetch()} disabled={model.loading}>
         <RefreshCw size={14} class={model.loading ? "dn-spin" : undefined} />
       </button>
     </>

@@ -6,7 +6,7 @@
  * (↓) and opens files (Enter). Segments come from Rust (`forge_codeintel::navbar`), the
  * dropdown's matching from `forge-fuzzy`.
  */
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ChevronRight, Search } from "lucide-solid";
@@ -344,7 +344,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
               </Show>
               <Show
                 when={shown().length}
-                fallback={<div class="navbar-popup-empty">{items.loading ? "Loading…" : query() ? "Nothing found" : "Empty"}</div>}
+                fallback={<div class="navbar-popup-empty">{items.loading ? tr("common.loadingEllipsis") : query() ? tr("common.nothingFound") : tr("tools.navBar.empty")}</div>}
               >
                 <For each={shown()}>
                   {(entry, i) => (

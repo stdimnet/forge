@@ -89,7 +89,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
     if (restore()) {
       const ok = await askConfirm({
         title: tr("database.objects.dumpDialog.restoreWithProgram", { program: program() }),
-        message: `Restore ${req.file} into ${ds?.name ?? "the data source"}? Existing objects and data may be overwritten.`,
+        message: tr("tools.database.restoreIntoExistingObjectsAnd", { file: req.file, value: ds?.name ?? "the data source" }),
         confirm: tr("database.objects.dumpDialog.restore"),
       });
       if (!ok) return;
@@ -127,17 +127,17 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
         >
           <For each={tools() ?? []}>{(t) => <option value={`${t.tool}:${t.action}`}>{t.label}</option>}</For>
         </select>
-        <span class="db-form-label">Path to {program()}:</span>
-        <input class="dsd-input mono" value={req.program} placeholder={`${program()} (from PATH)`} spellcheck={false} onInput={(e) => setReq("program", e.currentTarget.value)} data-autofocus />
+        <span class="db-form-label">{tr("tools.database.pathToLabel", { program: program() })}</span>
+        <input class="dsd-input mono" value={req.program} placeholder={tr("tools.database.fromPath", { program: program() })} spellcheck={false} onInput={(e) => setReq("program", e.currentTarget.value)} data-autofocus />
         <span class="db-form-label">{restore() ? tr("database.objects.dumpDialog.inputFile") : tr("database.objects.dumpDialog.outputFile")}</span>
         <div class="dbo-row">
-          <input class="dsd-input mono" value={req.file} placeholder={restore() ? "dump to restore" : "where to write the dump"} spellcheck={false} onInput={(e) => setReq("file", e.currentTarget.value)} data-testid="dbo-dump-file" />
+          <input class="dsd-input mono" value={req.file} placeholder={restore() ? tr("tools.database.dumpToRestore") : tr("tools.database.whereToWriteTheDump")} spellcheck={false} onInput={(e) => setReq("file", e.currentTarget.value)} data-testid="dbo-dump-file" />
           <button class="btn-secondary" onClick={() => void browse()} title={tr("database.objects.dumpDialog.browse")}>
             <FolderOpen size={14} />
           </button>
         </div>
         <Show when={!restore() && req.tool !== "sqlite3" && req.tool !== "sqlcmd"}>
-          <span class="db-form-label">{req.tool === "mysqldump" ? "Databases:" : "Schemas:"}</span>
+          <span class="db-form-label">{req.tool === "mysqldump" ? tr("tools.database.databasesLabel") : tr("tools.database.schemasLabel")}</span>
           <div class="dbo-picker">
             <For each={visibleSchemas(p.ds)}>
               {(s) => (
@@ -152,7 +152,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
         <Show when={!restore() && req.tool !== "sqlcmd"}>
           <span class="db-form-label">{tr("database.objects.dumpDialog.tables")}</span>
           <div class="dbo-picker dbo-picker-tall">
-            <For each={tables()} fallback={<span class="muted">All tables (expand a schema to choose)</span>}>
+            <For each={tables()} fallback={<span class="muted">{tr("tools.database.allTablesExpandASchema")}</span>}>
               {(t) => (
                 <label class="dbo-check">
                   <input type="checkbox" checked={req.tables.includes(t)} onChange={(e) => toggle("tables", t, e.currentTarget.checked)} />
@@ -166,7 +166,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
           <span class="db-form-label">{tr("database.objects.dumpDialog.format")}</span>
           <select class="dsd-input" value={req.format} onChange={(e) => setReq("format", e.currentTarget.value)}>
             <option value="plain">{tr("database.objects.dumpDialog.plainSql")}</option>
-            <option value="custom">Custom (pg_restore)</option>
+            <option value="custom">{tr("tools.database.customPgRestore")}</option>
             <option value="directory">{tr("database.objects.dumpDialog.directory")}</option>
             <option value="tar">{tr("database.objects.dumpDialog.tar")}</option>
           </select>
@@ -220,8 +220,7 @@ export function DumpDialog(p: { ds: string; tool: DumpTool; action: DumpAction; 
         {command() || problem()}
       </pre>
       <div class="dsd-hint muted dbo-pad">
-        The password is passed in the environment ({req.tool.startsWith("my") ? "MYSQL_PWD" : pg() || req.tool === "psql" ? "PGPASSWORD" : req.tool === "sqlcmd" ? "SQLCMDPASSWORD" : "none"}), never on the command line.
-        {ds?.options.ssh?.enabled ? " The tool connects through the data source's SSH tunnel." : ""}
+        {tr("tools.database.thePasswordIsPassedIn", { value: req.tool.startsWith("my") ? tr("tools.database.mysqlPwd") : pg() || req.tool === "psql" ? tr("tools.database.pgpassword") : req.tool === "sqlcmd" ? tr("tools.database.sqlcmdpassword") : "none", value2: ds?.options.ssh?.enabled ? tr("tools.database.theToolConnectsThroughThe") : "" })}
         <Show when={restore() && ds?.options.readOnly}>
           {" "}
           <span class="dbo-danger-text">{tr("database.objects.dumpDialog.theDataSourceIsRead")}</span>

@@ -26,6 +26,7 @@ import { isPluginActive } from "@/state/project";
 import { workspace } from "@/state/workspace";
 import { SnapshotView } from "./SnapshotView";
 import { loadedSnapshot, openSnapshot, showBalloon, showSnapshot, SOURCE_LABELS, type SourceId } from "./store";
+import { t } from "@/i18n";
 
 const phpActive = () => isPluginActive("forge.php");
 const jsActive = () => isPluginActive("forge.web");
@@ -46,7 +47,7 @@ async function recentMenu(x: number, y: number): Promise<void> {
   openMenu({
     x,
     y,
-    items: list.length ? list.map((s) => ({ label: s.name, shortcut: when(s.at), run: () => void openSnapshot(s.path) })) : [{ label: "No snapshots yet", disabled: true }],
+    items: list.length ? list.map((s) => ({ label: s.name, shortcut: when(s.at), run: () => void openSnapshot(s.path) })) : [{ label: t("tools.profiling.noSnapshotsYet"), disabled: true }],
   });
 }
 
@@ -66,7 +67,7 @@ function Actions() {
     <span class="profiling-actions" data-testid="profiler-actions">
       <button
         class="icon-btn"
-        title="Recent Snapshots…"
+        title={t("tools.profiling.recentSnapshotsEllipsis")}
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           void recentMenu(r.left, r.bottom + 2);
@@ -74,7 +75,7 @@ function Actions() {
       >
         <History size={14} />
       </button>
-      <button class="icon-btn" title="Open Profiler Snapshot…" onClick={() => void pickSnapshot("all")}>
+      <button class="icon-btn" title={t("tools.profiling.openProfilerSnapshotEllipsis")} onClick={() => void pickSnapshot("all")}>
         <FileInput size={14} />
       </button>
     </span>
@@ -118,8 +119,8 @@ async function profileWith(kind: RunProfiler): Promise<void> {
   const php = kind === "xdebug" || kind === "spx";
   if (!(php ? PHP_TYPES : NODE_TYPES).has(cfg.type)) {
     showBalloon(
-      `Cannot profile '${cfg.name}' with ${RUN_LABEL[kind]}`,
-      php ? "Choose a PHP Script, PHPUnit, Pest, Artisan or other PHP configuration." : "Choose a Node.js or npm configuration.",
+      t("tools.profiling.cannotProfileWith", { name: cfg.name, value: RUN_LABEL[kind] }),
+      php ? t("tools.profiling.chooseAPhpScriptPhpunit") : t("tools.profiling.chooseANodeJsOr"),
       6000,
     );
     return;

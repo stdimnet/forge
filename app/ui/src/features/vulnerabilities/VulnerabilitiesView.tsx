@@ -20,6 +20,7 @@ import {
   vulnerabilitiesRunning,
   vulnerabilityResults,
 } from "./store";
+import { t } from "@/i18n";
 
 const RANK: Record<Severity, number> = { critical: 5, high: 4, moderate: 3, unknown: 2, low: 1 };
 const LABEL: Record<Severity, string> = { critical: "Critical", high: "High", moderate: "Moderate", unknown: "Unrated", low: "Low" };
@@ -97,10 +98,10 @@ async function reveal(g: PackageGroup): Promise<void> {
 
 function confirmInstall(r: TargetResult): void {
   showBalloon(
-    "Install pip-audit into the project interpreter?",
-    "pip-audit (Apache-2.0) is downloaded from PyPI by the interpreter's package manager and runs in the project environment.",
+    t("tools.vulnerabilities.installPipAuditIntoThe"),
+    t("tools.vulnerabilities.pipAuditApache20"),
     0,
-    [{ label: "Install pip-audit", run: () => void installTool(r) }],
+    [{ label: t("tools.vulnerabilities.installPipAudit"), run: () => void installTool(r) }],
   );
 }
 
@@ -127,9 +128,9 @@ function AdvisoryRow(props: { v: Vulnerability }) {
       <Show when={props.v.affected}>
         <span class="vuln-hint">affected {props.v.affected}</span>
       </Show>
-      <span class="vuln-hint">{props.v.fixed ? `fixed in ${props.v.fixed}` : "no fix yet"}</span>
+      <span class="vuln-hint">{props.v.fixed ? t("tools.vulnerabilities.fixedIn", { fixed: props.v.fixed }) : t("tools.vulnerabilities.noFixYet")}</span>
       <Show when={props.v.reachable}>
-        <span class="vuln-hint vuln-reachable">called by the project</span>
+        <span class="vuln-hint vuln-reachable">{t("tools.vulnerabilities.calledByTheProject")}</span>
       </Show>
     </div>
   );
@@ -163,7 +164,7 @@ function PackageRow(props: { g: PackageGroup }) {
         </Show>
         <span class="vuln-hint">
           {count()} {count() === 1 ? "vulnerability" : "vulnerabilities"}
-          {props.g.fixed ? ` · fixed in ${props.g.fixed}` : ""}
+          {props.g.fixed ? t("tools.vulnerabilities.fixedIn2", { fixed: props.g.fixed }) : ""}
         </span>
         <Show when={upgrade()}>
           {(u) => {
@@ -171,14 +172,14 @@ function PackageRow(props: { g: PackageGroup }) {
             return (
               <button
                 class="link-btn vuln-upgrade"
-                title={`Change the constraint to ${u().constraint}`}
+                title={t("tools.vulnerabilities.changeTheConstraintTo", { constraint: u().constraint })}
                 onClick={(e) => {
                   e.stopPropagation();
                   void applyUpgrade(path(), u());
                 }}
               >
                 <ArrowUpCircle size={13} />
-                Upgrade to {u().fixed}
+                {t("tools.vulnerabilities.upgradeTo", { fixed: u().fixed })}
               </button>
             );
           }}
@@ -200,7 +201,7 @@ function TargetSection(props: { r: TargetResult }) {
         <span class="vuln-target-file">{props.r.manifest}</span>
         <span class="vuln-hint">
           {TOOL_LABELS[props.r.tool]}
-          {props.r.checkedAt ? ` · checked ${ago(props.r.checkedAt)}${props.r.cached ? " (cached)" : ""}` : ""}
+          {props.r.checkedAt ? t("tools.vulnerabilities.checked", { value: ago(props.r.checkedAt), value2: props.r.cached ? " (cached)" : "" }) : ""}
         </span>
       </div>
       <Show when={props.r.status !== "ok"}>
@@ -219,7 +220,7 @@ function TargetSection(props: { r: TargetResult }) {
       <Show when={props.r.status === "ok" && !list().length && !notices().length}>
         <div class="vuln-status vuln-status-ok">
           <ShieldCheck size={14} />
-          <span>No vulnerable dependencies</span>
+          <span>{t("tools.vulnerabilities.noVulnerableDependencies")}</span>
         </div>
       </Show>
       <For each={list()}>{(g) => <PackageRow g={g} />}</For>
@@ -253,7 +254,7 @@ export function VulnerabilitiesView() {
   return (
     <div class="vuln-view">
       <div class="vuln-bar">
-        <button class="icon-btn" title="Check for Vulnerable Dependencies" disabled={vulnerabilitiesRunning()} onClick={() => void runCheck({ force: true })}>
+        <button class="icon-btn" title={t("tools.vulnerabilities.checkForVulnerableDependencies")} disabled={vulnerabilitiesRunning()} onClick={() => void runCheck({ force: true })}>
           <RefreshCw size={14} class={vulnerabilitiesRunning() ? "vuln-spin" : undefined} />
         </button>
         <span class="vuln-summary">{summary()}</span>
@@ -262,9 +263,9 @@ export function VulnerabilitiesView() {
         when={vulnerabilitiesEnabled()}
         fallback={
           <div class="vuln-empty">
-            The vulnerable dependency check is turned off.{" "}
+            {t("tools.vulnerabilities.theVulnerableDependencyCheckIs")}
             <button class="link-btn" onClick={() => openSettings("tools.vulnerabilities")}>
-              Settings | Tools | Package Checker
+              {t("tools.vulnerabilities.settingsToolsPackageChecker")}
             </button>
           </div>
         }

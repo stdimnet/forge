@@ -65,7 +65,7 @@ registerSettingsPage({
   component: () => (
     <div class="wf-ts-page">
       <SchemaPage pageId="lang.typescript" />
-      <h3 class="set-section-title wf-ts-servers-title">Language Services</h3>
+      <h3 class="set-section-title wf-ts-servers-title">{t("langs.webforge.languageServices")}</h3>
       <LanguageServersPage groups={WEB_SERVER_GROUPS} />
     </div>
   ),

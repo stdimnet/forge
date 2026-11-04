@@ -167,7 +167,7 @@ export function MemoryPane() {
           <RefreshCw size={13} />
         </button>
         <Show when={block()?.unreadable}>
-          <span class="muted dbg-native-note">{block()!.unreadable} bytes not readable</span>
+          <span class="muted dbg-native-note">{tr("tools.debug.bytesNotReadable", { unreadable: block()!.unreadable })}</span>
         </Show>
       </div>
       <div class="dbg-memory dbg-mono" role="grid" aria-label={tr("debug.nativeViews.memory")}>

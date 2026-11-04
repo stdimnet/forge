@@ -14,6 +14,7 @@ import { askConfirm } from "@/features/contextMenu/dialogs";
 import { projectTree, refreshDirs } from "@/features/project/ProjectView";
 import { reloadOpenFiles } from "@/features/git/store";
 import { setDiffRequest } from "@/features/git/overlays";
+import { t } from "@/i18n";
 
 const [config, setConfig] = createSignal<DeployConfig | null>(null);
 export { config };
@@ -114,13 +115,13 @@ const label = (paths: string[]) => (paths.length === 1 ? paths[0] || "the projec
 async function ensureServers(): Promise<DeployConfig | null> {
   const c = (await refreshConfig()) ?? config();
   if (!c?.servers.length) {
-    showBalloon("No deployment servers", "Add a server in Settings | Build, Execution, Deployment | Deployment.", 4000, [
+    showBalloon(t("tools.deployment.noDeploymentServers2"), t("tools.deployment.addAServerInSettings"), 4000, [
       { label: "Configure…", run: () => openDeploymentSettings() },
     ]);
     return null;
   }
   if (!c.available) {
-    showBalloon("Deployment is not available", "Deployment works with projects on this machine.");
+    showBalloon(t("tools.deployment.deploymentIsNotAvailable"), t("tools.deployment.deploymentWorksWithProjectsOn"));
     return null;
   }
   return c;
@@ -175,7 +176,7 @@ function report(summary: Summary, what: string, server: string): void {
   if (summary.cancelled) return void showBalloon(`${what} cancelled`);
   if (summary.failed) {
     const first = summary.results.find((r) => r.status === "failed");
-    showBalloon(`${what} ${server} failed for ${summary.failed} item${summary.failed === 1 ? "" : "s"}`, first?.message, 5000, [
+    showBalloon(t("tools.deployment.failedForItems", { count: summary.failed, what, server }), first?.message, 5000, [
       { label: "Show File Transfer", run: () => showToolWindow("fileTransfer") },
     ]);
     return;
@@ -183,7 +184,7 @@ function report(summary: Summary, what: string, server: string): void {
   const n = summary.transferred + summary.deleted;
   showBalloon(
     `${what} ${server}: ${n === 0 ? "nothing to transfer" : `${n} file${n === 1 ? "" : "s"} ${summary.deleted && !summary.transferred ? "deleted" : "transferred"}`}`,
-    summary.skipped ? `${summary.skipped} skipped (up to date, excluded or not mapped)` : undefined,
+    summary.skipped ? t("tools.deployment.skippedUpToDateExcluded", { skipped: summary.skipped }) : undefined,
   );
 }
 
@@ -248,7 +249,7 @@ export async function deleteOnServer(paths = targetPaths(), server?: ServerView 
   try {
     report(await deploymentApi.delete(newId(), s.id, paths), "Delete from", s.name);
   } catch (e) {
-    showBalloon(`Delete from ${s.name} failed`, String(e instanceof Error ? e.message : e), 5000);
+    showBalloon(t("tools.deployment.deleteFromFailed", { name: s.name }), String(e instanceof Error ? e.message : e), 5000);
   }
 }
 
@@ -258,7 +259,7 @@ export async function compareWithDeployed(path: string, server?: ServerView | nu
   if (!s) return;
   try {
     const [remote, local] = await Promise.all([deploymentApi.readRemote(s.id, path), readLocal(path)]);
-    if (remote.binary) return void showBalloon("Cannot compare binary files", remote.remote);
+    if (remote.binary) return void showBalloon(t("tools.deployment.cannotCompareBinaryFiles"), remote.remote);
     setDiffRequest({
       path,
       left: { title: remote.text === null ? `${remote.server}: ${remote.remote} (does not exist)` : `${remote.server}: ${remote.remote}`, content: remote.text ?? "" },
@@ -266,7 +267,7 @@ export async function compareWithDeployed(path: string, server?: ServerView | nu
       editable: local !== null,
     });
   } catch (e) {
-    showBalloon("Compare with Deployed Version failed", String(e instanceof Error ? e.message : e), 5000);
+    showBalloon(t("tools.deployment.compareWithDeployedVersionFailed"), String(e instanceof Error ? e.message : e), 5000);
   }
 }
 
@@ -304,7 +305,7 @@ export const autoUploadAlways = () => autoUploadMode() === "always";
 export async function toggleAutoUpload(): Promise<void> {
   const next = autoUploadAlways() ? "never" : "always";
   await saveSetting("deployment.autoUpload", next, "project");
-  showBalloon(next === "always" ? `Automatic upload to ${defaultServer()?.name ?? "the default server"} is on` : "Automatic upload is off");
+  showBalloon(next === "always" ? t("tools.deployment.automaticUploadToIsOn", { value: defaultServer()?.name ?? "the default server" }) : t("tools.deployment.automaticUploadIsOff"));
 }
 
 const pending = new Map<string, boolean>();
@@ -323,7 +324,7 @@ export function savedForAutoUpload(path: string, explicit: boolean): void {
       (summary) => {
         if (summary?.failed) report(summary, "Automatic upload to", defaultServer()?.name ?? "the default server");
       },
-      (e) => showBalloon("Automatic upload failed", String(e instanceof Error ? e.message : e), 5000),
+      (e) => showBalloon(t("tools.deployment.automaticUploadFailed"), String(e instanceof Error ? e.message : e), 5000),
     );
   }, 300);
 }

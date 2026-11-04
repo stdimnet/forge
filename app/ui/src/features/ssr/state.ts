@@ -13,6 +13,7 @@ import { editor, isDirty, saveAll } from "@/state/editor";
 import { balloonsFor } from "@/keymap";
 import { openInFindWindow, closeFindTab, type FindTab } from "@/features/codeintel/usages";
 import { scopeFilter } from "@/features/scopes/model";
+import { t as tr } from "@/i18n";
 
 const showBalloon = balloonsFor("Find");
 
@@ -136,12 +137,12 @@ export async function runSsr(mode: SsrMode): Promise<boolean> {
   try {
     result = await search();
   } catch (e) {
-    showBalloon("Structural search failed", String(e instanceof Error ? e.message : e));
+    showBalloon(tr("tools.ssr.structuralSearchFailed"), String(e instanceof Error ? e.message : e));
     return false;
   }
   const where = f.scopeName;
   if (!result.matchCount) {
-    showBalloon(`No occurrences of '${firstLine(f.template)}' found in ${where}`);
+    showBalloon(tr("tools.ssr.noOccurrencesOfFoundIn", { value: firstLine(f.template), where }));
     return false;
   }
   const title = firstLine(f.template);
@@ -168,7 +169,7 @@ async function replaceAll(tab: FindTab, f: SsrForm): Promise<void> {
   closeFindTab(tab.id);
   const skipped = done.skipped.length ? `, ${done.skipped.length} skipped` : "";
   showBalloon(
-    `${done.replacements} occurrence${done.replacements === 1 ? "" : "s"} replaced in ${done.files} file${done.files === 1 ? "" : "s"}${skipped}`,
+    tr("tools.ssr.occurrenceReplacedInFile", { replacements: done.replacements, value: done.replacements, files: done.files, value2: done.files, skipped }),
     undefined,
     8000,
     [
@@ -176,7 +177,7 @@ async function replaceAll(tab: FindTab, f: SsrForm): Promise<void> {
         label: "Undo",
         run: () =>
           void findApi.undoReplace().then((u) =>
-            showBalloon(`Restored ${u.restored} file${u.restored === 1 ? "" : "s"}`, u.left.length ? `Changed since: ${u.left.join(", ")}` : undefined),
+            showBalloon(tr("tools.ssr.restoredFiles", { count: u.restored }), u.left.length ? tr("tools.ssr.changedSince", { left: u.left.join(", ") }) : undefined),
           ),
       },
     ],

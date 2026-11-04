@@ -92,7 +92,7 @@ export function ValidationDialog() {
               <div class="dbg-validate-form">
                 <label for="dbg-validate-interp">{t("debug.validationDialog.interpreter")}</label>
                 <select id="dbg-validate-interp" class="dbg-input" value={interpreter()} onChange={(e) => setInterpreter(e.currentTarget.value)}>
-                  <option value="">{getSetting<string>(SELECTED_KEY, "php") || "php"} — project default</option>
+                  <option value="">{t("tools.debug.projectDefault", { value: getSetting<string>(SELECTED_KEY, "php") || "php" })}</option>
                   <For each={interpreters()}>{(i) => <option value={i.name}>{i.name}</option>}</For>
                 </select>
               </div>
@@ -136,7 +136,7 @@ export function ValidationDialog() {
                 <p class="muted dbg-hint">
                   {r().ok
                     ? t("debug.validationDialog.xdebugCanConnectToForge", { port: port() })
-                    : "Fix the problems marked above, restart the web server or PHP-FPM, and validate again."}
+                    : t("tools.debug.fixTheProblemsMarkedAbove")}
                 </p>
               </>
             )}

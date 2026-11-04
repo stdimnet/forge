@@ -8,6 +8,7 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { FolderOpen, Minus, Plus } from "lucide-solid";
 import { isTauri } from "@/ipc";
 import { trustApi, type TrustedEntry } from "@/ipc/trust";
+import { t } from "@/i18n";
 
 export function TrustedLocationsPage() {
   const [entries, { mutate }] = createResource(() => trustApi.locations().catch(() => [] as TrustedEntry[]), {
@@ -41,22 +42,20 @@ export function TrustedLocationsPage() {
   };
   const browse = async () => {
     const { open } = await import("@tauri-apps/plugin-dialog");
-    const dir = await open({ directory: true, multiple: false, title: "Add Trusted Location" });
+    const dir = await open({ directory: true, multiple: false, title: t("tools.trust.addTrustedLocation") });
     if (typeof dir === "string") setPath(dir);
   };
 
   return (
     <div class="set-page trust-page" data-testid="trusted-locations">
       <p class="set-desc trust-page-desc">
-        Projects in these folders and their subfolders open in normal mode. Other projects ask first and can be previewed
-        in Safe Mode, where none of their scripts, run configurations, tests or tools run. Projects created by Forge are
-        trusted automatically.
+        {t("tools.trust.projectsInTheseFoldersAnd")}
       </p>
       <div class="set-list set-table-box trust-list">
         <div class="set-list-toolbar">
           <button
             class="icon-btn"
-            title="Add"
+            title={t("common.add")}
             data-testid="trust-add"
             onClick={() => {
               setAdding(true);
@@ -65,15 +64,15 @@ export function TrustedLocationsPage() {
           >
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={selected() === null} onClick={() => void remove()}>
+          <button class="icon-btn" title={t("common.remove")} disabled={selected() === null} onClick={() => void remove()}>
             <Minus size={14} />
           </button>
         </div>
         <table class="set-table">
           <thead>
             <tr>
-              <th>Path</th>
-              <th>Trusted</th>
+              <th>{t("common.path")}</th>
+              <th>{t("tools.trust.trusted")}</th>
             </tr>
           </thead>
           <tbody>
@@ -81,14 +80,14 @@ export function TrustedLocationsPage() {
               {(e) => (
                 <tr classList={{ selected: selected() === e.key }} data-entry={e.key} onClick={() => setSelected(e.key)}>
                   <td class="set-table-mono">{e.display}</td>
-                  <td class="trust-kind">{e.kind === "location" ? "Projects in this folder" : "This project"}</td>
+                  <td class="trust-kind">{e.kind === "location" ? t("tools.trust.projectsInThisFolder") : t("tools.trust.thisProject")}</td>
                 </tr>
               )}
             </For>
           </tbody>
         </table>
         <Show when={!entries().length}>
-          <div class="set-list-empty">No trusted locations</div>
+          <div class="set-list-empty">{t("tools.trust.noTrustedLocations")}</div>
         </Show>
       </div>
       <Show when={adding()}>
@@ -101,7 +100,7 @@ export function TrustedLocationsPage() {
         >
           <input
             class="set-input set-path trust-add-input"
-            placeholder="~/Projects"
+            placeholder={t("tools.trust.projects")}
             value={path()}
             onInput={(e) => setPath(e.currentTarget.value)}
             spellcheck={false}
@@ -109,15 +108,15 @@ export function TrustedLocationsPage() {
             data-testid="trust-add-path"
           />
           <Show when={isTauri()}>
-            <button type="button" class="icon-btn" title="Browse…" onClick={() => void browse()}>
+            <button type="button" class="icon-btn" title={t("common.browseEllipsis")} onClick={() => void browse()}>
               <FolderOpen size={14} />
             </button>
           </Show>
           <button type="submit" class="btn-primary" disabled={!path().trim()}>
-            Add
+            {t("common.add")}
           </button>
           <button type="button" class="btn-secondary" onClick={() => (setAdding(false), setPath(""), setError(null))}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </form>
       </Show>

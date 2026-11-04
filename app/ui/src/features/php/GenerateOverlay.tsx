@@ -21,6 +21,7 @@ import {
 } from "./generateModel";
 import { SymbolIcon } from "./SymbolIcon";
 import { generateItems } from "@/editor/generateItems";
+import { t as tr } from "@/i18n";
 
 interface Ctx {
   path: string;
@@ -176,7 +177,7 @@ function GeneratePopup() {
       onKeyDown={onKey}
       onFocusOut={(e) => !el.contains(e.relatedTarget as Node) && setTimeout(() => state.popup && !el.contains(document.activeElement) && close(), 0)}
     >
-      <div class="php-popup-title">Generate</div>
+      <div class="php-popup-title">{tr("langs.php.generate")}</div>
       <For each={p().items}>
         {(item, i) => (
           <>
@@ -316,7 +317,7 @@ function ChooserDialog() {
       <div class="php-dialog" role="dialog" aria-label={chooserTitle(c().kind)} onKeyDown={onKey}>
         <header class="php-dialog-title">
           <span>{chooserTitle(c().kind)}</span>
-          <button class="icon-btn" title="Close" onClick={close}>
+          <button class="icon-btn" title={tr("common.close")} onClick={close}>
             <X size={14} />
           </button>
         </header>
@@ -324,7 +325,7 @@ function ChooserDialog() {
           <button
             class="icon-btn"
             classList={{ active: c().sorted }}
-            title="Sort Alphabetically"
+            title={tr("common.sortAlphabetically")}
             onClick={() => setState("chooser", "sorted", (s) => !s)}
           >
             <ArrowDownAZ size={15} />
@@ -359,25 +360,25 @@ function ChooserDialog() {
             }}
           </For>
           <Show when={selectable().length === 0}>
-            <div class="php-chooser-empty">Nothing to choose</div>
+            <div class="php-chooser-empty">{tr("langs.php.nothingToChoose")}</div>
           </Show>
         </div>
         <Show when={showsFluentOption(c().kind)}>
           <label class="php-dialog-option">
             <input type="checkbox" checked={c().fluent} onChange={(e) => setState("chooser", "fluent", e.currentTarget.checked)} />
-            Fluent setters
+            {tr("langs.php.fluentSetters")}
           </label>
         </Show>
         <footer class="php-dialog-buttons">
           <button class="php-btn" onClick={selectAll}>
-            Select All
+            {tr("langs.php.selectAll")}
           </button>
           <button class="php-btn" onClick={selectNone}>
-            Select None
+            {tr("langs.php.selectNone")}
           </button>
           <span class="spacer" />
           <button class="php-btn" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="php-btn primary" disabled={!canOk()} onClick={ok}>
             OK

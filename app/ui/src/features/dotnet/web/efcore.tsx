@@ -17,6 +17,7 @@ import { isDialogWindow } from "@/shell/window/mode";
 import { getSetting } from "@/state/settings";
 import { onFileSaved } from "@/state/editor";
 import { dotnetActive, dotnetWorkspace, errorText, runDotnetCapture, runDotnetCommand, showDotnetBalloon } from "../state";
+import { t as tr } from "@/i18n";
 
 const [model, { refetch: refetchModel }] = createRoot(() => createResource(
   () => (dotnetActive() ? dotnetWorkspace() : null),
@@ -62,9 +63,9 @@ function defaults(): Pick<EfRequest, "project" | "startupProject" | "context"> {
 async function offerToolInstall(): Promise<void> {
   showDotnetBalloon("dotnet-ef is not installed", "EF Core commands need the dotnet-ef tool (dotnet tool install --global dotnet-ef).", 15000, [
     {
-      label: "Install dotnet-ef",
+      label: tr("langs.dotnet.installDotnetEf"),
       run: async () => {
-        if (!(await askConfirm({ title: "Install dotnet-ef", message: "Run 'dotnet tool install --global dotnet-ef' from nuget.org?", confirm: "Install" }))) return;
+        if (!(await askConfirm({ title: tr("langs.dotnet.installDotnetEf"), message: tr("langs.dotnet.runDotnetToolInstallGlobal"), confirm: tr("common.install") }))) return;
         const cmd = await dotnetWebApi.efCommand({ action: "installTool" });
         await runDotnetCommand(cmd, "Install dotnet-ef");
       },
@@ -202,46 +203,46 @@ function EfDialog(props: { mode: DialogMode; target?: string }) {
         <div class="dialog-title">{TITLES[props.mode]}</div>
         <div class="dialog-body dn-ef-form">
           <Show when={props.mode === "addMigration"}>
-            <label class="form-label">Migration name</label>
-            <input ref={(el) => queueMicrotask(() => el.focus())} value={name()} placeholder="AddReviews" spellcheck={false} data-testid="ef-migration-name" onInput={(e) => setName(e.currentTarget.value)} />
+            <label class="form-label">{tr("langs.dotnet.migrationName")}</label>
+            <input ref={(el) => queueMicrotask(() => el.focus())} value={name()} placeholder={tr("langs.dotnet.addreviews")} spellcheck={false} data-testid="ef-migration-name" onInput={(e) => setName(e.currentTarget.value)} />
           </Show>
           <Show when={props.mode === "updateDatabase"}>
-            <label class="form-label">Target migration</label>
+            <label class="form-label">{tr("langs.dotnet.targetMigration")}</label>
             <select value={name()} onChange={(e) => setName(e.currentTarget.value)}>
-              <option value="">Latest migration</option>
-              <option value="0">0 (revert all migrations)</option>
+              <option value="">{tr("langs.dotnet.latestMigration")}</option>
+              <option value="0">{tr("langs.dotnet.n0RevertAllMigrations")}</option>
               <For each={migrations().filter((m) => !project() || m.project === project() || !m.project)}>{(m) => <option value={m.name}>{m.name}</option>}</For>
             </select>
           </Show>
           <Show when={props.mode === "removeMigration"}>
             <div class="dn-ef-note">
-              Removes <b>{lastMigration()?.name ?? "the last migration"}</b> and reverts the model snapshot.
-              <Show when={lastMigration()?.applied}> It is applied to the database: Force also reverts it there.</Show>
+              {tr("langs.dotnet.removes")} <b>{lastMigration()?.name ?? tr("langs.dotnet.theLastMigration")}</b> {tr("langs.dotnet.andRevertsTheModelSnapshot")}
+              <Show when={lastMigration()?.applied}> {tr("langs.dotnet.itIsAppliedToThe")}</Show>
             </div>
           </Show>
           <Show when={props.mode === "scaffold"}>
-            <label class="form-label">Connection string</label>
-            <input ref={(el) => queueMicrotask(() => el.focus())} class="mono" value={connection()} placeholder="Host=localhost;Database=bookstore;Username=app" spellcheck={false} data-testid="ef-connection" onInput={(e) => setConnection(e.currentTarget.value)} />
-            <label class="form-label">Provider</label>
+            <label class="form-label">{tr("langs.dotnet.connectionString")}</label>
+            <input ref={(el) => queueMicrotask(() => el.focus())} class="mono" value={connection()} placeholder={tr("langs.dotnet.hostLocalhostDatabaseBookstoreUsername")} spellcheck={false} data-testid="ef-connection" onInput={(e) => setConnection(e.currentTarget.value)} />
+            <label class="form-label">{tr("langs.dotnet.provider")}</label>
             <select value={provider()} onChange={(e) => setProvider(e.currentTarget.value)}>
               <For each={SCAFFOLD_PROVIDERS}>{(p) => <option value={p}>{p}</option>}</For>
             </select>
-            <label class="form-label">Tables</label>
-            <input value={tables()} placeholder="All tables (or: books, authors)" spellcheck={false} onInput={(e) => setTables(e.currentTarget.value)} />
+            <label class="form-label">{tr("langs.dotnet.tables")}</label>
+            <input value={tables()} placeholder={tr("langs.dotnet.allTablesOrBooksAuthors")} spellcheck={false} onInput={(e) => setTables(e.currentTarget.value)} />
           </Show>
-          <label class="form-label">{props.mode === "scaffold" ? "Target project" : "DbContext project"}</label>
+          <label class="form-label">{props.mode === "scaffold" ? tr("langs.dotnet.targetProject") : tr("langs.dotnet.dbcontextProject")}</label>
           <select value={project()} onChange={(e) => setProject(e.currentTarget.value)}>
             <For each={efProjects()}>{(p) => <option value={p.path}>{p.name}</option>}</For>
           </select>
-          <label class="form-label">Startup project</label>
+          <label class="form-label">{tr("langs.dotnet.startupProject")}</label>
           <select value={startup()} onChange={(e) => setStartup(e.currentTarget.value)}>
-            <option value="">Same as the project</option>
+            <option value="">{tr("langs.dotnet.sameAsTheProject")}</option>
             <For each={runnable()}>{(p) => <option value={p.path}>{p.name}</option>}</For>
           </select>
-          <label class="form-label">DbContext</label>
+          <label class="form-label">{tr("langs.dotnet.dbcontext")}</label>
           <Show
             when={props.mode !== "scaffold" && contexts().length}
-            fallback={<input value={context()} placeholder={props.mode === "scaffold" ? "BookstoreContext (from the database name)" : "The only DbContext"} spellcheck={false} onInput={(e) => setContext(e.currentTarget.value)} />}
+            fallback={<input value={context()} placeholder={props.mode === "scaffold" ? tr("langs.dotnet.bookstorecontextFromTheDatabaseName") : tr("langs.dotnet.theOnlyDbcontext")} spellcheck={false} onInput={(e) => setContext(e.currentTarget.value)} />}
           >
             <select value={context()} onChange={(e) => setContext(e.currentTarget.value)}>
               <Show when={contexts().length === 1}>
@@ -251,31 +252,31 @@ function EfDialog(props: { mode: DialogMode; target?: string }) {
             </select>
           </Show>
           <Show when={props.mode === "addMigration" || props.mode === "scaffold"}>
-            <label class="form-label">Output folder</label>
-            <input value={outputDir()} placeholder="Migrations" spellcheck={false} onInput={(e) => setOutputDir(e.currentTarget.value)} />
+            <label class="form-label">{tr("langs.dotnet.outputFolder")}</label>
+            <input value={outputDir()} placeholder={tr("langs.dotnet.migrations")} spellcheck={false} onInput={(e) => setOutputDir(e.currentTarget.value)} />
           </Show>
           <Show when={props.mode === "scaffold" || props.mode === "removeMigration"}>
             <span />
             <label class="dn-check">
               <input type="checkbox" checked={force()} onChange={(e) => setForce(e.currentTarget.checked)} />
-              {props.mode === "scaffold" ? "Overwrite existing files (--force)" : "Revert it in the database too (--force)"}
+              {props.mode === "scaffold" ? tr("langs.dotnet.overwriteExistingFilesForce") : tr("langs.dotnet.revertItInTheDatabase")}
             </label>
           </Show>
           <Show when={props.mode === "scaffold"}>
             <span />
             <label class="dn-check">
               <input type="checkbox" checked={annotations()} onChange={(e) => setAnnotations(e.currentTarget.checked)} />
-              Use data annotations
+              {tr("langs.dotnet.useDataAnnotations")}
             </label>
           </Show>
         </div>
         <div class="dialog-buttons">
-          <span class="muted dn-ef-hint">Runs dotnet ef in the Run tool window</span>
+          <span class="muted dn-ef-hint">{tr("langs.dotnet.runsDotnetEfInThe")}</span>
           <button class="btn-secondary" onClick={close}>
-            Cancel
+            {tr("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!valid()} onClick={() => void submit()} data-testid="ef-submit">
-            {props.mode === "removeMigration" ? "Remove" : props.mode === "updateDatabase" ? "Update" : props.mode === "scaffold" ? "Scaffold" : "Add"}
+            {props.mode === "removeMigration" ? tr("common.remove") : props.mode === "updateDatabase" ? tr("common.update") : props.mode === "scaffold" ? tr("langs.dotnet.scaffold") : tr("common.add")}
           </button>
         </div>
       </div>
@@ -298,20 +299,20 @@ function migrationMenu(m: Migration, ev: MouseEvent) {
     x: ev.clientX,
     y: ev.clientY,
     items: [
-      { label: "Update Database to This Migration", icon: DatabaseZap, run: () => setDialog({ mode: "updateDatabase", target: m.name }) },
-      { label: "Go to Migration", icon: FileCode, disabled: !m.file, run: () => m.file && void openFileAt(m.file, m.line + 1) },
+      { label: tr("langs.dotnet.updateDatabaseToThisMigration"), icon: DatabaseZap, run: () => setDialog({ mode: "updateDatabase", target: m.name }) },
+      { label: tr("langs.dotnet.goToMigration"), icon: FileCode, disabled: !m.file, run: () => m.file && void openFileAt(m.file, m.line + 1) },
       { separator: true },
-      { label: "Copy Migration Id", run: () => void navigator.clipboard?.writeText(m.id).catch(() => undefined) },
+      { label: tr("langs.dotnet.copyMigrationId"), run: () => void navigator.clipboard?.writeText(m.id).catch(() => undefined) },
     ],
   });
 }
 
 function Status(props: { applied?: boolean | null }) {
   return (
-    <Show when={props.applied != null} fallback={<span class="muted dn-ef-status" title="Refresh to read the database">—</span>}>
+    <Show when={props.applied != null} fallback={<span class="muted dn-ef-status" title={tr("langs.dotnet.refreshToReadTheDatabase")}>—</span>}>
       <span class="dn-ef-status" classList={{ applied: !!props.applied, pending: !props.applied }}>
         {props.applied ? <Check size={12} /> : <Clock size={12} />}
-        {props.applied ? "Applied" : "Pending"}
+        {props.applied ? tr("langs.dotnet.applied") : tr("langs.dotnet.pending")}
       </span>
     </Show>
   );
@@ -322,29 +323,29 @@ export function EfCoreToolWindow() {
   return (
     <div class="dn-tw" data-testid="efcore-window">
       <div class="dn-toolbar">
-        <button class="icon-btn" title="Refresh Migrations (dotnet ef migrations list)" onClick={() => void listMigrations()} disabled={!!busy()}>
+        <button class="icon-btn" title={tr("langs.dotnet.refreshMigrationsDotnetEfMigrations")} onClick={() => void listMigrations()} disabled={!!busy()}>
           <RefreshCw size={14} class={busy() ? "dn-spin" : undefined} />
         </button>
         <span class="dn-sep" />
-        <button class="icon-btn" title="Add Migration…" onClick={openAddMigration} data-testid="ef-add">
+        <button class="icon-btn" title={tr("langs.dotnet.addMigrationEllipsis")} onClick={openAddMigration} data-testid="ef-add">
           <Plus size={14} />
         </button>
-        <button class="icon-btn" title="Remove Last Migration…" onClick={openRemoveMigration} disabled={!migrations().length}>
+        <button class="icon-btn" title={tr("langs.dotnet.removeLastMigrationEllipsis")} onClick={openRemoveMigration} disabled={!migrations().length}>
           <Minus size={14} />
         </button>
-        <button class="icon-btn" title="Update Database…" onClick={openUpdateDatabase}>
+        <button class="icon-btn" title={tr("langs.dotnet.updateDatabaseEllipsis")} onClick={openUpdateDatabase}>
           <DatabaseZap size={14} />
         </button>
-        <button class="icon-btn" title="Scaffold DbContext…" onClick={openScaffold}>
+        <button class="icon-btn" title={tr("langs.dotnet.scaffoldDbcontextEllipsis")} onClick={openScaffold}>
           <Wand2 size={14} />
         </button>
         <span class="dn-spacer" />
-        <span class="muted dn-ef-busy">{busy() ?? (model()?.localTool ? "dotnet-ef (local tool)" : "")}</span>
+        <span class="muted dn-ef-busy">{busy() ?? (model()?.localTool ? tr("langs.dotnet.dotnetEfLocalTool") : "")}</span>
       </div>
       <div class="dn-split dn-ef-split">
         <div class="dn-ef-contexts">
-          <div class="dn-ef-head">DbContexts</div>
-          <For each={model()?.contexts ?? []} fallback={<div class="muted dn-message">No DbContext classes in the sources</div>}>
+          <div class="dn-ef-head">{tr("langs.dotnet.dbcontexts")}</div>
+          <For each={model()?.contexts ?? []} fallback={<div class="muted dn-message">{tr("langs.dotnet.noDbcontextClassesInThe")}</div>}>
             {(c) => (
               <div class="dn-ef-context">
                 <div class="dn-ef-row" onClick={() => void openFileAt(c.file, c.line + 1)} title={c.file}>
@@ -366,8 +367,8 @@ export function EfCoreToolWindow() {
           </For>
           <For each={model()?.projects ?? []}>
             {(p) => (
-              <div class="muted dn-ef-provider" title={p.design ? "" : "Add Microsoft.EntityFrameworkCore.Design to run dotnet ef from this project"}>
-                {p.name}: {p.provider?.replace(/\.EntityFrameworkCore\.?/, " ") ?? "no provider"}
+              <div class="muted dn-ef-provider" title={p.design ? "" : tr("langs.dotnet.addMicrosoftEntityframeworkcoreDesignTo")}>
+                {p.name}: {p.provider?.replace(/\.EntityFrameworkCore\.?/, " ") ?? tr("langs.dotnet.noProvider")}
                 {p.version ? ` ${p.version}` : ""}
               </div>
             )}
@@ -377,11 +378,11 @@ export function EfCoreToolWindow() {
           <table class="dn-ep-table">
             <thead>
               <tr>
-                <th>Migration</th>
-                <th>Created</th>
-                <th>DbContext</th>
-                <th>Project</th>
-                <th>Status</th>
+                <th>{tr("langs.dotnet.migration")}</th>
+                <th>{tr("langs.dotnet.created")}</th>
+                <th>{tr("langs.dotnet.dbcontext")}</th>
+                <th>{tr("common.project")}</th>
+                <th>{tr("common.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -415,7 +416,7 @@ export function EfCoreToolWindow() {
           <Show when={!migrations().length}>
             <div class="dn-ep-empty">
               <DatabaseZap size={22} />
-              <div>No migrations yet: Add Migration creates the first one</div>
+              <div>{tr("langs.dotnet.noMigrationsYetAddMigration")}</div>
             </div>
           </Show>
         </div>

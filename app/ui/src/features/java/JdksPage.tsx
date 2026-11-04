@@ -12,6 +12,7 @@ import { javaApi, type Jdk } from "@/ipc/java";
 import { getSetting, saveSetting } from "@/state/settings";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { activeInstall, jdkLabel, jdks, refreshJdks, refreshStatus } from "./store";
+import { t } from "@/i18n";
 import "./java.css";
 
 const [downloadOpen, setDownloadOpen] = createSignal(false);
@@ -19,7 +20,7 @@ const [downloadOpen, setDownloadOpen] = createSignal(false);
 export const openDownloadForm = () => setDownloadOpen(true);
 
 const LANGUAGE_LEVELS = [
-  { value: "", label: "SDK default" },
+  { value: "", label: t("langs.java.sdkDefault") },
   { value: "8", label: "8 - Lambdas, type annotations etc." },
   { value: "11", label: "11 - Local variable syntax for lambda parameters" },
   { value: "17", label: "17 - Sealed types, always-strict floating-point semantics" },
@@ -59,24 +60,24 @@ function DownloadForm(props: { onDone: (jdk: Jdk) => void }) {
   };
   return (
     <div class="java-download" data-java-download>
-      <div class="java-download-title">Download JDK</div>
+      <div class="java-download-title">{t("langs.java.downloadJdk")}</div>
       <div class="java-form-row">
-        <label for="java-dl-version">Version:</label>
+        <label for="java-dl-version">{t("langs.java.versionLabel")}</label>
         <select id="java-dl-version" class="java-input" value={chosen()} onChange={(e) => setFeature(Number(e.currentTarget.value))} disabled={busy()}>
           <For each={versions()}>{(v) => <option value={v}>{`${v}${isLts(v) ? " (LTS)" : ""}`}</option>}</For>
         </select>
       </div>
       <div class="java-form-row">
-        <label for="java-dl-vendor">Vendor:</label>
+        <label for="java-dl-vendor">{t("langs.java.vendorLabel")}</label>
         <select id="java-dl-vendor" class="java-input" disabled={busy()}>
-          <option>Eclipse Temurin (Adoptium)</option>
+          <option>{t("langs.java.eclipseTemurinAdoptium")}</option>
         </select>
       </div>
       <div class="java-form-row">
-        <label>Location:</label>
-        <span class="muted java-mono">~/.local/share/forge/jdks/jdk-{chosen()}…</span>
+        <label>{t("langs.java.locationLabel")}</label>
+        <span class="muted java-mono">{t("langs.java.localShareForgeJdksJdkEllipsis", { chosen: chosen() })}</span>
       </div>
-      <p class="muted java-hint">Downloaded from api.adoptium.net and checked against the published SHA-256 checksum.</p>
+      <p class="muted java-hint">{t("langs.java.downloadedFromApiAdoptiumNet")}</p>
       <Show when={busy() && activeInstall()?.id === "jdk"}>
         <div class="java-progress">
           <span>{activeInstall()!.label}</span>
@@ -90,10 +91,10 @@ function DownloadForm(props: { onDone: (jdk: Jdk) => void }) {
       </Show>
       <div class="java-buttons">
         <button class="btn-secondary" onClick={() => setDownloadOpen(false)} disabled={busy()}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button class="btn-primary" onClick={() => void download()} disabled={busy()}>
-          {busy() ? "Downloading…" : "Download"}
+          {busy() ? t("langs.java.downloadingEllipsis") : t("langs.java.download")}
         </button>
       </div>
     </div>
@@ -133,19 +134,19 @@ export function JdksPage() {
   return (
     <div class="java-jdks">
       <div class="java-form-row">
-        <label for="java-project-jdk">Project JDK:</label>
+        <label for="java-project-jdk">{t("langs.java.projectJdkLabel")}</label>
         <select
           id="java-project-jdk"
           class="java-input"
           value={projectJdk()}
           onChange={(e) => void saveSetting("java.projectJdk", e.currentTarget.value).then(refreshStatus)}
         >
-          <option value="">{`<newest> ${jdks()[0] ? jdkLabel(jdks()[0]) : "no JDK found"}`}</option>
+          <option value="">{t("langs.java.newest", { value: jdks()[0] ? jdkLabel(jdks()[0]) : "no JDK found" })}</option>
           <For each={jdks()}>{(j) => <option value={j.home}>{jdkLabel(j)}</option>}</For>
         </select>
       </div>
       <div class="java-form-row">
-        <label for="java-language-level">Language level:</label>
+        <label for="java-language-level">{t("langs.java.languageLevelLabel")}</label>
         <select id="java-language-level" class="java-input" value={level()} onChange={(e) => void saveSetting("java.languageLevel", e.currentTarget.value)}>
           <For each={LANGUAGE_LEVELS}>{(l) => <option value={l.value}>{l.label}</option>}</For>
         </select>
@@ -153,21 +154,21 @@ export function JdksPage() {
       <div class="java-sdks">
         <div class="java-sdk-list">
           <div class="java-toolbar">
-            <button class="icon-btn" title="Add JDK from Disk…" onClick={() => void addFromDisk()}>
+            <button class="icon-btn" title={t("langs.java.addJdkFromDiskEllipsis")} onClick={() => void addFromDisk()}>
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={!current() || !added().includes(current()!.home)} onClick={() => void remove()}>
+            <button class="icon-btn" title={t("common.remove")} disabled={!current() || !added().includes(current()!.home)} onClick={() => void remove()}>
               <Minus size={14} />
             </button>
-            <button class="icon-btn" title="Download JDK…" onClick={() => setDownloadOpen(true)}>
+            <button class="icon-btn" title={t("langs.java.downloadJdkEllipsis")} onClick={() => setDownloadOpen(true)}>
               <Download size={14} />
             </button>
-            <button class="icon-btn" title="Detect Again" onClick={() => void refreshJdks(true)}>
+            <button class="icon-btn" title={t("langs.java.detectAgain")} onClick={() => void refreshJdks(true)}>
               <RefreshCw size={13} />
             </button>
           </div>
           <div class="java-sdk-items">
-            <For each={jdks()} fallback={<div class="muted java-pad">No JDKs found. Download one or add a JDK from disk.</div>}>
+            <For each={jdks()} fallback={<div class="muted java-pad">{t("langs.java.noJdksFoundDownloadOne")}</div>}>
               {(j) => (
                 <div class="tree-row java-sdk-row" classList={{ selected: j.home === selected() }} onClick={() => setSelected(j.home)} data-jdk={j.name}>
                   <Coffee size={13} class="java-jdk-icon" />
@@ -191,28 +192,28 @@ export function JdksPage() {
             {(j) => (
               <>
                 <div class="java-form-row">
-                  <label>Name:</label>
+                  <label>{t("common.nameLabel")}</label>
                   <span class="java-value">{j().name}</span>
                 </div>
                 <div class="java-form-row">
-                  <label>JDK home path:</label>
+                  <label>{t("langs.java.jdkHomePathLabel")}</label>
                   <span class="java-value java-mono">{j().home}</span>
                   <FolderOpen size={13} class="muted" />
                 </div>
                 <div class="java-form-row">
-                  <label>Version:</label>
+                  <label>{t("langs.java.versionLabel")}</label>
                   <span class="java-value">{j().version || "unknown"}</span>
                 </div>
                 <div class="java-form-row">
-                  <label>Vendor:</label>
+                  <label>{t("langs.java.vendorLabel")}</label>
                   <span class="java-value">{j().vendor}</span>
                 </div>
                 <div class="java-form-row">
-                  <label>Found in:</label>
+                  <label>{t("langs.java.foundInLabel")}</label>
                   <span class="java-value">{j().source}</span>
                 </div>
                 <Show when={j().major > 0 && j().major < 21}>
-                  <p class="muted java-hint">Eclipse JDT LS runs on Java 21 or newer (25 for its newest releases); projects can still build and run with this JDK.</p>
+                  <p class="muted java-hint">{t("langs.java.eclipseJdtLsRunsOn")}</p>
                 </Show>
               </>
             )}

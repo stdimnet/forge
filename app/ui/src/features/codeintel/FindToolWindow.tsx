@@ -232,7 +232,7 @@ function ResultTab() {
         fallback={
           <div class="find-empty">
             <Search size={28} class="muted" />
-            <div>Usages found with Find Usages (Alt+F7) and Find in Files results are shown here.</div>
+            <div>{tr("tools.codeintel.usagesFoundWithFindUsages")}</div>
           </div>
         }
       >

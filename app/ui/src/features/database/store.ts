@@ -162,7 +162,7 @@ export async function reloadModel(id: string): Promise<void> {
   try {
     applyModel(id, await dbApi.model(id, false));
   } catch (e) {
-    showBalloon(`Cannot reload ${sourceById(id)?.name ?? id}`, errorText(e));
+    showBalloon(tr("tools.database.cannotReload", { value: sourceById(id)?.name ?? id }), errorText(e));
   }
 }
 
@@ -186,7 +186,7 @@ export function connect(id: string, force = false): Promise<boolean> {
       return true;
     } catch (e) {
       setStates(id, { status: "error", error: errorText(e) });
-      showBalloon(`Connection to ${sourceById(id)?.name ?? id} failed`, errorText(e), 8000);
+      showBalloon(tr("tools.database.connectionToFailed", { value: sourceById(id)?.name ?? id }), errorText(e), 8000);
       return false;
     } finally {
       connecting.delete(id);

@@ -9,6 +9,7 @@ import type { ImageInfo } from "@/ipc/viewers";
 import { getSetting } from "@/state/settings";
 import { shortcutLabel } from "@/keymap";
 import { formatImageInfo, nextZoom, fitZoom } from "./zoom";
+import { t } from "@/i18n";
 
 export interface ImageControls {
   zoomIn: () => void;
@@ -93,7 +94,7 @@ export function ImageCanvas(props: {
 
   return (
     <div class="img-editor">
-      <div class="img-toolbar" role="toolbar" aria-label="Image">
+      <div class="img-toolbar" role="toolbar" aria-label={t("tools.images.image")}>
         <button class="img-btn" title={titled("Zoom In", "Images.Editor.ZoomIn")} onClick={controls.zoomIn}>
           <ZoomIn size={15} />
         </button>

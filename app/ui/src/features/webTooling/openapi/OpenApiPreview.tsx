@@ -11,6 +11,7 @@ import { openApiApi, type OpenApiOperation } from "@/ipc/webTooling";
 import type { EditorTab } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
 import { generateHttpRequest, markOpenApi } from "./store";
+import { t as tr } from "@/i18n";
 
 const METHOD_CLASS = (m: string) => `oa-method oa-${m.toLowerCase()}`;
 
@@ -26,7 +27,7 @@ function Operation(props: { path: string; op: OpenApiOperation }) {
         <span class="oa-summary">{op().summary ?? op().operationId ?? ""}</span>
         <button
           class="icon-btn oa-try"
-          title="Generate HTTP Request"
+          title={tr("common.generateHttpRequest")}
           onClick={(e) => {
             e.stopPropagation();
             void generateHttpRequest(props.path, op().method, op().path);
@@ -41,7 +42,7 @@ function Operation(props: { path: string; op: OpenApiOperation }) {
             <p class="oa-desc">{op().description}</p>
           </Show>
           <Show when={op().parameters.length}>
-            <div class="oa-section">Parameters</div>
+            <div class="oa-section">{tr("langs.webTooling.parameters")}</div>
             <table class="oa-table">
               <tbody>
                 <For each={op().parameters}>
@@ -64,13 +65,13 @@ function Operation(props: { path: string; op: OpenApiOperation }) {
             {(b) => (
               <>
                 <div class="oa-section">
-                  Request body <span class="muted">{b().contentType}</span> <span class="oa-type">{b().typeText}</span>
+                  {tr("langs.webTooling.requestBody")} <span class="muted">{b().contentType}</span> <span class="oa-type">{b().typeText}</span>
                 </div>
                 <pre class="oa-example">{b().example}</pre>
               </>
             )}
           </Show>
-          <div class="oa-section">Responses</div>
+          <div class="oa-section">{tr("langs.webTooling.responses")}</div>
           <For each={op().responses}>
             {(r) => (
               <div class="oa-response">
@@ -116,7 +117,7 @@ export function OpenApiPreview(props: { tab: EditorTab }) {
   });
   return (
     <div class="oa-preview" data-testid="openapi-preview">
-      <Show when={preview()} fallback={<div class="set-list-empty">{preview.loading ? "Loading…" : "Not an OpenAPI document."}</div>}>
+      <Show when={preview()} fallback={<div class="set-list-empty">{preview.loading ? tr("common.loadingEllipsis") : tr("langs.webTooling.notAnOpenapiDocument")}</div>}>
         {(p) => (
           <>
             <div class="oa-info">
@@ -128,7 +129,7 @@ export function OpenApiPreview(props: { tab: EditorTab }) {
               </Show>
               <Show when={p().servers.length}>
                 <div class="oa-servers">
-                  Servers:
+                  {tr("langs.webTooling.serversLabel")}
                   <For each={p().servers}>{(s) => <code title={s.description}>{s.url}</code>}</For>
                 </div>
               </Show>
@@ -146,7 +147,7 @@ export function OpenApiPreview(props: { tab: EditorTab }) {
             <Show when={p().schemas.length}>
               <div class="oa-group">
                 <div class="oa-tag">
-                  <b>Schemas</b>
+                  <b>{tr("langs.webTooling.schemas")}</b>
                 </div>
                 <For each={p().schemas}>
                   {(s) => (

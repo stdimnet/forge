@@ -8,6 +8,7 @@ import { FileCode2, TestTubes } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
 import { baseName, registerRunConfigurationType } from "@/features/run/types";
 import { PLUGIN_ID } from "./store";
+import { t } from "@/i18n";
 
 export const SCRIPT = "kotlin-script";
 export const KOTEST = "kotest";
@@ -24,16 +25,16 @@ export const isKotlinConfiguration = (cfg: RunConfiguration) =>
 registerRunConfigurationType({
   id: SCRIPT,
   name: "Kotlin Script",
-  description: "Run a Kotlin script (.kts, .main.kts) with kotlin or kotlinc -script. Gradle build scripts run through Gradle.",
+  description: t("langs.kotlin.runAKotlinScriptKts"),
   icon: FileCode2,
   color: "var(--accent)",
   pluginId: PLUGIN_ID,
   argumentsLabel: "Script arguments",
   noRunTarget: true,
   fields: [
-    { key: "script", label: "Script file", required: true, placeholder: "scripts/release.main.kts" },
-    { key: "interpreterOptions", label: "JVM options", placeholder: "-Xmx1g" },
-    { key: "kotlin", label: "Kotlin runner", placeholder: "Empty: kotlin (or kotlinc -script) from Settings | Kotlin" },
+    { key: "script", label: t("langs.kotlin.scriptFile"), required: true, placeholder: "scripts/release.main.kts" },
+    { key: "interpreterOptions", label: t("langs.kotlin.jvmOptions"), placeholder: "-Xmx1g" },
+    { key: "kotlin", label: t("langs.kotlin.kotlinRunner"), placeholder: t("langs.kotlin.emptyKotlinOrKotlincScript") },
   ],
   validate: (cfg) => (/\.gradle\.kts$/.test(opt(cfg, "script")) ? "Gradle build scripts are not scripts to run" : null),
   suggestName: (cfg) => baseName(opt(cfg, "script")),
@@ -47,7 +48,7 @@ const inScope =
 registerRunConfigurationType({
   id: KOTEST,
   name: "Kotest",
-  description: "Run Kotest specs through Gradle or Maven: all, a package, a spec or a single test.",
+  description: t("langs.kotlin.runKotestSpecsThroughGradle"),
   icon: TestTubes,
   color: "var(--success)",
   pluginId: PLUGIN_ID,
@@ -59,23 +60,23 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test kind",
+      label: t("common.testKind"),
       kind: "segmented",
       default: "class",
       options: [
-        { value: "all", label: "All in project" },
-        { value: "package", label: "Package" },
-        { value: "class", label: "Spec" },
-        { value: "test", label: "Test" },
-        { value: "pattern", label: "Specs" },
+        { value: "all", label: t("common.allInProject") },
+        { value: "package", label: t("common.package") },
+        { value: "class", label: t("langs.kotlin.spec") },
+        { value: "test", label: t("common.test") },
+        { value: "pattern", label: t("langs.kotlin.specs") },
       ],
     },
-    { key: "package", label: "Package", required: true, placeholder: "com.acme.orders", visible: inScope("package") },
-    { key: "class", label: "Spec", required: true, placeholder: "com.acme.orders.CartSpec", visible: inScope("class", "test") },
-    { key: "test", label: "Test", required: true, placeholder: "totals -- applies the discount", visible: inScope("test") },
-    { key: "tests", label: "Specs", kind: "text", required: true, placeholder: "com.acme.orders.CartSpec (one per line)", visible: inScope("pattern") },
-    { key: "module", label: "Module", placeholder: "app (empty: the root project)" },
-    { key: "testRunnerOptions", label: "Build tool arguments", placeholder: "--info" },
+    { key: "package", label: t("common.package"), required: true, placeholder: "com.acme.orders", visible: inScope("package") },
+    { key: "class", label: t("langs.kotlin.spec"), required: true, placeholder: "com.acme.orders.CartSpec", visible: inScope("class", "test") },
+    { key: "test", label: t("common.test"), required: true, placeholder: "totals -- applies the discount", visible: inScope("test") },
+    { key: "tests", label: t("langs.kotlin.specs"), kind: "text", required: true, placeholder: "com.acme.orders.CartSpec (one per line)", visible: inScope("pattern") },
+    { key: "module", label: t("common.module"), placeholder: "app (empty: the root project)" },
+    { key: "testRunnerOptions", label: t("common.buildToolArguments"), placeholder: "--info" },
   ],
   suggestName: (cfg) => {
     switch (opt(cfg, "scope") || "class") {
