@@ -1,0 +1,21 @@
+[package]
+name = "dotnetforge-gamedev"
+description = "DotNetForge: Unity and Godot in the style of Rider — Unity projects (ProjectVersion.txt, Packages/manifest.json), Unity Hub editors per OS and the project's version, the Forge editor bridge (a Unity package shipped as source, its localhost JSON-lines protocol and the async client: play / pause / stop, refresh, console log streaming, opening files from Unity), Unity tests in batch mode (NUnit 3 results), Unity process discovery for debugging; Godot projects (project.godot), the Godot executable, run project / scene command lines, the editor's GDScript language server (TCP 6005) and debug adapter (TCP 6006), C# debugging through netcoredbg, and GdUnit4 tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+forge-dap.workspace = true
+forge-lsp.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+dotnetforge-lang-dotnet.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+forge-debug.workspace = true
