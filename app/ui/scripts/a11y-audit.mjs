@@ -115,7 +115,13 @@ for (const theme of themes) {
   for (const [name, steps] of Object.entries(SCREENS)) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
-    await page.addInitScript((theme) => localStorage.setItem("forge.theme", theme), theme);
+    // The theme setting (browser mode keeps the user settings in localStorage).
+    await page.addInitScript((theme) => {
+      localStorage.setItem("forge.theme", theme);
+      const key = "forge.mock.settings.user";
+      const user = JSON.parse(localStorage.getItem(key) ?? "{}");
+      localStorage.setItem(key, JSON.stringify({ ...user, "appearance.theme": theme }));
+    }, theme);
     await page.goto(url + (name === "welcome" ? "?welcome" : ""));
     await page.waitForSelector(name === "welcome" ? ".welcome" : ".cm-content", { timeout: 90000 });
     await page.waitForTimeout(400);

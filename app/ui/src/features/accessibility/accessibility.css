@@ -130,17 +130,18 @@ input[type="color"]:focus-visible,
 :root[data-theme^="high-contrast"] [role="dialog"] {
   border: 1px solid var(--border-strong);
 }
-/* File status by shape too: modified dotted, added solid, untracked dashed underline. */
-:root[data-theme^="high-contrast"] .vcs-modified {
+/* File status by shape too: modified dotted, added solid, untracked dashed underline (files
+   only; folders with changes inside keep the color alone). */
+:root[data-theme^="high-contrast"] :not([data-dir]) > .vcs-modified {
   text-decoration: underline dotted;
 }
-:root[data-theme^="high-contrast"] .vcs-added {
+:root[data-theme^="high-contrast"] :not([data-dir]) > .vcs-added {
   text-decoration: underline;
 }
-:root[data-theme^="high-contrast"] .vcs-untracked {
+:root[data-theme^="high-contrast"] :not([data-dir]) > .vcs-untracked {
   text-decoration: underline dashed;
 }
-:root[data-theme^="high-contrast"] .vcs-conflict {
+:root[data-theme^="high-contrast"] :not([data-dir]) > .vcs-conflict {
   text-decoration: underline double;
 }
 /* Balloons: the type as a colored edge next to the icon. */
