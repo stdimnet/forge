@@ -105,7 +105,7 @@ fn describe_exit(status: &std::process::ExitStatus) -> String {
         0xC000_013A => " (stopped with Ctrl+C)",
         _ => "",
     };
-    if code < 0 || code > 0xFFFF {
+    if !(0..=0xFFFF).contains(&code) {
         format!("exit code: {code:#x}{hint}")
     } else {
         format!("exit code: {code}{hint}")

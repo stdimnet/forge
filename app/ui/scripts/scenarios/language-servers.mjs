@@ -51,6 +51,22 @@ export default {
     await page.fill(".ls-json", '{\n  "json": { "format": { "keepLines": { "enable": true } } }\n}');
     await page.locator(".set-content").evaluate((el) => (el.scrollTop = el.scrollHeight));
   },
+  "language-servers-failed": async (page) => {
+    await openPage(page);
+    await page.fill(".ls-filter input", "xml");
+    await page.click('.ls-tr[data-server="lemminx"]');
+    await page.waitForSelector('[data-testid="ls-start-error"]');
+    await page.click('[data-testid="ls-log-toggle"]');
+    await page.waitForSelector('[data-testid="ls-log"]');
+    await page.locator(".set-content").evaluate((el) => (el.scrollTop = el.scrollHeight));
+  },
+  "language-servers-failed-light": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openPage(page);
+    await page.fill(".ls-filter input", "xml");
+    await page.click('.ls-tr[data-server="lemminx"]');
+    await page.waitForSelector('[data-testid="ls-start-error"]');
+  },
   "language-servers-install-confirm": async (page) => {
     await openPage(page);
     await page.fill(".ls-filter input", "toml");

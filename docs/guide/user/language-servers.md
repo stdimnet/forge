@@ -40,8 +40,9 @@ icon) searches for executables again.
 Each row has:
 
 - an **Enabled** checkbox (`langservers.servers.<id>.enabled`);
-- the **Status**: Running (with indexing progress), Installed, Not found, Disabled, or why a
-  server is skipped (for example a server of the same alternative group already running);
+- the **Status**: Running (with indexing progress), Failed to start, Installed, Not found,
+  Disabled, or why a server is skipped (for example a server of the same alternative group
+  already running);
 - the **Path** where it was found, or an **Install…** button.
 
 Select a row to see its details:
@@ -55,6 +56,10 @@ Select a row to see its details:
 | Executable | a custom path to the executable (`langservers.servers.<id>.path`); empty = detect automatically |
 | Extra settings (JSON) | merged into the server's settings (`langservers.servers.<id>.settings`); put startup options under an `"initializationOptions"` key. **Show Defaults** shows what Forge sends by default. |
 | Install | the ways to install it |
+| Error | why the last start failed (only for **Failed to start**): the start error (`could not start …: The system cannot find the file specified`), or the exit code and the last lines the server wrote to stderr when it quit during startup |
+| Log | **Show Log** shows the server's log for this project: the command line and folder it was started with, what it wrote to stderr, its log messages, start errors and exits (the last 500 lines; kept in memory, not in a file) |
+
+![A server that failed to start, with its error and log](../../screenshots/language-servers-failed.png)
 
 ### Where Forge looks for servers
 

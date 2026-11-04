@@ -163,7 +163,7 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
         </span>
         <Show when={shownLog()}>
           {(lines) => (
-            <pre class="ls-log" data-testid="ls-log">
+            <pre class="ls-server-log" data-testid="ls-log">
               {lines().length ? lines().join("\n") : "Not started in this project yet. It starts with the first file it serves."}
             </pre>
           )}

@@ -333,7 +333,7 @@
   word-break: break-word;
   user-select: text;
 }
-.ls-log {
+.ls-server-log {
   grid-column: 1 / -1;
   margin: 0;
   max-height: 220px;

@@ -182,7 +182,7 @@ registerMock("lsp_server_log", ({ id }) => {
   const s = servers.find((x) => x.id === id);
   if (!s || (s.status !== "running" && s.status !== "failed")) return [];
   const command = [s.path ?? s.command, ...(s.args ?? [])].join(" ");
-  const start = `[forge] Starting ${command} in ${HOME}/Projects/shop`;
+  const start = `[forge] Starting ${command} in ${HOME}/Projects/acme-shop`;
   if (s.status === "failed") {
     return [
       start,
