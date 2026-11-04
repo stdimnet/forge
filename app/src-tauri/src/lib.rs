@@ -290,6 +290,7 @@ pub fn run() {
             commands::third_party::plugin_install_file,
             commands::third_party::plugin_uninstall,
             commands::third_party::plugin_bundle,
+            commands::third_party::icon_theme_load,
             commands::third_party::plugin_host_read_file,
             commands::third_party::plugin_host_write_file,
             commands::third_party::plugin_host_fetch,

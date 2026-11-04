@@ -1,5 +1,6 @@
 //! Third-party plugins for Forge.
 //!
+//! - [`icon_themes`]: icon themes plugins contribute (theme file and SVGs, checked).
 //! - [`manifest`]: the `forge-plugin.json` format (id, version, engine range, permissions,
 //!   contributions, activation events) and its validation.
 //! - [`package`]: reading `.forgeplugin` packages (zip files) safely.
@@ -15,6 +16,7 @@
 
 #[cfg(feature = "net")]
 pub mod host;
+pub mod icon_themes;
 pub mod manifest;
 pub mod marketplace;
 #[cfg(feature = "disk")]

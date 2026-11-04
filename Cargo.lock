@@ -3239,6 +3239,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-icons"
+version = "0.1.0"
+dependencies = [
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-injections"
 version = "0.1.0"
 dependencies = [
@@ -3431,6 +3440,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "ed25519-dalek",
+ "forge-icons",
  "forge-keymap",
  "forge-langservers",
  "forge-plugin-api",
@@ -3820,6 +3830,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-i18n",
+ "forge-icons",
  "forge-injections",
  "forge-inspections",
  "forge-jsonschema",

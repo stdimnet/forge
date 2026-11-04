@@ -94,3 +94,35 @@ mod tests {
         assert!(plugins_validate_manifest(&bad.to_string()).contains("error"));
     }
 }
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct IconThemeRequest {
+    manifest: String,
+    theme: String,
+    /// Package path → text.
+    files: std::collections::BTreeMap<String, String>,
+}
+
+/// `{ manifest, theme, files }` → `LoadedIconTheme`, as `icon_theme_load` reads it from an
+/// installed plugin.
+#[wasm_bindgen]
+pub fn plugins_load_icon_theme(request_json: &str) -> String {
+    let req: IconThemeRequest = match serde_json::from_str(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    let manifest = match PluginManifest::parse(&req.manifest) {
+        Ok(m) => m,
+        Err(e) => return error(e),
+    };
+    match forge_plugins::icon_themes::load(&manifest, &req.theme, |p| {
+        req.files
+            .get(p)
+            .map(|t| t.as_bytes().to_vec())
+            .ok_or_else(|| format!("{p} is not in the package"))
+    }) {
+        Ok(t) => to_json(&t),
+        Err(e) => error(e),
+    }
+}

@@ -1,0 +1,15 @@
+{
+  "manifestVersion": 1,
+  "id": "example.shapes-icons",
+  "name": "Shapes Icons",
+  "version": "1.0.0",
+  "publisher": "Forge SDK Examples",
+  "description": "A tiny icon theme of simple shapes for PHP, web and config files and common folders. Shows how a plugin contributes an icon theme.",
+  "license": "MIT",
+  "engines": { "forge": ">=0.1.0" },
+  "contributes": {
+    "iconThemes": [
+      { "id": "example.shapes-icons.shapes", "label": "Shapes (example)", "path": "theme/icon-theme.json" }
+    ]
+  }
+}
