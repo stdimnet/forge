@@ -329,7 +329,7 @@ export function colors_format(request_json: string): string;
 export function colors_parse(request_json: string): string;
 
 /**
- * `{settings, dark, change}` → `SettingWrite[]`.
+ * `{settings, dark, highContrast, change}` → `SettingWrite[]`.
  */
 export function colorscheme_apply(json: string): string;
 
@@ -344,7 +344,7 @@ export function colorscheme_export(json: string): string;
 export function colorscheme_import(json: string): string;
 
 /**
- * `{settings, dark}` → `SchemesSnapshot`.
+ * `{settings, dark, highContrast}` → `SchemesSnapshot`.
  */
 export function colorscheme_state(json: string): string;
 

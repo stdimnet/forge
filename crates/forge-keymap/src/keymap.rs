@@ -547,6 +547,22 @@ pub struct KeymapSnapshot {
     pub group_order: Vec<String>,
     pub modified_count: usize,
     pub actions: Vec<ActionInfo>,
+    /// The other PHPStorm keymap's default shortcuts, for the Presentation Assistant's
+    /// "alternate keymap" (macOS shortcuts next to Windows/Linux ones and vice versa).
+    #[serde(default)]
+    pub alternate: AlternateKeymap,
+}
+
+/// Default shortcuts of the PHPStorm keymap the active one does not derive from, formatted for
+/// that keymap's platform.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlternateKeymap {
+    pub keymap: KeymapId,
+    pub title: String,
+    pub platform: Platform,
+    /// Action id → display strings ("⇧⌘A"); actions without shortcuts are left out.
+    pub display: BTreeMap<String, Vec<String>>,
 }
 
 impl KeymapSnapshot {
@@ -867,6 +883,37 @@ impl KeymapService {
             group_order: ACTION_GROUP_ORDER.iter().map(|s| s.to_string()).collect(),
             modified_count: overrides.len(),
             actions,
+            alternate: self.alternate_keymap(),
+        }
+    }
+
+    /// The other PHPStorm keymap's defaults (catalog and plugin defaults, no user changes).
+    pub fn alternate_keymap(&self) -> AlternateKeymap {
+        let other = match self.keymap() {
+            KeymapId::Default => KeymapId::MacOs,
+            KeymapId::MacOs => KeymapId::Default,
+        };
+        let platform = other.platform();
+        let mut map = ShortcutMap::default();
+        map.extend_from(catalog().defaults(other));
+        map.extend_from(self.registry.defaults[slot(other)].entries());
+        let display = map
+            .entries()
+            .iter()
+            .filter(|(_, list)| !list.is_empty())
+            .map(|(id, list)| {
+                let shown = list
+                    .iter()
+                    .map(|s| format_shortcut_text(s, platform))
+                    .collect();
+                (id.clone(), shown)
+            })
+            .collect();
+        AlternateKeymap {
+            keymap: other,
+            title: other.title().to_string(),
+            platform,
+            display,
         }
     }
 
@@ -1309,6 +1356,20 @@ mod tests {
             .find(|a| a.def.id == id)
             .and_then(|a| a.display.into_iter().next())
             .unwrap_or_default()
+    }
+
+    #[test]
+    fn snapshot_carries_the_alternate_keymap() {
+        let svc = KeymapService::new(Platform::Other);
+        let alt = svc.snapshot().alternate;
+        assert_eq!(alt.keymap, KeymapId::MacOs);
+        assert_eq!(alt.platform, Platform::Mac);
+        assert_eq!(alt.display["GotoAction"], vec!["⇧⌘A".to_string()]);
+
+        let mac = KeymapService::new(Platform::Mac);
+        let alt = mac.snapshot().alternate;
+        assert_eq!(alt.keymap, KeymapId::Default);
+        assert_eq!(alt.display["GotoAction"], vec!["Ctrl+Shift+A".to_string()]);
     }
 
     #[test]

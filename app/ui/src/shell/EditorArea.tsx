@@ -58,7 +58,7 @@ const DRAG_START = 6;
  * the pointer is outside the page.
  */
 function dragTabOut(e: PointerEvent, group: number, id: string): void {
-  if (e.button !== 0 || !canDragTabsOut() || (e.target as Element).closest("button")) return;
+  if (e.button !== 0 || !canDragTabsOut() || (e.target as Element).closest("button, .tab-close")) return;
   const tab = e.currentTarget as HTMLElement;
   const [x0, y0] = [e.clientX, e.clientY];
   let dragging = false;
@@ -102,9 +102,11 @@ function Tab(props: { group: TabGroup; id: string }) {
       style={{ "--file-color": color() }}
       role="tab"
       aria-selected={active()}
+      tabIndex={active() ? 0 : -1}
       title={custom()?.tooltip ?? custom()?.title ?? props.id}
       data-tab-id={props.id}
       onClick={() => activateTab(props.group.id, props.id)}
+      onKeyDown={(e) => onTabKey(e, props.group, props.id)}
       onPointerDown={(e) => dragTabOut(e, props.group.id, props.id)}
       onAuxClick={(e) => e.button === 1 && closeTabIn(props.group.id, props.id)}
       onContextMenu={(e) => {
@@ -128,19 +130,29 @@ function Tab(props: { group: TabGroup; id: string }) {
         {(d) => <TabIcon tab={d()} />}
       </Show>
       <span class={status() ? `vcs-${status()}` : ""}>{label()}</span>
+      <Show when={doc() && isDirty(doc()!)}>
+        <span class="sr-only">{t("a11y.tab.modified")}</span>
+      </Show>
       <Show
         when={pinned() && getSetting<boolean>("editor.tabs.showPinnedIcon", true) !== false}
         fallback={
-          <button class="tab-close" classList={{ dirty: !!doc() && isDirty(doc()!) }} title={t("editor.tab.close", { shortcut: "Ctrl+F4" })} onClick={close}>
+          <span
+            class="tab-close"
+            classList={{ dirty: !!doc() && isDirty(doc()!) }}
+            title={t("editor.tab.close", { shortcut: "Ctrl+F4" })}
+            aria-hidden="true"
+            onClick={close}
+          >
             <span class="dirty-dot" />
             <X size={13} />
-          </button>
+          </span>
         }
       >
-        <button
+        <span
           class="tab-close tab-pin"
           classList={{ dirty: !!doc() && isDirty(doc()!) }}
           title={t("editor.tab.unpin")}
+          aria-hidden="true"
           onClick={(e) => {
             e.stopPropagation();
             togglePinTab(props.id);
@@ -148,15 +160,41 @@ function Tab(props: { group: TabGroup; id: string }) {
         >
           <span class="dirty-dot" />
           <Pin size={12} />
-        </button>
+        </span>
       </Show>
     </div>
   );
 }
 
+/**
+ * Keys on a focused tab (WAI-ARIA tabs): Left/Right/Home/End move to and open another tab,
+ * Enter or Space returns to its editor. Closing stays Ctrl+F4 (keymap).
+ */
+function onTabKey(e: KeyboardEvent, group: TabGroup, id: string): void {
+  const tabs = group.tabs;
+  const i = tabs.indexOf(id);
+  const target =
+    e.key === "ArrowRight" ? tabs[(i + 1) % tabs.length]
+    : e.key === "ArrowLeft" ? tabs[(i - 1 + tabs.length) % tabs.length]
+    : e.key === "Home" ? tabs[0]
+    : e.key === "End" ? tabs[tabs.length - 1]
+    : undefined;
+  if (target) {
+    e.preventDefault();
+    activateTab(group.id, target);
+    queueMicrotask(() =>
+      (e.currentTarget as HTMLElement | null)?.parentElement?.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(target)}"]`)?.focus(),
+    );
+  } else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    activateTab(group.id, id);
+    (e.currentTarget as HTMLElement).closest(".editor-group")?.querySelector<HTMLElement>(".editor-slot:not(.hidden) .cm-content")?.focus();
+  }
+}
+
 function Tabs(props: { group: TabGroup }) {
   return (
-    <div class="editor-tabs" role="tablist">
+    <div class="editor-tabs" role="tablist" aria-label={t("a11y.editorTabs")}>
       <For each={props.group.tabs}>{(id) => <Tab group={props.group} id={id} />}</For>
     </div>
   );
@@ -281,7 +319,7 @@ function GroupSplitter(props: { before: TabGroup; after: TabGroup }) {
 export function EditorArea() {
   const hasTabs = () => editorGroups().some((g) => g.tabs.length > 0);
   return (
-    <main class="editor-area">
+    <main class="editor-area" aria-label={t("a11y.editorArea")}>
       <SafeModeBanner />
       <Show when={hasTabs()} fallback={<Welcome />}>
         <div class="editor-groups" classList={{ horizontal: splitOrientation() === "horizontal" }}>

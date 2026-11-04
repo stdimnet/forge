@@ -224,10 +224,10 @@ export function SearchEverywhere() {
             />
             <span>{filterLabel()}</span>
           </label>
-          <button class="icon-btn se-tool" title={t("search.filter")} onMouseDown={(e) => e.preventDefault()}>
+          <button class="icon-btn se-tool" title={t("search.filter")} aria-label={t("search.filter")} onMouseDown={(e) => e.preventDefault()}>
             <Filter size={14} />
           </button>
-          <button class="icon-btn se-tool" title={t("search.openInFind")} onMouseDown={(e) => e.preventDefault()}>
+          <button class="icon-btn se-tool" title={t("search.openInFind")} aria-label={t("search.openInFind")} onMouseDown={(e) => e.preventDefault()}>
             <Pin size={14} />
           </button>
         </div>
@@ -240,6 +240,12 @@ export function SearchEverywhere() {
             spellcheck={false}
             autocomplete="off"
             placeholder={seTab() === "actions" ? t("search.typeActionName") : ""}
+            role="combobox"
+            aria-label={t("search.title")}
+            aria-expanded={rows().length > 0}
+            aria-controls="se-results"
+            aria-autocomplete="list"
+            aria-activedescendant={rows().length && selectable().length ? `se-row-${selectable()[selected()]}` : undefined}
             onInput={(e) => setSeQuery(e.currentTarget.value)}
           />
           <Show when={loading()}>
@@ -259,7 +265,14 @@ export function SearchEverywhere() {
             <WholeWord size={14} />
           </button>
         </div>
-        <div class="se-results" ref={list}>
+        <div
+          class="se-results"
+          ref={list}
+          id="se-results"
+          role={rows().length ? "listbox" : undefined}
+          aria-label={t("a11y.searchResults")}
+          tabIndex={-1}
+        >
           <Show
             when={rows().length}
             fallback={
@@ -275,10 +288,24 @@ export function SearchEverywhere() {
                   const idx = selectable().indexOf(i());
                   if (idx >= 0) setSelected(idx);
                 };
-                if (row.type === "header") return <div class="se-group">{row.group.provider.title}</div>;
+                if (row.type === "header")
+                  return (
+                    <div class="se-group" role="presentation">
+                      {row.group.provider.title}
+                    </div>
+                  );
                 if (row.type === "more")
                   return (
-                    <div class="se-row se-more" classList={{ selected: isSel() }} data-row={i()} onMouseMove={selectRow} onClick={() => activate(row)}>
+                    <div
+                      class="se-row se-more"
+                      classList={{ selected: isSel() }}
+                      data-row={i()}
+                      id={`se-row-${i()}`}
+                      role="option"
+                      aria-selected={isSel()}
+                      onMouseMove={selectRow}
+                      onClick={() => activate(row)}
+                    >
                       {t("search.more")}
                     </div>
                   );
@@ -288,6 +315,9 @@ export function SearchEverywhere() {
                     class="se-row"
                     classList={{ selected: isSel(), dimmed: !!item.dimmed }}
                     data-row={i()}
+                    id={`se-row-${i()}`}
+                    role="option"
+                    aria-selected={isSel()}
                     onMouseMove={selectRow}
                     onClick={() => activate(row)}
                   >

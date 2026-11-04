@@ -217,6 +217,14 @@ const entryOf = (row: TreeRow): FileEntry => ({
   excluded: row.excluded,
 });
 
+/** Element id of a row (aria-activedescendant), stable per path or member key. */
+const rowIds = new Map<string, string>();
+const treeRowId = (key: string): string => {
+  let id = rowIds.get(key);
+  if (!id) rowIds.set(key, (id = `project-row-${rowIds.size + 1}`));
+  return id;
+};
+
 /** Show Members: the loaded structure per file, for the member at the caret. */
 const [memberStructures, setMemberStructures] = createSignal<Map<string, FileStructure>>(new Map());
 /** A member row's key: the file and the node's index path (`app/User.php#0/2`). */
@@ -236,6 +244,11 @@ function MemberRows(props: { file: string; nodes: StructureNode[]; parent: strin
               classList={{ selected: selected() === key, deprecated: !!node.deprecated }}
               style={{ "padding-left": `${8 + props.depth * 16}px` }}
               data-member={key}
+              id={treeRowId(key)}
+              role="treeitem"
+              aria-level={props.depth + 1}
+              aria-selected={selected() === key}
+              aria-expanded={kids() ? open() : undefined}
               title={node.detail || undefined}
               onClick={() => {
                 selectOnly(key);
@@ -338,6 +351,12 @@ function TreeNode(props: { row: TreeRow; depth: number }) {
         title={props.row.compacted ? props.row.path : undefined}
         data-expanded={isOpen() ? "" : undefined}
         data-depth={props.depth}
+        id={treeRowId(props.row.path)}
+        role="treeitem"
+        aria-level={props.depth + 1}
+        aria-selected={selected() === props.row.path || alsoSelected().includes(props.row.path)}
+        aria-expanded={expandable() ? isOpen() : undefined}
+        aria-label={status() ? t("a11y.tree.vcsRow", { name: props.row.name, status: status()! }) : undefined}
         draggable={true}
         onDragStart={(e) => {
           const all = selectedPaths();
@@ -499,6 +518,10 @@ export function ProjectView() {
       class="project-tree"
       tabIndex={0}
       ref={root}
+      role="tree"
+      aria-label={t("toolwindow.project.title")}
+      aria-multiselectable="true"
+      aria-activedescendant={selected() ? treeRowId(selected()!) : undefined}
       onKeyDown={onKeyDown}
       onContextMenu={(e) => {
         // Rows handle their own menu; the root row and the empty area act on the project root.
@@ -515,6 +538,10 @@ export function ProjectView() {
               class="tree-row tree-root"
               classList={{ "drop-target": dropTarget() === "" }}
               style={{ "padding-left": "8px" }}
+              role="treeitem"
+              aria-level={1}
+              aria-expanded="true"
+              aria-selected={selected() === null}
               onDragOver={(e) => {
                 if (!canDropAll("")) return;
                 e.preventDefault();

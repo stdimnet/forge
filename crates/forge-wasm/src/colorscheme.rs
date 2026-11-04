@@ -2,7 +2,9 @@
 //! browser-mode mock. The mock passes the current settings values with every call
 //! (`settings`) and stores the settings writes that come back.
 
-use forge_colorscheme::{export_icls, import_icls, SchemeChange, SchemeSettings, SettingWrite};
+use forge_colorscheme::{
+    export_icls, import_icls, Bundled, SchemeChange, SchemeSettings, SettingWrite,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -15,6 +17,9 @@ struct Request {
     settings: Value,
     #[serde(default)]
     dark: bool,
+    /// The UI theme is a high-contrast one.
+    #[serde(default, rename = "highContrast")]
+    high_contrast: bool,
     #[serde(default)]
     change: Option<SchemeChange>,
     #[serde(default)]
@@ -36,18 +41,26 @@ fn run<T: Serialize>(
     }
 }
 
-/// `{settings, dark}` → `SchemesSnapshot`.
-#[wasm_bindgen]
-pub fn colorscheme_state(json: &str) -> String {
-    run(json, |s, r| Ok(s.snapshot(r.dark)))
+impl Request {
+    /// The bundled scheme that follows the UI theme.
+    fn theme(&self) -> Bundled {
+        Bundled::for_theme(self.dark, self.high_contrast)
+    }
 }
 
-/// `{settings, dark, change}` → `SettingWrite[]`.
+/// `{settings, dark, highContrast}` → `SchemesSnapshot`.
+#[wasm_bindgen]
+pub fn colorscheme_state(json: &str) -> String {
+    run(json, |s, r| Ok(s.snapshot(r.theme())))
+}
+
+/// `{settings, dark, highContrast, change}` → `SettingWrite[]`.
 #[wasm_bindgen]
 pub fn colorscheme_apply(json: &str) -> String {
     run(json, |s, r| {
+        let theme = r.theme();
         let change = r.change.ok_or("missing change")?;
-        Ok(s.apply(change, r.dark))
+        Ok(s.apply(change, theme))
     })
 }
 

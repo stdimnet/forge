@@ -71,10 +71,14 @@ interface ListProps {
   crossLevel?: boolean;
 }
 
+/** Ids of menu items (aria-activedescendant) are unique per rendered menu. */
+let menuSeq = 0;
+
 function MenuList(props: ListProps) {
   let root!: HTMLDivElement;
   const [pos, setPos] = createSignal({ left: props.x, top: props.y });
   const [active, setActive] = createSignal(-1);
+  const menuId = `context-menu-${++menuSeq}`;
   const [opened, setOpened] = createSignal(-1);
   /** The open submenu was opened from the keyboard: it selects its first item. */
   const [byKey, setByKey] = createSignal(false);
@@ -157,6 +161,7 @@ function MenuList(props: ListProps) {
       classList={{ "context-menu": true, "with-checks": hasChecks(), ...(props.class ? { [props.class]: true } : {}) }}
       role="menu"
       tabindex="-1"
+      aria-activedescendant={active() >= 0 ? `${menuId}-${active()}` : undefined}
       style={{ left: `${pos().left}px`, top: `${pos().top}px` }}
       onKeyDown={onKeyDown}
       onContextMenu={(e) => e.preventDefault()}
@@ -170,6 +175,7 @@ function MenuList(props: ListProps) {
               return (
                 <div
                   ref={row}
+                  id={`${menuId}-${i()}`}
                   class="context-menu-item"
                   classList={{ active: active() === i(), open: opened() === i(), disabled: !!item.disabled }}
                   role={item.checkable ? "menuitemcheckbox" : "menuitem"}
@@ -177,6 +183,7 @@ function MenuList(props: ListProps) {
                   title={item.hint}
                   aria-checked={item.checkable ? !!item.checked : undefined}
                   aria-haspopup={item.kind === "submenu" ? "menu" : undefined}
+                  aria-expanded={item.kind === "submenu" ? opened() === i() : undefined}
                   onMouseEnter={() => {
                     if (item.disabled) {
                       setActive(-1);

@@ -52,7 +52,7 @@ export interface SchemesSnapshot {
   followsTheme: boolean;
   /** The scheme shown and edited. */
   active: string;
-  /** "Ember" or "Anvil": the bundled scheme it is or derives from. */
+  /** "Ember", "Anvil", "High Contrast" or "High Contrast Light": the bundled scheme it is or derives from. */
   base: string;
   /** Only user schemes can be changed. */
   editable: boolean;
@@ -74,13 +74,18 @@ export type SchemeChange =
   | { op: "setAttribute"; key: string; value?: TextAttributes }
   | { op: "resetAll" };
 
+/** The kind of UI theme; it decides the scheme that follows the theme (Ember, Anvil, High Contrast…). */
+export interface ThemeKind {
+  dark: boolean;
+  highContrast: boolean;
+}
+
 export const colorSchemeApi = {
-  /** `dark`: whether the UI theme is dark (decides the scheme that follows the theme). */
-  state: (dark: boolean) => invoke<SchemesSnapshot>("color_scheme_state", { dark }),
-  change: (change: SchemeChange, dark: boolean) => invoke<SchemesSnapshot>("color_scheme_change", { change, dark }),
+  state: (theme: ThemeKind) => invoke<SchemesSnapshot>("color_scheme_state", { ...theme }),
+  change: (change: SchemeChange, theme: ThemeKind) => invoke<SchemesSnapshot>("color_scheme_change", { change, ...theme }),
   /** Import an .icls file from its text or (desktop) a picked path; selects the new scheme. */
-  import: (source: { text?: string; path?: string }, dark: boolean) =>
-    invoke<SchemesSnapshot>("color_scheme_import", { ...source, dark }),
+  import: (source: { text?: string; path?: string }, theme: ThemeKind) =>
+    invoke<SchemesSnapshot>("color_scheme_import", { ...source, ...theme }),
   /** The scheme as .icls text; with `path` (desktop) it is also written there. */
   export: (name: string, path?: string) => invoke<string>("color_scheme_export", { name, path }),
 };

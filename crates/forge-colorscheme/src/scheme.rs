@@ -2,9 +2,10 @@
 //!
 //! Settings (declared in `plugins/core.toml`):
 //! - `editor.colorScheme.active`: the scheme in use; empty follows the theme (Ember for dark
-//!   themes, Anvil for light ones, and the theme's own token colors).
-//! - `editor.colorScheme.schemes`: user schemes, tables with `name`, `parent` ("Ember" or
-//!   "Anvil") and `attributes` (one changed attribute per line: the key, then its
+//!   themes, Anvil for light ones, High Contrast (Light) for the high-contrast themes, and the
+//!   theme's own token colors).
+//! - `editor.colorScheme.schemes`: user schemes, tables with `name`, `parent` (a bundled scheme:
+//!   "Ember", "Anvil", "High Contrast" or "High Contrast Light") and `attributes` (one changed attribute per line: the key, then its
 //!   [`TextAttributes::encode`] text).
 
 use std::collections::BTreeMap;
@@ -123,12 +124,11 @@ impl SchemeSettings {
         Bundled::parse(&self.active).is_none() && self.user(&self.active).is_none()
     }
 
-    /// Name of the scheme in use; `dark` is whether the UI theme is a dark one.
-    pub fn active_name(&self, dark: bool) -> String {
+    /// Name of the scheme in use; `theme` is the bundled scheme that follows the UI theme
+    /// (`true` / `false` for a dark / light Forge theme, see [`Bundled::for_theme`]).
+    pub fn active_name(&self, theme: impl Into<Bundled>) -> String {
         if self.follows_theme() {
-            return if dark { Bundled::Ember } else { Bundled::Anvil }
-                .name()
-                .to_string();
+            return theme.into().name().to_string();
         }
         self.active.clone()
     }
@@ -208,10 +208,10 @@ impl SchemeSettings {
         }
     }
 
-    /// Settings writes that apply `change` (`dark`: the UI theme, for "follow the theme").
+    /// Settings writes that apply `change` (`theme`: the scheme that follows the UI theme).
     /// Invalid names and changes of bundled schemes write nothing.
-    pub fn apply(&self, change: SchemeChange, dark: bool) -> Vec<SettingWrite> {
-        let active = self.active_name(dark);
+    pub fn apply(&self, change: SchemeChange, theme: impl Into<Bundled>) -> Vec<SettingWrite> {
+        let active = self.active_name(theme);
         match change {
             SchemeChange::Select { scheme } => {
                 if scheme == self.active {
@@ -337,8 +337,8 @@ impl SchemeSettings {
     }
 
     /// Everything Settings | Editor | Color Scheme shows.
-    pub fn snapshot(&self, dark: bool) -> SchemesSnapshot {
-        let active = self.active_name(dark);
+    pub fn snapshot(&self, theme: impl Into<Bundled>) -> SchemesSnapshot {
+        let active = self.active_name(theme);
         let base = self.base_of(&active);
         let text = self.attribute_of(&active, "TEXT").0;
         let text_fg = text.foreground.clone().unwrap_or_default();
@@ -534,7 +534,12 @@ mod tests {
         assert!(snap.css.is_empty());
         assert_eq!(snap.active, "Anvil");
         assert!(!snap.editable);
-        assert_eq!(snap.schemes.len(), 2);
+        assert_eq!(snap.schemes.len(), 4);
+        // The high-contrast themes follow the high-contrast schemes.
+        assert_eq!(s.active_name(Bundled::for_theme(true, true)), "High Contrast");
+        let snap = s.snapshot(Bundled::for_theme(false, true));
+        assert_eq!(snap.active, "High Contrast Light");
+        assert_eq!(snap.base, "High Contrast Light");
     }
 
     #[test]

@@ -24,6 +24,10 @@ export function registerObjectSettingEditor(key: string, editor: Component<{ spe
   objectEditors.set(key, editor);
 }
 
+/** Element ids of a setting's control and description (label `for`, `aria-describedby`). */
+export const settingControlId = (key: string) => `setting-${key.replace(/[^\w-]/g, "-")}`;
+const settingDescId = (key: string) => `${settingControlId(key)}-desc`;
+
 function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) {
   const step = () => (props.spec.type === "number" ? (props.spec.step ?? 0.1) : 1);
   const [invalid, setInvalid] = createSignal<string | null>(null);
@@ -41,6 +45,9 @@ function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) 
     <input
       class="set-input set-number"
       classList={{ invalid: !!invalid() }}
+      id={settingControlId(props.spec.key)}
+      aria-describedby={props.spec.description ? settingDescId(props.spec.key) : undefined}
+      aria-invalid={invalid() ? "true" : undefined}
       type="number"
       min={props.spec.min}
       max={props.spec.max}
@@ -108,6 +115,7 @@ function ListEditor(props: { spec: SettingSpec }) {
             <input
               class="set-list-item"
               classList={{ selected: sel() === i }}
+              aria-label={`${props.spec.title} ${i + 1}`}
               value={item()}
               spellcheck={false}
               onFocus={() => setSel(i)}
@@ -128,6 +136,8 @@ function Control(props: { spec: SettingSpec }) {
         {(s) => (
           <select
             class="set-input set-select"
+            id={settingControlId(spec.key)}
+            aria-describedby={spec.description ? settingDescId(spec.key) : undefined}
             value={draftValue<string>(spec.key)}
             onChange={(e) => setDraft(spec.key, e.currentTarget.value)}
           >
@@ -142,6 +152,8 @@ function Control(props: { spec: SettingSpec }) {
         <input
           class="set-input set-text"
           classList={{ "set-path": spec.type === "path" }}
+          id={settingControlId(spec.key)}
+          aria-describedby={spec.description ? settingDescId(spec.key) : undefined}
           spellcheck={false}
           value={draftValue<string>(spec.key)}
           placeholder={spec.type === "path" ? "Default" : undefined}
@@ -158,7 +170,7 @@ export function SettingRow(props: { spec: SettingSpec }) {
   const modified = () => spec.key in draft;
   const description = () =>
     spec.description ? (
-      <div class="set-desc">
+      <div class="set-desc" id={settingDescId(spec.key)}>
         <Hl text={spec.description} />
       </div>
     ) : null;
@@ -172,6 +184,8 @@ export function SettingRow(props: { spec: SettingSpec }) {
           <label class="set-check">
             <input
               type="checkbox"
+              id={settingControlId(spec.key)}
+              aria-describedby={spec.description ? settingDescId(spec.key) : undefined}
               checked={draftValue<boolean>(spec.key)}
               onChange={(e) => setDraft(spec.key, e.currentTarget.checked)}
             />
@@ -201,7 +215,7 @@ export function SettingRow(props: { spec: SettingSpec }) {
         </Match>
         <Match when={true}>
           <div class="set-line">
-            <label class="set-label">
+            <label class="set-label" for={settingControlId(spec.key)}>
               <Hl text={spec.title} />:
             </label>
             <Control spec={spec} />

@@ -1,0 +1,239 @@
+/*
+ * Accessibility styles: visually hidden text, visible keyboard focus everywhere, the extras of
+ * the High Contrast themes, contrast scrollbars and the Presentation Assistant popup.
+ */
+
+:root {
+  --focus-ring: var(--accent);
+  --focus-ring-width: 2px;
+}
+:root[data-theme^="high-contrast"] {
+  --focus-ring-width: 3px;
+}
+
+/* Read by screen readers, not shown. */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Keyboard focus is always visible (mouse clicks do not show it: :focus-visible). Widgets that
+   keep focus on their container (trees and lists with aria-activedescendant) show it on the
+   active row instead. */
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+input[type="range"]:focus-visible,
+input[type="color"]:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="treeitem"]:focus-visible,
+[role="option"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="link"]:focus-visible,
+[tabindex="0"]:not([aria-activedescendant]):not(.cm-content):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring) !important;
+  outline-offset: -2px;
+}
+[aria-activedescendant]:focus-visible {
+  outline: none;
+}
+[role="tree"]:focus-visible [role="treeitem"][aria-selected="true"],
+[role="listbox"]:focus-visible [role="option"][aria-selected="true"],
+[role="combobox"]:focus-visible ~ * [role="option"][aria-selected="true"],
+.se-popup:focus-within .se-row.selected,
+.context-menu:focus .context-menu-item.active {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+/* ---- High Contrast: borders on everything, states not shown by color alone */
+:root[data-theme^="high-contrast"] input:focus,
+:root[data-theme^="high-contrast"] textarea:focus,
+:root[data-theme^="high-contrast"] select:focus {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 0;
+  box-shadow: none;
+}
+:root[data-theme^="high-contrast"] input,
+:root[data-theme^="high-contrast"] textarea,
+:root[data-theme^="high-contrast"] select {
+  border-color: var(--border-strong);
+}
+:root[data-theme^="high-contrast"] .icon-btn,
+:root[data-theme^="high-contrast"] .pill-btn,
+:root[data-theme^="high-contrast"] .status-item {
+  border: 1px solid transparent;
+}
+:root[data-theme^="high-contrast"] .icon-btn:hover,
+:root[data-theme^="high-contrast"] .pill-btn:hover,
+:root[data-theme^="high-contrast"] .status-item:hover,
+:root[data-theme^="high-contrast"] .btn-secondary:hover {
+  border-color: var(--fg);
+}
+:root[data-theme^="high-contrast"] .icon-btn.active,
+:root[data-theme^="high-contrast"] .stripe-btn.active,
+:root[data-theme^="high-contrast"] [aria-pressed="true"] {
+  border: 2px solid var(--accent);
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+:root[data-theme^="high-contrast"] .btn-primary {
+  border: 2px solid var(--fg-strong);
+}
+:root[data-theme^="high-contrast"] .btn-secondary {
+  border-color: var(--border-strong);
+}
+/* Selection: an outline as well as the background. */
+:root[data-theme^="high-contrast"] .tree-row.selected,
+:root[data-theme^="high-contrast"] [role="option"][aria-selected="true"],
+:root[data-theme^="high-contrast"] .se-row.selected,
+:root[data-theme^="high-contrast"] .context-menu-item.active,
+:root[data-theme^="high-contrast"] .context-menu-item.open,
+:root[data-theme^="high-contrast"] .set-tree-row.selected {
+  outline: 1px solid var(--fg-strong);
+  outline-offset: -1px;
+}
+/* The active tab: a thick underline and bold text. */
+:root[data-theme^="high-contrast"] .editor-tab.active {
+  border-bottom-width: 3px;
+  font-weight: 600;
+}
+/* Panels, popups and dialogs are framed. */
+:root[data-theme^="high-contrast"] .main-toolbar,
+:root[data-theme^="high-contrast"] .status-bar {
+  border-color: var(--border-strong);
+}
+:root[data-theme^="high-contrast"] .tool-window,
+:root[data-theme^="high-contrast"] .tool-stripe,
+:root[data-theme^="high-contrast"] .editor-tabs {
+  border-color: var(--border);
+}
+:root[data-theme^="high-contrast"] .tool-window {
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+:root[data-theme^="high-contrast"] .popup,
+:root[data-theme^="high-contrast"] .context-menu,
+:root[data-theme^="high-contrast"] .balloon,
+:root[data-theme^="high-contrast"] .cm-tooltip,
+:root[data-theme^="high-contrast"] [role="dialog"] {
+  border: 1px solid var(--border-strong);
+}
+/* File status by shape too: modified dotted, added solid, untracked dashed underline. */
+:root[data-theme^="high-contrast"] .vcs-modified {
+  text-decoration: underline dotted;
+}
+:root[data-theme^="high-contrast"] .vcs-added {
+  text-decoration: underline;
+}
+:root[data-theme^="high-contrast"] .vcs-untracked {
+  text-decoration: underline dashed;
+}
+:root[data-theme^="high-contrast"] .vcs-conflict {
+  text-decoration: underline double;
+}
+/* Balloons: the type as a colored edge next to the icon. */
+:root[data-theme^="high-contrast"] .balloon[data-balloon-type="error"] {
+  border-left: 4px solid var(--danger);
+}
+:root[data-theme^="high-contrast"] .balloon[data-balloon-type="warning"] {
+  border-left: 4px solid var(--warning);
+}
+
+/* ---- Contrast scrollbars (Settings | Appearance | Accessibility) */
+:root[data-contrast-scrollbars] ::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+:root[data-contrast-scrollbars] ::-webkit-scrollbar-thumb {
+  background: var(--fg-muted);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+:root[data-contrast-scrollbars] ::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-strong);
+  background-clip: content-box;
+}
+:root[data-contrast-scrollbars] ::-webkit-scrollbar-track {
+  background: var(--bg-hover);
+}
+
+/* ---- Presentation Assistant */
+.presentation-assistant {
+  position: fixed;
+  z-index: 10000;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  max-width: calc(100vw - 48px);
+  padding: 0.45em 1em;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  color: var(--fg-strong);
+  font-size: var(--pa-font, 20px);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pa-in 0.12s ease-out;
+}
+.pa-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pa-shortcut {
+  color: var(--accent);
+  font-weight: 600;
+}
+.pa-alternate {
+  color: var(--fg-muted);
+  font-size: 0.75em;
+}
+.pa-keymap {
+  color: var(--fg-muted);
+}
+.pa-top-left,
+.pa-bottom-left {
+  left: calc(var(--stripe-w) + 16px);
+}
+.pa-top-right,
+.pa-bottom-right {
+  right: calc(var(--stripe-w) + 16px);
+}
+.pa-top-center,
+.pa-bottom-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pa-top-left,
+.pa-top-center,
+.pa-top-right {
+  top: calc(var(--toolbar-h) + 48px);
+}
+.pa-bottom-left,
+.pa-bottom-center,
+.pa-bottom-right {
+  bottom: calc(var(--statusbar-h) + 40px);
+}
+@keyframes pa-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .presentation-assistant {
+    animation: none;
+  }
+}

@@ -34,6 +34,19 @@ describe("theme", () => {
     expect(theme()).toBe("solarized-light");
     toggleTheme();
     expect(theme()).toBe("solarized-dark");
+    setTheme("high-contrast");
+    toggleTheme();
+    expect(theme()).toBe("high-contrast-light");
+    toggleTheme();
+    expect(theme()).toBe("high-contrast");
+  });
+
+  it("knows dark and high-contrast themes", async () => {
+    const { isDarkTheme, isHighContrastTheme } = await load(null);
+    expect(isDarkTheme("high-contrast")).toBe(true);
+    expect(isDarkTheme("high-contrast-light")).toBe(false);
+    expect(isHighContrastTheme("high-contrast-light")).toBe(true);
+    expect(isHighContrastTheme("solarized-dark")).toBe(false);
   });
 
   it("applies and persists the theme", async () => {

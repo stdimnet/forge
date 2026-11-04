@@ -411,20 +411,111 @@ pub fn attribute(key: &str) -> Option<&'static AttributeSpec> {
     ATTRIBUTES.iter().find(|a| a.key == key)
 }
 
-/// The two bundled schemes, matching the theme CSS (`app/ui/src/theme/theme.css`).
+/// The bundled schemes, matching the theme CSS (`app/ui/src/theme/theme.css`): Ember and Anvil
+/// for the Forge themes, High Contrast and High Contrast Light for the high-contrast themes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Bundled {
     Ember,
     Anvil,
+    HighContrast,
+    HighContrastLight,
 }
 
+/// `true` (a dark UI theme) follows Ember, `false` Anvil.
+impl From<bool> for Bundled {
+    fn from(dark: bool) -> Self {
+        Self::for_theme(dark, false)
+    }
+}
+
+/// Colors of a bundled scheme, in the order of [`ATTRIBUTES`] below.
+struct Palette {
+    text: (&'static str, &'static str),
+    caret: &'static str,
+    caret_row: &'static str,
+    selection: &'static str,
+    line_numbers: &'static str,
+    search_result: &'static str,
+    /// KEYWORD, STRING, NUMBER, COMMENT, VARIABLE, FUNCTION, TYPE, ATTRIBUTE, OPERATOR, TAG.
+    syntax: [&'static str; 10],
+}
+
+const EMBER: Palette = Palette {
+    text: ("#d9d9df", "#141417"),
+    caret: "#ff7a1a",
+    caret_row: "#1e1e23",
+    selection: "#3a2a1e",
+    line_numbers: "#74747f",
+    search_result: "#483c24",
+    syntax: [
+        "#ff9a57", "#a5d17f", "#7cc5e8", "#80808e", "#c9a6ff", "#ffd479", "#6fd2c4", "#d0c070",
+        "#c4c4cc", "#ff9a57",
+    ],
+};
+
+const ANVIL: Palette = Palette {
+    text: ("#26272b", "#ffffff"),
+    caret: "#c4500a",
+    caret_row: "#f1f2f6",
+    selection: "#ffe3cc",
+    line_numbers: "#83868f",
+    search_result: "#f8ecd2",
+    syntax: [
+        "#b8460b", "#3c7d24", "#1b6fa0", "#6e717b", "#7a3fc4", "#8a5a00", "#157a6e", "#806a00",
+        "#3a3c42", "#b8460b",
+    ],
+};
+
+const HIGH_CONTRAST: Palette = Palette {
+    text: ("#ffffff", "#000000"),
+    caret: "#ffa64d",
+    caret_row: "#1a1a1a",
+    selection: "#5c3300",
+    line_numbers: "#cccccc",
+    search_result: "#5c4a00",
+    syntax: [
+        "#ffb877", "#9cf08c", "#8fdcff", "#c8c8c8", "#e6ccff", "#ffe28f", "#80f0e0", "#f5e98f",
+        "#ffffff", "#ffb877",
+    ],
+};
+
+const HIGH_CONTRAST_LIGHT: Palette = Palette {
+    text: ("#000000", "#ffffff"),
+    caret: "#9a3a00",
+    caret_row: "#ededed",
+    selection: "#ffd9b3",
+    line_numbers: "#3d3d3d",
+    search_result: "#ffe680",
+    syntax: [
+        "#8a2c00", "#1d5c0c", "#004f8a", "#4a4a4a", "#561f99", "#614000", "#00574d", "#574a00",
+        "#000000", "#8a2c00",
+    ],
+};
+
 impl Bundled {
-    pub const ALL: [Bundled; 2] = [Bundled::Ember, Bundled::Anvil];
+    pub const ALL: [Bundled; 4] = [
+        Bundled::Ember,
+        Bundled::Anvil,
+        Bundled::HighContrast,
+        Bundled::HighContrastLight,
+    ];
+
+    /// The scheme that follows a UI theme: dark or light, high contrast or not.
+    pub fn for_theme(dark: bool, high_contrast: bool) -> Self {
+        match (dark, high_contrast) {
+            (true, false) => Self::Ember,
+            (false, false) => Self::Anvil,
+            (true, true) => Self::HighContrast,
+            (false, true) => Self::HighContrastLight,
+        }
+    }
 
     pub fn name(self) -> &'static str {
         match self {
             Self::Ember => "Ember",
             Self::Anvil => "Anvil",
+            Self::HighContrast => "High Contrast",
+            Self::HighContrastLight => "High Contrast Light",
         }
     }
 
@@ -433,63 +524,86 @@ impl Bundled {
     }
 
     pub fn dark(self) -> bool {
-        self == Self::Ember
+        matches!(self, Self::Ember | Self::HighContrast)
     }
 
     /// PHPStorm's scheme of the same kind (the `parent_scheme` of exported files).
     pub fn icls_parent(self) -> &'static str {
         match self {
             Self::Ember => "Darcula",
-            Self::Anvil => "Default",
+            Self::Anvil | Self::HighContrastLight => "Default",
+            Self::HighContrast => "High contrast",
         }
     }
 
     /// The bundled scheme an IntelliJ parent maps onto.
     pub fn from_icls_parent(parent: &str) -> Self {
         let p = parent.to_ascii_lowercase();
-        if p.contains("darcula") || p.contains("dark") || p.contains("ember") {
+        if p.contains("high contrast") || p.contains("high_contrast") || p.contains("highcontrast") {
+            if p.contains("light") {
+                Self::HighContrastLight
+            } else {
+                Self::HighContrast
+            }
+        } else if p.contains("darcula") || p.contains("dark") || p.contains("ember") {
             Self::Ember
         } else {
             Self::Anvil
         }
     }
 
+    fn palette(self) -> &'static Palette {
+        match self {
+            Self::Ember => &EMBER,
+            Self::Anvil => &ANVIL,
+            Self::HighContrast => &HIGH_CONTRAST,
+            Self::HighContrastLight => &HIGH_CONTRAST_LIGHT,
+        }
+    }
+
     /// The attributes of the scheme (every key of [`ATTRIBUTES`]).
     pub fn attributes(self) -> Vec<(&'static str, TextAttributes)> {
-        let dark = self.dark();
-        let pick = |d: &str, l: &str| if dark { d.to_string() } else { l.to_string() };
-        let fg = |d: &str, l: &str| TextAttributes {
-            foreground: Some(pick(d, l)),
-            ..TextAttributes::default()
-        };
-        vec![
+        let p = self.palette();
+        let high_contrast = matches!(self, Self::HighContrast | Self::HighContrastLight);
+        let mut out = vec![
             (
                 "TEXT",
                 TextAttributes {
-                    foreground: Some(pick("#d9d9df", "#26272b")),
-                    background: Some(pick("#141417", "#ffffff")),
+                    foreground: Some(p.text.0.into()),
+                    background: Some(p.text.1.into()),
                     ..TextAttributes::default()
                 },
             ),
-            ("CARET", fg("#ff7a1a", "#e8620c")),
-            ("CARET_ROW", TextAttributes::bg(&pick("#1e1e23", "#f1f2f6"))),
-            ("SELECTION", TextAttributes::bg(&pick("#3a2a1e", "#ffe3cc"))),
-            ("LINE_NUMBERS", fg("#5f5f6a", "#9a9da6")),
-            (
-                "SEARCH_RESULT",
-                TextAttributes::bg(&pick("#483c24", "#f8ecd2")),
-            ),
-            ("KEYWORD", fg("#ff9a57", "#b8460b")),
-            ("STRING", fg("#a5d17f", "#3c7d24")),
-            ("NUMBER", fg("#7cc5e8", "#1b6fa0")),
-            ("COMMENT", fg("#6b6b78", "#8c8f99").italic()),
-            ("VARIABLE", fg("#c9a6ff", "#7a3fc4")),
-            ("FUNCTION", fg("#ffd479", "#8a5a00")),
-            ("TYPE", fg("#6fd2c4", "#157a6e")),
-            ("ATTRIBUTE", fg("#d0c070", "#806a00")),
-            ("OPERATOR", fg("#c4c4cc", "#3a3c42")),
-            ("TAG", fg("#ff9a57", "#b8460b")),
-        ]
+            ("CARET", TextAttributes::fg(p.caret)),
+            ("CARET_ROW", TextAttributes::bg(p.caret_row)),
+            ("SELECTION", TextAttributes::bg(p.selection)),
+            ("LINE_NUMBERS", TextAttributes::fg(p.line_numbers)),
+            ("SEARCH_RESULT", TextAttributes::bg(p.search_result)),
+        ];
+        const SYNTAX: [&str; 10] = [
+            "KEYWORD",
+            "STRING",
+            "NUMBER",
+            "COMMENT",
+            "VARIABLE",
+            "FUNCTION",
+            "TYPE",
+            "ATTRIBUTE",
+            "OPERATOR",
+            "TAG",
+        ];
+        for (key, color) in SYNTAX.into_iter().zip(p.syntax) {
+            let mut a = TextAttributes::fg(color);
+            if key == "COMMENT" {
+                a = a.italic();
+            }
+            // High contrast does not rely on color alone: keywords are bold as well.
+            if high_contrast && key == "KEYWORD" {
+                a.bold = true;
+            }
+            out.push((key, a));
+        }
+        out
     }
 
     pub fn attribute(self, key: &str) -> TextAttributes {
@@ -645,6 +759,22 @@ mod tests {
             Some("#ff9a57")
         );
         assert!(Bundled::Anvil.attribute("COMMENT").italic);
+        assert!(Bundled::HighContrast.attribute("KEYWORD").bold);
+        assert!(!Bundled::Ember.attribute("KEYWORD").bold);
+    }
+
+    #[test]
+    fn maps_themes_and_icls_parents() {
+        assert_eq!(Bundled::from(true), Bundled::Ember);
+        assert_eq!(Bundled::from(false), Bundled::Anvil);
+        assert_eq!(Bundled::for_theme(true, true), Bundled::HighContrast);
+        assert_eq!(Bundled::for_theme(false, true), Bundled::HighContrastLight);
+        assert_eq!(Bundled::from_icls_parent("High contrast"), Bundled::HighContrast);
+        assert_eq!(Bundled::from_icls_parent("Darcula"), Bundled::Ember);
+        assert_eq!(Bundled::parse("High Contrast Light"), Some(Bundled::HighContrastLight));
+        for b in Bundled::ALL {
+            assert_eq!(Bundled::from_icls_parent(b.icls_parent()).dark(), b.dark(), "{b:?}");
+        }
     }
 
     #[test]

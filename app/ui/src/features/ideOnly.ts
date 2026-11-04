@@ -7,6 +7,7 @@
  */
 import "./git";
 import "./lsp";
+import "./accessibility/ide";
 import "./find";
 import "./localHistory";
 import "./hierarchy";

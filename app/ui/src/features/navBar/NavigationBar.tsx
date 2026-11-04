@@ -6,6 +6,7 @@
  * (↓) and opens files (Enter). Segments come from Rust (`forge_codeintel::navbar`), the
  * dropdown's matching from `forge-fuzzy`.
  */
+import { t } from "@/i18n";
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ChevronRight, Search } from "lucide-solid";
@@ -264,7 +265,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
       ref={root}
       tabIndex={-1}
       role="navigation"
-      aria-label="Navigation Bar"
+      aria-label={t("a11y.navbar")}
       data-group={props.group}
       onKeyDown={onKeyDown}
       onFocusIn={() => setFocused(true)}

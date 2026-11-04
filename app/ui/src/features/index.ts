@@ -15,6 +15,7 @@ import "./fileTypes";
 import "./codeStyle";
 import "./langservers";
 import "./navigation";
+import "./accessibility";
 import "./toolWindowLayout";
 import "./scopes";
 import "./ssr";

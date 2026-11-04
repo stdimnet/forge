@@ -20,9 +20,10 @@ use crate::shortcut::Platform;
 
 /// One of the two PHPStorm keymaps; every other keymap derives from one of them, which also
 /// decides the platform its shortcuts are written for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub enum KeymapId {
     #[serde(rename = "$default")]
+    #[default]
     Default,
     #[serde(rename = "macOS")]
     MacOs,
