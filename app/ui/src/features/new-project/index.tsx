@@ -9,6 +9,7 @@ import { openProject } from "@/state/workspace";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { NEW_PROJECT_DIALOG, openNewProject, prepareNewProject, type NewProjectProps, type NewProjectResult } from "./store";
 import "./newProject.css";
+import { t } from "@/i18n";
 
 export { openNewProject };
 
@@ -16,7 +17,7 @@ registerCommand({ id: "NewProject", title: "New Project…", category: "File", r
 
 registerDialog<NewProjectProps, NewProjectResult>({
   id: NEW_PROJECT_DIALOG,
-  title: "New Project",
+  title: t("newProject.title"),
   width: 880,
   height: 640,
   minWidth: 680,
@@ -26,7 +27,7 @@ registerDialog<NewProjectProps, NewProjectResult>({
   // The project was created: open it (in this window or a new one, as the user prefers).
   onClosed: (result) => {
     if (result?.root) {
-      openProject(result.root).catch((e) => showBalloon("Cannot open the new project", String(e)));
+      openProject(result.root).catch((e) => showBalloon(t("newProject.openFailed"), String(e)));
     }
   },
 });

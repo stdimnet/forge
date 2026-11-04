@@ -20,6 +20,7 @@ import { scopeRequest } from "./scope";
 import { ScopeSelect } from "@/features/scopes/ScopeSelect";
 import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, findRequest, openFindResultsInWindow, setFindQuery, updateFindOptions } from "./state";
+import { t } from "@/i18n";
 
 interface Row {
   path: string;
@@ -233,10 +234,10 @@ export function FindInFilesPopup() {
     const r = result();
     if (!r || !findQuery()) return "";
     if (r.error) return r.error;
-    if (!r.matchCount) return `No matches (${formatDuration(tookMs())})`;
+    if (!r.matchCount) return t("find.noMatches", { duration: formatDuration(tookMs()) });
     const plus = r.truncated ? "+" : "";
     const files = r.files.length;
-    return `${r.matchCount}${plus} match${r.matchCount === 1 ? "" : "es"} in ${files}${plus} file${files === 1 ? "" : "s"} in ${formatDuration(tookMs())}`;
+    return t("find.summary", { count: r.matchCount, plus, files, duration: formatDuration(tookMs()) });
   };
 
   const toggle = (key: "caseSensitive" | "wholeWords" | "regex", label: string, title: string) => (
@@ -254,9 +255,9 @@ export function FindInFilesPopup() {
 
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeFindInFiles()}>
-      <div class="popup find-popup" role="dialog" aria-label="Find in Files" onKeyDown={onKeyDown}>
+      <div class="popup find-popup" role="dialog" aria-label={t("find.title")} onKeyDown={onKeyDown}>
         <div class="find-header">
-          <span class="find-title">Find in Files</span>
+          <span class="find-title">{t("find.title")}</span>
           <span class="find-summary" classList={{ error: !!result()?.error }}>
             {summary()}
           </span>
@@ -266,7 +267,7 @@ export function FindInFilesPopup() {
               checked={findOptions().maskEnabled}
               onChange={(e) => updateFindOptions({ maskEnabled: e.currentTarget.checked })}
             />
-            <span>File mask:</span>
+            <span>{t("find.fileMask")}</span>
             <input
               class="find-mask-input"
               value={findOptions().fileMask}
@@ -283,18 +284,18 @@ export function FindInFilesPopup() {
             value={findQuery()}
             spellcheck={false}
             autocomplete="off"
-            aria-label="Text to find"
+            aria-label={t("find.textToFind")}
             onInput={(e) => setFindQuery(e.currentTarget.value)}
           />
           <Show when={loading()}>
             <span class="se-spinner" />
           </Show>
-          {toggle("caseSensitive", "Cc", "Match case")}
-          {toggle("wholeWords", "W", "Words")}
-          {toggle("regex", ".*", "Regex")}
+          {toggle("caseSensitive", "Cc", t("find.matchCase"))}
+          {toggle("wholeWords", "W", t("find.words"))}
+          {toggle("regex", ".*", t("find.regex"))}
           <button
             class="find-toggle"
-            title="Open in Find Window (every match, no limit)"
+            title={t("find.openAllInWindow")}
             disabled={!findQuery()}
             onMouseDown={(e) => e.preventDefault()}
             onClick={openAllInWindow}
@@ -310,7 +311,7 @@ export function FindInFilesPopup() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => updateFindOptions({ scope: "project" })}
           >
-            In Project
+            {t("find.scope.project")}
           </button>
           <button
             class="find-scope-tab"
@@ -319,7 +320,7 @@ export function FindInFilesPopup() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => updateFindOptions({ scope: "directory" })}
           >
-            Directory
+            {t("find.scope.directory")}
           </button>
           <button
             class="find-scope-tab"
@@ -328,7 +329,7 @@ export function FindInFilesPopup() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => updateFindOptions({ scope: "openFiles" })}
           >
-            Open Files
+            {t("find.scope.openFiles")}
           </button>
           <button
             class="find-scope-tab"
@@ -337,7 +338,7 @@ export function FindInFilesPopup() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => updateFindOptions({ scope: "changedFiles" })}
           >
-            Changed Files
+            {t("find.scope.changedFiles")}
           </button>
           <button
             class="find-scope-tab"
@@ -346,7 +347,7 @@ export function FindInFilesPopup() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => updateFindOptions({ scope: "scope" })}
           >
-            Scope
+            {t("find.scope.scope")}
           </button>
           <Show when={findOptions().scope === "scope"}>
             <ScopeSelect class="find-scope-select" value={findOptions().scopeName} onChange={(scopeName) => updateFindOptions({ scopeName })} />
@@ -355,9 +356,9 @@ export function FindInFilesPopup() {
             <input
               class="find-dir-input"
               value={findOptions().directory}
-              placeholder="Project root"
+              placeholder={t("find.projectRoot")}
               spellcheck={false}
-              aria-label="Directory"
+              aria-label={t("find.scope.directory")}
               onInput={(e) => updateFindOptions({ directory: e.currentTarget.value })}
             />
           </Show>
@@ -365,7 +366,7 @@ export function FindInFilesPopup() {
         <div class="find-results" ref={list}>
           <Show
             when={rows().length}
-            fallback={<div class="se-empty">{findQuery() ? (loading() ? "Searching…" : summary()) : "Type to search in files"}</div>}
+            fallback={<div class="se-empty">{findQuery() ? (loading() ? t("find.searching") : summary()) : t("find.typeToSearch")}</div>}
           >
             <For each={rows()}>
               {(row, i) => (
@@ -389,14 +390,14 @@ export function FindInFilesPopup() {
         </div>
         <Preview row={rows()[selected()]} />
         <div class="find-footer">
-          <span class="muted">Enter to open · Ctrl+Enter to open in the Find tool window</span>
+          <span class="muted">{t("find.footer")}</span>
           <button
             class="btn-secondary find-open-window"
             disabled={!result()?.matchCount}
             onMouseDown={(e) => e.preventDefault()}
             onClick={openInWindow}
           >
-            Open in Find Window
+            {t("find.openInWindow")}
           </button>
         </div>
       </div>

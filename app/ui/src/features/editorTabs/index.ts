@@ -38,6 +38,7 @@ import { fileManagerName } from "@/features/editorNavigation/selectIn";
 import { canDetach, openTabInNewWindow } from "@/features/windows/detachedWindows";
 import "./recentLocations";
 import "./editorTabs.css";
+import { t } from "@/i18n";
 
 registerKeymapActions([
   { id: "MoveTabRight", title: "Split and Move Right", group: "Main Menu/Window/Editor Tabs" },
@@ -128,12 +129,12 @@ registerMainMenuEntries(
 registerMainMenuEntries("Window/Editor Tabs", [menuAction("CloseAllToTheLeft"), menuAction("CloseAllToTheRight")], { after: "CloseAllEditors" });
 registerMainMenuEntries("Window/Editor Tabs", [menuAction("EditSourceInNewWindow")], { after: "UnsplitAll" });
 
-async function copy(text: string, what: string): Promise<void> {
+async function copy(text: string, what: "path" | "name"): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
-    showBalloon(`${what} copied`, text);
+    showBalloon(t(`editor.tabs.copied.${what}`), text);
   } catch {
-    showBalloon(`Cannot copy the ${what.toLowerCase()}`, "The clipboard is not available.");
+    showBalloon(t(`editor.tabs.copyFailed.${what}`), t("project.clipboardUnavailable"));
   }
 }
 
@@ -144,7 +145,7 @@ const absolute = (path: string) => {
 
 function revealInFileManager(path: string): void {
   windowApi.revealInFileManager(path).catch((e) => {
-    showBalloon(`Cannot show the file in ${fileManagerName()}`, String(e instanceof Error ? e.message : e));
+    showBalloon(t("editor.tabs.revealFailed", { fileManager: fileManagerName() }), String(e instanceof Error ? e.message : e));
   });
 }
 
@@ -153,43 +154,43 @@ export function tabMenuEntries(group: number, id: string): MenuEntry[] {
   const pinned = isTabPinned(id);
   const file = !isCustomTab(id) && !id.includes("://");
   const entries: MenuEntry[] = [
-    item("Close", () => closeTabIn(group, id), "CloseContent"),
-    item("Close Other Tabs", () => closeOtherTabs(group, id), "CloseAllEditorsButActive"),
-    item("Close All Tabs", () => closeAllTabsIn(group), "CloseAllEditors"),
-    item("Close Unmodified Tabs", () => closeUnmodifiedTabs(group), "CloseAllUnmodifiedEditors"),
-    item("Close Tabs to the Left", () => closeTabsToSide(group, id, "left"), "CloseAllToTheLeft"),
-    item("Close Tabs to the Right", () => closeTabsToSide(group, id, "right"), "CloseAllToTheRight"),
+    item(t("editor.tabs.close"), () => closeTabIn(group, id), "CloseContent"),
+    item(t("editor.tabs.closeOthers"), () => closeOtherTabs(group, id), "CloseAllEditorsButActive"),
+    item(t("editor.tabs.closeAll"), () => closeAllTabsIn(group), "CloseAllEditors"),
+    item(t("editor.tabs.closeUnmodified"), () => closeUnmodifiedTabs(group), "CloseAllUnmodifiedEditors"),
+    item(t("editor.tabs.closeLeft"), () => closeTabsToSide(group, id, "left"), "CloseAllToTheLeft"),
+    item(t("editor.tabs.closeRight"), () => closeTabsToSide(group, id, "right"), "CloseAllToTheRight"),
     separator,
-    item(pinned ? "Unpin Tab" : "Pin Tab", () => togglePinTab(id), "PinActiveEditorTab"),
+    item(pinned ? t("editor.tabs.unpin") : t("editor.tabs.pin"), () => togglePinTab(id), "PinActiveEditorTab"),
     separator,
-    item("Split Right", () => (splitEditor("vertical", group, id), focusGroupEditor(activeGroupId())), "SplitVertically"),
-    item("Split Down", () => (splitEditor("horizontal", group, id), focusGroupEditor(activeGroupId())), "SplitHorizontally"),
-    item("Split and Move Right", () => splitAndMove("vertical", group, id), "MoveTabRight"),
-    item("Split and Move Down", () => splitAndMove("horizontal", group, id), "MoveTabDown"),
+    item(t("editor.tabs.splitRight"), () => (splitEditor("vertical", group, id), focusGroupEditor(activeGroupId())), "SplitVertically"),
+    item(t("editor.tabs.splitDown"), () => (splitEditor("horizontal", group, id), focusGroupEditor(activeGroupId())), "SplitHorizontally"),
+    item(t("editor.tabs.splitMoveRight"), () => splitAndMove("vertical", group, id), "MoveTabRight"),
+    item(t("editor.tabs.splitMoveDown"), () => splitAndMove("horizontal", group, id), "MoveTabDown"),
   ];
   if (isSplit()) {
     entries.push(
-      item("Move to Opposite Group", () => (moveTabToOppositeGroup(group, id), focusGroupEditor(activeGroupId())), "MoveEditorToOppositeTabGroup"),
-      item("Change Splitter Orientation", changeSplitOrientation, "ChangeSplitOrientation"),
-      item("Unsplit", () => unsplitEditor(group), "Unsplit"),
-      item("Unsplit All", () => unsplitEditor(), "UnsplitAll"),
+      item(t("editor.tabs.moveOpposite"), () => (moveTabToOppositeGroup(group, id), focusGroupEditor(activeGroupId())), "MoveEditorToOppositeTabGroup"),
+      item(t("editor.tabs.changeOrientation"), changeSplitOrientation, "ChangeSplitOrientation"),
+      item(t("editor.tabs.unsplit"), () => unsplitEditor(group), "Unsplit"),
+      item(t("editor.tabs.unsplitAll"), () => unsplitEditor(), "UnsplitAll"),
     );
   }
   if (file) {
     const name = id.split("/").pop() ?? id;
     entries.push(
       separator,
-      submenu("Copy Path/Reference…", [
-        item("Absolute Path", () => void copy(absolute(id), "Path"), "CopyPaths"),
-        item("Path From Project Root", () => void copy(id, "Path")),
-        item("File Name", () => void copy(name, "File name")),
+      submenu(t("editor.tabs.copyPathReference"), [
+        item(t("editor.tabs.absolutePath"), () => void copy(absolute(id), "path"), "CopyPaths"),
+        item(t("editor.tabs.pathFromRoot"), () => void copy(id, "path")),
+        item(t("editor.tabs.fileName"), () => void copy(name, "name")),
       ]),
-      item("Select in Project View", () => selectInProject(id), "SelectInProjectView"),
-      item(`Show in ${fileManagerName()}`, () => revealInFileManager(id)),
+      item(t("editor.tabs.selectInProject"), () => selectInProject(id), "SelectInProjectView"),
+      item(t("editor.tabs.showIn", { fileManager: fileManagerName() }), () => revealInFileManager(id)),
     );
   }
   if (canDetach(id)) {
-    entries.push(separator, item("Open in New Window", () => openTabInNewWindow(group, id), "EditSourceInNewWindow"));
+    entries.push(separator, item(t("editor.tabs.openInNewWindow"), () => openTabInNewWindow(group, id), "EditSourceInNewWindow"));
   }
   return entries;
 }
