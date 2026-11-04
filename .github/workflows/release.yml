@@ -19,6 +19,7 @@ name: Release
 #   secrets.APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID or APPLE_API_KEY/APPLE_API_ISSUER/APPLE_API_KEY_P8
 #                                                 macOS notarisation
 #   secrets.RELEASE_GPG_PRIVATE_KEY(_PASSPHRASE)  detached signature SHA256SUMS.asc
+#   secrets.PHP_LSP_TOKEN                         read access to the private stdimnet/php-lsp
 on:
   push:
     tags: ["v*"]
@@ -73,6 +74,24 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+      - name: Access to php-lsp
+        # php-lsp (packs/phpforge/builtin-lsp) is a private git dependency. The token is passed
+        # to git through job-scoped GIT_CONFIG_* variables, so it never lands in a git config
+        # file on the self-hosted runner; cargo fetches git dependencies with the git CLI.
+        shell: bash
+        env:
+          PHP_LSP_TOKEN: ${{ secrets.PHP_LSP_TOKEN }}
+        run: |
+          if [ -z "$PHP_LSP_TOKEN" ]; then
+            echo "::warning::No PHP_LSP_TOKEN secret: cargo can only fetch the private php-lsp repository with credentials the runner already has."
+            exit 0
+          fi
+          {
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=url.https://x-access-token:${PHP_LSP_TOKEN}@github.com/stdimnet/php-lsp.insteadOf"
+            echo "GIT_CONFIG_VALUE_0=https://github.com/stdimnet/php-lsp"
+          } >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-musl
@@ -110,6 +129,24 @@ jobs:
     runs-on: ${{ fromJSON(matrix.os) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Access to php-lsp
+        # php-lsp (packs/phpforge/builtin-lsp) is a private git dependency. The token is passed
+        # to git through job-scoped GIT_CONFIG_* variables, so it never lands in a git config
+        # file on the self-hosted runner; cargo fetches git dependencies with the git CLI.
+        shell: bash
+        env:
+          PHP_LSP_TOKEN: ${{ secrets.PHP_LSP_TOKEN }}
+        run: |
+          if [ -z "$PHP_LSP_TOKEN" ]; then
+            echo "::warning::No PHP_LSP_TOKEN secret: cargo can only fetch the private php-lsp repository with credentials the runner already has."
+            exit 0
+          fi
+          {
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=url.https://x-access-token:${PHP_LSP_TOKEN}@github.com/stdimnet/php-lsp.insteadOf"
+            echo "GIT_CONFIG_VALUE_0=https://github.com/stdimnet/php-lsp"
+          } >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
