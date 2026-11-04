@@ -3176,6 +3176,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-hostspawn"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+]
+
+[[package]]
 name = "forge-i18n"
 version = "0.1.0"
 dependencies = [
@@ -3403,6 +3410,7 @@ name = "forge-process"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-hostspawn",
  "forge-output",
  "forge-runtargets",
  "forge-runtools",

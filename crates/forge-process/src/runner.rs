@@ -102,12 +102,7 @@ impl RunningProcess {
     /// after all output has been delivered.
     pub fn start(cmd: &CommandLine, sink: RunSink) -> Result<Self> {
         let mut command = Command::new(&cmd.program);
-        command
-            .args(&cmd.args)
-            .envs(&cmd.env)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+        command.args(&cmd.args).envs(&cmd.env);
         if !cmd.cwd.as_os_str().is_empty() {
             if !cmd.cwd.is_dir() {
                 return Err(ForgeError::Other(format!(
@@ -117,6 +112,14 @@ impl RunningProcess {
             }
             command.current_dir(&cmd.cwd);
         }
+        // In Flatpak the tool runs on the host (`flatpak-spawn --host`); Stop signals
+        // `flatpak-spawn`, which forwards them, and `--watch-bus` ends the host process
+        // if `flatpak-spawn` is killed.
+        let mut command = forge_hostspawn::host_command(command);
+        command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;

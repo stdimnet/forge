@@ -1,0 +1,21 @@
+#!/bin/sh
+# A fake `flatpak-spawn` for tests: records its arguments (separated by \037, each call
+# ended by \036) in $FAKE_FLATPAK_LOG, then runs the command the way
+# `flatpak-spawn --host` would run it on the host.
+if [ -n "$FAKE_FLATPAK_LOG" ]; then
+  for a in "$@"; do printf '%s\037' "$a"; done >>"$FAKE_FLATPAK_LOG"
+  printf '\036' >>"$FAKE_FLATPAK_LOG"
+fi
+dir=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --host | --watch-bus) shift ;;
+    --directory=*) dir="${1#--directory=}"; shift ;;
+    --env=*) export "${1#--env=}"; shift ;;
+    --unset-env=*) unset "${1#--unset-env=}"; shift ;;
+    -*) echo "fake flatpak-spawn: unknown option $1" >&2; exit 125 ;;
+    *) break ;;
+  esac
+done
+if [ -n "$dir" ]; then cd "$dir" || exit 125; fi
+exec "$@"

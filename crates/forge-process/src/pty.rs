@@ -75,10 +75,10 @@ impl PtySession {
             .shell
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(default_shell);
-        let mut cmd = CommandBuilder::new(&shell);
+        let mut spec = forge_hostspawn::Spec::new(&shell);
         let mut extra_env = Vec::new();
         match opts.args {
-            Some(args) => cmd.args(args),
+            Some(args) => spec.args.extend(args.into_iter().map(Into::into)),
             None => {
                 let defaults = shell_args(&shell);
                 let integration = opts.integration_dir.as_deref().and_then(|dir| {
@@ -89,7 +89,7 @@ impl PtySession {
                             .rev()
                             .find(|(k, _)| k == key)
                             .map(|(_, v)| std::ffi::OsString::from(v))
-                            .or_else(|| std::env::var_os(key))
+                            .or_else(|| forge_hostspawn::env_var(key).map(Into::into))
                     };
                     let user_zdotdir = var("ZDOTDIR").or_else(|| var("HOME")).map(PathBuf::from);
                     crate::integration::prepare(&shell, &defaults, dir, user_zdotdir)
@@ -99,29 +99,49 @@ impl PtySession {
                 });
                 match integration {
                     Some(i) => {
-                        cmd.args(i.args);
+                        spec.args.extend(i.args.into_iter().map(Into::into));
                         extra_env = i.env;
                     }
-                    None => cmd.args(defaults),
+                    None => spec.args.extend(defaults.into_iter().map(Into::into)),
                 }
             }
         }
-        cmd.cwd(&opts.cwd);
+        spec.cwd = Some(opts.cwd.clone());
         for var in FOREIGN_TERMINAL_VARS {
-            cmd.env_remove(var);
+            spec.env.push(((*var).into(), None));
         }
         let version = match opts.version.trim() {
             "" => env!("CARGO_PKG_VERSION"),
             v => v,
         };
         for (k, v) in terminal_env(version) {
-            cmd.env(k, v);
+            spec.env.push((k.into(), Some(v.into())));
         }
-        if let Some(lang) = utf8_locale_fallback(|k| std::env::var(k).ok()) {
-            cmd.env("LANG", lang);
+        if let Some(lang) = utf8_locale_fallback(forge_hostspawn::env_var) {
+            spec.env.push(("LANG".into(), Some(lang.into())));
         }
         for (k, v) in extra_env.iter().chain(&opts.env) {
-            cmd.env(k, v);
+            spec.env.push((k.into(), Some(v.into())));
+        }
+        // In Flatpak the shell runs on the host, wrapped so that it gets the terminal as its
+        // controlling terminal there (the sandbox side must not claim it).
+        let host = forge_hostspawn::active();
+        if host {
+            spec = forge_hostspawn::pty_spec(&spec);
+        }
+        let mut cmd = CommandBuilder::new(&spec.program);
+        cmd.args(&spec.args);
+        if let Some(dir) = &spec.cwd {
+            cmd.cwd(dir);
+        }
+        for (k, v) in &spec.env {
+            match v {
+                Some(v) => cmd.env(k, v),
+                None => cmd.env_remove(k),
+            }
+        }
+        if host {
+            cmd.set_controlling_tty(false);
         }
         let mut child = pair
             .slave

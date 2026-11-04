@@ -43,6 +43,7 @@ forge-diff = { path = "crates/forge-diff" }
 forge-project = { path = "crates/forge-project" }
 forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }
+forge-hostspawn = { path = "crates/forge-hostspawn" }
 forge-output = { path = "crates/forge-output" }
 forge-runtools = { path = "crates/forge-runtools" }
 forge-testing = { path = "crates/forge-testing" }
