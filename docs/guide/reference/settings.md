@@ -44,10 +44,12 @@ Page id `appearance`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light` | `dark` | user |  | Theme |
+| `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light`, `high-contrast`, `high-contrast-light` | `dark` | user |  | Theme |
 | `appearance.zoom` | enum: `50`, `67`, `75`, `80`, `90`, `100`, `110`, `125`, `150`, `175`, `200`, `250`, `300` | `100` | user |  | Zoom — Scales the whole IDE: menus, tool windows, dialogs and the editor (View \| Appearance \| Zoom IDE). |
 | `appearance.uiFont.family` | enum: `Inter`, `system-ui`, `Segoe UI`, `Roboto` | `Inter` | user | Font | Font — Font used for menus, tool windows and dialogs. |
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
+| `appearance.screenReader` | bool | `false` | user | Accessibility | Support screen readers — Announces what happens through the screen reader: the caret position and problems at the caret on request, opened files, invoked actions, notifications and the result of dialogs. Tree and list rows, tool windows, menus and dialogs always carry their accessible names. |
+| `appearance.contrastScrollbars` | bool | `false` | user | Accessibility | Use contrast scrollbars — Draws scrollbars with a strong color and a wider thumb so they are easy to see. |
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
 | `appearance.compactMode` | bool | `false` | user | UI Options | Compact mode — Reduces paddings and the height of toolbars and tool window headers. |
 | `appearance.smoothScrolling` | bool | `true` | user | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
@@ -56,6 +58,11 @@ Page id `appearance`.
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
 | `appearance.presentationFontSize` | int (8–96) | `24` | user | Presentation Mode | Font size — Editor font size in Presentation Mode (View \| Appearance \| Enter Presentation Mode). |
+| `appearance.presentationAssistant.enabled` | bool | `false` | user | Presentation Assistant | Show Presentation Assistant — Shows the name and shortcut of every action you invoke in a popup, for demos, screencasts and pair programming. |
+| `appearance.presentationAssistant.size` | enum: `small`, `medium`, `large` | `medium` | user | Presentation Assistant | Popup size |
+| `appearance.presentationAssistant.position` | enum: `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, `bottom-right` | `bottom-center` | user | Presentation Assistant | Position |
+| `appearance.presentationAssistant.duration` | int (500–30000) | `4000` | user | Presentation Assistant | Duration (ms) — How long the popup stays after the last action. |
+| `appearance.presentationAssistant.alternateKeymap` | bool | `true` | user | Presentation Assistant | Show alternate keymap — Also shows the shortcut of the other PHPStorm keymap: macOS next to Windows/Linux, or the other way round. |
 | `workbench.layouts` | objects (unique `name`) | `[]` | user | — | Layouts — Tool window layouts saved with Window \| Layouts \| Save Current Layout as New…; each entry has a name and the layout as JSON. |
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |

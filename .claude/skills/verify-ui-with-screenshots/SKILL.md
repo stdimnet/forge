@@ -49,7 +49,11 @@ headless.
 4. **Look at every image** (open the PNG) and compare it with PHPStorm's New UI: layout,
    spacing, wording and states should match, and colors must come from the Forge theme. Check
    the light theme too (`document.documentElement.dataset.theme = "light"`).
-5. Commit the PNGs together with the change.
+5. Check accessibility while the dev server runs: `pnpm a11y:audit` (axe-core, no serious or
+   critical violations; `--themes=dark,high-contrast` for more themes) and, for keyboard paths,
+   `pnpm a11y:keyboard`. Look at the High Contrast themes too (`appearance.theme` =
+   `high-contrast` / `high-contrast-light`) and at the keyboard focus ring (Tab to the control).
+6. Commit the PNGs together with the change.
 
 ## Troubleshooting
 

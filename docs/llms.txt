@@ -89,9 +89,10 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [MCP Server](guide/user/mcp-server.md): Forge as a Model Context Protocol server for external agents (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex): client configurations, the `forge --mcp-stdio` proxy, tools for files, search, navigation, problems, undoable edits, runs, Git, terminal and read-only SQL, approval cards, Safe Mode, ai.enabled and .aiignore
 - [Language servers](guide/user/language-servers.md): the built-in PHP language server php-lsp, installing and configuring external language servers
 - [IDE language](guide/user/languages.md): show Forge in English or German (Deutsch): Settings | Appearance & Behavior | System Settings | Language (`ide.language`), the restart, what is translated, Find Action matching German and English action names
-- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Settings for New Projects, Restore Defaults, Export / Import Settings (incl. color schemes, code styles and the installed plugin list), Settings Sync through a folder or git repository (last writer wins per group, backups), Restore Default Settings, Ember and Anvil themes
+- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Settings for New Projects, Restore Defaults, Export / Import Settings (incl. color schemes, code styles and the installed plugin list), Settings Sync through a folder or git repository (last writer wins per group, backups), Restore Default Settings, Ember, Anvil, Solarized and High Contrast themes
 - [Plugins and packs](guide/user/plugins-and-packs.md): packs, plugin activation, Settings | Plugins, third-party plugins (Install Plugin from Disk, permission prompt, uninstall, Safe Mode) and the Marketplace tab (configurable index URL, placeholder default, SHA-256 and signature checks, updates)
-- [Color schemes](guide/user/color-schemes.md): Settings | Editor | Color Scheme, Ember and Anvil, user schemes, per-attribute editing with live preview, IntelliJ .icls import and export
+- [Color schemes](guide/user/color-schemes.md): Settings | Editor | Color Scheme, Ember, Anvil and High Contrast, user schemes, per-attribute editing with live preview, IntelliJ .icls import and export
+- [Accessibility](guide/user/accessibility.md): screen reader support (ARIA roles and names, live announcements, Announce Caret Position), High Contrast themes (WCAG AAA), keyboard-only navigation (Alt+number, Focus Editor, Focus Next/Previous Area, Switcher, dialogs), contrast scrollbars, Presentation Assistant
 - [Invalidate Caches and Repair IDE](guide/user/repair-ide.md): Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and which caches it clears
 
 ## Reference
@@ -118,6 +119,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Unity editor bridge protocol](guide/developer/unity-bridge-protocol.md): discovery through Library/ForgeBridge.json, the token handshake, commands and events between Forge and its Unity package
 - [Plugins and packs](guide/developer/plugins-and-packs.md), [Settings](guide/developer/settings.md), [Keymap actions](guide/developer/keymap-actions.md), [Adding a language](guide/developer/adding-a-language.md)
 - [Localization](guide/developer/localization.md): translatable UI text with `t()` / `<T>` from `@/i18n`, ICU MessageFormat catalogs in `crates/forge-i18n/locales`, key naming, Rust-side text, manifest translations, `pnpm i18n:check`, adding a language
+- [Writing accessible UI](guide/developer/accessibility.md): rules for ARIA roles, trees, dialogs and focus, keyboard operation, focus rings, theme contrast test, axe-core audit and the keyboard-only flow
 - [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md), [Search benchmark](guide/developer/search-benchmark.md)
 
 ## Optional

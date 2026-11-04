@@ -159,4 +159,4 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Plugins: Marketplace, public plugin SDK with docs and templates, settings export/import and sync
 - [x] Releases: Signed Windows (Authenticode) and macOS (notarised) builds, Flatpak and AUR packages, stable and beta channels
 - [x] Localization: Translatable UI, German as the first translation
-- [ ] Accessibility: Screen reader support, high-contrast themes, keyboard-only navigation everywhere, Presentation Assistant
+- [x] Accessibility: Screen reader support, high-contrast themes, keyboard-only navigation everywhere, Presentation Assistant

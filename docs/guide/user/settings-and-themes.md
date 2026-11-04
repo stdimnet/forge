@@ -1,6 +1,6 @@
 ---
 title: Settings and themes
-description: The Settings dialog, user and project settings, Settings for New Projects, Restore Defaults, Export / Import Settings, settings files, themes (Forge Ember, Forge Anvil, Solarized), fonts and the window title bar styles.
+description: The Settings dialog, user and project settings, Settings for New Projects, Restore Defaults, Export / Import Settings, settings files, themes (Forge Ember, Forge Anvil, Solarized, High Contrast), fonts and the window title bar styles.
 order: 230
 tags: [settings, themes, appearance, window controls, fonts, settings for new projects, export settings, import settings, restore defaults]
 ---
@@ -157,12 +157,15 @@ Settings | Appearance & Behavior | Appearance | **Theme** (`appearance.theme`):
 | Forge Anvil (Light) | `light` |
 | Solarized Dark | `solarized-dark` |
 | Solarized Light | `solarized-light` |
+| High Contrast | `high-contrast` |
+| High Contrast Light | `high-contrast-light` |
 
 The sun/moon button in the main toolbar, **Theme: Toggle Dark/Light** and **Quick Switch
 Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 
 The editor's colors follow the theme unless you choose a color scheme in Settings | Editor |
-Color Scheme; see [Color schemes](color-schemes.md).
+Color Scheme; see [Color schemes](color-schemes.md). The High Contrast themes meet WCAG AAA
+contrast and draw borders and strong focus rings; see [Accessibility](accessibility.md).
 
 | | |
 | --- | --- |

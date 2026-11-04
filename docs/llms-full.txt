@@ -874,9 +874,10 @@ not finished, the page says so.
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, the built-in php-lsp |
 | [Keymap](docs/guide/user/keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](docs/guide/user/shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](docs/guide/user/shortcuts/reference-card.md) |
-| [Color schemes](docs/guide/user/color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
+| [Color schemes](docs/guide/user/color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil, High Contrast and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
 | [IDE language](docs/guide/user/languages.md) | English or German (Deutsch): the Language settings page, what is translated, Find Action in both languages |
 | [Settings and themes](docs/guide/user/settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
+| [Accessibility](docs/guide/user/accessibility.md) | screen readers, the High Contrast themes, keyboard-only navigation and focus areas, contrast scrollbars, the Presentation Assistant |
 | [Invalidate Caches and Repair IDE](docs/guide/user/repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
 | [Plugins and packs](docs/guide/user/plugins-and-packs.md) | packs, activation, Settings \| Plugins |
 
@@ -8943,9 +8944,11 @@ Settings | Editor | **Color Scheme** | **Scheme** (`editor.colorScheme.active`):
 
 | Scheme | Meaning |
 | --- | --- |
-| Follow the theme | the default: Ember with dark themes, Anvil with light ones, and the theme's own token colors (the Solarized themes bring their own) |
+| Follow the theme | the default: Ember with dark themes, Anvil with light ones, High Contrast (Light) with the High Contrast themes, and the theme's own token colors (the Solarized themes bring their own) |
 | Ember | Forge's dark scheme |
 | Anvil | Forge's light scheme |
+| High Contrast | white text on black, every token at least 7:1 (WCAG AAA), keywords bold |
+| High Contrast Light | black text on white, every token at least 7:1, keywords bold |
 | *your schemes* | listed under **Custom** |
 
 A scheme you select explicitly stays the same when you switch the UI theme, so you can, for
@@ -8953,10 +8956,10 @@ example, use the dark Ember editor with the light Anvil UI.
 
 ## Your own schemes
 
-Ember and Anvil are bundled and cannot be changed. The **gear** next to the selector has:
+The four bundled schemes cannot be changed. The **gear** next to the selector has:
 
 - **Duplicate…**: copy the selected scheme into a new one and select it. Change it from there.
-- **Rename…**, **Restore Defaults** (back to the colors of its parent, Ember or Anvil) and
+- **Rename…**, **Restore Defaults** (back to the colors of its parent bundled scheme) and
   **Delete** for your own schemes.
 - **Import Scheme…** and **Export…** (see below).
 
@@ -8994,8 +8997,9 @@ select its attribute.
   IntelliJ's attributes are mapped onto Forge's (for example `DEFAULT_KEYWORD` or
   `PHP_KEYWORD` → Keyword, `PHP_VAR` / `DEFAULT_LOCAL_VARIABLE` → Variable,
   `CARET_ROW_COLOR` → Caret row); references to other attributes (`baseAttributes`) are
-  followed. What the file does not set comes from Ember when its parent is Darcula (or another
-  dark scheme) and from Anvil otherwise.
+  followed. What the file does not set comes from High Contrast when its parent is IntelliJ's
+  "High contrast", from Ember when it is Darcula (or another dark scheme) and from Anvil
+  otherwise.
 - **Export…** writes the selected scheme as an `.icls` file with every attribute, so it looks
   the same when you import it into a JetBrains IDE.
 
@@ -9237,12 +9241,15 @@ Settings | Appearance & Behavior | Appearance | **Theme** (`appearance.theme`):
 | Forge Anvil (Light) | `light` |
 | Solarized Dark | `solarized-dark` |
 | Solarized Light | `solarized-light` |
+| High Contrast | `high-contrast` |
+| High Contrast Light | `high-contrast-light` |
 
 The sun/moon button in the main toolbar, **Theme: Toggle Dark/Light** and **Quick Switch
 Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 
 The editor's colors follow the theme unless you choose a color scheme in Settings | Editor |
-Color Scheme; see [Color schemes](docs/guide/user/color-schemes.md).
+Color Scheme; see [Color schemes](docs/guide/user/color-schemes.md). The High Contrast themes meet WCAG AAA
+contrast and draw borders and strong focus rings; see [Accessibility](docs/guide/user/accessibility.md).
 
 | | |
 | --- | --- |
@@ -9309,6 +9316,129 @@ Settings | Appearance & Behavior | System Settings:
 
 Every option in the Settings dialog applies; the [settings reference](docs/guide/reference/settings.md)
 lists them all.
+
+
+---
+
+Source: docs/guide/user/accessibility.md
+
+# Accessibility
+
+Forge follows PHPStorm: every part of the window works with the keyboard alone, the workbench
+carries the names and states screen readers need, two High Contrast themes meet WCAG AAA, and
+the Presentation Assistant shows which action you just invoked. The options are in
+Settings | Appearance & Behavior | Appearance, sections **Accessibility** and
+**Presentation Assistant**.
+
+## Screen readers
+
+Forge's window is a web view, so it works with the screen reader of your system: NVDA or JAWS
+on Windows, VoiceOver on macOS and Orca on Linux.
+
+What a screen reader finds without any setting:
+
+| Part | Role and what is read |
+| --- | --- |
+| Main toolbar, tool window bars, editor, status bar | landmarks with names ("Left tool window bar", "Status bar") |
+| Tool window buttons | name, shortcut (`Alt+1`) and whether the window is shown (pressed) |
+| Tool windows | regions named after the window ("Project", "Commit") |
+| Project, Structure, Commit and Settings trees | trees with level, expanded and selected state; file names include their Git status ("User.php, modified") |
+| Editor tabs | tab list; the active tab is selected, a changed file says "modified" |
+| Editor | a text box named "Editor for *file*"; CodeMirror reads the line at the caret |
+| Search Everywhere, Find Action, Go to File, Switcher, Choose Declaration | a search field with a list of results; the selected result is read as you move |
+| Main menu and context menus | menus with items, submenus (expanded or not), check marks and disabled items |
+| Dialogs | dialogs named after their title; focus stays inside until they close and then returns where it was |
+| Settings | every field has its label and its description |
+| Balloons and notifications | read as they appear; errors interrupt |
+
+**Support screen readers** (`appearance.screenReader`) turns on extra announcements:
+
+- the name of the active file when you switch tabs;
+- the problems on a line when the caret moves onto it.
+
+**Announce Caret Position** (`Alt+Shift+L`, View menu and Find Action) reads the line and
+column of the caret and the problems there ("Line 12, column 5. Error: Undefined variable
+$user."), with or without the setting.
+
+## High Contrast themes
+
+Settings | Appearance & Behavior | Appearance | **Theme**: **High Contrast** (`high-contrast`,
+white on black) and **High Contrast Light** (`high-contrast-light`, black on white).
+
+- All text reaches at least 7:1 contrast (WCAG AAA), secondary text and hints included.
+- Panels, popups, dialogs, inputs and buttons have visible borders; the focus ring is 3 pixels
+  wide.
+- States do not rely on color alone: selected rows are outlined, the active tab is underlined
+  and bold, pressed tool window buttons are framed, modified / added / unversioned files are
+  underlined dotted / solid / dashed, error and warning balloons have a colored edge and an icon.
+- The editor follows with the **High Contrast** and **High Contrast Light** color schemes
+  (keywords bold); see [Color schemes](docs/guide/user/color-schemes.md).
+
+The sun/moon button switches between the two High Contrast themes.
+
+| | |
+| --- | --- |
+| ![High Contrast](docs/screenshots/a11y-high-contrast-dark.png) | ![High Contrast Light](docs/screenshots/a11y-high-contrast-light.png) |
+
+**Use contrast scrollbars** (`appearance.contrastScrollbars`) draws wider scrollbars in a strong
+color, in every theme.
+
+The Forge Ember, Anvil and Solarized themes meet WCAG AA (4.5:1) for text; Solarized keeps its
+fixed palette for syntax colors.
+
+## Keyboard-only use
+
+Everything can be reached without a mouse. The keys are PHPStorm's and can be changed in
+Settings | Keymap.
+
+| Key | Action |
+| --- | --- |
+| `Alt+1` … `Alt+9` (macOS `Cmd+1` …) | show a tool window and move focus into it (its tree or list); again hides it |
+| `Escape` (in a tool window) | **Focus Editor**: back to the editor, the window stays open |
+| `Shift+Escape` | **Hide Active Tool Window** |
+| `F12` | **Jump to Last Tool Window** |
+| `Ctrl+Tab` | **Switcher**: tool windows and recent files; keep `Ctrl` down, press `Tab` to move, release to open |
+| `Ctrl+Shift+F6` / `Ctrl+Alt+Shift+F6` | **Focus Next Area** / **Focus Previous Area**: main toolbar, navigation bar, tool window bars, tool windows, editor, status bar; each area remembers where focus was |
+| `Alt+Home` (macOS `Cmd+Up`) | **Jump to Navigation Bar** |
+| `Alt+\` | main menu |
+| `ContextMenu` (the menu key) | context menu of the focused item |
+| `Tab` / `Shift+Tab` | next / previous control; in a dialog, focus wraps around inside it |
+
+In trees (Project, Structure, Commit, Settings) the arrow keys move and expand, `Home` / `End`
+jump, `Enter` (or `F4`) opens; in the Commit tree `Space` includes or excludes a file. In the
+editor tab bar the left and right arrows switch tabs and `Enter` returns to the editor; tabs
+close with `Ctrl+F4`.
+
+Keyboard focus is always visible: a ring in the accent color around the focused control, or
+around the selected row of a focused tree or list. Clicking with the mouse does not show it.
+
+![Focus ring on a tool window button](docs/screenshots/a11y-focus-rings.png)
+
+## Presentation Assistant
+
+The Presentation Assistant shows the name and shortcut of every action you invoke (from the
+keyboard, a menu, Find Action or a toolbar button), for demos, screencasts and pair
+programming. Turn it on in Settings | Appearance & Behavior | Appearance | Presentation
+Assistant, or with View | Appearance | **Presentation Assistant**.
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Show Presentation Assistant | `appearance.presentationAssistant.enabled` | off |
+| Popup size: Small, Medium, Large | `appearance.presentationAssistant.size` | Medium |
+| Position: top or bottom; left, center or right | `appearance.presentationAssistant.position` | bottom center |
+| Duration (ms) | `appearance.presentationAssistant.duration` | 4000 |
+| Show alternate keymap | `appearance.presentationAssistant.alternateKeymap` | on |
+
+With **Show alternate keymap**, the popup also shows the shortcut of the other PHPStorm keymap:
+the macOS shortcut while you use the Windows/Linux keymap, and the other way round.
+
+![Presentation Assistant](docs/screenshots/a11y-presentation-assistant.png)
+
+## Related
+
+- [Keymap](docs/guide/user/keymap.md): change any of the shortcuts above.
+- [Settings and themes](docs/guide/user/settings-and-themes.md): all themes and appearance options.
+- For contributors: [Writing accessible UI](docs/guide/developer/accessibility.md).
 
 
 ---
@@ -23279,10 +23409,12 @@ Page id `appearance`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light` | `dark` | user |  | Theme |
+| `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light`, `high-contrast`, `high-contrast-light` | `dark` | user |  | Theme |
 | `appearance.zoom` | enum: `50`, `67`, `75`, `80`, `90`, `100`, `110`, `125`, `150`, `175`, `200`, `250`, `300` | `100` | user |  | Zoom — Scales the whole IDE: menus, tool windows, dialogs and the editor (View \| Appearance \| Zoom IDE). |
 | `appearance.uiFont.family` | enum: `Inter`, `system-ui`, `Segoe UI`, `Roboto` | `Inter` | user | Font | Font — Font used for menus, tool windows and dialogs. |
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
+| `appearance.screenReader` | bool | `false` | user | Accessibility | Support screen readers — Announces what happens through the screen reader: the caret position and problems at the caret on request, opened files, invoked actions, notifications and the result of dialogs. Tree and list rows, tool windows, menus and dialogs always carry their accessible names. |
+| `appearance.contrastScrollbars` | bool | `false` | user | Accessibility | Use contrast scrollbars — Draws scrollbars with a strong color and a wider thumb so they are easy to see. |
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
 | `appearance.compactMode` | bool | `false` | user | UI Options | Compact mode — Reduces paddings and the height of toolbars and tool window headers. |
 | `appearance.smoothScrolling` | bool | `true` | user | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
@@ -23291,6 +23423,11 @@ Page id `appearance`.
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
 | `appearance.presentationFontSize` | int (8–96) | `24` | user | Presentation Mode | Font size — Editor font size in Presentation Mode (View \| Appearance \| Enter Presentation Mode). |
+| `appearance.presentationAssistant.enabled` | bool | `false` | user | Presentation Assistant | Show Presentation Assistant — Shows the name and shortcut of every action you invoke in a popup, for demos, screencasts and pair programming. |
+| `appearance.presentationAssistant.size` | enum: `small`, `medium`, `large` | `medium` | user | Presentation Assistant | Popup size |
+| `appearance.presentationAssistant.position` | enum: `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, `bottom-right` | `bottom-center` | user | Presentation Assistant | Position |
+| `appearance.presentationAssistant.duration` | int (500–30000) | `4000` | user | Presentation Assistant | Duration (ms) — How long the popup stays after the last action. |
+| `appearance.presentationAssistant.alternateKeymap` | bool | `true` | user | Presentation Assistant | Show alternate keymap — Also shows the shortcut of the other PHPStorm keymap: macOS next to Windows/Linux, or the other way round. |
 | `workbench.layouts` | objects (unique `name`) | `[]` | user | — | Layouts — Tool window layouts saved with Window \| Layouts \| Save Current Layout as New…; each entry has a name and the layout as JSON. |
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
@@ -25569,6 +25706,7 @@ skills in [`.claude/skills/`](.claude/skills); the detailed IPC contracts are in
 | [Adding a language](docs/guide/developer/adding-a-language.md) | file types, syntax modes, template data languages, language packs |
 | [Settings](docs/guide/developer/settings.md) | declaring, reading and showing settings |
 | [Localization](docs/guide/developer/localization.md) | translatable UI text: catalogs, `t()`, key naming, German, `pnpm i18n:check` |
+| [Writing accessible UI](docs/guide/developer/accessibility.md) | ARIA roles and names, trees, dialogs and focus, keyboard operation, focus rings, theme contrast, announcements, axe audit and keyboard-only flow |
 | [Keymap actions](docs/guide/developer/keymap-actions.md) | shortcuts through the keymap engine |
 
 ## Quality and delivery
@@ -27654,6 +27792,110 @@ commands without a PHPStorm action id, Rust errors other than Safe Mode, the spl
 
 ---
 
+Source: docs/guide/developer/accessibility.md
+
+# Writing accessible UI
+
+Every panel, dialog and popup must work with a screen reader and with the keyboard alone, and
+must stay readable in all themes. The shared pieces live in
+`app/ui/src/features/accessibility/`; this page lists the rules and the checks. The user side
+is described in [Accessibility](docs/guide/user/accessibility.md).
+
+## Rules
+
+1. **Use the element that means what it does.** A `<button>` for actions, `<input>` / `<select>`
+   for values, `<a>` for links. A clickable `<div>` or `<span>` is not reachable with Tab.
+2. **Every control has a name.** Icon buttons get `title` and `aria-label` (translated, see
+   [Localization](docs/guide/developer/localization.md)); inputs get a `<label for>` (or are inside their label) and
+   `aria-describedby` for their description, as `SchemaPage` does. Decorative icons and
+   initials badges get `aria-hidden="true"`.
+3. **Trees and lists use their roles.** A focusable container with `role="tree"` /
+   `role="listbox"` and rows with `role="treeitem"` / `role="option"`, `aria-selected`,
+   `aria-level` and `aria-expanded` (trees). Either the container keeps focus and points at the
+   active row with `aria-activedescendant` (Project, Structure, Commit, Search Everywhere), or
+   the rows use a roving `tabIndex` (0 on the selected row, -1 on the others: Settings tree,
+   editor tabs). Arrow keys, `Home`, `End` and `Enter` come from
+   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same.
+4. **Dialogs are `role="dialog"` with a name.** Inside a backdrop (`*-backdrop`) they are
+   modal. `features/accessibility/dialogs.ts` finds every dialog in the window: it names it
+   after its title, sets `aria-modal`, connects `<label>` elements to the control after them,
+   keeps Tab inside the topmost modal dialog and returns focus to the opener when it closes.
+   Focus the first field when the dialog opens, and close it with `Escape`.
+5. **Shortcuts only through the keymap** ([Keymap actions](docs/guide/developer/keymap-actions.md)). Keys inside a
+   widget (arrows in a tree, `Enter` in a list, `Escape` in a dialog) belong to the widget's
+   own `onKeyDown`; anything that is a command gets an action id. Never trap Tab: a widget may
+   take Tab only when `Escape` leaves it (Search Everywhere switches tabs with Tab).
+6. **Focus is visible.** Do not remove outlines from focusable controls; the global
+   `:focus-visible` ring in `accessibility.css` draws one (`--focus-ring`,
+   `--focus-ring-width`). A container that keeps focus with `aria-activedescendant` shows the
+   ring on its selected row instead.
+7. **Colors come from the theme tokens.** Text uses `--fg`, `--fg-strong`, `--fg-muted` or
+   `--fg-faint` on the `--bg-*` tokens; status colors use `--danger`, `--warning`, `--success`,
+   `--info` and `--vcs-*`. Never write a color literal: the High Contrast themes replace the
+   tokens. Do not show a state by color alone: add an icon, a text, a border or an underline
+   (the High Contrast themes add outlines and underlines in `accessibility.css`).
+8. **Announce what is not visible to a screen reader.** `announce(text)` from
+   `@/features/accessibility` speaks through a live region that exists from startup;
+   `announceForScreenReader(text)` only with **Support screen readers** on. Balloons are
+   announced already (`.balloons` is a live region; errors are `role="alert"`).
+9. **Name the areas.** Landmarks (`header`, `nav`, `main`, `footer`, `section`) need a unique
+   `aria-label`. A new tool window gets its name from `registerToolWindow`'s title.
+
+## The building blocks
+
+| Module | What it does |
+| --- | --- |
+| `features/accessibility/announce.ts` | live regions, `announce`, `announceForScreenReader`, `screenReaderMode` |
+| `features/accessibility/dialogs.ts` | dialog names, `aria-modal`, label association, focus trap and return, `tabbables()` |
+| `features/accessibility/areas.ts` | **Focus Next / Previous Area**, **Focus Editor**, `focusToolWindowContent` (used by `Alt+<n>`) |
+| `features/accessibility/presentation.ts` | the Presentation Assistant, fed by `onCommandInvoked` in `state/commands.ts` |
+| `features/accessibility/ide.ts` | the editor's accessible name, **Announce Caret Position**, problem announcements |
+| `features/accessibility/accessibility.css` | `.sr-only`, focus rings, High Contrast extras, contrast scrollbars |
+| `theme/contrast.ts` | WCAG contrast of the theme tokens |
+
+`runCommand(id, actionId)` notifies `onCommandInvoked` listeners before running a command;
+`runAction` passes the PHPStorm action id, so the Presentation Assistant shows the action's
+title and shortcuts (and the other PHPStorm keymap's shortcut from the keymap snapshot's
+`alternate` field, computed in `forge-keymap`).
+
+## Themes and contrast
+
+Theme tokens live in `app/ui/src/theme/theme.css`. `src/theme/contrast.test.ts` (part of
+`pnpm test`) computes WCAG contrast ratios for the token pairs in `theme/contrast.ts`
+(`themePairs`): text tokens on every background, syntax colors on the editor, secondary text,
+status and VCS colors, also on the selected row, and the accent button. The normal themes must
+reach AA (4.5:1 for text), the `high-contrast*` themes AAA (7:1) plus visible borders. Only the
+Solarized palette has documented exceptions. A new token that text is drawn with belongs in
+`themePairs`.
+
+A new theme needs: a block in `theme.css`, its id in `THEMES` (`state/theme.ts`), the option in
+`appearance.theme` (`app/src-tauri/plugins/core.toml`), and, for an editor scheme of its own, a
+bundled scheme in `forge-colorscheme` (`Bundled`).
+
+## Checks
+
+| Check | Command | Needs |
+| --- | --- | --- |
+| Theme contrast | `pnpm test src/theme` | nothing (part of `pnpm test`) |
+| Dialog focus, live regions, focus areas, Presentation Assistant, Settings dialog with the keyboard | `pnpm test src/features/accessibility` | nothing (part of `pnpm test`) |
+| axe-core audit of the main screens and dialogs in all themes you pass | `pnpm a11y:audit --themes=dark,light,high-contrast,high-contrast-light` | `pnpm dev` running |
+| Keyboard-only flow: open a file, rename, focus areas, Switcher, commit, Settings | `pnpm a11y:keyboard` | `pnpm dev` running |
+
+`pnpm a11y:audit` runs [axe-core](https://github.com/dequelabs/axe-core) (MPL-2.0, a
+development dependency only, never bundled) in Chromium and exits with 1 on a serious or
+critical violation (`--report` only prints, `--json=file` writes the results). Add a screen to
+`SCREENS` in `scripts/a11y-audit.mjs` when you add a major dialog or tool window. The keyboard
+flow fails on any mouse event; extend it when a feature adds a keyboard path users depend on.
+
+When the audit was introduced, axe reported 98 critical and 232 serious violations (counted
+per element, summed over the audited screens) in the dark theme and 98 critical and 260 serious
+in the light theme: unnamed editor, selects and checkboxes, nested interactive editor tabs, a
+tree without tree items, text below 4.5:1 and scroll areas without keyboard access. All
+serious and critical findings were fixed.
+
+
+---
+
 Source: docs/guide/developer/keymap-actions.md
 
 # Keymap actions
@@ -27842,6 +28084,16 @@ pnpm build
 pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
 pnpm workflows:check # release.yml runs only on `release: published`, ci.yml only manually
 ```
+
+## Accessibility (`app/ui`, with `pnpm dev` running, for UI changes)
+
+```sh
+pnpm a11y:audit --themes=dark,light,high-contrast,high-contrast-light  # axe-core: no serious or critical violations
+pnpm a11y:keyboard   # keyboard-only flow: open file, rename, focus areas, commit, Settings
+```
+
+The theme contrast check (WCAG AA, AAA for the High Contrast themes) and the keyboard tests of
+dialogs and the Settings tree run in `pnpm test`. See [Writing accessible UI](docs/guide/developer/accessibility.md).
 
 ## Browser extension (`browser-extension`, only when it changed)
 

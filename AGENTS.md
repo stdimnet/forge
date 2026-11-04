@@ -82,6 +82,10 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `docs/guide/developer/localization.md`; `pnpm i18n:check` reports coverage.
 - UI: PHPStorm New UI layout and wording. Use only the CSS variables from
   `app/ui/src/theme/theme.css`, both dark and light, and icons from `lucide-solid`.
+- Accessible UI: real buttons and inputs, a translated name for every control, tree/list/dialog
+  roles, everything operable with the keyboard (never remove focus outlines, never trap Tab),
+  no state shown by color alone. Rules and checks (`pnpm a11y:audit`, `pnpm a11y:keyboard`):
+  `docs/guide/developer/accessibility.md`.
 
 ### Architecture
 - **Rust computes, TypeScript renders.** Logic, data models and parsers belong in Rust crates with

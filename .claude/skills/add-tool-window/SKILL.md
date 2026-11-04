@@ -47,7 +47,13 @@ Tool windows are registered from a feature folder through `registerToolWindow`
    German one in `locales/de/<area>.json` (see `docs/guide/developer/localization.md`). The
    tool window title key is `toolwindow.<id>.title`; when the manifest declares the window,
    its English title comes from the manifest. Run `pnpm i18n:check`.
-9. Verify with a screenshot scenario (`verify-ui-with-screenshots` skill) and compare against
+9. Accessibility: a tree or list gets `role="tree"`/`"listbox"` with `treeitem`/`option` rows
+   (`aria-selected`, `aria-level`, `aria-expanded`), focus on the container plus
+   `aria-activedescendant` (or a roving `tabIndex`), and the keys of
+   `features/project/treeNavigation.ts`. Icon buttons need `aria-label`. `Alt+<n>` focuses the
+   first tree/list in the window. Run `pnpm a11y:audit` (add the window to `SCREENS` in
+   `scripts/a11y-audit.mjs`); see `docs/guide/developer/accessibility.md`.
+10. Verify with a screenshot scenario (`verify-ui-with-screenshots` skill) and compare against
    PHPStorm's New UI: same layout, wording and behaviour, Forge colors.
 
 ## Reference implementations
