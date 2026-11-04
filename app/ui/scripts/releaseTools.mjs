@@ -1,10 +1,10 @@
 /**
  * Release helpers without I/O, used by release-tools.mjs and the release workflow:
  *
- * - releaseChannel: which update channel a published release feeds (stable or beta) and
+ * - releaseChannel: which update channel a release feeds (stable or beta) and
  *   whether its tag, version and pre-release flag agree.
  * - workflowTriggerErrors: the guard that the workflows' `on:` triggers never change
- *   (release only on `release: published`, everything else only on `workflow_dispatch`).
+ *   (release only on pushed `v*` tags, everything else only on `workflow_dispatch`).
  * - parseChecksums / checksumFor: the release's `SHA256SUMS`.
  * - updatePkgbuild / srcinfo / updateFlatpakManifest / addMetainfoRelease: the AUR and
  *   Flatpak packaging files for a release.
@@ -12,7 +12,7 @@
 
 /** The `on:` block every workflow must have, by file name; any other file: `manual`. */
 export const EXPECTED_TRIGGERS = {
-  "release.yml": "on:\n  release:\n    types: [published]",
+  "release.yml": 'on:\n  push:\n    tags: ["v*"]',
 };
 /** The only trigger allowed for every other workflow. */
 export const MANUAL_TRIGGER = "on:\n  workflow_dispatch:";

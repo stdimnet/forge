@@ -1,10 +1,11 @@
 name: Release
 
-# Runs only when a GitHub release is published (never on push or pull request; the trigger
-# is guarded by `pnpm workflows:check`). It builds Forge for Linux, Windows and macOS, signs
-# the bundles and the updater artifacts and uploads them plus `latest.json` (the update feed
-# Forge's updater reads), `SHA256SUMS` and, for pre-releases, `latest-beta.json` to that
-# release.
+# Runs only when a version tag `v*` is pushed (`v0.2.0`, `v0.3.0-beta.1`; never on branch
+# pushes or pull requests; the trigger is guarded by `pnpm workflows:check`). It creates a draft
+# GitHub release for the tag (a pre-release when the version has a `-label`), builds Forge for
+# Linux, Windows and macOS, signs the bundles and the updater artifacts, uploads them plus
+# `latest.json` (the update feed Forge's updater reads), `SHA256SUMS` and, for pre-releases,
+# `latest-beta.json`, and then publishes the release.
 #
 # Repository settings (all signing material comes from secrets; a missing secret skips that
 # signing step and the build still succeeds). Full list: docs/guide/developer/release-builds.md.
@@ -19,25 +20,25 @@ name: Release
 #                                                 macOS notarisation
 #   secrets.RELEASE_GPG_PRIVATE_KEY(_PASSPHRASE)  detached signature SHA256SUMS.asc
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   meta:
     # Which update channel the release feeds: vX.Y.Z is stable, vX.Y.Z-beta.N (a pre-release)
-    # beta. Fails when the tag, the app version and the pre-release flag disagree. The release
-    # tagged `beta` only holds the beta feed and builds nothing.
-    if: github.event.release.tag_name != 'beta'
+    # beta. Fails when the tag does not match the app version. Then creates the draft release
+    # the other jobs upload to (or reuses the draft of an earlier, failed run of this tag).
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.channel.outputs.channel }}
+      id: ${{ steps.release.outputs.id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,9 +46,25 @@ jobs:
           node-version: 22
       - id: channel
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_PRERELEASE: ${{ contains(github.ref_name, '-') }}
         run: node app/ui/scripts/release-tools.mjs channel
+      - name: Create the draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ steps.channel.outputs.channel == 'beta' }}
+        run: |
+          id="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n 1)"
+          if [ -z "$id" ]; then
+            id="$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$TAG" -f name="Forge ${TAG#v}" \
+              -F draft=true -F prerelease="$PRERELEASE" -F generate_release_notes=true \
+              --jq .id)"
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
 
   agents:
     needs: meta
@@ -204,8 +221,8 @@ jobs:
           projectPath: app/ui
           tauriScript: pnpm tauri
           args: --config src-tauri/tauri.agents.conf.json ${{ matrix.args }}
-          releaseId: ${{ github.event.release.id }}
-          tagName: ${{ github.event.release.tag_name }}
+          releaseId: ${{ needs.meta.outputs.id }}
+          tagName: ${{ github.ref_name }}
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
 
@@ -217,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: ${{ github.event.release.tag_name }}
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -257,3 +274,15 @@ jobs:
           else
             echo "::warning::There is no release tagged beta, so beta installations do not see $TAG yet. Create it once as a pre-release (docs/guide/developer/release-builds.md)."
           fi
+
+  publish:
+    # Publishes the draft once every asset is uploaded, so the updater never sees a partial release.
+    needs: [meta, checksums]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/${{ needs.meta.outputs.id }}" \
+            -F draft=false --silent

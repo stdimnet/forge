@@ -26,6 +26,7 @@ use tokio::sync::{broadcast, OnceCell};
 use crate::client::{Feature, LspClient, LspEvent, ServerState};
 use crate::config::LspServerConfig;
 use crate::launch::{LocalLauncher, ServerLauncher};
+use crate::log::{LogSource, ServerLog};
 use crate::model::{
     definition_locations, document_symbols, locations, workspace_edit, workspace_symbols,
     EditorCodeAction, EditorCompletionItem, EditorCompletionList, EditorHover, EditorLocation,
@@ -68,6 +69,8 @@ pub struct LspManager {
     restarts: Mutex<HashMap<String, Vec<Instant>>>,
     /// Latest diagnostics per document and server, merged for the editor.
     diagnostics: Mutex<HashMap<Url, BTreeMap<String, Vec<Diagnostic>>>>,
+    /// Log of each server id, kept across restarts and failed starts.
+    logs: Mutex<HashMap<String, ServerLog>>,
     events: broadcast::Sender<LspEvent>,
 }
 
@@ -87,6 +90,7 @@ impl LspManager {
             failures: Mutex::new(HashMap::new()),
             restarts: Mutex::new(HashMap::new()),
             diagnostics: Mutex::new(HashMap::new()),
+            logs: Mutex::new(HashMap::new()),
             events: broadcast::channel(1024).0,
         }
     }
@@ -224,15 +228,39 @@ impl LspManager {
             allowed
         };
         if !allowed {
-            self.failures.lock().expect("failures lock").insert(
-                id.to_string(),
-                format!(
-                    "exited {MAX_RESTARTS} times in {} minutes, not started again",
-                    RESTART_WINDOW.as_secs() / 60
-                ),
+            let why = format!(
+                "exited {MAX_RESTARTS} times in {} minutes, not started again",
+                RESTART_WINDOW.as_secs() / 60
             );
+            self.log_of(id)
+                .push(LogSource::Forge, &format!("The server {why}."));
+            self.failures
+                .lock()
+                .expect("failures lock")
+                .insert(id.to_string(), why);
         }
         allowed
+    }
+
+    /// The log of server `id`: how Forge started it, its stderr and log messages, start
+    /// errors and exits (the last [`crate::log::MAX_LINES`] lines, oldest first). Empty
+    /// for a server that was never started.
+    pub fn server_log(&self, id: &str) -> Vec<String> {
+        self.logs
+            .lock()
+            .expect("logs lock")
+            .get(id)
+            .map(ServerLog::lines)
+            .unwrap_or_default()
+    }
+
+    fn log_of(&self, id: &str) -> ServerLog {
+        self.logs
+            .lock()
+            .expect("logs lock")
+            .entry(id.to_string())
+            .or_default()
+            .clone()
     }
 
     async fn start(&self, config: LspServerConfig) -> Option<LspClient> {
@@ -241,8 +269,9 @@ impl LspManager {
         let events = self.events.clone();
         let root = self.root.clone();
         let launcher = self.launcher.clone();
+        let log = self.log_of(&id);
         slot.get_or_init(|| async move {
-            match LspClient::start_with_launcher(config, root, events, launcher.as_ref()).await {
+            match LspClient::start_with_logged(config, root, events, launcher.as_ref(), log).await {
                 Ok(client) => Some(client),
                 Err(e) => {
                     tracing::warn!("language server {id} failed to start: {e}");

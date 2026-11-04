@@ -4,6 +4,7 @@ import type { SearchItemKind } from "@/features/search/providers";
 
 export const STATUS_LABEL: Record<RowStatus, string> = {
   running: "Running",
+  failed: "Failed to start",
   installed: "Installed",
   notInstalled: "Not installed",
   disabled: "Disabled",

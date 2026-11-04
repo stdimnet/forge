@@ -21,10 +21,10 @@ Output: `target/release/bundle/<type>/` (e.g. `Forge_0.1.0_amd64.AppImage`) and 
 binary `target/release/forge`. A release build takes about 6 minutes from scratch.
 
 Cross-compiling is not supported; build Windows and macOS bundles on those systems. Official
-builds come from `.github/workflows/release.yml`: it runs only when the project owner publishes a
-GitHub release, builds Linux, Windows and macOS bundles with the remote agents, signs the
+builds come from `.github/workflows/release.yml`: it runs only when the project owner pushes a
+version tag (`v*`), creates the GitHub release, builds Linux, Windows and macOS bundles with the remote agents, signs the
 updater artifacts and uploads them together with `latest.json`, the feed Forge's updater reads.
-Agents never publish releases or trigger workflows.
+Agents never push version tags, publish releases or trigger workflows.
 
 The workflow also Authenticode-signs Windows bundles, signs and notarises macOS bundles,
 uploads `SHA256SUMS` and, for pre-releases, the beta feed `latest-beta.json`, each only when
