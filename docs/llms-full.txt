@@ -28335,14 +28335,15 @@ prints the `apt-get install` command to run once as root on the runner.
 ### Secrets and variables
 
 Set them once in the repository settings (Settings | Secrets and variables | Actions). Only the
-updater key is needed for a working release; every other row is optional, and a missing one
-skips that step with a notice in the log. Never commit certificates or keys.
+updater key and `PHP_LSP_TOKEN` are needed for a working release; every other row is optional,
+and a missing one skips that step with a notice in the log. Never commit certificates or keys.
 
 | Name | Kind | Value |
 | --- | --- | --- |
 | `TAURI_SIGNING_PRIVATE_KEY` | secret | updater private key from `pnpm tauri signer generate` |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | its password |
 | `FORGE_UPDATER_PUBKEY` | secret or variable | the matching public key, built into the app |
+| `PHP_LSP_TOKEN` | secret | fine-grained token with read access (Contents) to the private `stdimnet/php-lsp`; GitHub's runners cannot build without it |
 | `WINDOWS_CERTIFICATE` | secret | Authenticode certificate: the `.pfx` file, base64-encoded |
 | `WINDOWS_CERTIFICATE_PASSWORD` | secret | the `.pfx` password |
 | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` | secrets | Azure Trusted Signing: the app registration allowed to sign |
