@@ -334,7 +334,7 @@ pub fn resolve(project: &str, o: &Options) -> Result<Project, String> {
     } else {
         o.mc_version.trim().to_string()
     };
-    let spec = versions::api_spec(platform, &mc_version)?;
+    let spec = versions::api_spec(platform, &mc_version, build.is_gradle())?;
 
     let group_id = o.group_id.trim().to_string();
     if !is_qualified_name(&group_id) {
@@ -861,7 +861,7 @@ fn readme(p: &Project) -> String {
         format!("target/{}-{VERSION}.jar", artifact_id(&p.name))
     };
     if p.build.is_gradle() {
-        s += "The project has no Gradle wrapper yet. Create it once with an installed Gradle:\n\n```sh\ngradle wrapper\n```\n\nThen build the plugin:\n\n```sh\n./gradlew build\n```\n\n";
+        s += "The project has no Gradle wrapper yet. Create it once with an installed Gradle (9 or newer is recommended for Shadow 9 and run-paper 3):\n\n```sh\ngradle wrapper\n```\n\nThen build the plugin:\n\n```sh\n./gradlew build\n```\n\n";
     } else {
         s += "```sh\nmvn package\n```\n\n";
     }
@@ -1031,9 +1031,9 @@ mod tests {
         );
         let build = file(&files, "build.gradle.kts");
         assert!(build.contains("maven(\"https://repo.papermc.io/repository/maven-public/\")"));
-        assert!(build.contains("compileOnly(\"io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT\")"));
+        assert!(build.contains("compileOnly(\"io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT\")"));
         assert!(build.contains("id(\"xyz.jpenilla.run-paper\")"));
-        assert!(build.contains("minecraftVersion(\"1.21.8\")"));
+        assert!(build.contains("minecraftVersion(\"1.21.11\")"));
         let yml = file(&files, "src/main/resources/plugin.yml");
         assert!(yml.contains("main: com.example.myplugin.MyPlugin\n"));
         assert!(yml.contains("version: '${version}'"));

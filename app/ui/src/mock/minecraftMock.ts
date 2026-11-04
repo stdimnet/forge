@@ -42,7 +42,7 @@ export async function minecraftFiles(args: CreateArgs): Promise<{ files: string[
 }
 
 /** Versions "Refresh versions" pretends Paper published. */
-const REFRESHED = ["1.21.11", "1.21.10", "1.21.9", "1.21.8", "1.21.7", "1.21.6", "1.21.5", "1.21.4", "1.21.3", "1.21.1", "1.21"];
+const REFRESHED = ["26.3", "26.2", "26.1.2", "26.1.1", "26.1", "1.21.11", "1.21.10", "1.21.9", "1.21.8", "1.21.7", "1.21.6", "1.21.5", "1.21.4", "1.21.3", "1.21.1", "1.21"];
 
 registerMock("minecraft_versions_refresh", async (): Promise<GeneratorChoice[]> => {
   await new Promise((r) => setTimeout(r, 400));

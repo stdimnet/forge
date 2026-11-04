@@ -4,6 +4,8 @@
 //! the table get their coordinates and Java release from the same rules.
 
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
@@ -73,22 +75,28 @@ impl Platform {
 pub const PAPER_REPO: &str = "https://repo.papermc.io/repository/maven-public/";
 pub const SPIGOT_REPO: &str = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/";
 pub const PURPUR_REPO: &str = "https://repo.purpurmc.org/snapshots";
-pub const SONATYPE_SNAPSHOTS: &str = "https://oss.sonatype.org/content/repositories/snapshots";
 
-/// Where "Refresh versions" reads the Minecraft versions Paper publishes its API for.
+/// Where "Refresh versions" reads the versions Paper and Purpur publish their API for.
 pub const PAPER_METADATA_PATH: &str = "io/papermc/paper/paper-api/maven-metadata.xml";
+pub const PURPUR_METADATA_PATH: &str = "org/purpurmc/purpur/purpur-api/maven-metadata.xml";
 
-/// The Velocity API the generator uses, and the Java release it needs.
-pub const VELOCITY_API: &str = "3.4.0-SNAPSHOT";
+/// The Velocity API release the generator uses (repo.papermc.io), and the Java release of
+/// generated projects.
+pub const VELOCITY_API: &str = "4.3.1";
 pub const VELOCITY_JAVA: u32 = 21;
-/// The BungeeCord API the generator uses, and the Java release of generated projects.
-pub const BUNGEECORD_API: &str = "1.21-R0.1-SNAPSHOT";
+/// The BungeeCord API release the generator uses (Maven Central), and the Java release of
+/// generated projects.
+pub const BUNGEECORD_API: &str = "1.21-R0.4";
 pub const BUNGEECORD_JAVA: u32 = 17;
 
+/// The newest Minecraft version Bukkit's own API (`org.bukkit:bukkit`) is published for;
+/// newer versions only have `spigot-api`.
+pub const BUKKIT_NEWEST: &str = "1.20.5";
+
 /// Build plugins and libraries of generated projects.
-pub const RUN_PAPER: &str = "2.3.1";
-pub const SHADOW: &str = "8.3.6";
-pub const KOTLIN: &str = "2.2.20";
+pub const RUN_PAPER: &str = "3.1.0";
+pub const SHADOW: &str = "9.6.1";
+pub const KOTLIN: &str = "2.3.0";
 pub const MAVEN_COMPILER: &str = "3.13.0";
 pub const MAVEN_SHADE: &str = "3.6.0";
 
@@ -103,6 +111,26 @@ pub struct McVersion {
 /// Newest first. Each has a Paper, Spigot and Bukkit API; Purpur, Folia and
 /// `paper-plugin.yml` have lower bounds (see [`check_platform`]).
 pub const MC_VERSIONS: &[McVersion] = &[
+    McVersion {
+        version: "26.3",
+        java: 25,
+    },
+    McVersion {
+        version: "26.2",
+        java: 25,
+    },
+    McVersion {
+        version: "26.1.2",
+        java: 25,
+    },
+    McVersion {
+        version: "26.1.1",
+        java: 25,
+    },
+    McVersion {
+        version: "1.21.11",
+        java: 21,
+    },
     McVersion {
         version: "1.21.10",
         java: 21,
@@ -149,7 +177,7 @@ pub const MC_VERSIONS: &[McVersion] = &[
     },
 ];
 
-pub const DEFAULT_MC_VERSION: &str = "1.21.8";
+pub const DEFAULT_MC_VERSION: &str = "1.21.11";
 
 /// The oldest Minecraft version the generator supports.
 pub const OLDEST: &str = "1.16.5";
@@ -258,10 +286,63 @@ const PURPURMC: Repository = Repository {
     id: "purpurmc",
     url: PURPUR_REPO,
 };
-const SONATYPE: Repository = Repository {
-    id: "sonatype-snapshots",
-    url: SONATYPE_SNAPSHOTS,
-};
+
+/// From 26.1 on, Paper and Purpur publish their API as `<mc>.build.<n>-stable` instead of
+/// `<mc>-R0.1-SNAPSHOT`, so the dependency version needs a build number: pinned here, and
+/// replaced by newer ones from "Refresh versions" ([`remember_builds`]).
+pub const PAPER_BUILDS: &[(&str, &str)] = &[("26.3", "26.3.build.240-stable")];
+pub const PURPUR_BUILDS: &[(&str, &str)] = &[("26.3", "26.3.build.2655-stable")];
+
+/// The first Minecraft version with build-numbered Paper / Purpur APIs.
+pub const BUILD_SCHEME_FROM: &str = "26";
+
+/// Build-numbered API versions per Minecraft version, from "Refresh versions".
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Builds {
+    pub paper: BTreeMap<String, String>,
+    pub purpur: BTreeMap<String, String>,
+}
+
+static KNOWN_BUILDS: Mutex<Option<Builds>> = Mutex::new(None);
+
+/// Remember refreshed builds (the app loads them from its cache) for [`api_spec`].
+pub fn remember_builds(builds: Builds) {
+    *KNOWN_BUILDS.lock().unwrap_or_else(|e| e.into_inner()) = Some(builds);
+}
+
+/// The build-numbered API version of `mc` for Paper or Purpur: refreshed, else pinned.
+pub fn known_build(platform: Platform, mc: &str) -> Option<String> {
+    let known = KNOWN_BUILDS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
+    let (refreshed, pinned) = match platform {
+        Platform::Purpur => (known.map(|k| k.purpur), PURPUR_BUILDS),
+        _ => (known.map(|k| k.paper), PAPER_BUILDS),
+    };
+    refreshed.and_then(|m| m.get(mc).cloned()).or_else(|| {
+        pinned
+            .iter()
+            .find(|(v, _)| *v == mc)
+            .map(|(_, b)| b.to_string())
+    })
+}
+
+/// The dependency version of a build-numbered API: the known build, else Gradle's dynamic
+/// `<mc>.build.+` (Maven has no equivalent, so it needs a refresh first).
+fn build_version(platform: Platform, mc: &str, gradle: bool) -> Result<String, String> {
+    if let Some(b) = known_build(platform, mc) {
+        return Ok(b);
+    }
+    if gradle {
+        return Ok(format!("{mc}.build.+"));
+    }
+    Err(format!(
+        "No {} API build is known for Minecraft {mc}: click Refresh next to Minecraft, or use Gradle",
+        platform.label()
+    ))
+}
 
 /// Why `platform` has no API for `mc`, if it has none.
 pub fn check_platform(platform: Platform, mc: &str) -> Result<(), String> {
@@ -287,10 +368,17 @@ pub fn check_platform(platform: Platform, mc: &str) -> Result<(), String> {
     }
 }
 
-/// The API dependency of `platform` for Minecraft `mc` (ignored by proxies).
-pub fn api_spec(platform: Platform, mc: &str) -> Result<ApiSpec, String> {
+/// The API dependency of `platform` for Minecraft `mc` (ignored by proxies); `gradle` allows
+/// a dynamic build version for build-numbered APIs.
+pub fn api_spec(platform: Platform, mc: &str, gradle: bool) -> Result<ApiSpec, String> {
     check_platform(platform, mc)?;
     let snapshot = format!("{mc}-R0.1-SNAPSHOT");
+    let build_scheme = !platform.is_proxy() && at_least(mc, BUILD_SCHEME_FROM);
+    let paper_version = if build_scheme && platform != Platform::Purpur {
+        build_version(Platform::Paper, mc, gradle)?
+    } else {
+        snapshot.clone()
+    };
     let java = java_for(mc);
     let spec = |repositories: Vec<Repository>, group, artifact, version: String, java| ApiSpec {
         repositories,
@@ -308,7 +396,7 @@ pub fn api_spec(platform: Platform, mc: &str) -> Result<ApiSpec, String> {
             vec![PAPERMC],
             "io.papermc.paper",
             "paper-api",
-            snapshot,
+            paper_version,
             java,
         ),
         Platform::Paper | Platform::Folia => spec(
@@ -323,11 +411,20 @@ pub fn api_spec(platform: Platform, mc: &str) -> Result<ApiSpec, String> {
             vec![PAPERMC, PURPURMC],
             "org.purpurmc.purpur",
             "purpur-api",
-            snapshot,
+            if build_scheme {
+                build_version(Platform::Purpur, mc, gradle)?
+            } else {
+                snapshot
+            },
             java,
         ),
         Platform::Spigot => spec(vec![SPIGOTMC], "org.spigotmc", "spigot-api", snapshot, java),
-        Platform::Bukkit => spec(vec![SPIGOTMC], "org.bukkit", "bukkit", snapshot, java),
+        Platform::Bukkit if at_least(BUKKIT_NEWEST, mc) => {
+            spec(vec![SPIGOTMC], "org.bukkit", "bukkit", snapshot, java)
+        }
+        // Newer versions have no `org.bukkit:bukkit`: compile against spigot-api (a superset
+        // of the Bukkit API); the generated code only uses Bukkit's API.
+        Platform::Bukkit => spec(vec![SPIGOTMC], "org.spigotmc", "spigot-api", snapshot, java),
         Platform::Velocity => spec(
             vec![PAPERMC],
             "com.velocitypowered",
@@ -335,8 +432,9 @@ pub fn api_spec(platform: Platform, mc: &str) -> Result<ApiSpec, String> {
             VELOCITY_API.into(),
             VELOCITY_JAVA,
         ),
+        // Releases on Maven Central: no extra repository.
         Platform::Bungeecord => spec(
-            vec![SONATYPE],
+            Vec::new(),
             "net.md-5",
             "bungeecord-api",
             BUNGEECORD_API.into(),
@@ -370,13 +468,41 @@ pub fn parse_maven_metadata(xml: &str) -> Vec<String> {
     out
 }
 
+/// The Minecraft version and build of a build-numbered API version
+/// (`26.3.build.240-stable` → (`26.3`, 240)); alpha pre-releases are skipped.
+pub fn parse_build_version(v: &str) -> Option<(String, u64)> {
+    let (mc, rest) = v.split_once(".build.")?;
+    let build = rest.strip_suffix("-stable")?.parse().ok()?;
+    is_release(mc).then(|| (mc.to_string(), build))
+}
+
+/// The newest stable build per Minecraft version of a `maven-metadata.xml` with
+/// build-numbered versions.
+pub fn newest_builds(xml: &str) -> BTreeMap<String, String> {
+    let mut best: BTreeMap<String, (u64, String)> = BTreeMap::new();
+    for v in parse_maven_metadata(xml) {
+        if let Some((mc, build)) = parse_build_version(&v) {
+            let e = best.entry(mc).or_insert((build, v.clone()));
+            if build >= e.0 {
+                *e = (build, v);
+            }
+        }
+    }
+    best.into_iter().map(|(mc, (_, v))| (mc, v)).collect()
+}
+
 /// Minecraft release versions Paper publishes an API for, from paper-api's
-/// `maven-metadata.xml` (`1.21.8-R0.1-SNAPSHOT` → `1.21.8`), newest first. Pre-releases,
-/// release candidates and versions older than [`OLDEST`] are skipped.
+/// `maven-metadata.xml` (`1.21.8-R0.1-SNAPSHOT` → `1.21.8`, `26.3.build.240-stable` →
+/// `26.3`), newest first. Pre-releases, release candidates, alpha builds and versions older
+/// than [`OLDEST`] are skipped.
 pub fn mc_versions_from_paper_metadata(xml: &str) -> Vec<String> {
     let mut out: Vec<String> = parse_maven_metadata(xml)
         .into_iter()
-        .filter_map(|v| v.strip_suffix("-R0.1-SNAPSHOT").map(str::to_string))
+        .filter_map(|v| {
+            v.strip_suffix("-R0.1-SNAPSHOT")
+                .map(str::to_string)
+                .or_else(|| parse_build_version(&v).map(|(mc, _)| mc))
+        })
         .filter(|v| is_release(v) && at_least(v, OLDEST))
         .collect();
     out.sort_by(|a, b| compare(b, a));
@@ -442,7 +568,7 @@ mod tests {
 
     #[test]
     fn api_coordinates_per_platform() {
-        let paper = api_spec(Platform::Paper, "1.21.8").unwrap();
+        let paper = api_spec(Platform::Paper, "1.21.8", true).unwrap();
         assert_eq!(
             paper.dependency.gradle(),
             "io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT"
@@ -450,52 +576,145 @@ mod tests {
         assert_eq!(paper.repositories[0].url, PAPER_REPO);
         assert_eq!(paper.java, 21);
         assert_eq!(
-            api_spec(Platform::Paper, "1.16.5")
+            api_spec(Platform::Paper, "1.16.5", true)
                 .unwrap()
                 .dependency
                 .gradle(),
             "com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT"
         );
-        let purpur = api_spec(Platform::Purpur, "1.21.4").unwrap();
+        let purpur = api_spec(Platform::Purpur, "1.21.4", true).unwrap();
         assert_eq!(
             purpur.dependency.gradle(),
             "org.purpurmc.purpur:purpur-api:1.21.4-R0.1-SNAPSHOT"
         );
         assert_eq!(purpur.repositories.len(), 2);
         assert_eq!(
-            api_spec(Platform::Spigot, "1.20.4")
+            api_spec(Platform::Spigot, "1.20.4", true)
                 .unwrap()
                 .dependency
                 .gradle(),
             "org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT"
         );
         assert_eq!(
-            api_spec(Platform::Bukkit, "1.20.4")
+            api_spec(Platform::Bukkit, "1.20.4", true)
                 .unwrap()
                 .dependency
                 .gradle(),
             "org.bukkit:bukkit:1.20.4-R0.1-SNAPSHOT"
         );
         assert_eq!(
-            api_spec(Platform::Folia, "1.21.4")
+            api_spec(Platform::Folia, "1.21.4", true)
                 .unwrap()
                 .dependency
                 .artifact,
             "paper-api"
         );
-        let velocity = api_spec(Platform::Velocity, "ignored").unwrap();
+        let velocity = api_spec(Platform::Velocity, "ignored", true).unwrap();
         assert_eq!(
             velocity.dependency.gradle(),
-            "com.velocitypowered:velocity-api:3.4.0-SNAPSHOT"
+            "com.velocitypowered:velocity-api:4.3.1"
         );
         assert_eq!(velocity.java, 21);
         assert_eq!(
-            api_spec(Platform::Bungeecord, "")
+            api_spec(Platform::Bungeecord, "", true)
                 .unwrap()
                 .dependency
                 .gradle(),
-            "net.md-5:bungeecord-api:1.21-R0.1-SNAPSHOT"
+            "net.md-5:bungeecord-api:1.21-R0.4"
         );
+    }
+
+    #[test]
+    fn build_numbered_apis_from_26() {
+        let paper = api_spec(Platform::Paper, "26.3", false).unwrap();
+        assert_eq!(
+            paper.dependency.gradle(),
+            "io.papermc.paper:paper-api:26.3.build.240-stable"
+        );
+        assert_eq!(paper.java, 25);
+        assert_eq!(
+            api_spec(Platform::Purpur, "26.3", true)
+                .unwrap()
+                .dependency
+                .version,
+            "26.3.build.2655-stable"
+        );
+        // No pinned build: Gradle resolves the newest, Maven needs a refresh.
+        assert_eq!(
+            api_spec(Platform::Folia, "26.1.1", true)
+                .unwrap()
+                .dependency
+                .version,
+            "26.1.1.build.+"
+        );
+        let err = api_spec(Platform::Paper, "26.1.1", false).unwrap_err();
+        assert!(err.contains("Refresh"), "{err}");
+        // Spigot keeps its snapshot scheme; Bukkit stops at 1.20.5.
+        assert_eq!(
+            api_spec(Platform::Spigot, "26.3", false)
+                .unwrap()
+                .dependency
+                .version,
+            "26.3-R0.1-SNAPSHOT"
+        );
+        assert_eq!(
+            api_spec(Platform::Bukkit, "1.20.6", true)
+                .unwrap()
+                .dependency
+                .gradle(),
+            "org.spigotmc:spigot-api:1.20.6-R0.1-SNAPSHOT"
+        );
+        assert_eq!(
+            api_spec(Platform::Bukkit, "1.20.5", true)
+                .unwrap()
+                .dependency
+                .artifact,
+            "bukkit"
+        );
+        assert_eq!(
+            api_spec(Platform::Paper, "1.21.11", false)
+                .unwrap()
+                .dependency
+                .version,
+            "1.21.11-R0.1-SNAPSHOT"
+        );
+        assert!(api_spec(Platform::Bungeecord, "", true)
+            .unwrap()
+            .repositories
+            .is_empty());
+    }
+
+    #[test]
+    fn reads_build_numbered_versions() {
+        assert_eq!(
+            parse_build_version("26.3.build.240-stable"),
+            Some(("26.3".into(), 240))
+        );
+        assert_eq!(parse_build_version("26.3-pre-2.build.0-alpha"), None);
+        assert_eq!(parse_build_version("1.21.11-R0.1-SNAPSHOT"), None);
+        let xml = include_str!("../tests/fixtures/paper-api-maven-metadata.xml");
+        let builds = newest_builds(xml);
+        assert_eq!(builds["26.3"], "26.3.build.240-stable");
+        assert_eq!(builds["26.1.2"], "26.1.2.build.61-stable");
+        assert!(!builds.contains_key("1.21.11"));
+    }
+
+    #[test]
+    fn refreshed_builds_replace_pinned_ones() {
+        remember_builds(Builds {
+            paper: [("26.2".to_string(), "26.2.build.77-stable".to_string())].into(),
+            purpur: BTreeMap::new(),
+        });
+        assert_eq!(
+            known_build(Platform::Paper, "26.2").as_deref(),
+            Some("26.2.build.77-stable")
+        );
+        assert_eq!(
+            known_build(Platform::Paper, "26.3").as_deref(),
+            Some("26.3.build.240-stable")
+        );
+        assert_eq!(known_build(Platform::Purpur, "26.2"), None);
+        remember_builds(Builds::default());
     }
 
     #[test]
@@ -515,7 +734,9 @@ mod tests {
     fn reads_paper_versions_from_maven_metadata() {
         let xml = include_str!("../tests/fixtures/paper-api-maven-metadata.xml");
         let versions = mc_versions_from_paper_metadata(xml);
-        assert_eq!(versions.first().map(String::as_str), Some("1.21.11"));
+        assert_eq!(versions.first().map(String::as_str), Some("26.3"));
+        assert!(versions.contains(&"26.1.2".to_string()));
+        assert!(versions.contains(&"1.21.11".to_string()));
         assert!(versions.contains(&"1.21.10".to_string()));
         assert!(!versions
             .iter()
@@ -524,7 +745,7 @@ mod tests {
         assert!(versions.contains(&"1.21".to_string()));
 
         let choices = version_choices(&versions);
-        assert_eq!(choices[0], ("1.21.11".into(), "1.21.11 (Java 21)".into()));
+        assert_eq!(choices[0], ("26.3".into(), "26.3 (Java 25)".into()));
         assert!(choices.iter().any(|(v, _)| v == "1.16.5"));
         let mut values: Vec<_> = choices.iter().map(|c| c.0.clone()).collect();
         values.dedup();

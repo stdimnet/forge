@@ -113,3 +113,27 @@ fn bungeecord_gradle_kotlin() {
         }),
     );
 }
+
+#[test]
+fn paper_26_maven_with_a_pinned_build() {
+    check(
+        "paper-26-maven",
+        "better-chat",
+        o(|o| {
+            o.build_system = "maven".into();
+            o.mc_version = "26.3".into();
+        }),
+    );
+}
+
+#[test]
+fn purpur_26_gradle_with_a_dynamic_build() {
+    check(
+        "purpur-26-gradle-kts",
+        "better-chat",
+        o(|o| {
+            o.platform = "purpur".into();
+            o.mc_version = "26.2".into();
+        }),
+    );
+}

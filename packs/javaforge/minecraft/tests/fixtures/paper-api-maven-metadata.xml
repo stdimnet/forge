@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- A trimmed sample of https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml -->
+<!-- A trimmed sample in the shape of https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml
+     (build numbers other than 26.3.build.240 are illustrative):
+     `<mc>-R0.1-SNAPSHOT` up to 1.21.11, `<mc>.build.<n>-stable` (and alpha pre-releases) from 26.1 on. -->
 <metadata>
   <groupId>io.papermc.paper</groupId>
   <artifactId>paper-api</artifactId>
   <versioning>
-    <latest>1.21.11-R0.1-SNAPSHOT</latest>
+    <latest>26.3.build.240-stable</latest>
     <versions>
       <version>1.17-R0.1-SNAPSHOT</version>
       <version>1.17.1-R0.1-SNAPSHOT</version>
@@ -21,7 +23,15 @@
       <version>1.21.8-R0.1-SNAPSHOT</version>
       <version>1.21.10-R0.1-SNAPSHOT</version>
       <version>1.21.11-R0.1-SNAPSHOT</version>
+      <version>26.1.1-pre-1.build.0-alpha</version>
+      <version>26.1.1.build.12-stable</version>
+      <version>26.1.1.build.30-stable</version>
+      <version>26.1.2.build.61-stable</version>
+      <version>26.2.build.150-stable</version>
+      <version>26.3-pre-2.build.0-alpha</version>
+      <version>26.3.build.199-stable</version>
+      <version>26.3.build.240-stable</version>
     </versions>
-    <lastUpdated>20260101000000</lastUpdated>
+    <lastUpdated>20261104000000</lastUpdated>
   </versioning>
 </metadata>

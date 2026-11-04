@@ -31,7 +31,8 @@ describe("Minecraft mock (javaforge-minecraft through WebAssembly)", () => {
 
   it("refreshes versions without the network", async () => {
     const choices = await invoke<GeneratorChoice[]>("minecraft_versions_refresh");
-    expect(choices[0]).toEqual({ value: "1.21.11", label: "1.21.11 (Java 21)" });
+    expect(choices[0]).toEqual({ value: "26.3", label: "26.3 (Java 25)" });
+    expect(choices.some((c) => c.value === "26.1")).toBe(true);
     expect(choices.some((c) => c.value === "1.16.5")).toBe(true);
   });
 

@@ -41,7 +41,7 @@ const wizard = async (page) => {
   await page.fill('input[data-option="description"]', "Nicer chat messages");
   await page.click('button[aria-label="Refresh Minecraft"]');
   await page.waitForFunction(() =>
-    [...document.querySelectorAll('select[data-option="mcVersion"] option')].some((o) => o.value === "1.21.11"),
+    [...document.querySelectorAll('select[data-option="mcVersion"] option')].some((o) => o.value === "26.1"),
   );
   await page.evaluate(() => {
     const main = document.querySelector(".np-main");

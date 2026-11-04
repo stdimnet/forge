@@ -15165,27 +15165,40 @@ Gradle projects have no wrapper yet, since the wrapper jar is a binary Forge doe
 
 ### Platforms and versions
 
-Forge keeps a pinned table of Minecraft versions (1.16.5 to 1.21.10), the Java release each one
-needs (1.16.5: 8, 1.17: 16, 1.18 to 1.20.4: 17, 1.20.5 and newer: 21) and each platform's
-dependency:
+Forge keeps a pinned table of Minecraft versions (1.16.5 to 1.21.11, then 26.1.1, 26.1.2,
+26.2 and 26.3; the default is 1.21.11), the Java release each one needs (1.16.5: 8, 1.17: 16,
+1.18 to 1.20.4: 17, 1.20.5 to 1.21.11: 21, 26.x: 25) and each platform's dependency:
 
 | Platform | Repository | Dependency |
 | --- | --- | --- |
-| Paper, Folia | `https://repo.papermc.io/repository/maven-public/` | `io.papermc.paper:paper-api:<version>-R0.1-SNAPSHOT` (1.16.5: `com.destroystokyo.paper:paper-api`) |
-| Purpur (1.18+) | Paper's and `https://repo.purpurmc.org/snapshots` | `org.purpurmc.purpur:purpur-api:<version>-R0.1-SNAPSHOT` |
+| Paper, Folia | `https://repo.papermc.io/repository/maven-public/` | `io.papermc.paper:paper-api:<version>-R0.1-SNAPSHOT` up to 1.21.11 (1.16.5: `com.destroystokyo.paper:paper-api`); from 26.1 `<version>.build.<n>-stable` |
+| Purpur (1.18+) | Paper's and `https://repo.purpurmc.org/snapshots` | `org.purpurmc.purpur:purpur-api:<version>-R0.1-SNAPSHOT`; from 26.1 `<version>.build.<n>-stable` |
 | Spigot | `https://hub.spigotmc.org/nexus/content/repositories/snapshots/` | `org.spigotmc:spigot-api:<version>-R0.1-SNAPSHOT` |
-| Bukkit | the Spigot repository | `org.bukkit:bukkit:<version>-R0.1-SNAPSHOT` |
-| Velocity | Paper's | `com.velocitypowered:velocity-api:3.4.0-SNAPSHOT` (Java 21) |
-| BungeeCord / Waterfall | `https://oss.sonatype.org/content/repositories/snapshots` | `net.md-5:bungeecord-api:1.21-R0.1-SNAPSHOT` (Java 17) |
+| Bukkit | the Spigot repository | `org.bukkit:bukkit:<version>-R0.1-SNAPSHOT` up to 1.20.5; newer versions have no Bukkit artifact, so they use `spigot-api` (a superset; the generated code only uses the Bukkit API) |
+| Velocity | Paper's | `com.velocitypowered:velocity-api:4.3.1` (Java 21) |
+| BungeeCord / Waterfall | Maven Central | `net.md-5:bungeecord-api:1.21-R0.4` (Java 17) |
+
+From Minecraft 26.1 on, Paper and Purpur publish their API with build numbers
+(`26.3.build.240-stable`), so the dependency cannot be derived from the Minecraft version.
+The table pins a build for 26.3 (Paper `26.3.build.240-stable`, Purpur
+`26.3.build.2655-stable`). For other 26.x versions, Gradle builds use the dynamic version
+`<version>.build.+` (the newest build, including pre-release builds when no stable one
+exists), and Maven builds need **Refresh** first, which fills in the newest stable build.
 
 Folia plugins compile against the Paper API, which contains Folia's region, entity and global
 schedulers; Folia (1.20+) only loads plugins that declare `folia-supported: true`.
 
-The **Refresh** button next to **Minecraft** (the version) reads the versions Paper publishes its API
-for from `repo.papermc.io` (paper-api's `maven-metadata.xml`) and adds the release versions the
-table does not have yet. It only runs when you click it, and the result is cached in the user
+The **Refresh** button next to **Minecraft** (the version) reads `maven-metadata.xml` of
+paper-api from `repo.papermc.io` and of purpur-api from `repo.purpurmc.org`: it adds the
+release versions the table does not have yet and the newest stable Paper and Purpur builds
+of each 26.x version. It only runs when you click it, and the result is cached in the user
 cache directory (`<cache>/forge/minecraft/versions.json`), never in a project. New versions
 get their coordinates and Java release from the same rules.
+
+Pinned values that may go out of date (refresh to update the Paper / Purpur builds; the rest
+changes with Forge releases): the 26.3 builds above, Velocity 4.3.1, BungeeCord 1.21-R0.4,
+and the build plugins of generated projects: run-paper 3.1.0, Shadow (`com.gradleup.shadow`)
+9.6.1 and Kotlin 2.3.0. Generated Gradle builds expect Gradle 9 or newer.
 
 Fabric, NeoForge and Forge mods are not generated yet: their templates need Loom or
 ModDevGradle with mappings and loader versions that change with every Minecraft release.

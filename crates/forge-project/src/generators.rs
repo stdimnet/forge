@@ -1376,7 +1376,7 @@ mod tests {
         assert!(p.error.unwrap().contains("Group ID"));
 
         // Refreshed versions join the choices.
-        let gens = generators_with(&["1.21.11".to_string()]);
+        let gens = generators_with(&["27.1".to_string()]);
         let mc = gens
             .iter()
             .find(|g| g.id == "minecraft-plugin")
@@ -1385,7 +1385,7 @@ mod tests {
             .iter()
             .find(|o| o.id == "mcVersion")
             .unwrap();
-        assert_eq!(mc.choices[0].value, "1.21.11");
+        assert_eq!(mc.choices[0].value, "27.1");
         assert_eq!(mc.refresh.as_deref(), Some("minecraft_versions_refresh"));
     }
 
@@ -1403,7 +1403,7 @@ mod tests {
         let info = crate::detect(&root);
         let mc = info.framework("minecraft").unwrap();
         assert_eq!(mc.name, "Spigot Plugin");
-        assert_eq!(mc.version.as_deref(), Some("1.21.8"));
+        assert_eq!(mc.version.as_deref(), Some("1.21.11"));
         assert_eq!(
             info.primary.as_ref().map(|p| p.id.as_str()),
             Some("minecraft")

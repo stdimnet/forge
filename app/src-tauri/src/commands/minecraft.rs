@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use forge_core::{ForgeError, Result};
 use javaforge_minecraft::descriptor::{self, Problem, Target};
 use javaforge_minecraft::markers::{self, Marker, MarkerKind};
+use javaforge_minecraft::net::Refreshed;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
@@ -20,13 +21,21 @@ fn versions_cache() -> Result<PathBuf> {
         .ok_or_else(|| ForgeError::Other("no user cache directory".into()))
 }
 
-/// Minecraft versions of the last "Refresh versions" (empty before the first).
-pub(crate) fn cached_versions() -> Vec<String> {
-    versions_cache()
+/// What the last "Refresh versions" found (empty before the first). Also hands the
+/// refreshed Paper / Purpur builds (26.1+) to the generator.
+pub(crate) fn cached_refresh() -> Refreshed {
+    let refreshed: Refreshed = versions_cache()
         .ok()
         .and_then(|p| std::fs::read_to_string(p).ok())
         .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    javaforge_minecraft::versions::remember_builds(refreshed.builds.clone());
+    refreshed
+}
+
+/// Minecraft versions of the last "Refresh versions" (empty before the first).
+pub(crate) fn cached_versions() -> Vec<String> {
+    cached_refresh().mc_versions
 }
 
 #[derive(Serialize)]
@@ -36,14 +45,15 @@ pub struct Choice {
     label: String,
 }
 
-/// Read the Minecraft versions Paper publishes from repo.papermc.io and return the new
-/// choices of the wizard's "Minecraft version" option.
+/// Read the Minecraft versions and the newest Paper / Purpur API builds from repo.papermc.io
+/// and repo.purpurmc.org, and return the new choices of the wizard's "Minecraft" option.
 #[tauri::command]
 pub async fn minecraft_versions_refresh() -> Result<Vec<Choice>> {
-    let found =
-        javaforge_minecraft::net::fetch_mc_versions(javaforge_minecraft::net::default_repository())
-            .await
-            .map_err(ForgeError::Other)?;
+    let (paper, purpur) = javaforge_minecraft::net::default_repositories();
+    let found = javaforge_minecraft::net::refresh(paper, purpur)
+        .await
+        .map_err(ForgeError::Other)?;
+    javaforge_minecraft::versions::remember_builds(found.builds.clone());
     if let Ok(path) = versions_cache() {
         if let Some(dir) = path.parent() {
             let _ = std::fs::create_dir_all(dir);
@@ -52,10 +62,12 @@ pub async fn minecraft_versions_refresh() -> Result<Vec<Choice>> {
             let _ = std::fs::write(&path, text);
         }
     }
-    Ok(javaforge_minecraft::versions::version_choices(&found)
-        .into_iter()
-        .map(|(value, label)| Choice { value, label })
-        .collect())
+    Ok(
+        javaforge_minecraft::versions::version_choices(&found.mc_versions)
+            .into_iter()
+            .map(|(value, label)| Choice { value, label })
+            .collect(),
+    )
 }
 
 /// Problems of the `main` entry of a plugin descriptor.

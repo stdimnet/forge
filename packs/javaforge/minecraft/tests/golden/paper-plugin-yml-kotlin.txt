@@ -25,11 +25,11 @@ out/
 ==== README.md ====
 # BetterChat
 
-A Paper plugin for Minecraft 1.21.8, written in Kotlin (Java 21).
+A Paper plugin for Minecraft 1.21.11, written in Kotlin (Java 21).
 
 ## Build
 
-The project has no Gradle wrapper yet. Create it once with an installed Gradle:
+The project has no Gradle wrapper yet. Create it once with an installed Gradle (9 or newer is recommended for Shadow 9 and run-paper 3):
 
 ```sh
 gradle wrapper
@@ -45,7 +45,7 @@ The plugin jar is `build/libs/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the 
 
 ## Test server
 
-`./gradlew runServer` (or the **Run Paper Server** run configuration in Forge) downloads Paper 1.21.8 with [run-paper](https://github.com/jpenilla/run-gradle), builds the plugin and starts a server in `run/` with the plugin installed. Accept the Minecraft EULA in `run/eula.txt` on the first start.
+`./gradlew runServer` (or the **Run Paper Server** run configuration in Forge) downloads Paper 1.21.11 with [run-paper](https://github.com/jpenilla/run-gradle), builds the plugin and starts a server in `run/` with the plugin installed. Accept the Minecraft EULA in `run/eula.txt` on the first start.
 
 ## Structure
 
@@ -57,9 +57,9 @@ The plugin jar is `build/libs/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the 
 The Kotlin standard library is bundled into the plugin jar with Shadow.
 ==== build.gradle.kts ====
 plugins {
-    kotlin("jvm") version "2.2.20"
-    id("com.gradleup.shadow") version "8.3.6"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    kotlin("jvm") version "2.3.0"
+    id("com.gradleup.shadow") version "9.6.1"
+    id("xyz.jpenilla.run-paper") version "3.1.0"
 }
 
 group = "dev.alex"
@@ -71,7 +71,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
 }
 
 kotlin {
@@ -95,7 +95,7 @@ tasks {
     }
     runServer {
         // The Paper version of the test server (./run).
-        minecraftVersion("1.21.8")
+        minecraftVersion("1.21.11")
     }
 }
 ==== settings.gradle.kts ====

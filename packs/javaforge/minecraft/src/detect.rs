@@ -59,7 +59,13 @@ fn version_after(build: &str, at: usize) -> Option<String> {
             .find(|t| t.contains("-R0.") || t.starts_with(|c: char| c.is_ascii_digit()))?
             .to_string()
     };
-    let v = candidate.split("-R0.").next()?.trim();
+    // `1.21.8-R0.1-SNAPSHOT`, `26.3.build.240-stable`, `26.3.build.+`.
+    let v = candidate
+        .split("-R0.")
+        .next()?
+        .split(".build.")
+        .next()?
+        .trim();
     crate::versions::is_release(v).then(|| v.to_string())
 }
 
@@ -122,6 +128,11 @@ mod tests {
             detect(&[userdev]).unwrap().mc_version.as_deref(),
             Some("1.21.4")
         );
+        let build26 = "compileOnly(\"io.papermc.paper:paper-api:26.3.build.240-stable\")";
+        assert_eq!(
+            detect(&[build26]).unwrap().mc_version.as_deref(),
+            Some("26.3")
+        );
         let catalog = "[libraries]\npaper-api = { module = \"io.papermc.paper:paper-api\", version = \"1.20.6-R0.1-SNAPSHOT\" }\n";
         assert_eq!(
             detect(&["", catalog]).unwrap().mc_version.as_deref(),
@@ -152,11 +163,12 @@ mod tests {
                     .map(|f| f.contents.as_str())
                     .collect();
                 let d = detect(&texts).unwrap_or_else(|| panic!("{platform:?} {build}"));
-                // Folia plugins compile against paper-api.
-                let expected = if platform == Platform::Folia {
-                    Platform::Paper
-                } else {
-                    platform
+                // Folia plugins compile against paper-api, Bukkit plugins for versions
+                // after 1.20.5 against spigot-api.
+                let expected = match platform {
+                    Platform::Folia => Platform::Paper,
+                    Platform::Bukkit => Platform::Spigot,
+                    p => p,
                 };
                 assert_eq!(d.platform, expected);
                 if !platform.is_proxy() {

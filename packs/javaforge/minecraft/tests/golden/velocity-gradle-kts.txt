@@ -20,7 +20,7 @@ A Velocity proxy plugin, written in Java (Java 21).
 
 ## Build
 
-The project has no Gradle wrapper yet. Create it once with an installed Gradle:
+The project has no Gradle wrapper yet. Create it once with an installed Gradle (9 or newer is recommended for Shadow 9 and run-paper 3):
 
 ```sh
 gradle wrapper
@@ -54,7 +54,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
+    compileOnly("com.velocitypowered:velocity-api:4.3.1")
 }
 
 java {

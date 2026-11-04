@@ -29,7 +29,7 @@ A Purpur plugin for Minecraft 1.21.4, written in Java (Java 21).
 
 ## Build
 
-The project has no Gradle wrapper yet. Create it once with an installed Gradle:
+The project has no Gradle wrapper yet. Create it once with an installed Gradle (9 or newer is recommended for Shadow 9 and run-paper 3):
 
 ```sh
 gradle wrapper
@@ -56,7 +56,7 @@ The plugin jar is `build/libs/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the 
 ==== build.gradle ====
 plugins {
     id 'java'
-    id 'xyz.jpenilla.run-paper' version '2.3.1'
+    id 'xyz.jpenilla.run-paper' version '3.1.0'
 }
 
 group = 'com.example'
