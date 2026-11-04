@@ -71,6 +71,9 @@ pub struct LspManager {
     diagnostics: Mutex<HashMap<Url, BTreeMap<String, Vec<Diagnostic>>>>,
     /// Log of each server id, kept across restarts and failed starts.
     logs: Mutex<HashMap<String, ServerLog>>,
+    /// File type of each opened document as the editor detected it (names, extensions,
+    /// `#!` lines, Override File Type), see [`set_document_language`](Self::set_document_language).
+    languages: Mutex<HashMap<PathBuf, String>>,
     events: broadcast::Sender<LspEvent>,
 }
 
@@ -91,6 +94,7 @@ impl LspManager {
             restarts: Mutex::new(HashMap::new()),
             diagnostics: Mutex::new(HashMap::new()),
             logs: Mutex::new(HashMap::new()),
+            languages: Mutex::new(HashMap::new()),
             events: broadcast::channel(1024).0,
         }
     }
@@ -164,8 +168,28 @@ impl LspManager {
         self.configs.read().expect("configs lock").clone()
     }
 
+    /// Remember the file type the editor detected for `path` (`None` forgets it). It routes
+    /// the document when the extension does not: an extensionless `artisan` (`php`), or a
+    /// file whose type was overridden by hand. `text` (plain text) routes to no server.
+    pub fn set_document_language(&self, path: &Path, file_type: Option<&str>) {
+        let mut languages = self.languages.lock().expect("languages lock");
+        match file_type {
+            Some(t) => languages.insert(path.to_path_buf(), t.to_string()),
+            None => languages.remove(path),
+        };
+    }
+
+    fn document_language(&self, path: &Path) -> Option<String> {
+        self.languages
+            .lock()
+            .expect("languages lock")
+            .get(path)
+            .cloned()
+    }
+
     /// Every config serving `path`: those sharing the longest extension match, in
-    /// registration (priority) order.
+    /// registration (priority) order. When the document's file type is known and none of
+    /// them handles it, the servers of that language serve it instead.
     pub fn configs_for(&self, path: &Path) -> Vec<LspServerConfig> {
         let configs = self.configs.read().expect("configs lock");
         let matches: Vec<(usize, &LspServerConfig)> = configs
@@ -173,11 +197,40 @@ impl LspManager {
             .filter_map(|c| c.match_len(path).map(|n| (n, c)))
             .collect();
         let best = matches.iter().map(|(n, _)| *n).max();
-        matches
+        let by_extension: Vec<LspServerConfig> = matches
             .into_iter()
             .filter(|(n, _)| Some(*n) == best)
             .map(|(_, c)| c.clone())
-            .collect()
+            .collect();
+        let Some(language) = self.document_language(path) else {
+            return by_extension;
+        };
+        if language == "text" {
+            return Vec::new();
+        }
+        if by_extension
+            .iter()
+            .any(|c| c.claims_language(&language).is_some())
+        {
+            return by_extension;
+        }
+        let by_language: Vec<LspServerConfig> = configs
+            .iter()
+            .filter(|c| c.claims_language(&language).is_some())
+            .cloned()
+            .collect();
+        if by_language.is_empty() {
+            by_extension
+        } else {
+            by_language
+        }
+    }
+
+    /// The language id `config` announces for `path`: that of the document's file type when
+    /// the server handles it, else the one of the extension.
+    fn language_id_for(&self, config: &LspServerConfig, path: &Path) -> Option<String> {
+        self.document_language(path)
+            .and_then(|l| config.claims_language(&l))
     }
 
     /// The primary config for `path` (first of [`configs_for`](Self::configs_for)).
@@ -422,7 +475,7 @@ impl LspManager {
             let r = if client.is_open(path) {
                 client.did_change(path, text)
             } else {
-                client.did_open(path, text)
+                client.did_open_as(path, text, self.language_id_for(client.config(), path))
             };
             if let Err(e) = r {
                 result = Err(e);
@@ -1185,6 +1238,50 @@ mod tests {
         assert!(m.unregister_server("ts"));
         assert!(!m.unregister_server("ts"));
         assert_eq!(ids("/p/a.ts"), vec!["eslint"]);
+    }
+
+    #[test]
+    fn routes_by_the_detected_file_type_when_the_extension_does_not() {
+        let m = LspManager::new("/p");
+        let lang = |id: &str, exts: &[&str], langs: &[&str]| LspServerConfig {
+            language_ids: langs.iter().map(|l| l.to_string()).collect(),
+            ..cfg(id, exts)
+        };
+        m.register_server(lang("php", &["php"], &["php"]));
+        m.register_server(lang("bash", &["sh"], &["shellscript"]));
+        m.register_server(lang("ts", &["js", "ts"], &["javascript", "typescript"]));
+        m.register_server(lang("eslint", &["js"], &[]));
+        let ids = |p: &str| -> Vec<String> {
+            m.configs_for(Path::new(p))
+                .into_iter()
+                .map(|c| c.id)
+                .collect()
+        };
+        // `artisan` (#!/usr/bin/env php) has no extension.
+        assert!(ids("/p/artisan").is_empty());
+        m.set_document_language(Path::new("/p/artisan"), Some("php"));
+        assert_eq!(ids("/p/artisan"), vec!["php"]);
+        let php = m.config_for(Path::new("/p/artisan")).unwrap();
+        assert_eq!(
+            m.language_id_for(&php, Path::new("/p/artisan")).as_deref(),
+            Some("php")
+        );
+        // Shell scripts: Forge's `shell` is LSP's `shellscript`.
+        m.set_document_language(Path::new("/p/run"), Some("shell"));
+        assert_eq!(ids("/p/run"), vec!["bash"]);
+        // A detected type the extension's servers handle keeps all of them.
+        m.set_document_language(Path::new("/p/a.js"), Some("javascript"));
+        assert_eq!(ids("/p/a.js"), vec!["ts", "eslint"]);
+        // Override File Type: a `.sh` file as PHP, a `.php` file as plain text.
+        m.set_document_language(Path::new("/p/x.sh"), Some("php"));
+        assert_eq!(ids("/p/x.sh"), vec!["php"]);
+        m.set_document_language(Path::new("/p/y.php"), Some("text"));
+        assert!(ids("/p/y.php").is_empty());
+        // A type no server handles keeps the extension routing; forgetting it too.
+        m.set_document_language(Path::new("/p/z.php"), Some("yaml"));
+        assert_eq!(ids("/p/z.php"), vec!["php"]);
+        m.set_document_language(Path::new("/p/y.php"), None);
+        assert_eq!(ids("/p/y.php"), vec!["php"]);
     }
 
     fn diag(line: u32, source: Option<&str>) -> Diagnostic {

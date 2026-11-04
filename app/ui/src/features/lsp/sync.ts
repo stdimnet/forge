@@ -2,6 +2,10 @@
 import { ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { lspApi } from "@/ipc/lsp";
 import { onFileSaved } from "@/state/editor";
+import { fileTypeOf } from "@/editor/fileTypes";
+
+/** The file type servers are told (`artisan` is PHP by its `#!` line). */
+const languageOf = (path: string): string => fileTypeOf(path).id ?? "";
 
 const CHANGE_DEBOUNCE_MS = 200;
 
@@ -36,7 +40,7 @@ export function documentSync(path: string) {
       pending.delete(path);
       await lspApi.didChange(path, view.state.doc.toString()).catch(ignore);
     };
-    const announce = () => void lspApi.didOpen(path, view.state.doc.toString()).catch(ignore);
+    const announce = () => void lspApi.didOpen(path, view.state.doc.toString(), languageOf(path)).catch(ignore);
     announce();
     announcers.set(path, announce);
     const offSave = onFileSaved(async (p, content) => {

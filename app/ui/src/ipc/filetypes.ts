@@ -8,7 +8,7 @@ import type { SettingObject } from "./settings";
 
 export interface FileRef {
   path: string;
-  /** First line of the content, for `#!` detection. */
+  /** First line of the content, for `#!` and modeline detection. */
   firstLine?: string;
 }
 

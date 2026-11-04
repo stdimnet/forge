@@ -4,8 +4,9 @@
 //!
 //! The bundled types ([`builtin_file_types`]) are extended or replaced by the file types of
 //! plugin manifests (`[[plugin.contributions.fileTypes]]`). Detection prefers, in order:
-//! file names and path patterns, the longest matching extension (so `x.blade.php` beats
-//! `php`), and the interpreter of a `#!` line. Later registrations win ties.
+//! file names and path patterns, the longest matching extension (so `x.blade.php` beats `php`), the
+//! interpreter of a `#!` line (`#!/usr/bin/env php`) and a Vim or Emacs modeline on the first
+//! line (`# vim: set ft=php:`, `-*- mode: python -*-`). Later registrations win ties.
 //!
 //! The user's changes from Settings | Editor | File Types (patterns added to or removed from
 //! a type, custom file types with their own highlighting) are applied on top ([`user`]).
@@ -22,6 +23,7 @@ mod builtin;
 pub mod data;
 pub mod delimiters;
 pub mod glob;
+mod modeline;
 pub mod user;
 
 pub use builtin::builtin_file_types;
@@ -55,7 +57,8 @@ pub struct FileTypeSpec {
     #[serde(default)]
     pub file_names: Vec<String>,
     /// Interpreters that select the type from a `#!` line (`python` also matches
-    /// `python3.12`), for files without a recognised name.
+    /// `python3.12`), for files without a recognised name. A plugin's type without
+    /// interpreters keeps those of the bundled type with the same id.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub interpreters: Vec<String>,
     /// Indentation in spaces; [`DEFAULT_INDENT_SIZE`] when unset.
@@ -120,7 +123,7 @@ impl DetectRequest {
 #[serde(rename_all = "camelCase")]
 pub struct FileRef {
     pub path: String,
-    /// First line of the content, for `#!` detection.
+    /// First line of the content, for `#!` and modeline detection.
     #[serde(default)]
     pub first_line: Option<String>,
 }
@@ -177,13 +180,9 @@ impl FileTypeRegistry {
         self.entries.iter().map(|e| &e.spec)
     }
 
-    /// The file type of `path`, or `None` for plain text.
-    pub fn detect(
-        &self,
-        path: &str,
-        first_line: Option<&str>,
-        inactive_plugins: &[String],
-    ) -> Option<&FileTypeSpec> {
+    /// The active types: of several types with one id only the newest (a plugin's override)
+    /// counts, and types of inactive plugins are skipped.
+    fn active(&self, inactive_plugins: &[String]) -> Vec<&FileTypeSpec> {
         let enabled: Vec<&FileTypeSpec> = self
             .entries
             .iter()
@@ -194,13 +193,35 @@ impl FileTypeRegistry {
             })
             .map(|e| &e.spec)
             .collect();
-        // Of several types with one id, only the newest (the plugin's override) counts.
-        let active: Vec<&FileTypeSpec> = enabled
+        enabled
             .iter()
             .enumerate()
             .filter(|(i, t)| !enabled[i + 1..].iter().any(|later| later.id == t.id))
             .map(|(_, t)| *t)
-            .collect();
+            .collect()
+    }
+
+    /// The interpreters of `spec`: its own, or those of another registration of its id (a
+    /// plugin that overrides a bundled type without listing them keeps the bundled ones).
+    fn interpreters_of<'a>(&'a self, spec: &'a FileTypeSpec) -> &'a [String] {
+        if !spec.interpreters.is_empty() {
+            return &spec.interpreters;
+        }
+        self.entries
+            .iter()
+            .rev()
+            .find(|e| e.spec.id == spec.id && !e.spec.interpreters.is_empty())
+            .map_or(&[], |e| &e.spec.interpreters)
+    }
+
+    /// The file type of `path`, or `None` for plain text.
+    pub fn detect(
+        &self,
+        path: &str,
+        first_line: Option<&str>,
+        inactive_plugins: &[String],
+    ) -> Option<&FileTypeSpec> {
+        let active = self.active(inactive_plugins);
         let lower = path.to_lowercase();
         let name = lower.rsplit('/').next().unwrap_or(&lower);
         let mut best: Option<(&FileTypeSpec, usize)> = None;
@@ -213,16 +234,21 @@ impl FileTypeRegistry {
         if let Some((spec, _)) = best {
             return Some(spec);
         }
-        let interpreter = first_line.and_then(shebang_interpreter)?;
-        active
-            .iter()
-            .rev()
-            .find(|t| {
-                t.interpreters
+        let first_line = first_line?;
+        if let Some(interpreter) = shebang_interpreter(first_line) {
+            let hit = active.iter().rev().find(|t| {
+                self.interpreters_of(t)
                     .iter()
                     .any(|i| interpreter_matches(i, &interpreter))
-            })
-            .copied()
+            });
+            if let Some(spec) = hit {
+                return Some(spec);
+            }
+        }
+        let mode = modeline::mode_of(first_line)?;
+        modeline::resolve(&mode, &active, |t, m| {
+            self.interpreters_of(t).iter().any(|i| i.eq_ignore_ascii_case(m))
+        })
     }
 
     /// Resolve one file for the editor.
@@ -311,20 +337,57 @@ fn score(spec: &FileTypeSpec, path: &str, name: &str) -> usize {
     best
 }
 
-/// The interpreter of a `#!` line: `#!/usr/bin/env -S python3 -u` → `python3`.
-fn shebang_interpreter(line: &str) -> Option<String> {
-    let rest = line.strip_prefix("#!")?;
-    let mut words = rest.split_whitespace();
-    let program = words.next()?.rsplit('/').next()?;
-    let program = if program == "env" {
-        words.find(|w| !w.starts_with('-') && !w.contains('='))?
-    } else {
-        program
+/// Options of `env` that take the next word as their argument.
+const ENV_ARG_OPTIONS: &[&str] = &["-u", "--unset", "-C", "--chdir", "-P", "-a", "--argv0"];
+
+/// The interpreter of a `#!` line, lower case and without directory or `.exe`:
+/// `#!/usr/bin/env -S python3 -u` → `python3`, `#!/usr/bin/env FOO=1 php` → `php`,
+/// `#!/opt/homebrew/bin/php -q` → `php`, `#!/usr/bin/make -f` → `make`.
+pub fn shebang_interpreter(line: &str) -> Option<String> {
+    let rest = line.trim_start_matches('\u{feff}').strip_prefix("#!")?;
+    let base = |w: &str| {
+        let name = w.rsplit(['/', '\\']).next().unwrap_or(w).to_lowercase();
+        name.strip_suffix(".exe").map(str::to_string).unwrap_or(name)
     };
-    Some(program.to_lowercase())
+    let mut words = rest.split_whitespace();
+    let program = base(words.next()?);
+    if program != "env" {
+        return Some(program).filter(|p| !p.is_empty());
+    }
+    while let Some(w) = words.next() {
+        if let Some(split) = w.strip_prefix("--split-string=") {
+            if !split.is_empty() {
+                return Some(base(split));
+            }
+            continue;
+        }
+        if w == "--" {
+            return words.next().map(base);
+        }
+        if ENV_ARG_OPTIONS.contains(&w) {
+            words.next();
+            continue;
+        }
+        if let Some(opts) = w.strip_prefix('-').filter(|o| !o.starts_with('-')) {
+            // `-S'php -q'`, `-Sphp`: the split string glued to the option.
+            if let Some(i) = opts.find('S') {
+                let glued = opts[i + 1..].trim_matches(['\'', '"']);
+                if !glued.is_empty() {
+                    return Some(base(glued));
+                }
+            }
+            continue;
+        }
+        if w.starts_with('-') || w.contains('=') {
+            continue;
+        }
+        return Some(base(w.trim_matches(['\'', '"'])));
+    }
+    None
 }
 
-/// `python` matches `python`, `python3` and `python3.12`, not `pythonista`.
+/// `python` matches `python`, `python3` and `python3.12`, `php` matches `php8.3`, not
+/// `pythonista`.
 fn interpreter_matches(name: &str, interpreter: &str) -> bool {
     interpreter
         .strip_prefix(&name.to_lowercase())

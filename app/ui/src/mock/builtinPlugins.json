@@ -7409,7 +7409,12 @@
             "profile",
             "engine"
           ],
-          "fileNames": []
+          "fileNames": [],
+          "interpreters": [
+            "php",
+            "php-cgi",
+            "hhvm"
+          ]
         }
       ],
       "commands": [
@@ -9688,7 +9693,9 @@
             "python",
             "python3",
             "pypy",
-            "pypy3"
+            "pypy3",
+            "uv",
+            "pythonw"
           ]
         },
         {
@@ -16373,8 +16380,11 @@
             "bash",
             "zsh",
             "ksh",
+            "mksh",
             "dash",
-            "ash"
+            "ash",
+            "busybox",
+            "fish"
           ],
           "indentSize": 2
         }
