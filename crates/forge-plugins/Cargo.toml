@@ -14,6 +14,7 @@ disk = ["dep:zip", "dep:dirs"]
 net = ["disk", "dep:reqwest"]
 
 [dependencies]
+forge-hostspawn.workspace = true
 forge-plugin-api.workspace = true
 forge-keymap.workspace = true
 serde.workspace = true

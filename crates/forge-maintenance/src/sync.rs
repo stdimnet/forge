@@ -429,10 +429,12 @@ impl GitRemote {
 }
 
 fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
-        .args(args)
+    let mut cmd = Command::new("git");
+    cmd.args(args)
         .current_dir(dir)
-        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_TERMINAL_PROMPT", "0");
+    // In Flatpak git runs on the host.
+    let out = forge_hostspawn::host_command(cmd)
         .output()
         .map_err(|e| format!("cannot run git: {e}"))?;
     if out.status.success() {

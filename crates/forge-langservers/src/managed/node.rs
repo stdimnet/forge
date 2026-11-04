@@ -179,8 +179,9 @@ pub fn node_version(node: &Path) -> Option<(u64, u64, u64)> {
     if let Some(v) = cache.get(node) {
         return *v;
     }
-    let v = std::process::Command::new(node)
-        .arg("--version")
+    let mut cmd = std::process::Command::new(node);
+    cmd.arg("--version");
+    let v = forge_hostspawn::host_command(cmd)
         .stdin(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .output()

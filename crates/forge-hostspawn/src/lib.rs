@@ -338,6 +338,24 @@ pub fn is_dir(path: &Path) -> bool {
     sandbox_view(path).is_dir()
 }
 
+/// The entries of a host folder, as host paths (empty when it cannot be read).
+pub fn list_dir(dir: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(sandbox_view(dir)) else {
+        return Vec::new();
+    };
+    entries.flatten().map(|e| dir.join(e.file_name())).collect()
+}
+
+/// [`std::fs::metadata`] of a host path.
+pub fn metadata(path: &Path) -> std::io::Result<std::fs::Metadata> {
+    std::fs::metadata(sandbox_view(path))
+}
+
+/// [`std::fs::canonicalize`] of a host path, as a host path.
+pub fn canonicalize(path: &Path) -> std::io::Result<PathBuf> {
+    std::fs::canonicalize(sandbox_view(path)).map(|p| host_path(&p))
+}
+
 /// The host's environment as a login shell sees it (`sh -lc env`), read once through
 /// `flatpak-spawn --host`. Empty when that fails or outside Flatpak.
 pub fn host_env() -> &'static BTreeMap<String, String> {

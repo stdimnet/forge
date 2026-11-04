@@ -10,6 +10,7 @@ license.workspace = true
 testserver = []
 
 [dependencies]
+forge-hostspawn.workspace = true
 forge-lsp.workspace = true
 serde.workspace = true
 serde_json.workspace = true

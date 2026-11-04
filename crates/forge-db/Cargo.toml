@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 forge-core.workspace = true
+forge-hostspawn.workspace = true
 forge-sql.workspace = true
 forge-dbmodel.workspace = true
 forge-dbschema.workspace = true

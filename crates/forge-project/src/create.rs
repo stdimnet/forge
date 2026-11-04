@@ -36,9 +36,10 @@ pub enum CreateEvent {
     Failed { error: String },
 }
 
-/// Full path of an executable found on `PATH` (honoring `PATHEXT` on Windows).
+/// Full path of an executable found on `PATH` (honoring `PATHEXT` on Windows); in Flatpak
+/// on the host's `PATH`.
 pub fn find_executable(name: &str) -> Option<PathBuf> {
-    let path = std::env::var_os("PATH")?;
+    let path = forge_hostspawn::path_var()?;
     let exts: Vec<String> = if cfg!(windows) {
         std::env::var("PATHEXT")
             .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".into())
@@ -64,13 +65,13 @@ fn is_executable(p: &Path) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        p.metadata()
+        forge_hostspawn::metadata(p)
             .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
             .unwrap_or(false)
     }
     #[cfg(not(unix))]
     {
-        p.is_file()
+        forge_hostspawn::is_file(p)
     }
 }
 
@@ -169,9 +170,6 @@ fn run_program(
     let mut cmd = Command::new(&exe);
     cmd.args(args)
         .current_dir(cwd)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
         // Never wait for answers: accept npx installs, no composer/npm prompts, no colors.
         .env("npm_config_yes", "true")
         .env("COMPOSER_NO_INTERACTION", "1")
@@ -179,6 +177,11 @@ fn run_program(
         .env("NO_COLOR", "1")
         .env("FORCE_COLOR", "0")
         .env("GIT_TERMINAL_PROMPT", "0");
+    // In Flatpak composer / npm / laravel run on the host.
+    let mut cmd = forge_hostspawn::host_command(cmd);
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

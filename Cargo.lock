@@ -2985,6 +2985,7 @@ dependencies = [
  "forge-dbmodel",
  "forge-dbschema",
  "forge-dbtransfer",
+ "forge-hostspawn",
  "forge-ports",
  "forge-remote",
  "forge-sql",
@@ -3086,6 +3087,7 @@ version = "0.1.0"
 dependencies = [
  "forge-backend",
  "forge-core",
+ "forge-hostspawn",
  "forge-remote",
  "forge-remote-agent",
  "forge-runtargets",
@@ -3244,6 +3246,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "flate2",
+ "forge-hostspawn",
  "forge-lsp",
  "ignore",
  "reqwest 0.12.28",
@@ -3302,6 +3305,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "forge-hostspawn",
  "hex",
  "serde",
  "serde_json",
@@ -3387,6 +3391,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "ed25519-dalek",
+ "forge-hostspawn",
  "forge-keymap",
  "forge-langservers",
  "forge-plugin-api",
@@ -3443,6 +3448,7 @@ name = "forge-project"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-hostspawn",
  "javaforge-minecraft",
  "serde",
  "serde_json",

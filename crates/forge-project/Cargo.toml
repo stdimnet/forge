@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+forge-hostspawn.workspace = true
 forge-core.workspace = true
 javaforge-minecraft.workspace = true
 serde.workspace = true
