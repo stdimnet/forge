@@ -338,6 +338,7 @@ pub fn run() {
             commands::lsp::lsp_format,
             commands::lsp::lsp_inlay_hints,
             commands::lsp::lsp_status,
+            commands::lsp::lsp_server_log,
             commands::lsp::lsp_register_server,
             commands::codeintel::code_find_usages,
             commands::codeintel::code_highlight_usages,

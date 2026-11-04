@@ -7,6 +7,7 @@
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { Download, ExternalLink, LoaderCircle, RefreshCw, Search } from "lucide-solid";
 import { serverKey, type ServerRow } from "@/ipc/langservers";
+import { lspApi } from "@/ipc/lsp";
 import { settingsState } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { draft, draftValue, openSettings, setDraft } from "@/features/settings/dialogState";
@@ -97,6 +98,15 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
   const extraError = () => jsonError(extra());
   const [showDefaults, setShowDefaults] = createSignal(false);
   const skip = () => skipText(row().skip, rows());
+  // The server log of the row it was loaded for (start, stderr, start errors, exits).
+  const [log, setLog] = createSignal<{ id: string; lines: string[] } | null>(null);
+  const shownLog = () => (log()?.id === row().id ? log()!.lines : null);
+  const toggleLog = async () => {
+    if (shownLog()) return setLog(null);
+    const id = row().id;
+    const lines = await lspApi.serverLog(id).catch((e: unknown) => [`Cannot read the log: ${String((e as Error)?.message ?? e)}`]);
+    setLog({ id, lines });
+  };
   return (
     <div class="ls-details" data-testid="ls-details">
       <div class="ls-details-head">
@@ -136,6 +146,27 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
               Languages & Frameworks | PHP
             </button>
           </span>
+        </Show>
+
+        <Show when={row().status === "failed" && row().detail}>
+          <span class="ls-form-label">Error:</span>
+          <span class="ls-start-error" data-testid="ls-start-error">
+            {row().detail}
+          </span>
+        </Show>
+
+        <span class="ls-form-label">Log:</span>
+        <span>
+          <button class="ls-link" data-testid="ls-log-toggle" onClick={() => void toggleLog()}>
+            {shownLog() ? "Hide Log" : "Show Log"}
+          </button>
+        </span>
+        <Show when={shownLog()}>
+          {(lines) => (
+            <pre class="ls-log" data-testid="ls-log">
+              {lines().length ? lines().join("\n") : "Not started in this project yet. It starts with the first file it serves."}
+            </pre>
+          )}
         </Show>
 
         <Show when={skip() && row().enabled && row().status !== "running"}>

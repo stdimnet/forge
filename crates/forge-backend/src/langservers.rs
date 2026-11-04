@@ -199,7 +199,7 @@ fn pack_row(mut r: ServerRow) -> ServerRow {
         r.path = builtin.map(|b| b.command.display().to_string());
         r.builtin_version = builtin.map(|b| b.version.clone());
         r.install.clear();
-        if builtin.is_some() && r.status != RowStatus::Running {
+        if builtin.is_some() && !matches!(r.status, RowStatus::Running | RowStatus::Failed) {
             r.status = RowStatus::Installed;
         } else if builtin.is_none() {
             r.status = RowStatus::NotInstalled;
