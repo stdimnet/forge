@@ -218,8 +218,10 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         with:
-          projectPath: app/ui
-          tauriScript: pnpm tauri
+          # tauri-action looks for tauri.conf.json below projectPath, so it must include
+          # src-tauri; the Forge wrapper (scripts/tauri.mjs) lives in app/ui.
+          projectPath: app
+          tauriScript: pnpm --dir ui tauri
           args: --config src-tauri/tauri.agents.conf.json ${{ matrix.args }}
           releaseId: ${{ needs.meta.outputs.id }}
           tagName: ${{ github.ref_name }}
