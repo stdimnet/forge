@@ -15,6 +15,12 @@ documentation:
   minecraft-velocity-plugin.json  velocity-plugin.json
   minecraft-bungee-plugin.json    bungee.yml
 
+The Unity assembly definition schemas, from Unity's manual (Assembly Definition and
+Assembly Definition Reference file formats):
+
+  unity-asmdef.json               *.asmdef
+  unity-asmref.json               *.asmref
+
 Apache License 2.0 (full text in LICENSE-APACHE-2.0)
 ----------------------------------------------------
 

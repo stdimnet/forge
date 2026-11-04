@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/unity-asmdef.json",
+  "title": "Unity Assembly Definition",
+  "description": "A Unity assembly definition (.asmdef): the scripts of its folder compile into one assembly.",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The assembly name, unique in the project (Company.Product.Feature).",
+      "pattern": "^[^\\s/\\\\:*?\"<>|]+$"
+    },
+    "rootNamespace": {
+      "type": "string",
+      "description": "The namespace new scripts in this assembly get."
+    },
+    "references": {
+      "type": "array",
+      "description": "Assemblies this one uses: their names, or \"GUID:<guid>\" references to their .asmdef files.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "includePlatforms": {
+      "type": "array",
+      "description": "Platforms the assembly is built for; empty means all (minus excludePlatforms). Use [\"Editor\"] for editor code.",
+      "items": { "$ref": "#/definitions/platform" },
+      "uniqueItems": true
+    },
+    "excludePlatforms": {
+      "type": "array",
+      "description": "Platforms the assembly is not built for (only when includePlatforms is empty).",
+      "items": { "$ref": "#/definitions/platform" },
+      "uniqueItems": true
+    },
+    "allowUnsafeCode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow C# unsafe code."
+    },
+    "overrideReferences": {
+      "type": "boolean",
+      "default": false,
+      "description": "Reference only the precompiled assemblies of precompiledReferences instead of all of them."
+    },
+    "precompiledReferences": {
+      "type": "array",
+      "description": "Precompiled assemblies (.dll file names) to reference when overrideReferences is on.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "autoReferenced": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the predefined assemblies (Assembly-CSharp) reference this assembly automatically."
+    },
+    "defineConstraints": {
+      "type": "array",
+      "description": "Scripting symbols that must be defined (or, with a leading !, undefined) for the assembly to compile, e.g. UNITY_INCLUDE_TESTS.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "versionDefines": {
+      "type": "array",
+      "description": "Symbols defined when a package or module is present in a version range.",
+      "items": {
+        "type": "object",
+        "required": ["name", "expression", "define"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "description": "The package or module (com.unity.inputsystem, Unity)." },
+          "expression": { "type": "string", "description": "A version range, e.g. 1.0.0 or [1.0,2.0)." },
+          "define": { "type": "string", "description": "The symbol to define." }
+        }
+      }
+    },
+    "noEngineReferences": {
+      "type": "boolean",
+      "default": false,
+      "description": "Do not reference the UnityEngine and UnityEditor assemblies."
+    },
+    "optionalUnityReferences": {
+      "type": "array",
+      "description": "Deprecated (Unity 2019.2 and older): [\"TestAssemblies\"] made a test assembly.",
+      "items": { "enum": ["TestAssemblies"] }
+    }
+  },
+  "definitions": {
+    "platform": {
+      "type": "string",
+      "description": "A build platform.",
+      "enum": [
+        "Android", "Editor", "EmbeddedLinux", "GameCoreScarlett", "GameCoreXboxOne", "iOS",
+        "LinuxStandalone64", "CloudRendering", "Lumin", "macOSStandalone", "PS4", "PS5",
+        "QNX", "Stadia", "Switch", "tvOS", "VisionOS", "WSA", "WebGL", "WindowsStandalone32",
+        "WindowsStandalone64", "XboxOne", "LinuxHeadlessSimulation", "Kepler"
+      ]
+    }
+  }
+}
