@@ -12,6 +12,7 @@ import { configurations, isTemporary, selectConfiguration, selectedConfiguration
 import { debugConfiguration, isRunning, runConfiguration, runningFor, stopConfiguration } from "./runStore";
 import { openRunConfigurations } from "./dialogState";
 import { findType } from "./types";
+import { t } from "@/i18n";
 
 const keyHint = (title: string, action: string) => {
   const k = shortcutLabel(action);
@@ -57,12 +58,12 @@ function Dropdown(props: { anchor: HTMLElement }) {
       <ConfigIcon cfg={p.cfg} />
       <span class="run-dd-name">{p.cfg.name}</span>
       <Show when={runningFor(p.cfg)}>
-        <span class="run-dd-live" title="Running" />
+        <span class="run-dd-live" title={t("run.widget.running")} />
       </Show>
       <span class="run-dd-actions">
         <button
           class="icon-btn run-btn"
-          title={`Run '${p.cfg.name}'`}
+          title={t("run.widget.run", { name: p.cfg.name })}
           onClick={(e) => {
             e.stopPropagation();
             pick(p.cfg);
@@ -73,7 +74,7 @@ function Dropdown(props: { anchor: HTMLElement }) {
         </button>
         <button
           class="icon-btn debug-btn"
-          title={`Debug '${p.cfg.name}'`}
+          title={t("run.widget.debug", { name: p.cfg.name })}
           onClick={(e) => {
             e.stopPropagation();
             pick(p.cfg);
@@ -95,7 +96,7 @@ function Dropdown(props: { anchor: HTMLElement }) {
         style={{ top: `${rect.bottom + 4}px`, left: `${Math.max(8, rect.left)}px` }}
         onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setDropdownOpen(false))}
       >
-        <Show when={configurations().length || temporary().length} fallback={<div class="run-dd-empty muted">No run configurations yet</div>}>
+        <Show when={configurations().length || temporary().length} fallback={<div class="run-dd-empty muted">{t("run.widget.empty")}</div>}>
           <For each={configurations()}>{(cfg) => <Item cfg={cfg} />}</For>
           <Show when={temporary().length}>
             <div class="run-dd-sep" />
@@ -114,7 +115,7 @@ function Dropdown(props: { anchor: HTMLElement }) {
           <span class="run-config-type-icon muted">
             <Settings2 size={14} />
           </span>
-          <span class="run-dd-name">Edit Configurations…</span>
+          <span class="run-dd-name">{t("run.widget.edit")}</span>
         </div>
       </div>
     </Portal>
@@ -131,10 +132,10 @@ export function RunWidget() {
         ref={pill}
         class="pill-btn run-config"
         classList={{ open: dropdownOpen() }}
-        title="Run/Debug Configurations"
+        title={t("run.widget.title")}
         onClick={() => (cfg() || configurations().length ? setDropdownOpen((o) => !o) : openRunConfigurations())}
       >
-        <Show when={cfg()} fallback={<span class="muted">Add Configuration…</span>}>
+        <Show when={cfg()} fallback={<span class="muted">{t("run.widget.add")}</span>}>
           {(c) => (
             <>
               <ConfigIcon cfg={c()} />
@@ -149,21 +150,21 @@ export function RunWidget() {
       </Show>
       <button
         class="icon-btn run-btn"
-        title={cfg() ? keyHint(isRunning(running()) ? `Rerun '${cfg()!.name}'` : `Run '${cfg()!.name}'`, "Run") : keyHint("Run", "Run")}
+        title={cfg() ? keyHint(isRunning(running()) ? t("run.widget.rerun", { name: cfg()!.name }) : t("run.widget.run", { name: cfg()!.name }), "Run") : keyHint(t("run.widget.runPlain"), "Run")}
         onClick={() => void runConfiguration()}
       >
         <Show when={running()} fallback={<Play size={16} fill="currentColor" />}>
           <RotateCcw size={16} />
         </Show>
       </button>
-      <button class="icon-btn debug-btn" title={cfg() ? keyHint(`Debug '${cfg()!.name}'`, "Debug") : keyHint("Debug", "Debug")} onClick={() => void debugConfiguration()}>
+      <button class="icon-btn debug-btn" title={cfg() ? keyHint(t("run.widget.debug", { name: cfg()!.name }), "Debug") : keyHint(t("run.widget.debugPlain"), "Debug")} onClick={() => void debugConfiguration()}>
         <Bug size={16} />
       </button>
       <Show when={running()}>
         {(s) => (
           <button
             class="icon-btn stop-btn"
-            title={keyHint(`Stop '${cfg()?.name ?? s().name}'`, "Stop")}
+            title={keyHint(t("run.widget.stop", { name: cfg()?.name ?? s().name }), "Stop")}
             onClick={() => void stopConfiguration(cfg())}
           >
             <Square size={13} fill="currentColor" />

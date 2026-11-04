@@ -127,7 +127,7 @@ function contextConfiguration() {
 
 registerDialog<DialogRequest>({
   id: RUN_CONFIGURATIONS_DIALOG,
-  title: "Run/Debug Configurations",
+  title: t("run.widget.title"),
   width: 1000,
   height: 660,
   minWidth: 720,

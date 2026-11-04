@@ -58,8 +58,8 @@ const used = new Map(); // key -> first location
 let dynamicKeys = 0;
 const candidates = []; // { file, line, text }
 
-const KEY_CALL = /\b(?:t|tOr|hasMessage)\(\s*"([a-z][a-zA-Z0-9_$-]*\.[a-zA-Z0-9_.$-]+)"|<T\s+k="([a-z][a-zA-Z0-9_.$-]+)"/g;
-const DYNAMIC_CALL = /\b(?:t|tOr)\(\s*`/g;
+const KEY_CALL = /\b(?:t|tr|tOr|hasMessage)\(\s*"([a-z][a-zA-Z0-9_$-]*\.[a-zA-Z0-9_.$-]+)"|<T\s+k="([a-z][a-zA-Z0-9_.$-]+)"/g;
+const DYNAMIC_CALL = /\b(?:t|tr|tOr)\(\s*`/g;
 const ATTR = /\b(?:title|placeholder|aria-label|label|alt)="([^"{}]*[A-Za-z]{2}[^"{}]*)"/g;
 const BALLOON = /\b(?:showBalloon|notify|notifyError|askConfirm)\(\s*"([^"]*[A-Za-z]{2}[^"]*)"/g;
 const PROP = /\b(?:title|label|placeholder|message|confirm|tooltip|emptyText):\s*"([A-Z][^"]*[a-z][^"]*)"/g;

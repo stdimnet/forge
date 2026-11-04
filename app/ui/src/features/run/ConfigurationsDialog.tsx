@@ -53,6 +53,7 @@ import {
 } from "./types";
 import { openMenu } from "./PopupMenu";
 import { RunOnRow } from "./RunOn";
+import { t as tr } from "@/i18n";
 
 interface Item {
   uid: number;
@@ -324,11 +325,11 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
     props.type.interpreter === "php" ? decodeInterpreters(getSetting(INTERPRETERS_GLOBAL_KEY, []), getSetting(INTERPRETERS_PROJECT_KEY, [])) : [];
   const named = () => findInterpreter(phpInterpreters(), props.cfg.interpreter ?? "");
   const custom = () => !!props.cfg.interpreter && !named();
-  const label = () => (props.type.interpreter === "php" ? "Interpreter" : props.type.interpreter === "shell" ? "Interpreter path" : "Interpreter");
+  const label = () => (props.type.interpreter === "shell" ? tr("run.config.interpreterPath") : tr("run.config.interpreter"));
   const defaultLabel = () => {
-    if (props.type.interpreter !== "php") return `Default (${projectDefault()})`;
+    if (props.type.interpreter !== "php") return tr("run.config.default", { name: projectDefault() });
     const i = findInterpreter(phpInterpreters(), projectDefault());
-    return i ? `${i.name}${i.version ? ` (${i.version})` : ""} — project default` : `${projectDefault()} — project default`;
+    return tr("run.config.projectDefault", { name: i ? `${i.name}${i.version ? ` (${i.version})` : ""}` : projectDefault() });
   };
   return (
     <>
@@ -353,7 +354,7 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
                 </option>
               )}
             </For>
-            <option value="custom">Custom…</option>
+            <option value="custom">{tr("run.config.custom")}</option>
           </select>
           <Show when={custom()}>
             <PathInput name="interpreter" value={props.cfg.interpreter ?? ""} onChange={(v) => update((c) => (c.interpreter = v))} />
@@ -361,7 +362,7 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
         </div>
       </div>
       <label class="rc-row">
-        <span class="rc-label">Interpreter options:</span>
+        <span class="rc-label">{tr("run.config.interpreterOptions")}</span>
         <input
           class="rc-input"
           value={props.cfg.interpreterOptions ?? ""}
@@ -387,7 +388,7 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
     });
   return (
     <div class="rc-row top">
-      <span class="rc-label">Environment variables:</span>
+      <span class="rc-label">{tr("run.config.env")}</span>
       <div class="rc-env">
         <div class="rc-path">
           <input
@@ -409,15 +410,15 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
               })
             }
           />
-          <button class="icon-btn rc-browse" classList={{ active: open() }} title="Edit environment variables" onClick={() => setOpen((o) => !o)}>
+          <button class="icon-btn rc-browse" classList={{ active: open() }} title={tr("run.config.envEdit")} onClick={() => setOpen((o) => !o)}>
             <Pencil size={13} />
           </button>
         </div>
         <Show when={open()}>
           <div class="rc-env-table">
             <div class="rc-env-head">
-              <span>Name</span>
-              <span>Value</span>
+              <span>{tr("run.config.envName")}</span>
+              <span>{tr("run.config.envValue")}</span>
               <span />
             </div>
             <For each={rows()}>
@@ -441,7 +442,7 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
                       setRows(next);
                     }}
                   />
-                  <button class="icon-btn" title="Remove" onClick={() => setRows(rows().filter((_, j) => j !== i()))}>
+                  <button class="icon-btn" title={tr("common.remove")} onClick={() => setRows(rows().filter((_, j) => j !== i()))}>
                     <Minus size={13} />
                   </button>
                 </div>
@@ -455,7 +456,7 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
                 setRows([...rows(), [`NAME${n}`, ""]]);
               }}
             >
-              <Plus size={13} /> Add variable
+              <Plus size={13} /> {tr("run.config.envAdd")}
             </button>
           </div>
         </Show>
@@ -466,13 +467,13 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
 
 /** Kinds of Before launch tasks with their label and the placeholder of their value. */
 const TASK_KINDS: Record<string, { label: string; icon: IconComponent; placeholder?: string }> = {
-  runConfiguration: { label: "Run", icon: Settings2 },
-  externalTool: { label: "External tool", icon: Wrench },
-  browser: { label: "Launch Web Browser", icon: Globe, placeholder: "http://localhost:8000" },
-  npm: { label: "Run npm script", icon: Hexagon, placeholder: "build" },
-  composer: { label: "Run Composer script", icon: Package, placeholder: "dump-autoload" },
-  artisan: { label: "Run Artisan command", icon: Feather, placeholder: "migrate" },
-  shell: { label: "Run", icon: SquareTerminal, placeholder: "composer dump-autoload" },
+  runConfiguration: { label: tr("run.task.run"), icon: Settings2 },
+  externalTool: { label: tr("run.task.externalTool"), icon: Wrench },
+  browser: { label: tr("run.task.browser"), icon: Globe, placeholder: "http://localhost:8000" },
+  npm: { label: tr("run.task.npm"), icon: Hexagon, placeholder: "build" },
+  composer: { label: tr("run.task.composer"), icon: Package, placeholder: "dump-autoload" },
+  artisan: { label: tr("run.task.artisan"), icon: Feather, placeholder: "migrate" },
+  shell: { label: tr("run.task.run"), icon: SquareTerminal, placeholder: "composer dump-autoload" },
 };
 
 function BeforeLaunch(props: { cfg: RunConfiguration }) {
@@ -503,7 +504,7 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
       ...at,
       items: [
         {
-          label: "Run External tool",
+          label: tr("run.task.addExternalTool"),
           icon: Wrench,
           run: () =>
             openMenu({
@@ -515,7 +516,7 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
                   ])
                 : [
                     {
-                      label: "Configure External Tools…",
+                      label: tr("run.task.configureTools"),
                       icon: Settings2,
                       run: () => void import("@/features/settings/dialogState").then((m) => m.openSettings("tools.external-tools")),
                     },
@@ -523,7 +524,7 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
             }),
         },
         {
-          label: "Run Another Configuration",
+          label: tr("run.task.another"),
           icon: Play,
           disabled: !others.length,
           run: () =>
@@ -537,14 +538,14 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
               })),
             }),
         },
-        { label: "Launch Web Browser", icon: Globe, run: () => add({ type: "browser", value: "" }) },
-        { label: "Run npm script", icon: Hexagon, run: () => add({ type: "npm", value: "" }) },
-        { label: "Run Composer script", icon: Package, run: () => add({ type: "composer", value: "" }) },
+        { label: tr("run.task.browser"), icon: Globe, run: () => add({ type: "browser", value: "" }) },
+        { label: tr("run.task.npm"), icon: Hexagon, run: () => add({ type: "npm", value: "" }) },
+        { label: tr("run.task.composer"), icon: Package, run: () => add({ type: "composer", value: "" }) },
         ...(usesFramework("laravel") || tasks().some((t) => t.type === "artisan")
-          ? [{ label: "Run Artisan command", icon: Feather, run: () => add({ type: "artisan", value: "" }) }]
+          ? [{ label: tr("run.task.artisan"), icon: Feather, run: () => add({ type: "artisan", value: "" }) }]
           : []),
         { separator: true },
-        { label: "Run Shell Command…", icon: SquareTerminal, run: () => add({ type: "shell", value: "" }) },
+        { label: tr("run.task.shell"), icon: SquareTerminal, run: () => add({ type: "shell", value: "" }) },
       ],
     });
   };
@@ -557,7 +558,7 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
     <div class="rc-section">
       <button class="rc-section-title" onClick={() => setOpen((o) => !o)}>
         {open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span>Before launch</span>
+        <span>{tr("run.config.beforeLaunch")}</span>
         <Show when={tasks().length}>
           <span class="rc-count">{tasks().length}</span>
         </Show>
@@ -565,22 +566,22 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
       <Show when={open()}>
         <div class="rc-bl" data-testid="rc-before-launch">
           <div class="rc-bl-tools">
-            <button class="icon-btn" title="Add" onClick={addMenu}>
+            <button class="icon-btn" title={tr("common.add")} onClick={addMenu}>
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove" disabled={sel() === null} onClick={() => (setTasks(tasks().filter((_, i) => i !== sel())), setSel(null))}>
+            <button class="icon-btn" title={tr("common.remove")} disabled={sel() === null} onClick={() => (setTasks(tasks().filter((_, i) => i !== sel())), setSel(null))}>
               <Minus size={14} />
             </button>
-            <button class="icon-btn" title="Move Up" disabled={!sel()} onClick={() => move(-1)}>
+            <button class="icon-btn" title={tr("common.moveUp")} disabled={!sel()} onClick={() => move(-1)}>
               <ArrowUp size={14} />
             </button>
-            <button class="icon-btn" title="Move Down" disabled={sel() === null || sel() === tasks().length - 1} onClick={() => move(1)}>
+            <button class="icon-btn" title={tr("common.moveDown")} disabled={sel() === null || sel() === tasks().length - 1} onClick={() => move(1)}>
               <ArrowDown size={14} />
             </button>
           </div>
           <div class="rc-bl-list">
             {/* Index keeps rows (and the focused input) while values change. */}
-            <Index each={tasks()} fallback={<div class="rc-bl-empty muted">There are no tasks to run before launch</div>}>
+            <Index each={tasks()} fallback={<div class="rc-bl-empty muted">{tr("run.config.noTasks")}</div>}>
               {(t, i) => {
                 const kind = () => TASK_KINDS[t().type];
                 return (
@@ -603,13 +604,13 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
                       }
                     >
                       <Match when={t().type === "runConfiguration"}>
-                        <span>Run '{t().value}'</span>
+                        <span>{tr("run.task.runConfig", { name: t().value })}</span>
                       </Match>
                       <Match when={t().type === "externalTool"}>
                         <span class="rc-bl-kind">{kind()!.label}</span>
                         <select class="rc-select rc-bl-input" value={t().value} onChange={(e) => setValue(i, e.currentTarget.value)}>
                           <Show when={!findTool(t().value)}>
-                            <option value={t().value}>{t().value || "Select a tool"} (not found)</option>
+                            <option value={t().value}>{tr("run.task.notFound", { name: t().value || tr("run.task.selectTool") })}</option>
                           </Show>
                           <For each={toolGroups()}>
                             {(g) => (
@@ -643,7 +644,7 @@ function ConfigForm(props: { item: Item }) {
       <Show when={state.mode === "configs"}>
         <div class="rc-name-row">
           <label class="rc-row grow">
-            <span class="rc-label">Name:</span>
+            <span class="rc-label">{tr("run.config.name")}</span>
             <input class="rc-input rc-name-input" value={cfg().name} onInput={(e) => update((c) => (c.name = e.currentTarget.value))} />
           </label>
           <label class="rc-check">
@@ -652,16 +653,16 @@ function ConfigForm(props: { item: Item }) {
               checked={!!cfg().storeAsProjectFile}
               onChange={(e) => update((c) => (c.storeAsProjectFile = e.currentTarget.checked))}
             />
-            <span>Store as project file</span>
+            <span>{tr("run.config.storeAsFile")}</span>
           </label>
         </div>
       </Show>
       <Show when={state.mode === "templates"}>
         <div class="rc-template-note muted">
-          Template for new <b>{type()?.name}</b> configurations.
+          {tr("run.config.templateFor", { type: type()?.name ?? "" })}
         </div>
       </Show>
-      <Show when={type()} fallback={<div class="rc-problem">Unknown configuration type "{cfg().type}". Is its plugin disabled?</div>}>
+      <Show when={type()} fallback={<div class="rc-problem">{tr("run.config.unknownType", { type: cfg().type })}</div>}>
         {(t) => (
           <Show
             when={!t().form}
@@ -673,7 +674,7 @@ function ConfigForm(props: { item: Item }) {
               </div>
             </Show>
             <Show when={t().fields.length}>
-              <div class="rc-group-title">{t().testRunner ? "Test Runner" : "Configuration"}</div>
+              <div class="rc-group-title">{t().testRunner ? tr("run.config.testRunner") : tr("run.config.configuration")}</div>
               <div class="rc-group">
                 <For each={t().fields}>{(f) => <Field field={f} cfg={cfg()} />}</For>
                 <Show when={t().argumentsLabel !== false && t().argumentsLabel}>
@@ -684,25 +685,25 @@ function ConfigForm(props: { item: Item }) {
                 </Show>
               </div>
             </Show>
-            <div class="rc-group-title">Command Line</div>
+            <div class="rc-group-title">{tr("run.config.commandLine")}</div>
             <div class="rc-group">
               <Show when={t().interpreter}>
                 <InterpreterRow cfg={cfg()} type={t()} />
               </Show>
               <div class="rc-row">
-                <span class="rc-label">Working directory:</span>
+                <span class="rc-label">{tr("run.config.workingDirectory")}</span>
                 <PathInput
                   name="workingDirectory"
                   directory
                   value={cfg().workingDirectory ?? ""}
-                  placeholder={workspace()?.root ?? "Project root"}
+                  placeholder={workspace()?.root ?? tr("run.config.projectRoot")}
                   onChange={(v) => update((c) => (c.workingDirectory = v))}
                 />
               </div>
               <EnvEditor cfg={cfg()} />
             </div>
             <Show when={t().coverageFields?.length}>
-              <div class="rc-group-title">Code Coverage</div>
+              <div class="rc-group-title">{tr("run.config.coverage")}</div>
               <div class="rc-group" data-testid="rc-coverage">
                 <For each={t().coverageFields}>{(f) => <Field field={f} cfg={cfg()} />}</For>
               </div>
@@ -714,7 +715,7 @@ function ConfigForm(props: { item: Item }) {
       <Show when={problem()}>
         <div class="rc-problem">
           <CircleAlert size={14} />
-          <span>Error: {problem()}</span>
+          <span>{tr("run.config.error", { message: problem() ?? "" })}</span>
         </div>
       </Show>
     </div>
@@ -724,7 +725,7 @@ function ConfigForm(props: { item: Item }) {
 function EmptyForm() {
   return (
     <div class="rc-empty">
-      <p class="muted">Click the + button to create a new configuration based on templates.</p>
+      <p class="muted">{tr("run.config.emptyHint")}</p>
       <div class="rc-quick">
         <For each={runConfigurationTypes().slice(0, 8)}>
           {(t) => (
@@ -754,7 +755,7 @@ function Tree() {
     <div class="rc-tree" role="tree">
       <Show when={state.mode === "templates"}>
         <div class="rc-tree-root">
-          <Settings2 size={14} /> Templates
+          <Settings2 size={14} /> {tr("run.config.templates")}
         </div>
         <For each={runConfigurationTypes()}>
           {(t) => {
@@ -776,7 +777,7 @@ function Tree() {
         </For>
       </Show>
       <Show when={state.mode === "configs"}>
-        <For each={groups()} fallback={<div class="rc-tree-empty muted">No configurations added.</div>}>
+        <For each={groups()} fallback={<div class="rc-tree-empty muted">{tr("run.config.none")}</div>}>
           {(g) => {
             const collapsed = () => state.collapsed.includes(g.id);
             return (
@@ -806,7 +807,7 @@ function Tree() {
                         <span style={{ color: g.type?.color }}>
                           <Dynamic component={g.type?.icon ?? Settings2} size={14} />
                         </span>
-                        <span class="rc-tree-name">{it.cfg.name || "Unnamed"}</span>
+                        <span class="rc-tree-name">{it.cfg.name || tr("run.config.unnamed")}</span>
                         <Show when={validateConfiguration(it.cfg)}>
                           <X size={11} class="rc-tree-bad" />
                         </Show>
@@ -847,19 +848,19 @@ export function RunConfigurationsDialog(props: { props: DialogRequest }) {
       <div class="rc-body">
         <div class="rc-side">
           <div class="rc-toolbar">
-            <button class="icon-btn" title="Add New Configuration (Alt+Insert)" onClick={openAddMenu}>
+            <button class="icon-btn" title={tr("run.config.add", { shortcut: "Alt+Insert" })} onClick={openAddMenu}>
               <Plus size={15} />
             </button>
-            <button class="icon-btn" title="Remove Configuration" disabled={state.mode !== "configs" || state.selected === null} onClick={removeSelected}>
+            <button class="icon-btn" title={tr("run.config.remove")} disabled={state.mode !== "configs" || state.selected === null} onClick={removeSelected}>
               <Minus size={15} />
             </button>
-            <button class="icon-btn" title="Copy Configuration" disabled={state.mode !== "configs" || state.selected === null} onClick={copySelected}>
+            <button class="icon-btn" title={tr("run.config.copy")} disabled={state.mode !== "configs" || state.selected === null} onClick={copySelected}>
               <Copy size={14} />
             </button>
-            <button class="icon-btn" title="Move Up" disabled={state.mode !== "configs"} onClick={() => moveSelected(-1)}>
+            <button class="icon-btn" title={tr("common.moveUp")} disabled={state.mode !== "configs"} onClick={() => moveSelected(-1)}>
               <ArrowUp size={14} />
             </button>
-            <button class="icon-btn" title="Move Down" disabled={state.mode !== "configs"} onClick={() => moveSelected(1)}>
+            <button class="icon-btn" title={tr("common.moveDown")} disabled={state.mode !== "configs"} onClick={() => moveSelected(1)}>
               <ArrowDown size={14} />
             </button>
           </div>
@@ -873,17 +874,17 @@ export function RunConfigurationsDialog(props: { props: DialogRequest }) {
               })
             }
           >
-            {state.mode === "configs" ? "Edit configuration templates…" : "Back to configurations"}
+            {state.mode === "configs" ? tr("run.config.editTemplates") : tr("run.config.backToConfigs")}
           </button>
         </div>
         <div class="rc-main">
-          <Show when={current()} keyed fallback={state.mode === "configs" ? <EmptyForm /> : <div class="rc-empty muted">Select a template on the left.</div>}>
+          <Show when={current()} keyed fallback={state.mode === "configs" ? <EmptyForm /> : <div class="rc-empty muted">{tr("run.config.selectTemplate")}</div>}>
             {(it) => <ConfigForm item={it} />}
           </Show>
         </div>
       </div>
       <div class="dialog-buttons rc-buttons">
-        <button class="icon-btn rc-help" title="Help">
+        <button class="icon-btn rc-help" title={tr("common.help")}>
           <CircleHelp size={16} />
         </button>
         <Show when={state.error}>
@@ -891,13 +892,13 @@ export function RunConfigurationsDialog(props: { props: DialogRequest }) {
         </Show>
         <span class="rc-spacer" />
         <button class="btn-primary" onClick={() => void apply().then((ok) => ok && close())}>
-          OK
+          {tr("common.ok")}
         </button>
         <button class="btn-secondary" onClick={close}>
-          Cancel
+          {tr("common.cancel")}
         </button>
         <button class="btn-secondary" disabled={!state.dirty} onClick={() => void apply()}>
-          Apply
+          {tr("common.apply")}
         </button>
       </div>
     </div>
