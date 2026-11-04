@@ -1,1 +1,23 @@
-{}
+{
+  "search.filter": "Filter",
+  "search.footer.disabled": "Drücken Sie erneut {key}, um deaktivierte Aktionen einzubeziehen",
+  "search.footer.nonProject": "Drücken Sie erneut {key}, um Nicht-Projektelemente einzubeziehen",
+  "search.footer.tab": "Drücken Sie Tab, um zwischen den Tabs zu wechseln",
+  "search.includeDisabled": "Deaktivierte Aktionen einbeziehen",
+  "search.includeNonProject": "Nicht-Projektelemente einbeziehen",
+  "search.matchContains": "Treffer enthalten die Suchanfrage (klicken für unscharfe Suche)",
+  "search.matchFuzzy": "Unscharfe Suche (klicken, um nur Text zu finden, der die Suchanfrage enthält)",
+  "search.more": "… mehr",
+  "search.nothingFound": "Nichts gefunden.",
+  "search.openInFind": "Im Toolfenster „Suchen“ öffnen",
+  "search.tab.actions": "Aktionen",
+  "search.tab.all": "Alle",
+  "search.tab.classes": "Klassen",
+  "search.tab.files": "Dateien",
+  "search.tab.symbols": "Symbole",
+  "search.tab.text": "Text",
+  "search.title": "Überall suchen",
+  "search.typeActionName": "Aktionsnamen eingeben",
+  "search.typeToSearch": "Tippen, um zu suchen",
+  "search.typeToSearchActions": "Tippen, um Aktionen zu suchen"
+}

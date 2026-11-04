@@ -68,6 +68,14 @@ export function t(key: string, args?: MessageArgs): string {
   return w.i18n_t_args(key, JSON.stringify(args));
 }
 
+/**
+ * `t(key, args)` when the key exists, else `fallback`: for keys built from data (a settings
+ * group a plugin names, a value of an enum) that may have no message.
+ */
+export function tOr(key: string, fallback: string, args?: MessageArgs): string {
+  return hasMessage(key) ? t(key, args) : fallback;
+}
+
 /** Format a message source that is not in the catalogs (e.g. from a plugin). */
 export function formatMessage(message: string, args: MessageArgs = {}): string {
   locale();
@@ -77,6 +85,7 @@ export function formatMessage(message: string, args: MessageArgs = {}): string {
 
 /** Whether `key` exists in the catalogs (in the IDE language or in English). */
 export function hasMessage(key: string): boolean {
+  locale();
   return engine()?.i18n_has(key) ?? false;
 }
 

@@ -8,6 +8,7 @@ import "./ai";
 import "./ai-chat";
 import "./ai-editor";
 import "./settings";
+import "./language";
 import "./maintenance";
 import "./plugins";
 import "./fileTypes";

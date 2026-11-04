@@ -6,6 +6,7 @@
 import { toolWindows } from "@/features/registry";
 import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
 import { isRemovedFromSidebar, showToolWindow } from "@/state/layout";
+import { t } from "@/i18n";
 
 export function moreToolWindowsEntries(): ResolvedEntry[] {
   return toolWindows()
@@ -16,7 +17,7 @@ export function moreToolWindowsEntries(): ResolvedEntry[] {
       label: tw.title,
       icon: tw.icon,
       shortcut: tw.shortcut ?? "",
-      detail: isRemovedFromSidebar(tw.id) ? "not on sidebar" : undefined,
+      detail: isRemovedFromSidebar(tw.id) ? t("toolwindow.notOnSidebar") : undefined,
       run: () => {
         showToolWindow(tw.id);
         queueMicrotask(() => document.querySelector<HTMLElement>(`[data-tool-window-panel="${tw.id}"] .tool-window-body`)?.focus?.());

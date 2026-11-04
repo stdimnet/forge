@@ -11,6 +11,7 @@ import { toolbarItems } from "@/features/toolbarItems";
 import { chrome, dragRegion, drawsControls } from "./window/chrome";
 import { WindowControls } from "./window/WindowControls";
 import { MainMenuButton, SeparateMainMenuBar } from "@/features/mainMenu/MainMenuButton";
+import { t } from "@/i18n";
 
 /**
  * Top toolbar, laid out like PHPStorm's New UI main toolbar. It is also the window's title
@@ -34,9 +35,9 @@ export function MainToolbar() {
       </Show>
       <div class="toolbar-left">
         <MainMenuButton />
-        <button class="pill-btn project-widget" title="Open Project" onClick={() => runCommand("workspace.open")}>
+        <button class="pill-btn project-widget" title={t("toolbar.openProject")} onClick={() => runCommand("workspace.open")}>
           <span class="project-badge">{initials()}</span>
-          <span class="project-name">{workspace()?.name ?? "No project"}</span>
+          <span class="project-name">{workspace()?.name ?? t("toolbar.noProject")}</span>
           <Show when={workspace()?.collab}>
             {(c) => (
               <span class="cwm-guest-tag">
@@ -46,7 +47,7 @@ export function MainToolbar() {
           </Show>
           <ChevronDown size={14} class="muted" />
         </button>
-        <button class="pill-btn" title="Git Branches" onClick={() => runCommand("git.branches")}>
+        <button class="pill-btn" title={t("toolbar.gitBranches")} onClick={() => runCommand("git.branches")}>
           <GitBranch size={15} class="muted" />
           <span>{branchLabel()}</span>
           <ChevronDown size={14} class="muted" />
@@ -54,24 +55,24 @@ export function MainToolbar() {
       </div>
       <div class="toolbar-center" />
       <div class="toolbar-right">
-        <button class="icon-btn" title="Build Project (Ctrl+F9)">
+        <button class="icon-btn" title={t("toolbar.buildProject", { shortcut: "Ctrl+F9" })}>
           <Hammer size={16} />
         </button>
         <For each={toolbarItems()}>{(item) => <Dynamic component={item.component} />}</For>
         <RunWidget />
         <div class="toolbar-sep" />
         <Show when={!isCollabGuest()}>
-          <button class="icon-btn" title="AI Chat" onClick={() => showToolWindow("ai-chat")}>
+          <button class="icon-btn" title={t("toolbar.aiChat")} onClick={() => showToolWindow("ai-chat")}>
             <Sparkles size={16} />
           </button>
         </Show>
-        <button class="icon-btn" title="Search Everywhere (Double Shift)" onClick={() => runCommand("search.everywhere")}>
+        <button class="icon-btn" title={t("toolbar.searchEverywhere", { shortcut: "Double Shift" })} onClick={() => runCommand("search.everywhere")}>
           <Search size={16} />
         </button>
-        <button class="icon-btn" title="Toggle theme" onClick={toggleTheme}>
+        <button class="icon-btn" title={t("toolbar.toggleTheme")} onClick={toggleTheme}>
           {theme() === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-        <button class="icon-btn" title="Settings (Ctrl+Alt+S)" onClick={() => runCommand("settings.open")}>
+        <button class="icon-btn" title={t("toolbar.settings", { shortcut: "Ctrl+Alt+S" })} onClick={() => runCommand("settings.open")}>
           <Settings size={16} />
         </button>
       </div>

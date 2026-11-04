@@ -36,6 +36,7 @@ type SchemaPageDef = Omit<SettingsPage, "component">;
 const schemaPages: SchemaPageDef[] = [
   { id: "appearance", title: t("settings.page.appearance"), group: "Appearance & Behavior", order: 0, keywords: ["theme", "dark", "light", "font"] },
   { id: "system", title: t("settings.page.system"), group: "Appearance & Behavior", order: 10, keywords: ["autosave", "startup", "exit"] },
+  { id: "system.language", title: t("settings.page.system.language"), group: "Appearance & Behavior", parent: "system", order: 5, keywords: ["language", "locale", "translation", "english", "deutsch", "german", "sprache"] },
   { id: "editor.general", title: t("settings.page.editor.general"), group: "Editor", order: 0 },
   { id: "editor.tabs", title: t("settings.page.editor.tabs"), group: "Editor", parent: "editor.general", order: 0, keywords: ["tab limit", "closing policy", "pinned", "split"] },
   { id: "editor.general.auto-import", title: t("settings.page.editor.general.auto-import"), group: "Editor", parent: "editor.general", order: 10, keywords: ["optimize imports", "use statement", "import popup", "fqn", "on the fly"] },
@@ -77,7 +78,7 @@ registerCommand({
 
 registerDialog<SettingsDialogProps, SettingsDialogResult>({
   id: SETTINGS_DIALOG,
-  title: (props) => (props?.forNewProjects ? "Settings for New Projects" : "Settings"),
+  title: (props) => (props?.forNewProjects ? t("settings.titleNewProjects") : t("settings.title")),
   width: 1040,
   height: 700,
   minWidth: 640,

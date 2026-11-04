@@ -7,6 +7,7 @@ import { statusMessage, visibleStatusItems } from "@/features/statusItems";
 import { languageLabel } from "@/editor/languages";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
 import { EncodingStatus, IndentStatus, LineSeparatorStatus } from "./FileStatusItems";
+import { t } from "@/i18n";
 
 export function StatusBar() {
   const tab = activeTab;
@@ -30,7 +31,7 @@ export function StatusBar() {
         {tab() && !tab()!.view && (
           <>
             <button class="status-item">
-              {(tab()!.cursor.carets ?? 1) > 1 ? `${tab()!.cursor.carets} carets` : `${tab()!.cursor.line}:${tab()!.cursor.col}`}
+              {(tab()!.cursor.carets ?? 1) > 1 ? t("statusbar.carets", { count: tab()!.cursor.carets ?? 1 }) : `${tab()!.cursor.line}:${tab()!.cursor.col}`}
             </button>
             <LineSeparatorStatus tab={tab()!} />
             <EncodingStatus tab={tab()!} />
@@ -41,7 +42,7 @@ export function StatusBar() {
         <button class="status-item">
           <GitBranch size={12} /> {branchLabel()}
         </button>
-        <button class="status-item" title="File is writable">
+        <button class="status-item" title={t("statusbar.writable")}>
           <Lock size={12} />
         </button>
       </div>

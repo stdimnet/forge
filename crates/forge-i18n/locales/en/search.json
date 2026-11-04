@@ -1,1 +1,23 @@
-{}
+{
+  "search.filter": "Filter",
+  "search.footer.disabled": "Press {key} again to include disabled actions",
+  "search.footer.nonProject": "Press {key} again to include non-project items",
+  "search.footer.tab": "Press Tab to switch between tabs",
+  "search.includeDisabled": "Include disabled actions",
+  "search.includeNonProject": "Include non-project items",
+  "search.matchContains": "Matching text that contains the query (click for fuzzy)",
+  "search.matchFuzzy": "Fuzzy matching (click to match only text that contains the query)",
+  "search.more": "… more",
+  "search.nothingFound": "Nothing found.",
+  "search.openInFind": "Open in Find Tool Window",
+  "search.tab.actions": "Actions",
+  "search.tab.all": "All",
+  "search.tab.classes": "Classes",
+  "search.tab.files": "Files",
+  "search.tab.symbols": "Symbols",
+  "search.tab.text": "Text",
+  "search.title": "Search Everywhere",
+  "search.typeActionName": "Type action name",
+  "search.typeToSearch": "Type to search",
+  "search.typeToSearchActions": "Type to search actions"
+}

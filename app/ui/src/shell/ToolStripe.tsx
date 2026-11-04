@@ -6,6 +6,7 @@ import { isToolWindowVisible, moveToolWindowTo, stripeToolWindows, toggleToolWin
 import { STRIPE_SLOTS, dropBefore, dropIndex } from "@/state/toolWindowLayout";
 import { openStripeMenu } from "./toolWindowMenu";
 import { openMoreToolWindows } from "./MoreToolWindows";
+import { t } from "@/i18n";
 
 /** Where a dragged stripe button would land. */
 interface DropTarget {
@@ -140,7 +141,7 @@ export function ToolStripe(props: { side: "left" | "right" }) {
         <Show when={props.side === "left"}>
           <button
             class="icon-btn stripe-btn stripe-more"
-            title="More Tool Windows"
+            title={t("toolwindow.more")}
             data-more-tool-windows
             onClick={(e) => {
               const r = e.currentTarget.getBoundingClientRect();

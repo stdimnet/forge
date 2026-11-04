@@ -1,1 +1,22 @@
-{}
+{
+  "welcome.detected": "Detected: {framework}",
+  "welcome.getFromVcs": "Get from VCS",
+  "welcome.hint.create": "Create a new project to start from scratch.",
+  "welcome.hint.open": "Open existing project from disk or version control.",
+  "welcome.manage": "Manage IDE Settings",
+  "welcome.manage.export": "Export Settings...",
+  "welcome.manage.import": "Import Settings...",
+  "welcome.manage.invalidate": "Invalidate Caches...",
+  "welcome.manage.newProjects": "Settings for New Projects...",
+  "welcome.manage.restore": "Restore Default Settings...",
+  "welcome.manage.settings": "Settings...",
+  "welcome.manage.sync": "Settings Sync...",
+  "welcome.nav.customize": "Customize",
+  "welcome.nav.plugins": "Plugins",
+  "welcome.nav.projects": "Projects",
+  "welcome.nav.remote": "Remote Development",
+  "welcome.newProject": "New Project",
+  "welcome.open": "Open",
+  "welcome.search": "Search projects",
+  "welcome.title": "Welcome to Forge"
+}
