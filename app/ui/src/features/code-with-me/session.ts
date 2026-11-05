@@ -24,6 +24,7 @@ import {
   unshareTab,
 } from "@/state/editor";
 import { workspace } from "@/state/workspace";
+import { projectPathOf } from "@/ipc/projectPath";
 import {
   adoptDoc,
   GUEST_PREFIX,
@@ -96,7 +97,7 @@ setSharedTabSource({
     const s = session();
     if (path.startsWith(GUEST_PREFIX)) {
       if (s.role !== "guest") throw new Error(t("tools.codeWithMe.sessionHasEnded"));
-      const doc = sharedDoc(path) ?? adoptOpened(path, await collabApi.docOpen(path.slice(GUEST_PREFIX.length)), myself(s));
+      const doc = sharedDoc(path) ?? adoptOpened(path, await collabApi.docOpen(projectPathOf(path)), myself(s));
       return { content: doc.ytext.toString(), savedHash: doc.savedHash };
     }
     if (s.role !== "host" || !isProjectFile(path)) return undefined;

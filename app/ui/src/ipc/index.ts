@@ -5,6 +5,7 @@
  */
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen, type UnlistenFn } from "@tauri-apps/api/event";
+import { withProjectPaths } from "./projectPath";
 
 export const isTauri = (): boolean =>
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -30,7 +31,12 @@ export function emitMock(event: string, payload: unknown): void {
   mockListeners.get(event)?.forEach((l) => l(payload));
 }
 
-export async function invoke<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
+/**
+ * Call a backend command. A Code With Me guest's `cwm://` tab paths in path arguments go out
+ * as the project paths they stand for (`projectPath.ts`): no command knows `cwm://`.
+ */
+export async function invoke<T>(cmd: string, rawArgs: Record<string, unknown> = {}): Promise<T> {
+  const args = withProjectPaths(rawArgs);
   if (isTauri()) return tauriInvoke<T>(cmd, args);
   const handler = mocks.get(cmd);
   if (!handler) throw new Error(`no backend for command "${cmd}" in browser mode`);

@@ -24,6 +24,7 @@ import { normalizeEol, saveFile, setTabEol } from "@/state/editor";
 import { gitApi, type Blame, type BlameCommit } from "./api";
 import { historyApi } from "./historyApi";
 import { parseRevisionPath } from "./revisionFiles";
+import { projectPathOf } from "@/ipc/projectPath";
 import { fileReload, revision, status } from "./store";
 import { annotated, setBlameCard, setDiffRequest, toggleAnnotate } from "./overlays";
 import { ageBucket, shortDate, timeAgo } from "./format";
@@ -396,10 +397,12 @@ function controller(path: string, blameCompartment: Compartment, partialCompartm
     // A file as it was in a revision (Annotate Revision): no change markers, the blame of
     // that revision.
     const atRevision = parseRevisionPath(path);
+    // A Code With Me guest's `cwm://` tab: the status names the project file.
+    const file = projectPathOf(path);
     const fetchHead = async () => {
       if (atRevision) return;
       const st = status();
-      const entry = st?.entries.find((e) => e.path === path);
+      const entry = st?.entries.find((e) => e.path === file);
       if (entry && (entry.worktree === "untracked" || entry.index === "added")) {
         view.dispatch({ effects: setHeadEffect.of(null) });
         return;
@@ -437,7 +440,7 @@ function controller(path: string, blameCompartment: Compartment, partialCompartm
       createEffect(
         on(
           () => {
-            const entry = status()?.entries.find((e) => e.path === path);
+            const entry = status()?.entries.find((e) => e.path === file);
             return !atRevision && isToolWindowVisible("commit") && !!entry && entry.worktree !== "untracked" && !entry.conflict;
           },
           (show) => setTimeout(() => disposed || view.dispatch({ effects: partialCompartment.reconfigure(show ? partialCommitGutter(path) : []) })),
