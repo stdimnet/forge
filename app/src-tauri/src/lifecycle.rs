@@ -35,11 +35,14 @@ pub struct LifecycleState(pub ProjectLifecycleBus);
 const READY_POLL: Duration = Duration::from_millis(400);
 const READY_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 
-/// Subscribe the built-in services (file watcher, language servers).
+/// Subscribe the built-in services (file watcher, language servers, terminals).
 pub fn install(app: &AppHandle) {
     let bus = &app.state::<LifecycleState>().0;
     bus.subscribe(Arc::new(Watcher(app.clone())));
     bus.subscribe(Arc::new(LanguageServers(app.clone())));
+    bus.subscribe(Arc::new(crate::commands::terminal::TerminalLifecycle(
+        app.clone(),
+    )));
 }
 
 /// What the lifecycle says about the open project: its UI identity, VCS root and trust.

@@ -32,6 +32,8 @@ export interface Objection {
   kind: string;
   message: string;
   items: string[];
+  /** Ids of what `items` are about (terminal session ids). */
+  targets?: string[];
 }
 
 export const LIFECYCLE_EVENT = "project://lifecycle";

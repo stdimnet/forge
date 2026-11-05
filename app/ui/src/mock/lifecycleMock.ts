@@ -12,6 +12,7 @@ import { emitMock, mockHandler, registerMock } from "@/ipc";
 import type { LifecycleEvent, LifecycleProject, Objection, ProjectPhase } from "@/ipc/projectLifecycle";
 import type { WorkspaceInfo } from "@/ipc/workspace";
 import { LIFECYCLE_EVENT } from "@/ipc/projectLifecycle";
+import { closingHooks, objectionSources, setMockOpenRoot } from "./lifecycleHooks";
 
 interface MockProject {
   name: string;
@@ -40,24 +41,11 @@ export const mockLifecycleProject = (): LifecycleProject | null => current;
 const send = (phase: ProjectPhase, project: LifecycleProject) =>
   emitMock(LIFECYCLE_EVENT, { phase, generation, project } satisfies LifecycleEvent);
 
-/** Objections of the mocked Rust subscribers (the fake terminals add theirs). */
-const objectionSources: (() => Objection[])[] = [];
-
-export function registerMockObjections(source: () => Objection[]): void {
-  objectionSources.push(source);
-}
-
-/** Runs before the closing event, like the Rust subscribers (the fake terminals end their shells). */
-const closingHooks: ((project: LifecycleProject) => void)[] = [];
-
-export function onMockProjectClosing(hook: (project: LifecycleProject) => void): void {
-  closingHooks.push(hook);
-}
-
 function close(): void {
   const closing = current;
   if (!closing) return;
   current = null;
+  setMockOpenRoot(null);
   for (const hook of closingHooks) {
     try {
       hook(closing);
@@ -73,6 +61,7 @@ function open(info: WorkspaceInfo): void {
   generation++;
   const project: LifecycleProject = { ...info, trusted: true, ...(MOCK_SWITCH_PROJECTS[info.root]?.branch !== null ? { vcsRoot: info.root } : {}) };
   current = project;
+  setMockOpenRoot(project.root);
   send("opened", project);
   const opened = generation;
   setTimeout(() => {

@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 forge-core.workspace = true
+dirs.workspace = true
 forge-hostspawn.workspace = true
 forge-output.workspace = true
 forge-runtools.workspace = true

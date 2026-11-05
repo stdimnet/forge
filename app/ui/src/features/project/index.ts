@@ -30,7 +30,6 @@ setObjectionPrompt(async (project, objections) => {
     title: t("dialogs.closeProject.title"),
     message: t("dialogs.closeProject.anyway", { reasons: objections.map((o) => o.message).join(" "), name: project.name }),
     choices: [
-      { id: "cancel", label: t("common.cancel") },
       { id: "close", label: t("dialogs.closeProject.close") },
     ],
   });

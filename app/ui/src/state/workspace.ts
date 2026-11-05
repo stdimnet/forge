@@ -33,6 +33,9 @@ export function onProjectSwitch(listener: () => void): () => void {
 /** The project whose `opened` handlers ran and whose `closing` handlers did not run yet. */
 let current: LifecycleProject | null = null;
 
+/** Dialog windows show a project, but its lifecycle belongs to the project window. */
+const runsLifecycle = typeof window === "undefined" || !isDialogWindow();
+
 /** The project the lifecycle handlers know as open (with its VCS root and trust, when Rust sent them). */
 export const lifecycleProject = (): LifecycleProject | null => current;
 
@@ -44,7 +47,7 @@ function leaveCurrent(): void {
   if (!closing) return;
   current = null;
   closeAllTabs();
-  void runProjectPhase("closing", closing);
+  if (runsLifecycle) void runProjectPhase("closing", closing);
 }
 
 /**
@@ -58,7 +61,7 @@ function adopt(info: LifecycleProject): void {
     else if (workspace()?.root !== info.root) closeAllTabs();
     setWorkspace(workspaceInfo(info));
     current = { ...info };
-    void runProjectPhase("opened", current);
+    if (runsLifecycle) void runProjectPhase("opened", current);
     return;
   }
   // The same project again: newer details (the event adds the VCS root and trust).
@@ -78,8 +81,7 @@ function lifecycleEvent(e: LifecycleEvent): void {
   }
 }
 
-// Dialog windows show a project, but its lifecycle belongs to the project window.
-if (typeof window !== "undefined" && !isDialogWindow()) void projectLifecycleApi.onEvent(lifecycleEvent);
+if (typeof window !== "undefined" && runsLifecycle) void projectLifecycleApi.onEvent(lifecycleEvent);
 
 /**
  * `beforeClose` of the open project: the Rust subscribers' objections, then the UI handlers
@@ -166,10 +168,7 @@ export async function adoptRemoteWorkspace(info: WorkspaceInfo): Promise<boolean
 /** Adopt the project the backend already has open (passed on the command line). */
 export async function restoreWorkspace(): Promise<void> {
   const open = await workspaceApi.current();
-  if (!open) return;
-  // A dialog window only shows the project; its lifecycle runs in the project window.
-  if (isDialogWindow()) setWorkspace(open);
-  else adopt(open);
+  if (open) adopt(open);
 }
 
 /** "Trust and Open Project?" for a folder another window will open (resolves at once when trusted). */
@@ -206,7 +205,7 @@ export async function pickAndOpenWorkspace(): Promise<void> {
 export function closeWorkspace(): void {
   leaveCurrent();
   setWorkspace(null);
-  backendClose = projectLifecycleApi.close().catch(() => undefined);
+  if (runsLifecycle) backendClose = projectLifecycleApi.close().catch(() => undefined);
 }
 
 /** File | Close Project: asks `beforeClose` first; `false` when the project stays open. */

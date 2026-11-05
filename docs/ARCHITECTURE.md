@@ -614,7 +614,7 @@ Audit of the features with per-project state:
 | Feature | How it follows the project |
 | --- | --- |
 | VCS widget, git store (`state/vcs.ts`, `features/git/store.ts`) | `closing` clears branch, file statuses and the branch operation at once and drops answers still on their way; `opened` reads the new repository; a folder without git shows "Version Control" and no status bar branch |
-| Terminals (`features/terminal`) | `beforeClose` asks about running commands, `closing` saves the layout and ends the sessions, `opened` restores the project's tabs (see "Terminal and Run/Debug") |
+| Terminals (`features/terminal`, `TerminalLifecycle`) | `beforeClose` asks about running commands, `closing` saves the layout and ends the sessions in Rust, `opened` restores the project's tabs (see "Terminal and Run/Debug") |
 | Project tree, Find, Find Usages, inspections, problems, notifications, Safe Mode banner | `closing` handlers (formerly `onProjectSwitch`) |
 | Services (`features/services/store.ts`) | `closing` drops selection, expansion and picked containers; Rust reconfigures the services in `project_opened` |
 | Editor tabs, recent files, navigation history | closed with the project's tabs (`closeAllTabs`, `onTabsReset`) before `closing` |
@@ -1339,6 +1339,24 @@ time than it has); do it on the release machine before merging the Code With Me 
   a grace period. With `terminal.shellIntegration` bash and zsh start with Forge's scripts
   (`forge_process::integration`, written to the cache dir of the machine the shell runs on),
   which report OSC 7 (working directory) and OSC 133 (prompt, command start, exit code).
+- Terminals belong to the project (`forge_process::terminal_layout`, `TerminalLifecycle` in
+  `commands/terminal.rs`, `features/terminal/projectTerminals.ts`): `terminal_running() ->
+  { id, process }[]` lists sessions whose PTY has a foreground process other than the shell
+  (`PtySession::foreground_process`: `tcgetpgrp` on Unix; remote, SSH and Windows sessions report
+  none). The lifecycle's `beforeClose` objects with `{ kind: "terminal.running", items:
+  processes, targets: session ids }`, which the terminal UI claims and asks "Terminate …?"
+  (Terminate / Cancel). `closing` keeps each session's recent output when
+  `terminal.restoreScrollback` is on (capped at 256 KB per tab, `<cache dir>/forge/
+  terminal-scrollback/<project key>/<tab id>.txt`), then ends the sessions without reporting
+  their exit, so the UI still has the tabs for the layout. The layout (tabs, names, renamed,
+  working directories from OSC 7 relative to the root, shell profiles, the selected tab) is
+  workspace state: `terminal_layout_save({ root, layout })` / `terminal_layout_load({ root })
+  -> TerminalLayout | null` (`<state dir>/forge/terminal-layouts/<project key>.json`, with the
+  saved output per tab when the option is on), keyed by the explicit root because the closing
+  project's layout is saved while the next one may already be open in Rust. The UI saves it a
+  moment after every change and in `closing`, and restores it in `opened` (the restored output
+  is written before the new shell starts). SSH sessions, programs started elsewhere (`docker
+  exec`) and Code With Me terminals are not restored; the Terminal has no split panes yet.
 - Terminal sequences: OSC 9;4 progress, OSC 9 / 777 notifications, OSC 7 working directories,
   OSC 133 boundaries and OSC 8 link targets are parsed by `forge_output::osc`, which the UI calls
   synchronously through WebAssembly (`terminal_parse_osc`, `terminal_link_target`) from

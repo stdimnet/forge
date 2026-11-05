@@ -78,9 +78,13 @@ pub struct Objection {
     pub kind: String,
     /// A sentence for a generic question ("2 terminal commands are still running").
     pub message: String,
-    /// What is affected, e.g. the running programs (`sleep in Local (2)`).
+    /// What is affected, e.g. the running programs (`sleep`).
     #[serde(default)]
     pub items: Vec<String>,
+    /// Ids of what `items` are about, in the same order (terminal session ids), so the UI can
+    /// name them its way.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub targets: Vec<String>,
 }
 
 /// A subscriber of the project lifecycle (git, language servers, terminals, watchers, packs).
@@ -399,6 +403,7 @@ mod tests {
                 kind: "test.busy".into(),
                 message: "busy".into(),
                 items: vec!["sleep".into()],
+                targets: vec![],
             })
         }
         fn closing(&self, p: &ProjectRef) -> crate::Result<()> {

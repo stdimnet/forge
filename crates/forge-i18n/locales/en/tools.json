@@ -2092,5 +2092,9 @@
   "tools.vim.visual": "Visual",
   "tools.vulnerabilities.vulnerableDependencies": "Vulnerable Dependencies",
   "tools.forges.into": "into",
-  "tools.forges.openedAgo": "opened {value}"
+  "tools.forges.openedAgo": "opened {value}",
+  "tools.terminal.historyRestored": "Session restored",
+  "tools.terminal.lifecycle.title": "Terminal Process Is Running",
+  "tools.terminal.lifecycle.message": "{count, plural, one {A process is still running in the terminal: {processes}. Terminate it?} other {# processes are still running in the terminal: {processes}. Terminate them?}}",
+  "tools.terminal.lifecycle.terminate": "Terminate"
 }
