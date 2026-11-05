@@ -15,8 +15,8 @@ use crate::link::SessionLink;
 use crate::permissions::Permissions;
 use crate::presence::{Participant, ParticipantId, Presence};
 use crate::protocol::{
-    DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
-    PROTOCOL_VERSION,
+    DocId, GuestMessage, HostMessage, SaveState, SharedFile, ViewOnly, MAX_GUEST_FRAME,
+    MAX_HOST_FRAME, PROTOCOL_VERSION,
 };
 use crate::reconnect::{ConnectionState, ReconnectPolicy, GAVE_UP, RECONNECTING};
 use crate::relay::{ConnectionPath, RelayStatus};
@@ -71,6 +71,8 @@ pub struct DocSynced {
     pub read_only: bool,
     /// The host is resolving a File Cache Conflict for it.
     pub conflict: bool,
+    /// Read-only for everyone: too large to co-edit, or binary.
+    pub view: Option<ViewOnly>,
 }
 
 /// What the guest's UI needs to know.
@@ -514,6 +516,7 @@ impl GuestSession {
                 saved,
                 read_only,
                 conflict,
+                view,
             } => {
                 if let Some(tx) = self.state().opens.remove(&request) {
                     let _ = tx.send(Ok(DocOpened {
@@ -521,8 +524,9 @@ impl GuestSession {
                         path,
                         update: update.into_vec(),
                         saved,
-                        read_only,
+                        read_only: read_only || view.is_some(),
                         conflict,
+                        view,
                     }));
                 }
             }
@@ -543,6 +547,7 @@ impl GuestSession {
                 saved,
                 read_only,
                 conflict,
+                view,
             } => {
                 if let Some(tx) = self.state().syncs.remove(&request) {
                     let _ = tx.send(Ok(DocSynced {
@@ -551,8 +556,9 @@ impl GuestSession {
                         update: update.into_vec(),
                         state_vector: state_vector.into_vec(),
                         saved,
-                        read_only,
+                        read_only: read_only || view.is_some(),
                         conflict,
+                        view,
                     }));
                 }
             }

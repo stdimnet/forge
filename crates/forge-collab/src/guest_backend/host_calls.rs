@@ -1118,20 +1118,28 @@ impl HostSession {
         let (GuestMessage::DocUpdate { doc, .. } | GuestMessage::DocSave { doc, .. }) = msg else {
             return None;
         };
-        let path = self.state().docs.get(doc).map(|d| d.path.clone())?;
+        let (path, view) = self
+            .state()
+            .docs
+            .get(doc)
+            .map(|d| (d.path.clone(), d.view))?;
+        if let Some(view) = view {
+            return Some(crate::permissions::Denied(view_only_reason(&path, view)));
+        }
         policy.check_write_path(&path).err()
     }
 
     /// Make sure the shared document of `path` exists for a guest who opens it: created from
     /// the file on disk if nobody has it open yet. The file is checked like any other call
-    /// (symlinks resolved, hidden and oversized files refused).
+    /// (symlinks resolved, hidden files refused). Files over the co-editing limit and binary
+    /// files become view-only documents; files over [`MAX_VIEW_SIZE`] are refused.
     pub(crate) async fn ensure_doc(&self, policy: &Policy, path: &str) -> Result<(), String> {
         if self.state().by_path.contains_key(path) {
             return Ok(());
         }
         let backend = self.backend.clone();
         let (limit, policy_c, rel) = (self.max_file_size, policy.clone(), path.to_string());
-        let disk = blocking(move || {
+        let file = blocking(move || {
             let gate = Gate::new(&*backend, &policy_c);
             gate.verify(&rel)?;
             read_shared(&*backend, &rel, limit).map_err(|e| gate.msg(e))
@@ -1142,8 +1150,8 @@ impl HostSession {
             let id = DocId(st.next_doc);
             st.next_doc += 1;
             st.by_path.insert(path.to_string(), id);
-            st.docs
-                .insert(id, SharedDoc::new(id, path.to_string(), &disk, None));
+            let doc = SharedDoc::new(id, path.to_string(), &file.text, None).with_view(file.view);
+            st.docs.insert(id, doc);
         }
         Ok(())
     }
@@ -1201,11 +1209,17 @@ impl HostSession {
     /// The file's text as the host's servers should see it: the shared document, else the
     /// file on disk.
     async fn current_text(&self, policy: &Policy, path: &str) -> Result<String, String> {
-        if let Some(text) = {
+        let shared = {
             let st = self.state();
-            st.by_path.get(path).map(|id| st.docs[id].text())
-        } {
-            return Ok(text);
+            st.by_path
+                .get(path)
+                .map(|id| (st.docs[id].text(), st.docs[id].view))
+        };
+        match shared {
+            // Language servers skip what guests only view (large or binary files).
+            Some((_, Some(view))) => return Err(view_only_reason(path, view)),
+            Some((text, None)) => return Ok(text),
+            None => {}
         }
         let backend = self.backend.clone();
         let policy = policy.clone();

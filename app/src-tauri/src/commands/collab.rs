@@ -1007,7 +1007,8 @@ pub async fn collab_leave(app: AppHandle) -> Result<()> {
 
 /// Open a shared document: `content` is the host's editor text for a tab that is already
 /// open. The reply is raw bytes: a big-endian `u32` length, a JSON header
-/// `{ docId, path, saved, readOnly, conflict }` and the document as one Yjs update.
+/// `{ docId, path, saved, readOnly, conflict, view? }` (`view`: `{ kind: "large" | "binary", size }`
+/// for files guests only read) and the document as one Yjs update.
 #[tauri::command]
 pub async fn collab_doc_open(
     path: String,
@@ -1028,6 +1029,7 @@ pub async fn collab_doc_open(
         "saved": opened.saved,
         "readOnly": opened.read_only,
         "conflict": opened.conflict,
+        "view": opened.view,
     }))
     .map_err(other)?;
     let mut out = Vec::with_capacity(4 + header.len() + opened.update.len());
@@ -1108,6 +1110,7 @@ pub async fn collab_doc_sync(
         "saved": synced.saved,
         "readOnly": synced.read_only,
         "conflict": synced.conflict,
+        "view": synced.view,
         "stateVector": B64.encode(&synced.state_vector),
     }))
     .map_err(other)?;

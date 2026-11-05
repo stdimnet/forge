@@ -31,8 +31,8 @@ use crate::link::{SessionLink, JOIN_SECRET_LEN, SESSION_ID_LEN};
 use crate::permissions::{Permissions, Policy};
 use crate::presence::{clean_name, ColorAssigner, Participant, ParticipantId, Presence, Role};
 use crate::protocol::{
-    DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
-    PROTOCOL_VERSION,
+    DocId, GuestMessage, HostMessage, SaveState, SharedFile, ViewOnly, MAX_GUEST_FRAME,
+    MAX_HOST_FRAME, MAX_VIEW_SIZE, PROTOCOL_VERSION,
 };
 use crate::reconnect::{same_token, HOST_GRACE};
 use crate::relay::{ConnectionPath, RelayStatus};
@@ -188,6 +188,8 @@ pub struct DocOpened {
     pub read_only: bool,
     /// A File Cache Conflict is open.
     pub conflict: bool,
+    /// Read-only for everyone: too large to co-edit, or binary.
+    pub view: Option<ViewOnly>,
 }
 
 struct Guest {
@@ -624,6 +626,16 @@ impl HostSession {
     /// Share a file the host opens (or has open: `buffer` is its editor text). Excluded files,
     /// `.git/` and files over the size limit are refused and stay unshared.
     pub async fn open_doc(&self, path: &str, buffer: Option<String>) -> Result<DocOpened, String> {
+        // A file guests view read-only stays a normal tab for the host, who edits it on disk.
+        let viewed = {
+            let st = self.state();
+            st.by_path
+                .get(path)
+                .and_then(|id| st.docs[id].view.map(|v| (st.docs[id].path.clone(), v)))
+        };
+        if let Some((path, view)) = viewed {
+            return Err(not_shared(&path, view));
+        }
         if let Some(opened) = self.join_doc(ParticipantId::HOST, path) {
             return Ok(opened);
         }
@@ -633,9 +645,13 @@ impl HostSession {
         let backend = self.backend.clone();
         let rel = path.to_string();
         let limit = self.max_file_size;
-        let disk = tokio::task::spawn_blocking(move || read_shared(&*backend, &rel, limit))
+        let shareable = tokio::task::spawn_blocking(move || read_shared(&*backend, &rel, limit))
             .await
             .map_err(|e| e.to_string())??;
+        if let Some(view) = shareable.view {
+            return Err(not_shared(path, view));
+        }
+        let disk = shareable.text;
         let mut out = Outbox::default();
         let opened = {
             let mut st = self.state();
@@ -1302,6 +1318,7 @@ impl HostSession {
                                 saved: o.saved,
                                 read_only: o.read_only,
                                 conflict: o.conflict,
+                                view: o.view,
                             },
                             None => HostMessage::DocError {
                                 request,
@@ -1376,8 +1393,10 @@ impl HostSession {
                                 update: ByteBuf::from(update),
                                 state_vector: ByteBuf::from(sv),
                                 saved: d.save_state(),
-                                read_only: policy.check_write_path(&d.path).is_err(),
+                                read_only: policy.check_write_path(&d.path).is_err()
+                                    || d.view.is_some(),
                                 conflict: d.has_conflict(),
+                                view: d.view,
                             },
                         },
                     }
@@ -1562,10 +1581,24 @@ async fn refuse(send: &mut BoxWrite, reason: &str) {
     .await;
 }
 
-/// Read a file for sharing: inside the project (also after resolving symlinks), not too
-/// large, and text.
-fn read_shared(backend: &dyn Backend, rel: &str, limit: usize) -> Result<String, String> {
+/// A file as guests get it.
+pub(crate) struct Shareable {
+    /// The text (empty for binary files).
+    pub text: String,
+    /// Set when the file is read-only for everyone.
+    pub view: Option<ViewOnly>,
+}
+
+/// Read a file for sharing: inside the project (also after resolving symlinks) and at most
+/// [`MAX_VIEW_SIZE`] (or `limit`, if that is higher). Text files over `limit` and binary files
+/// are view-only.
+pub(crate) fn read_shared(
+    backend: &dyn Backend,
+    rel: &str,
+    limit: usize,
+) -> Result<Shareable, String> {
     let abs = backend.resolve(rel).map_err(|e| e.to_string())?;
+    let max = limit.max(MAX_VIEW_SIZE);
     if backend.info().remote.is_none() {
         let root = backend
             .info()
@@ -1577,17 +1610,37 @@ fn read_shared(backend: &dyn Backend, rel: &str, limit: usize) -> Result<String,
             return Err("The file is outside the project and cannot be shared.".into());
         }
         if std::fs::metadata(&real)
-            .map(|m| m.len() as usize > limit)
+            .map(|m| m.len() as usize > max)
             .unwrap_or(false)
         {
             return Err(too_large(&real));
         }
     }
-    let text = backend.read_file(rel).map_err(|e| e.to_string())?;
-    if text.len() > limit {
+    let bytes = backend.read_bytes(rel).map_err(|e| e.to_string())?;
+    if bytes.len() > max {
         return Err(too_large(&abs));
     }
-    Ok(text)
+    Ok(shareable(bytes, limit))
+}
+
+/// Classify a file's bytes: binary (a NUL byte near the start, or not UTF-8), text too large
+/// to co-edit, or text.
+pub(crate) fn shareable(bytes: Vec<u8>, limit: usize) -> Shareable {
+    let size = bytes.len() as u64;
+    let binary = Shareable {
+        text: String::new(),
+        view: Some(ViewOnly::Binary { size }),
+    };
+    if bytes.iter().take(8192).any(|b| *b == 0) {
+        return binary;
+    }
+    match String::from_utf8(bytes) {
+        Err(_) => binary,
+        Ok(text) => {
+            let view = (text.len() > limit).then_some(ViewOnly::Large { size });
+            Shareable { text, view }
+        }
+    }
 }
 
 fn too_large(path: &Path) -> String {
@@ -1596,6 +1649,28 @@ fn too_large(path: &Path) -> String {
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
     format!("{name} is larger than the shared file size limit and is not shared.")
+}
+
+/// Why the host's own tab of a view-only file is not shared.
+fn not_shared(path: &str, view: ViewOnly) -> String {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    match view {
+        ViewOnly::Large { .. } => {
+            format!("{name} is larger than the shared file size limit and is not shared.")
+        }
+        ViewOnly::Binary { .. } => format!("{name} is a binary file and is not shared."),
+    }
+}
+
+/// Why nobody may change a view-only file.
+pub(crate) fn view_only_reason(path: &str, view: ViewOnly) -> String {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    match view {
+        ViewOnly::Large { .. } => format!(
+            "{name} is larger than the shared file size limit and is read-only in this session."
+        ),
+        ViewOnly::Binary { .. } => format!("{name} is a binary file and is read-only."),
+    }
 }
 
 fn participants(host: &Participant, st: &State) -> Vec<Participant> {
@@ -1746,8 +1821,9 @@ fn open_in(st: &mut State, who: ParticipantId, path: &str, read_only: bool) -> O
         path: d.path.clone(),
         update: d.full_update(),
         saved: d.save_state(),
-        read_only,
+        read_only: read_only || d.view.is_some(),
         conflict: d.has_conflict(),
+        view: d.view,
     })
 }
 

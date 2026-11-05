@@ -593,3 +593,12 @@
   max-width: 380px;
   font-size: var(--fs-small);
 }
+
+/* A shared file that is read-only for everyone (too large, or binary). */
+.cwm-view-only-banner {
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}

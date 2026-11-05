@@ -9,7 +9,7 @@
  */
 import * as Y from "yjs";
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, modifyAwarenessUpdate, removeAwarenessStates } from "y-protocols/awareness";
-import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant } from "@/ipc/collab";
+import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant, type ViewOnly } from "@/ipc/collab";
 import { withAuthor, type Author } from "./guestChanges";
 import { session } from "./store";
 
@@ -28,6 +28,8 @@ export interface SharedDoc {
   undo: Y.UndoManager;
   savedHash: string;
   readOnly: boolean;
+  /** Read-only for everyone: too large to co-edit, or binary (`ViewOnly`). */
+  view?: ViewOnly;
   dispose: () => void;
 }
 
@@ -106,6 +108,7 @@ export function adoptDoc(tabPath: string, opened: DocOpened, me: Participant | u
     undo,
     savedHash: opened.saved.hash,
     readOnly: opened.readOnly,
+    view: opened.view,
     dispose: () => {
       removeAwarenessStates(awareness, [ydoc.clientID], "local");
       ydoc.off("update", onUpdate);
@@ -190,6 +193,7 @@ export async function resyncDoc(doc: SharedDoc, api: ResyncApi = collabApi): Pro
   // An empty update is two zero bytes (no structs, no deletes).
   if (missing.length > 2) await api.docUpdate(doc.docId, missing);
   doc.readOnly = synced.readOnly;
+  doc.view = synced.view;
   const renamed = doc.tabPath.startsWith(GUEST_PREFIX) && synced.path && GUEST_PREFIX + synced.path !== doc.tabPath;
   // A conflict may have opened or ended while the connection was down.
   handleDocEvent({ docId: doc.docId, saved: synced.saved, conflict: { open: !!synced.conflict, path: "" }, ...(renamed ? { renamed: synced.path } : {}) });

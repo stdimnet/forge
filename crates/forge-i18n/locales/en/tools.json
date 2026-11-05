@@ -2092,5 +2092,7 @@
   "tools.vim.visual": "Visual",
   "tools.vulnerabilities.vulnerableDependencies": "Vulnerable Dependencies",
   "tools.forges.into": "into",
-  "tools.forges.openedAgo": "opened {value}"
+  "tools.forges.openedAgo": "opened {value}",
+  "tools.codeWithMe.viewOnly.large": "This file is too large to edit together ({size}). It is read-only and shows the host's file as saved.",
+  "tools.codeWithMe.viewOnly.binary": "Binary file ({size}). It is shared read-only and its content is not shown."
 }

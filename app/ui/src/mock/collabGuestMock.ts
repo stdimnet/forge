@@ -133,7 +133,9 @@ if (isCollabGuestDemo() || isCollabJoinDemo()) {
     const text = String(await invoke<string>("fs_read_file", { path }));
     const doc = new Y.Doc();
     doc.getText("content").insert(0, text);
-    return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: permissions().files !== "edit" });
+    // The demo host's logs stand in for a file over the co-editing limit: read-only for guests.
+    const view = String(path).endsWith(".log") ? { kind: "large" as const, size: 3_400_000 } : undefined;
+    return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: !!view || permissions().files !== "edit", view });
   });
   registerMock("collab_doc_save", () => undefined);
   // Nothing changed on the demo host while the connection was down.

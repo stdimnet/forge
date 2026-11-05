@@ -2092,5 +2092,7 @@
   "tools.vim.visual": "Visual",
   "tools.vulnerabilities.vulnerableDependencies": "Anfällige Abhängigkeiten",
   "tools.forges.into": "in",
-  "tools.forges.openedAgo": "eröffnet {value}"
+  "tools.forges.openedAgo": "eröffnet {value}",
+  "tools.codeWithMe.viewOnly.large": "Diese Datei ist zu groß für die gemeinsame Bearbeitung ({size}). Sie ist schreibgeschützt und zeigt die gespeicherte Datei des Hosts.",
+  "tools.codeWithMe.viewOnly.binary": "Binärdatei ({size}). Sie wird schreibgeschützt geteilt, ihr Inhalt wird nicht angezeigt."
 }
