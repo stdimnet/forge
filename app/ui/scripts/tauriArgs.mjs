@@ -20,6 +20,9 @@
  *   SemVer pre-releases. `bundle.windows.allowDowngrades` stays on, so a beta, the next beta
  *   and the final release (same first three MSI fields) install over each other. The NSIS
  *   installer takes the SemVer version as it is.
+ * - `bundle.targets` (Linux only): `["deb", "appimage"]` for pre-release versions, unless
+ *   `--bundles` picks the targets. RPM versions cannot contain `-` (`0.1.1-beta.1`), and Tauri
+ *   has no separate RPM version; stable versions build all Linux bundles.
  */
 import { msiVersion } from "./versionBump.mjs";
 
@@ -93,6 +96,11 @@ export function tauriArgs(args, env, platform = process.platform, version = null
     const windows = windowsSigning(env);
     config.bundle.windows = { ...windows, allowDowngrades: true, wix: { version: msiVersion(version) } };
     if (!windows) notes.push("No Windows signing certificate is configured: the bundles are not Authenticode signed.");
+  }
+  const chooses = args.includes("--bundles") || args.includes("-b");
+  if (platform === "linux" && version?.includes("-") && !chooses) {
+    config.bundle.targets = ["deb", "appimage"];
+    notes.push(`RPM cannot hold the pre-release version ${version}: building the deb and AppImage only.`);
   }
   if (!privateKey) notes.push("TAURI_SIGNING_PRIVATE_KEY is not set: no signed updater artifacts are built.");
   if (!pubkey) notes.push("FORGE_UPDATER_PUBKEY is not set: this build will not check for updates.");
