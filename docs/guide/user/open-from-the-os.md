@@ -37,6 +37,8 @@ file type. Folders get **Open Folder in Forge**.
 - When Forge was started for files only, it shows the LightEdit window alone: no splash
   continues into a project window and the last project is not reopened. Closing the project
   window while LightEdit is open keeps the LightEdit window (the project closes).
+- The window has no project and no project lifecycle: it sends no `opened` / `closing`
+  (`project://lifecycle`), and project switches in the project window do not touch its tabs.
 - There is no project, so project features (code insight from the project index, run
   configurations, VCS, tool windows) are not available; syntax highlighting, editing, Find and
   Replace and the editor actions are.
