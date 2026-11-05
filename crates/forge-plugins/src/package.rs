@@ -10,7 +10,8 @@ use crate::manifest::{describe, is_package_path, PluginManifest, MANIFEST_FILE};
 pub const EXTENSION: &str = "forgeplugin";
 /// Largest package (compressed or unpacked) Forge installs.
 pub const MAX_SIZE: u64 = 64 * 1024 * 1024;
-const MAX_ENTRIES: usize = 4096;
+/// Most files a package may hold.
+pub const MAX_ENTRIES: usize = 4096;
 
 /// A package that was read and validated.
 #[derive(Debug, Clone)]
@@ -27,42 +28,7 @@ pub use crate::sha256_hex;
 impl Package {
     /// Read a package and validate its manifest for `forge_version`.
     pub fn read(bytes: &[u8], forge_version: &str) -> Result<Self, String> {
-        if bytes.len() as u64 > MAX_SIZE {
-            return Err("the plugin package is larger than 64 MB".into());
-        }
-        let mut zip = zip::ZipArchive::new(Cursor::new(bytes))
-            .map_err(|e| format!("not a .{EXTENSION} package: {e}"))?;
-        if zip.len() > MAX_ENTRIES {
-            return Err("the plugin package has too many files".into());
-        }
-        let mut files = BTreeMap::new();
-        let mut total = 0u64;
-        for i in 0..zip.len() {
-            let mut entry = zip
-                .by_index(i)
-                .map_err(|e| format!("broken package: {e}"))?;
-            if entry.is_dir() {
-                continue;
-            }
-            let name = entry.name().replace('\\', "/");
-            if !is_package_path(&name) || entry.enclosed_name().is_none() {
-                return Err(format!("unsafe path in package: {name}"));
-            }
-            if entry.is_symlink() {
-                return Err(format!("symbolic links are not allowed: {name}"));
-            }
-            let mut data = Vec::new();
-            entry
-                .by_ref()
-                .take(MAX_SIZE + 1 - total)
-                .read_to_end(&mut data)
-                .map_err(|e| format!("broken package: {e}"))?;
-            total += data.len() as u64;
-            if total > MAX_SIZE {
-                return Err("the unpacked plugin is larger than 64 MB".into());
-            }
-            files.insert(name, data);
-        }
+        let files = read_entries(bytes)?;
         let manifest_src = files
             .get(MANIFEST_FILE)
             .ok_or_else(|| format!("{MANIFEST_FILE} is missing at the package root"))?;
@@ -95,6 +61,49 @@ impl Package {
             sha256: sha256_hex(bytes),
         })
     }
+}
+
+/// The files of a package by package path, read safely: at most [`MAX_SIZE`] packed and
+/// unpacked, at most [`MAX_ENTRIES`] entries, no absolute paths, `..`, drive letters or
+/// symbolic links. The manifest is not looked at.
+pub fn read_entries(bytes: &[u8]) -> Result<BTreeMap<String, Vec<u8>>, String> {
+    if bytes.len() as u64 > MAX_SIZE {
+        return Err("the plugin package is larger than 64 MB".into());
+    }
+    let mut zip = zip::ZipArchive::new(Cursor::new(bytes))
+        .map_err(|e| format!("not a .{EXTENSION} package: {e}"))?;
+    if zip.len() > MAX_ENTRIES {
+        return Err("the plugin package has too many files".into());
+    }
+    let mut files = BTreeMap::new();
+    let mut total = 0u64;
+    for i in 0..zip.len() {
+        let mut entry = zip
+            .by_index(i)
+            .map_err(|e| format!("broken package: {e}"))?;
+        if entry.is_dir() {
+            continue;
+        }
+        let name = entry.name().replace('\\', "/");
+        if !is_package_path(&name) || entry.enclosed_name().is_none() {
+            return Err(format!("unsafe path in package: {name}"));
+        }
+        if entry.is_symlink() {
+            return Err(format!("symbolic links are not allowed: {name}"));
+        }
+        let mut data = Vec::new();
+        entry
+            .by_ref()
+            .take(MAX_SIZE + 1 - total)
+            .read_to_end(&mut data)
+            .map_err(|e| format!("broken package: {e}"))?;
+        total += data.len() as u64;
+        if total > MAX_SIZE {
+            return Err("the unpacked plugin is larger than 64 MB".into());
+        }
+        files.insert(name, data);
+    }
+    Ok(files)
 }
 
 /// Build a package from files (tests and the SDK's packer use the same layout).
