@@ -1,6 +1,6 @@
 ---
 title: Getting started with plugins
-description: Scaffold a TypeScript plugin with pnpm plugin new, build and pack it into a .forgeplugin file, install it from disk, and read the Word Count example.
+description: Scaffold a TypeScript plugin with pnpm plugin new, build, validate (forge plugin validate) and pack it into a .forgeplugin file, install it from disk, and read the Word Count example.
 order: 10
 tags: [plugins, sdk, template, scaffold, example, word count]
 ---
@@ -25,6 +25,7 @@ hello-forge/
   package.json          build, typecheck and pack scripts (esbuild, TypeScript, @forge/plugin-api)
   tsconfig.json
   scripts/pack.mjs      writes the .forgeplugin file
+  scripts/validate.mjs  runs `forge plugin validate` (basic checks without Forge)
   README.md
 ```
 
@@ -43,6 +44,22 @@ npm run pack      # → acme.hello-forge-0.1.0.forgeplugin and its SHA-256
 Inside the Forge repository the same works without `npm install`:
 `pnpm plugin build <folder>` and `pnpm plugin pack <folder>` use the esbuild that comes with
 Vite.
+
+## Validate it
+
+```sh
+npm run validate                  # in the plugin folder
+pnpm plugin validate <folder>     # from app/ui in the Forge repository
+forge plugin validate acme.hello-forge-0.1.0.forgeplugin --strict
+```
+
+`forge plugin validate` is part of the Forge binary and checks everything Forge checks on
+install (manifest, `engines.forge` against your Forge, permissions, package limits, icon
+themes and their SVGs, the UI bundle, unused files) and lists every problem at once. The
+scripts look for the binary in `FORGE_BIN`, the Cargo build folders of a Forge checkout and
+on `PATH`; without one they run a few basic manifest checks and say so. See
+[CLI](../../reference/cli-and-links.md#forge-plugin-validate) for the options, exit codes and
+the JSON report.
 
 ## Install it
 

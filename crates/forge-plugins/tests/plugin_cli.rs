@@ -31,7 +31,10 @@ fn validate_json(path: &Path, extra: &[&str]) -> (i32, Value) {
     args.extend_from_slice(extra);
     let (code, out, err) = forge_plugin(&args);
     assert!(err.is_empty(), "{err}");
-    (code, serde_json::from_str(&out).unwrap_or_else(|e| panic!("{e}: {out}")))
+    (
+        code,
+        serde_json::from_str(&out).unwrap_or_else(|e| panic!("{e}: {out}")),
+    )
 }
 
 fn diagnostics(report: &Value) -> Vec<(String, String, String)> {
@@ -43,7 +46,11 @@ fn diagnostics(report: &Value) -> Vec<(String, String, String)> {
             (
                 d["severity"].as_str().unwrap().to_string(),
                 d["code"].as_str().unwrap().to_string(),
-                d["field"].as_str().or(d["file"].as_str()).unwrap_or("").to_string(),
+                d["field"]
+                    .as_str()
+                    .or(d["file"].as_str())
+                    .unwrap_or("")
+                    .to_string(),
             )
         })
         .collect()
@@ -53,7 +60,10 @@ fn diagnostics(report: &Value) -> Vec<(String, String, String)> {
 fn a_valid_folder_and_its_package_pass() {
     let (code, out, _) = forge_plugin(&["validate", fixture("valid").to_str().unwrap()]);
     assert_eq!(code, 0, "{out}");
-    assert!(out.starts_with("fixture.valid 1.2.3 (folder, 7 files"), "{out}");
+    assert!(
+        out.starts_with("fixture.valid 1.2.3 (folder, 7 files"),
+        "{out}"
+    );
     assert!(out.contains("valid (0 errors, 0 warnings)"), "{out}");
 
     let (code, report) = validate_json(&fixture("valid"), &["--strict"]);
@@ -84,7 +94,10 @@ fn a_valid_folder_and_its_package_pass() {
     let (code, packed) = validate_json(&file, &[]);
     assert_eq!(code, 0);
     assert_eq!(packed["kind"], "package");
-    assert_eq!(packed["package"], report["package"], "packing is reproducible");
+    assert_eq!(
+        packed["package"], report["package"],
+        "packing is reproducible"
+    );
     let files = forge_plugins::package::read_entries(&std::fs::read(&file).unwrap()).unwrap();
     assert!(files.contains_key("THIRD_PARTY_NOTICES.md"));
     assert!(files.contains_key("theme/icons/folder.svg"));
@@ -146,7 +159,8 @@ fn an_engines_mismatch_is_an_error_unless_checked_for_that_forge() {
         .as_str()
         .unwrap()
         .contains("needs Forge >=99.0.0"));
-    let (code, report) = validate_json(&fixture("engines-mismatch"), &["--forge-version", "99.1.0"]);
+    let (code, report) =
+        validate_json(&fixture("engines-mismatch"), &["--forge-version", "99.1.0"]);
     assert_eq!(code, 0, "{report:#}");
     assert_eq!(report["forgeVersion"], "99.1.0");
 }
@@ -220,10 +234,16 @@ fn warnings_fail_only_with_strict() {
         "theme/icons/file.svg",
         "theme/icons/folder.svg",
     ] {
-        files.push((name.into(), std::fs::read(fixture("valid").join(name)).unwrap()));
+        files.push((
+            name.into(),
+            std::fs::read(fixture("valid").join(name)).unwrap(),
+        ));
     }
     files.push(("notes.txt".into(), b"todo".to_vec()));
-    let list: Vec<(&str, &[u8])> = files.iter().map(|(k, v)| (k.as_str(), v.as_slice())).collect();
+    let list: Vec<(&str, &[u8])> = files
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_slice()))
+        .collect();
     std::fs::write(&file, write(&list).unwrap()).unwrap();
     let (code, report) = validate_json(&file, &[]);
     assert_eq!(code, 0);
@@ -246,7 +266,8 @@ fn usage_errors_exit_with_2() {
     let (code, _, err) = forge_plugin(&["validate", empty.path().to_str().unwrap()]);
     assert_eq!(code, 2);
     assert!(err.contains("has no forge-plugin.json"), "{err}");
-    let (code, _, _) = forge_plugin(&["pack", fixture("valid/forge-plugin.json").to_str().unwrap()]);
+    let (code, _, _) =
+        forge_plugin(&["pack", fixture("valid/forge-plugin.json").to_str().unwrap()]);
     assert_eq!(code, 2);
     let (code, out, _) = forge_plugin(&["--help"]);
     assert_eq!(code, 0);

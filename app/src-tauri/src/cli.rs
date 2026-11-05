@@ -309,7 +309,10 @@ mod tests {
 
     #[test]
     fn dispatches_plugin_commands() {
-        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/../../sdk/examples/shapes-icons");
+        let example = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../sdk/examples/shapes-icons"
+        );
         assert_eq!(main(&s(&["forge", "plugin", "validate", example])), Some(0));
         assert_eq!(main(&s(&["forge", "plugin", "frobnicate"])), Some(2));
     }

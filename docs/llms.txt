@@ -106,7 +106,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [File types](guide/reference/file-types.md): file types and template data languages
 - [Language servers](guide/reference/language-servers.md): supported servers, commands and install options
 - [File locations](guide/reference/file-locations.md): where settings, caches, language servers, scratches and secrets are stored per OS
-- [Environment variables](guide/reference/environment-variables.md) and [CLI and links](guide/reference/cli-and-links.md)
+- [Environment variables](guide/reference/environment-variables.md) and [CLI and links](guide/reference/cli-and-links.md) (`forge inspect`, `forge plugin validate|pack` with exit codes and the JSON report schema)
 
 ## Developer
 
@@ -117,7 +117,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Contribution points](guide/developer/contribution-points.md): tool windows, commands, settings pages, status items, editor extensions
 - [Icon themes](guide/developer/icon-themes.md): file icon themes (icon-theme.json, matching order, forge-icons resolver, registerIconTheme, plugin iconThemes with SVGs, tree arrows / accent / monochrome / size hooks, Shapes Icons example)
 - [IPC commands and browser mocks](guide/developer/ipc-and-mocks.md) and [WASM bridge](guide/developer/wasm-bridge.md)
-- [Plugin SDK](guide/developer/plugins/index.md): third-party plugins as sandboxed UI bundles with the `forge` API, trade-offs and deferred parts; [Getting started](guide/developer/plugins/getting-started.md) (`pnpm plugin new|build|pack`, Word Count example), [API reference](guide/developer/plugins/api-reference.md) (forge-plugin.json, activation events, contributions, API), [Permissions](guide/developer/plugins/permissions.md), [Publishing](guide/developer/plugins/publishing.md) (Forge's marketplace stdimnet/marketplace, marketplace index format 1, private marketplaces with an access token)
+- [Plugin SDK](guide/developer/plugins/index.md): third-party plugins as sandboxed UI bundles with the `forge` API, trade-offs and deferred parts; [Getting started](guide/developer/plugins/getting-started.md) (`pnpm plugin new|build|pack|validate`, Word Count example), [API reference](guide/developer/plugins/api-reference.md) (forge-plugin.json, activation events, contributions, API), [Permissions](guide/developer/plugins/permissions.md), [Publishing](guide/developer/plugins/publishing.md) (`forge plugin validate` and `forge plugin pack` in CI and marketplace repositories, Forge's marketplace stdimnet/marketplace, marketplace index format 1, private marketplaces with an access token)
 - [Unity editor bridge protocol](guide/developer/unity-bridge-protocol.md): discovery through Library/ForgeBridge.json, the token handshake, commands and events between Forge and its Unity package
 - [Plugins and packs](guide/developer/plugins-and-packs.md), [Settings](guide/developer/settings.md), [Keymap actions](guide/developer/keymap-actions.md), [Adding a language](guide/developer/adding-a-language.md)
 - [Localization](guide/developer/localization.md): translatable UI text with `t()` / `<T>` from `@/i18n`, ICU MessageFormat catalogs in `crates/forge-i18n/locales`, key naming, Rust-side text, manifest translations, `pnpm i18n:check`, adding a language

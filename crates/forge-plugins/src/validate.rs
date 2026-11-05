@@ -214,7 +214,10 @@ fn parse_manifest(
         return None;
     };
     let Ok(text) = std::str::from_utf8(src) else {
-        out.push(Diagnostic::error("manifest", format!("{MANIFEST_FILE} is not UTF-8")).file(MANIFEST_FILE));
+        out.push(
+            Diagnostic::error("manifest", format!("{MANIFEST_FILE} is not UTF-8"))
+                .file(MANIFEST_FILE),
+        );
         return None;
     };
     match PluginManifest::parse(text) {
@@ -237,7 +240,9 @@ fn check_main(
             None => out.push(
                 Diagnostic::error(
                     "main",
-                    format!("`main` names {main}, which is not in the package (build the plugin first)"),
+                    format!(
+                        "`main` names {main}, which is not in the package (build the plugin first)"
+                    ),
                 )
                 .field("main")
                 .file(main),
@@ -302,9 +307,12 @@ fn check_icon_themes(
         let field = format!("contributes.iconThemes[{i}].path");
         let Some(src) = files.get(&theme.path) else {
             out.push(
-                Diagnostic::error("icon-theme", format!("{} is not in the package", theme.path))
-                    .field(field)
-                    .file(&theme.path),
+                Diagnostic::error(
+                    "icon-theme",
+                    format!("{} is not in the package", theme.path),
+                )
+                .field(field)
+                .file(&theme.path),
             );
             continue;
         };
@@ -477,7 +485,9 @@ mod tests {
         assert_eq!(script.file.as_deref(), Some("theme/icons/php.svg"));
         assert_eq!(script.field.as_deref(), Some("icons.php"));
         assert!(script.message.contains("script"), "{script:?}");
-        assert!(r.diagnostics[0].message.contains("folder.svg is not in the package"));
+        assert!(r.diagnostics[0]
+            .message
+            .contains("folder.svg is not in the package"));
     }
 
     #[test]
@@ -490,7 +500,10 @@ mod tests {
         let without = r#"{"manifestVersion":1,"id":"acme.x","name":"X","version":"1.0.0",
             "engines":{"forge":">=0.1.0"},
             "contributes":{"commands":[{"id":"acme.x.run","title":"Run"}]}}"#;
-        let r = validate_package(&write(&[(MANIFEST_FILE, without.as_bytes())]).unwrap(), "0.1.0");
+        let r = validate_package(
+            &write(&[(MANIFEST_FILE, without.as_bytes())]).unwrap(),
+            "0.1.0",
+        );
         assert_eq!(codes(&r), vec![(Severity::Warning, "main")]);
         assert!(r.is_valid(false));
         assert!(!r.is_valid(true));

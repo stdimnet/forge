@@ -249,7 +249,11 @@ fn print_human(
     }
     let (errors, warnings) = (report.errors(), report.warnings());
     let plural = |n: usize, w: &str| format!("{n} {w}{}", if n == 1 { "" } else { "s" });
-    let summary = format!("{}, {}", plural(errors, "error"), plural(warnings, "warning"));
+    let summary = format!(
+        "{}, {}",
+        plural(errors, "error"),
+        plural(warnings, "warning")
+    );
     let _ = if valid {
         writeln!(out, "valid ({summary})")
     } else if errors == 0 && args.strict {
@@ -288,13 +292,22 @@ mod tests {
 
     #[test]
     fn parses_arguments() {
-        let a = parse(&s(&["validate", "p", "--json", "--strict", "--forge-version", "9.0.0"]))
-            .unwrap()
-            .unwrap();
+        let a = parse(&s(&[
+            "validate",
+            "p",
+            "--json",
+            "--strict",
+            "--forge-version",
+            "9.0.0",
+        ]))
+        .unwrap()
+        .unwrap();
         assert_eq!(a.command, Command::Validate);
         assert!(a.json && a.strict);
         assert_eq!(a.forge_version, "9.0.0");
-        let a = parse(&s(&["pack", "p", "-o", "x.forgeplugin"])).unwrap().unwrap();
+        let a = parse(&s(&["pack", "p", "-o", "x.forgeplugin"]))
+            .unwrap()
+            .unwrap();
         assert_eq!(
             a.command,
             Command::Pack {
