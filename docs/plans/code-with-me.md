@@ -1355,7 +1355,9 @@ Deviations from the plan above:
   variants) stays below the limits; with `FORGE_CWM_STRESS_ROUNDS` in the thousands, its
   1 ms pause between edits (several hundred messages a second per guest) would exceed
   `FLOOD_RATE` after a few seconds.
-- Not done in S7: the manual desktop test plan on Linux, Windows and macOS.
+- Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
+  checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
+  Linux ran under Xvfb (see its results table).
 
 ## Keeping one large PR reviewable
 
