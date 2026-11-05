@@ -1355,6 +1355,13 @@ Deviations from the plan above:
   variants) stays below the limits; with `FORGE_CWM_STRESS_ROUNDS` in the thousands, its
   1 ms pause between edits (several hundred messages a second per guest) would exceed
   `FLOOD_RATE` after a few seconds.
+- **Desktop test on Linux** (Xvfb, two windows on one machine) found and fixed: guest backend
+  calls on a runtime worker panicked (`call_blocking` now waits with `block_in_place`); guest
+  features sent `cwm://` tab paths to the host (`ipc/projectPath.ts` maps them in `invoke`);
+  the guest re-adopted the host's project on every status event; and one message over the
+  frame limit ended the connection, so the guest reconnected, resynchronized and sent it again
+  every ~1.5 s (`write_or_skip` drops such a message with a warning, and guest calls over the
+  limit fail at once).
 - Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
   checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
   Linux ran under Xvfb (see its results table).

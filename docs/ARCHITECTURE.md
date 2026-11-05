@@ -1095,6 +1095,11 @@ everyone; updates and saves of such a document are refused like any other denied
 a normal, unshared tab (`open_doc` refuses it). They still follow the file on disk. The guest's
 editor shows a banner above the file (`binding.ts`, `viewOnlyText`).
 
+**Frame limits.** Guests send at most `MAX_GUEST_FRAME` (4 MiB) per message, the host
+`MAX_HOST_FRAME` (32 MiB). A message over the limit is not sent (`transport::write_or_skip`,
+logged) instead of ending the connection; a guest call over it fails at once with "The request
+is too large to send to the host." (e.g. analysis that sends a multi-megabyte editor text).
+
 **Reconnect.** `Welcome` carries a resume token; a guest whose connection dropped dials again
 with `GuestMessage::Resume` and keeps its place, color, documents, terminals and runs for
 `reconnect::HOST_GRACE` (2 minutes). Documents resynchronize with Yjs sync (`DocSync` /
