@@ -163,6 +163,8 @@ backgrounds. Users can force one variant with `fileIcons.variant`. The switch is
 theme is handed to Rust (`icons_set_options`), which clears its cache, and every icon
 re-renders. Symbol, UI, root and hollow icons have light variants the same way.
 
+![Light variants with the Light theme](../../screenshots/icon-themes-light.png)
+
 ### Tint layers
 
 The accent color (`options.accentColor`, `fileIcons.accentColor`), the user's folder colors
@@ -190,6 +192,8 @@ pass `check_svg`. Accent colors apply to folders; monochrome recolors files in t
 color and grays the rest of the icon. Icons without a marker, and every icon with
 `fileIcons.tintMode = "mask"`, are drawn as a one-color mask, as in format 1.
 
+![Tint layer with an accent color](../../screenshots/icon-themes-tint.png)
+
 ### Hollow folders
 
 With `options.hollowFolders` or `fileIcons.hollowFolders` on, folders that hold a file open in
@@ -197,6 +201,10 @@ the editor (at any depth, `forge_icons::folders_with_open_files`) are drawn holl
 folder's icon `<id>_hollow` if the theme declares one (`folder-src_hollow`), else
 `folderHollow` / `folderHollowExpanded` for default folders, else the normal icon. Forge's own
 icons use lucide's folder with a dot.
+
+![Hollow folders](../../screenshots/icon-themes-hollow.png)
+
+![Hollow folders](../../screenshots/icon-themes-hollow.png)
 
 Limits and checks (`forge_icons::check_svg`): at most 5,000 icons (light variants included),
 128 KiB per SVG, an `<svg>` root, no scripts, event handler attributes, `foreignObject`,
@@ -283,6 +291,8 @@ cleared on the same changes.
 | Saturation, opacity | `fileIcons.saturation`, `fileIcons.opacity` (percent) | CSS `saturate()` and `opacity` of themed icons |
 | Hollow folders | `fileIcons.hollowFolders` (`theme`, `on`, `off`) | folders with open files drawn hollow |
 | Folder colors | `fileIcons.folderColors` (`pattern`, `color`) | a color per folder name, glob or path glob (relative to the project root), before the accent color; also for Forge's own folder icons |
+
+![Plus and minus tree arrows](../../screenshots/icon-themes-plus-minus.png)
 
 ## The Shapes Icons example
 
