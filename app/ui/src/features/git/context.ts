@@ -4,6 +4,7 @@
  * `withVcsTargets`; shortcuts use whatever has the focus.
  */
 import { activeTab } from "@/state/editor";
+import { projectPathOf } from "@/ipc/projectPath";
 import type { StatusEntry } from "./api";
 
 /** A file or folder, workspace-relative; the project root is the folder `""`. */
@@ -62,8 +63,11 @@ export function vcsTargets(): VcsTarget[] {
   return tab && !tab.view ? [{ path: tab.path, dir: false }] : [];
 }
 
-const covers = (t: VcsTarget, path: string) =>
-  t.dir ? t.path === "" || path === t.path || path.startsWith(`${t.path}/`) : path === t.path;
+// The status names project files; a Code With Me guest's `cwm://` tab is its project file.
+const covers = (t: VcsTarget, path: string) => {
+  const target = projectPathOf(t.path);
+  return t.dir ? target === "" || path === target || path.startsWith(`${target}/`) : path === target;
+};
 
 /** Git state of a set of targets, from the repository status. */
 export interface TargetState {
@@ -90,13 +94,13 @@ export function targetState(targets: VcsTarget[], entries: StatusEntry[]): Targe
     file,
     changed,
     unversioned,
-    fileTracked: file !== null && !ignored && !unversioned.includes(file),
+    fileTracked: file !== null && !ignored && !unversioned.includes(projectPathOf(file)),
     // A folder counts when it holds unversioned files and no tracked changes; git status does
     // not list unchanged tracked files, so a folder with both is a best guess.
     allUnversioned:
       targets.length > 0 &&
       !ignored &&
-      targets.every((t) => (t.dir ? t.path !== "" && unversioned.some((p) => covers(t, p)) : unversioned.includes(t.path))) &&
+      targets.every((t) => (t.dir ? t.path !== "" && unversioned.some((p) => covers(t, p)) : unversioned.includes(projectPathOf(t.path)))) &&
       changed.length === 0,
     ignored,
   };
