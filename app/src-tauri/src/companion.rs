@@ -392,6 +392,8 @@ pub fn project_window_closed(app: &AppHandle) {
     app.state::<CompanionState>()
         .ui_ready
         .store(false, Ordering::SeqCst);
+    // The project's lifecycle ends with its window; the LightEdit window has none of its own.
+    crate::lifecycle::closing(app);
     app.state::<AppState>().close_project();
 }
 

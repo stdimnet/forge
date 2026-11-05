@@ -2106,5 +2106,9 @@
   "tools.lightEdit.openFolderTitle": "Ordner öffnen",
   "tools.lightEdit.linkWantsToOpenFolder": "Ein forge://-Link möchte einen Ordner als Projekt öffnen:",
   "tools.lightEdit.openItAsAProject": "Als Projekt öffnen?",
-  "tools.lightEdit.openFolder": "Ordner öffnen"
+  "tools.lightEdit.openFolder": "Ordner öffnen",
+  "tools.terminal.historyRestored": "Sitzung wiederhergestellt",
+  "tools.terminal.lifecycle.title": "Terminalprozess läuft",
+  "tools.terminal.lifecycle.message": "{count, plural, one {Im Terminal läuft noch ein Prozess: {processes}. Beenden?} other {Im Terminal laufen noch # Prozesse: {processes}. Beenden?}}",
+  "tools.terminal.lifecycle.terminate": "Beenden"
 }

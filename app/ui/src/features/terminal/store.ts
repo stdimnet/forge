@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 import { getSetting } from "@/state/settings";
 import { isToolWindowVisible, toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
-import type { SshTarget } from "@/ipc/terminal";
+import type { SshTarget, TerminalLayout } from "@/ipc/terminal";
 import type { Progress } from "./osc";
 
 export interface TerminalTab {
@@ -30,6 +30,8 @@ export interface TerminalTab {
   source?: TerminalSource;
   /** Shared with Code With Me guests (host). */
   shared?: boolean;
+  /** Opened with this shell profile of the "+" menu (its label). */
+  profile?: string;
 }
 
 /**
@@ -126,7 +128,7 @@ export function nextTitle(existing: string[], base: string): string {
   for (let i = 2; ; i++) if (!existing.includes(`${base} (${i})`)) return `${base} (${i})`;
 }
 
-export function newTab(cwd?: string, command?: TerminalProgram & { title?: string }): TerminalTab {
+export function newTab(cwd?: string, command?: TerminalProgram & { title?: string }, profile?: string): TerminalTab {
   const setting = getSetting<string>("terminal.tabName", "Local") || "Local";
   // A remote project's shells run on its host: name them after it, like SSH sessions.
   const host = workspace()?.remote?.host;
@@ -139,6 +141,7 @@ export function newTab(cwd?: string, command?: TerminalProgram & { title?: strin
     ),
     cwd,
     command: command && { program: command.program, args: command.args, env: command.env, local: command.local },
+    ...(profile ? { profile } : {}),
   };
   setTabs((t) => [...t, tab]);
   setActiveTab(tab.id);
@@ -237,4 +240,64 @@ export function overallProgress(list: TerminalTab[]): Progress | undefined {
   const determinate = all.filter((p) => p.state === "normal");
   if (!determinate.length) return all[0];
   return { state: "normal", percent: Math.min(...determinate.map((p) => p.percent)) };
+}
+
+// ---- Per project ----------------------------------------------------------------------
+
+const [restoringTabs, setRestoringTabs] = createSignal(false);
+
+/** The project's tabs are being restored: the Terminal does not open a fresh tab meanwhile. */
+export { restoringTabs, setRestoringTabs };
+
+/** Replace every tab (the opened project's restored layout). */
+export function replaceTabs(list: TerminalTab[], active: string | null): void {
+  setTabs(list);
+  setActiveTabSignal(active && list.some((t) => t.id === active) ? active : (list[0]?.id ?? null));
+}
+
+/** `liveCwd` (absolute, from the shell) relative to `root` when it is inside it. */
+function startDir(tab: TerminalTab, root: string): string | undefined {
+  const live = tab.liveCwd?.replace(/[\\/]+$/, "");
+  const base = root.replace(/[\\/]+$/, "");
+  if (!live) return tab.cwd || undefined;
+  if (live === base) return undefined;
+  if (live.startsWith(`${base}/`) || live.startsWith(`${base}\\`)) return live.slice(base.length + 1);
+  return live;
+}
+
+/**
+ * The tabs worth restoring when the project at `root` opens again: shells and shell
+ * profiles with their names and directories. SSH sessions, programs started elsewhere
+ * (`docker exec` from Services) and Code With Me terminals only make sense while they run.
+ */
+export function terminalLayoutOf(list: TerminalTab[], active: string | null, root: string, profiles: ShellProfile[]): TerminalLayout {
+  const kept = list.filter((t) => !t.ssh && !t.source && (!t.command || t.profile));
+  return {
+    tabs: kept.map((t) => {
+      const profile = t.profile ? profiles.find((p) => p.label === t.profile)?.command ?? t.command : undefined;
+      return {
+        id: t.id,
+        title: t.title,
+        ...(t.renamed ? { renamed: true } : {}),
+        ...(startDir(t, root) ? { cwd: startDir(t, root) } : {}),
+        ...(t.profile && profile ? { profile: { label: t.profile, program: profile.program, args: profile.args, ...(profile.env?.length ? { env: profile.env } : {}) } } : {}),
+      };
+    }),
+    ...(active && kept.some((t) => t.id === active) ? { active } : {}),
+  };
+}
+
+/** Tabs for a saved layout; a profile that still exists starts as it is configured now. */
+export function tabsFromLayout(layout: TerminalLayout, profiles: ShellProfile[]): TerminalTab[] {
+  return layout.tabs.map((s) => {
+    const current = s.profile && profiles.find((p) => p.label === s.profile!.label)?.command;
+    const command = s.profile ? (current ?? { program: s.profile.program, args: s.profile.args, env: s.profile.env }) : undefined;
+    return {
+      id: s.id,
+      title: s.title,
+      ...(s.renamed ? { renamed: true } : {}),
+      ...(s.cwd ? { cwd: s.cwd } : {}),
+      ...(command ? { command: { program: command.program, args: command.args, env: command.env, local: command.local }, profile: s.profile!.label } : {}),
+    };
+  });
 }

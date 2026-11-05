@@ -132,6 +132,8 @@ import "./templatesMock";
 import "./trustMock";
 // Wraps the file mocks above, so it comes last.
 import "./localHistoryMock";
+// Wraps workspace_open last: the project lifecycle events of every open.
+import "./lifecycleMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

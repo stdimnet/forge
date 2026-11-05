@@ -60,6 +60,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
 | `claimFrameworkStatus` | `features/project-type` | hide the generic framework status widget |
 | `registerMock` | `ipc/index.ts` | a browser-mode handler for an IPC command |
+| `onProject(phase, handler)` | `state/projectLifecycle.ts` | follow the window's project: `beforeClose` (veto), `closing`, `opened`, `ready` |
 
 ## Tool windows
 
@@ -472,6 +473,40 @@ showBalloon("Database found in .env", "MySQL · shop@localhost", 0, [{ label: "A
 
 `type` is `info` (default), `warning` or `error`; `log: false` is for transient hints
 ("Path copied") that do not belong in the history.
+
+## Project lifecycle
+
+Everything a feature keeps about the open project (results, selections, branches, sessions)
+follows the window's project through `onProject(phase, handler, { order?, name? })` from
+`state/projectLifecycle.ts`. It returns a function that unsubscribes.
+
+| Phase | Handler gets | Use it to |
+| --- | --- | --- |
+| `beforeClose` | the old project, `{ objections, claim(kind) }` | ask before the project closes; return `false` to keep it (one "Cancel" stops the switch) |
+| `closing` | the old project (`workspace()` is still it) | drop and save per-project state, stop timers |
+| `opened` | the new project (`root`, `vcsRoot`, `trusted`, `remote`, …) | load and start; return a cleanup that runs when it closes |
+| `ready` | the new project | work that needs the index |
+
+```ts
+import { onProject } from "@/state/projectLifecycle";
+
+onProject("closing", () => setResults([]), { name: "my-feature" });
+onProject("opened", (project) => {
+  const timer = setInterval(() => void poll(project.root), 5000);
+  return () => clearInterval(timer);
+});
+onProject("beforeClose", async (project, ctx) => {
+  const running = ctx.claim("terminal.running"); // objections of a Rust subscriber
+  return running.length === 0 || (await askTerminate(running));
+});
+```
+
+Handlers run in a fixed order (lower `order` first, then registration order) with error
+isolation: one that throws or rejects is logged and the others still run. A handler that
+returns a promise is awaited before the next one runs. The phases come from Rust
+(`project://lifecycle`, see [Architecture](architecture.md)), whose own services subscribe
+with the `ProjectLifecycle` trait of `forge-core`. Views that only render the project can keep
+deriving from `workspace()?.root`; anything with module state uses `onProject`.
 
 ## Project awareness
 

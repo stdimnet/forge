@@ -218,6 +218,9 @@ fn run_steps(app: &AppHandle) {
         70,
     );
     crate::commands::services::start(app);
+    // The project from the command line or the last session: its lifecycle starts here (the
+    // UI adopts it with `workspace_current` once it renders).
+    crate::lifecycle::opened(app);
 
     // 5. Updates (the splash may offer one and wait for the answer). The first project
     // window checks; additional ones do not ask again.

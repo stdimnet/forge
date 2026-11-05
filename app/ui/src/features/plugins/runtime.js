@@ -136,6 +136,9 @@
       root: function () {
         return call("workspace.root");
       },
+      onDidChangeProject: function (callback) {
+        return on("project.lifecycle", callback);
+      },
     },
     fs: {
       readFile: function (path) {

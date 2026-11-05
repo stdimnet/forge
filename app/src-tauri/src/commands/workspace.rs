@@ -23,6 +23,11 @@ pub const FS_CHANGED_EVENT: &str = "fs://changed";
 #[derive(Default)]
 pub struct WatchState(Mutex<Option<WatchGuard>>);
 
+/// Stop watching the project that closes (lifecycle `closing`).
+pub fn stop_watching(app: &AppHandle) {
+    *app.state::<WatchState>().0.lock().expect("watch lock") = None;
+}
+
 /// Watch the open project (replacing the previous project's watcher): changes go to the UI
 /// as `fs://changed`; the backend already updated the PHP index.
 pub fn start_watching(app: &AppHandle) {
@@ -127,6 +132,9 @@ pub fn project_opened(app: &AppHandle) {
     // Excluded folders before the watcher and the indexes look at the project.
     crate::commands::project_structure::apply(app);
     start_watching(app);
+    // Rust subscribers start for the new project; the UI gets `opened` on
+    // `project://lifecycle`.
+    crate::lifecycle::opened(app);
     let display = info.display_root();
     // A guest's view of the host's project is not the guest's project: no recent entry, no
     // data sources, no services.
@@ -162,6 +170,7 @@ pub fn workspace_open(
     state: State<'_, AppState>,
 ) -> Result<WorkspaceInfo> {
     let ws = Workspace::open(&path)?;
+    crate::lifecycle::closing(&app);
     crate::commands::remote::close_project_connection(&app);
     state.set_workspace(ws);
     let info = state

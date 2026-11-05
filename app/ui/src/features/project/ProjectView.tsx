@@ -10,7 +10,8 @@ import { Dynamic } from "solid-js/web";
 import { ChevronsDownUp, EllipsisVertical, LocateFixed } from "lucide-solid";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { projectStructureApi, type TreeRow } from "@/ipc/projectStructure";
-import { onProjectSwitch, workspace } from "@/state/workspace";
+import { workspace } from "@/state/workspace";
+import { onProject } from "@/state/projectLifecycle";
 import { activeTab, editor, isCustomTab } from "@/state/editor";
 import { openFileReported } from "@/features/navigation/openReported";
 import { statusOf, dirHasChanges, dirHasConflicts } from "@/state/vcs";
@@ -508,7 +509,7 @@ export function resetProjectTree(): void {
   setStructureRevision((n) => n + 1);
 }
 
-onProjectSwitch(resetProjectTree);
+onProject("closing", () => resetProjectTree(), { name: "project tree" });
 
 /** Expansion and selection of the Project tree, for sections. */
 export const projectTree = { expanded, setOpen, toggle, selected, setSelected: selectOnly, selectedPaths, singleClickOpens };

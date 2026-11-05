@@ -2106,5 +2106,9 @@
   "tools.lightEdit.openFolderTitle": "Open Folder",
   "tools.lightEdit.linkWantsToOpenFolder": "A forge:// link wants to open a folder as a project:",
   "tools.lightEdit.openItAsAProject": "Open it as a project?",
-  "tools.lightEdit.openFolder": "Open Folder"
+  "tools.lightEdit.openFolder": "Open Folder",
+  "tools.terminal.historyRestored": "Session restored",
+  "tools.terminal.lifecycle.title": "Terminal Process Is Running",
+  "tools.terminal.lifecycle.message": "{count, plural, one {A process is still running in the terminal: {processes}. Terminate it?} other {# processes are still running in the terminal: {processes}. Terminate them?}}",
+  "tools.terminal.lifecycle.terminate": "Terminate"
 }
