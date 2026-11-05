@@ -17,7 +17,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use forge_backend::Backend;
 use forge_core::FsChanges;
@@ -34,6 +34,7 @@ use crate::protocol::{
     DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
     PROTOCOL_VERSION,
 };
+use crate::rate::{GuestLimits, Verdict};
 use crate::reconnect::{same_token, HOST_GRACE};
 use crate::relay::{ConnectionPath, RelayStatus};
 use crate::transport::{
@@ -68,6 +69,8 @@ enum Leaving {
     Removed,
     /// Its connection dropped and it did not come back within the grace period.
     Lost,
+    /// It sent far more edits and carets than anyone types ([`crate::rate::FLOOD_RATE`]).
+    Flooded,
 }
 
 /// How a guest's connection ended.
@@ -202,6 +205,8 @@ struct Guest {
     /// Counts the guest's connections; a dropped connection only counts while it is the
     /// newest.
     epoch: u64,
+    /// Its rate limits; kept across reconnects.
+    limits: GuestLimits,
 }
 
 /// A queue that takes nothing: what a guest gets while it is away.
@@ -1046,6 +1051,7 @@ impl HostSession {
                     tx,
                     resume,
                     epoch: 1,
+                    limits: GuestLimits::new(Instant::now()),
                 },
             );
             participants_changed(&self.host, &st, &mut out);
@@ -1165,6 +1171,7 @@ impl HostSession {
             match read_msg::<_, GuestMessage>(&mut recv, MAX_GUEST_FRAME).await {
                 Ok(Some(GuestMessage::Leave)) => break ConnectionEnd::Left,
                 Ok(None) | Err(_) => break ConnectionEnd::Lost,
+                Ok(Some(msg)) if !self.within_rate(id, &msg) => {}
                 Ok(Some(GuestMessage::Call { id: call, payload })) => {
                     self.spawn_call(id, call, payload)
                 }
@@ -1521,7 +1528,7 @@ impl HostSession {
             guest.participant.name
         };
         if !self.is_ended() {
-            self.audit(if why == Leaving::Removed {
+            self.audit(if matches!(why, Leaving::Removed | Leaving::Flooded) {
                 AuditEvent::Removed {
                     participant: id,
                     name: name.clone(),
@@ -1536,6 +1543,9 @@ impl HostSession {
                 Leaving::Removed => format!("{name} was removed from the session."),
                 Leaving::Left => format!("{name} left the session."),
                 Leaving::Lost => format!("{name} lost the connection and did not come back."),
+                Leaving::Flooded => {
+                    format!("{name} was disconnected for sending too many messages.")
+                }
             };
             out.events.push(HostEvent::Notice(text));
         }
@@ -1543,6 +1553,71 @@ impl HostSession {
         if !self.is_ended() {
             self.guest_gone(id);
         }
+    }
+}
+
+impl HostSession {
+    /// Count a guest's message against its rate limits ([`crate::rate`]). `false`: the
+    /// message was refused (and answered) or the guest was disconnected for flooding.
+    fn within_rate(&self, from: ParticipantId, msg: &GuestMessage) -> bool {
+        let verdict = {
+            let mut st = self.state();
+            let Some(g) = st.guests.get_mut(&from) else {
+                return false;
+            };
+            g.limits.check(msg, Instant::now())
+        };
+        let report = match verdict {
+            Verdict::Allow => return true,
+            Verdict::Refuse { report } => report,
+            Verdict::Flood => {
+                self.audit(AuditEvent::Denied {
+                    participant: from,
+                    name: self.guest_name(from),
+                    request: msg.name().to_string(),
+                    reason: crate::rate::FLOODED_LOG.into(),
+                });
+                let tx = self.state().guests.get(&from).map(|g| g.tx.clone());
+                if let Some(tx) = tx {
+                    let _ = tx.try_send(HostMessage::Ended {
+                        reason: crate::rate::FLOODED.into(),
+                    });
+                }
+                self.remove_guest(from, Leaving::Flooded);
+                return false;
+            }
+        };
+        if report {
+            self.audit(AuditEvent::Denied {
+                participant: from,
+                name: self.guest_name(from),
+                request: msg.name().to_string(),
+                reason: crate::rate::TOO_MANY.into(),
+            });
+        }
+        let error = crate::rate::TOO_MANY.to_string();
+        let answer = match msg {
+            GuestMessage::Call { id, .. } => Some(HostMessage::CallResult {
+                id: *id,
+                result: Err(error),
+            }),
+            GuestMessage::DocOpen { request, .. } | GuestMessage::DocSync { request, .. } => {
+                Some(HostMessage::DocError {
+                    request: *request,
+                    error,
+                })
+            }
+            GuestMessage::DocSave { request, .. } => Some(HostMessage::SaveResult {
+                request: *request,
+                error: Some(error),
+            }),
+            // Input has no answer of its own: tell the guest once per burst.
+            _ => report.then_some(HostMessage::Denied { reason: error }),
+        };
+        if let Some(answer) = answer {
+            self.reply(from, answer);
+        }
+        false
     }
 }
 
