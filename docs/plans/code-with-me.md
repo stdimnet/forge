@@ -1330,10 +1330,15 @@ Deviations from the plan above:
   reachable through forge-collab (iroh, its QUIC stack `noq`, relay client, DNS / mDNS,
   `netwatch` / `netlink-*`, `yrs`, `blake3`, AES-GCM, `postcard`); the method for the release
   machine is in ARCHITECTURE.md.
-- Not done in S7: large and binary files are still refused for sharing rather than opened
-  read-only for guests (oversized files stay normal host tabs); per-guest rate limits are not
-  implemented (bounded queues and frame limits are); the manual desktop test plan on Linux,
-  Windows and macOS.
+- **Large and binary files read-only** (finished on `dev/charming-ritchie-qqs4fk`): files over
+  `codeWithMe.maxSharedFileSize` and binary files (NUL byte in the first 8 KiB, or not UTF-8)
+  up to `MAX_VIEW_SIZE` (16 MiB) open for guests as view-only documents
+  (`protocol::ViewOnly`, `view` in `DocOpened` / `DocSynced`): read-only for every permission,
+  updates and saves refused, no language server requests, binary ones without content, with a
+  banner in the guest's editor. The host's tab of such a file stays unshared. Larger files are
+  refused as before.
+- Not done in S7: per-guest rate limits are not implemented (bounded queues and frame limits
+  are); the manual desktop test plan on Linux, Windows and macOS.
 
 ## Keeping one large PR reviewable
 

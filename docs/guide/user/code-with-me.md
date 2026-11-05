@@ -104,6 +104,13 @@ Guests see a balloon that the host is choosing which version to keep; they canno
 until then. Saving it yourself as the host also keeps the memory changes, and the conflict ends
 by itself when the file on disk changes back.
 
+Files larger than **Larger files open read-only (KB)** (5 MB by default) and binary files
+(images, archives, fonts) open read-only for guests, whatever their permission, with a bar
+above the editor that says why. A large file shows the host's file as saved and follows it when
+the host saves; a binary file shows only its size. Files over 16 MB (or over the limit, if you set it higher) cannot be
+opened by guests.
+The host edits these files as usual in an unshared tab.
+
 ![The host's File Cache Conflict dialog](../../screenshots/code-with-me-file-cache-conflict.png)
 
 ![Lines changed by Alex, marked in the host's gutter](../../screenshots/code-with-me-guest-lines.png)
@@ -326,8 +333,8 @@ available in a guest's window, because they would use the host's accounts and se
 
 Secret files are invisible to guests whatever their level, in the tree, in search, in Git and
 in analysis results: `.env` and `.env.*` (but not `.env.example`), private keys, certificates
-and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Files larger than
-**Larger files open read-only (KB)** open read-only.
+and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Large
+and binary files open read-only (see [Saving and changes on disk](#saving-and-changes-on-disk)).
 
 Files that configure what runs on the host can be changed only by guests with Full access to
 Run (with Edit files they open read-only): **Settings | Tools | Code With Me | Files only Full

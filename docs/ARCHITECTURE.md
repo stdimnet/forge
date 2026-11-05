@@ -1079,6 +1079,17 @@ document is edited into the disk's text. Updates from guests reach the host's UI
 (the participant), and the host's editor marks the lines guests changed until the next save
 (`guestChanges.ts`, a gutter in the guest's color).
 
+**View-only documents.** `host::read_shared` reads a file as bytes and classifies it
+(`host::shareable`): text up to `codeWithMe.maxSharedFileSize` is shared for editing; text
+over it, and binary files (a NUL byte in the first 8 KiB, or not UTF-8), become documents with
+`SharedDoc::view` set (`protocol::ViewOnly::{Large, Binary} { size }`; binary ones hold no
+text); files over `protocol::MAX_VIEW_SIZE` (16 MiB, or the setting if higher) are refused. `DocOpened` / `DocSynced`
+carry `view` (`#[serde(default)]`, so older peers interoperate) and `read_only: true` for
+everyone; updates and saves of such a document are refused like any other denied write
+(`document_write_denied`), language servers skip them, and the host's own tab of the file stays
+a normal, unshared tab (`open_doc` refuses it). They still follow the file on disk. The guest's
+editor shows a banner above the file (`binding.ts`, `viewOnlyText`).
+
 **Reconnect.** `Welcome` carries a resume token; a guest whose connection dropped dials again
 with `GuestMessage::Resume` and keeps its place, color, documents, terminals and runs for
 `reconnect::HOST_GRACE` (2 minutes). Documents resynchronize with Yjs sync (`DocSync` /
