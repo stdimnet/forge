@@ -12,7 +12,8 @@ use serde::Serialize;
 
 use crate::manifest::{is_package_path, PluginManifest};
 
-/// A theme ready for the UI: its definition and the SVG text of each icon id.
+/// A theme ready for the UI: its definition and the SVG text of each icon id (light
+/// variants from `iconsLight` under `<id>_light`).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoadedIconTheme {
@@ -72,12 +73,13 @@ pub fn load(
         return Err(format!("{}: {}", theme.path, problems.join("; ")));
     }
     let mut svgs = BTreeMap::new();
-    for (id, rel) in &definition.icons {
+    // `icons` under their ids, `iconsLight` under `<id>_light` (the resolver's keys).
+    for (key, rel) in definition.svg_files() {
         let path = resolve_asset(&theme.path, rel)
-            .ok_or_else(|| format!("icons.{id}: `{rel}` leaves the plugin"))?;
+            .ok_or_else(|| format!("icons.{key}: `{rel}` leaves the plugin"))?;
         let svg = text(&path)?;
         check_svg(&svg).map_err(|e| format!("{path} {e}"))?;
-        svgs.insert(id.clone(), svg);
+        svgs.insert(key, svg);
     }
     Ok(LoadedIconTheme {
         id: theme.id.clone(),
@@ -183,7 +185,13 @@ pub(crate) mod tests {
             std::fs::read(root.join(p)).map_err(|e| e.to_string())
         })
         .unwrap();
-        assert_eq!(t.svgs.len(), t.definition.icons.len());
+        assert_eq!(t.svgs.len(), t.definition.svg_files().len());
+        assert!(
+            t.svgs.contains_key("folder_light"),
+            "iconsLight under `<id>_light`"
+        );
+        assert!(forge_icons::has_tint_layer(&t.svgs["folder"]));
+        assert_eq!(t.definition.warnings(), Vec::<String>::new());
         let (mut r, problems) = forge_icons::IconResolver::new(t.definition, &[]);
         assert!(problems.is_empty());
         let kind = forge_icons::IconKind::File;
@@ -202,6 +210,26 @@ pub(crate) mod tests {
                 .as_deref(),
             Some("folder-src-open")
         );
+        // Format 2: path rules, the root folder, symbols, UI icons and light variants.
+        assert_eq!(
+            r.resolve("app/Http/Controllers/UserController.php", kind)
+                .as_deref(),
+            Some("controller")
+        );
+        let root = forge_icons::Lookup {
+            root: true,
+            ..forge_icons::Lookup::new("shop", forge_icons::IconKind::FolderOpen)
+        };
+        assert_eq!(r.lookup(&root).as_deref(), Some("folder-root-open"));
+        let class = r.symbol("class", Default::default()).unwrap();
+        assert_eq!(class.icon, "sym-class");
+        assert_eq!(r.ui("toolwindow.project").as_deref(), Some("ui-project"));
+        assert_eq!(
+            r.ui("runconfig.php-script").as_deref(),
+            Some("runconfig-php")
+        );
+        r.set_light(true);
+        assert_eq!(r.resolve("a.php", kind).as_deref(), Some("php_light"));
     }
 
     #[test]

@@ -1,49 +1,86 @@
-//! File icon themes.
+//! Icon themes.
 //!
-//! An icon theme maps file and folder names to SVG icons. Plugins contribute one with an
-//! `icon-theme.json` file (see [`IconThemeDef`]) next to their SVGs; the user picks the
-//! active theme in Settings | Appearance & Behavior | File Icons and can add their own
-//! associations there. Every place that shows a file icon asks the [`IconResolver`] of the
-//! active theme first and falls back to Forge's built-in icons when it has no answer.
+//! An icon theme maps file and folder names, code symbols and UI places to SVG icons.
+//! Plugins contribute one with an `icon-theme.json` file (see [`IconThemeDef`]) next to
+//! their SVGs; the user picks the active theme in Settings | Appearance & Behavior | File
+//! Icons and can add their own associations there. Every place that shows an icon asks the
+//! [`IconResolver`] of the active theme first and falls back to Forge's built-in (lucide)
+//! icons when it has no answer.
 //!
 //! ```json
 //! {
+//!   "version": 2,
 //!   "icons": { "file": "icons/file.svg", "php": "icons/php.svg", "folder": "icons/folder.svg" },
+//!   "iconsLight": { "php": "icons/light/php.svg" },
 //!   "file": "file",
 //!   "folder": "folder",
+//!   "rootFolder": "folder-root",
 //!   "fileExtensions": { "php": "php", "blade.php": "blade" },
 //!   "fileNames": { "composer.json": "composer" },
+//!   "fileTypes": { "shell": "shell" },
+//!   "pathRules": [{ "pattern": "Controllers/*.php", "icon": "controller" }],
 //!   "filePatterns": [{ "pattern": "*.test.ts", "icon": "test" }],
 //!   "fileRegex": [{ "pattern": "^\\.env(\\..+)?$", "icon": "env" }],
 //!   "folderNames": { "src": "folder-src" },
 //!   "folderNamesExpanded": { "src": "folder-src-open" },
-//!   "options": { "treeArrows": "triangle", "accentColor": "#f0a050", "monochrome": false, "iconSize": 16 }
+//!   "symbols": { "class": "sym-class", "method": "sym-method" },
+//!   "ui": { "toolwindow.project": "ui-project", "action.run": "ui-run" },
+//!   "options": { "treeArrows": "plusMinus", "accentColor": "#f0a050", "hollowFolders": true }
 //! }
 //! ```
 //!
-//! Matching order for files: the user's associations, then file names (exact, then ignoring
-//! case), patterns, regular expressions, extensions (the longest compound extension first:
-//! `blade.php` before `php`) and finally the theme's default file icon. Folders: the user's
-//! folder associations, the expanded or closed folder names, then the default folder icons.
-//! The resolver caches the answer per path.
+//! Matching order for files: the user's associations, path rules (relative to the project
+//! root), file names (exact, then ignoring case), patterns, regular expressions, extensions
+//! (the longest compound extension first: `blade.php` before `php`), the detected file type
+//! and finally the theme's default file icon. Folders: the user's folder associations, the
+//! root folder icons (for the project root), the expanded or closed folder names, then the
+//! default folder icons. The light variant (`iconsLight` or `<id>_light`) replaces an icon
+//! while a light UI theme is active. The resolver caches the answer per path.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
+
+pub mod folders;
+pub mod ids;
+mod resolver;
+pub mod tint;
+
+pub use folders::{folders_with_open_files, FolderColor, FolderColors};
+pub use ids::{SYMBOL_KINDS, UI_ICONS, UI_PREFIXES};
+pub use resolver::{IconResolver, Lookup, SymbolIcon, SymbolModifiers};
+pub use tint::{has_tint_layer, tint_svg};
 
 /// Most icons a theme may declare.
 pub const MAX_ICONS: usize = 5000;
 /// Largest SVG file a theme may ship.
 pub const MAX_SVG_BYTES: usize = 128 * 1024;
+/// The newest `icon-theme.json` format this Forge reads. Format 1 (no `version`) is the
+/// format of Forge 0.x's first icon themes; format 2 adds `iconsLight`, `rootFolder`,
+/// `rootFolderExpanded`, `folderHollow`, `folderHollowExpanded`, `fileTypes`, `pathRules`,
+/// `symbols`, `ui`, the `plusMinus` and `arrow` tree arrows and `options.hollowFolders`.
+/// Format 1 files keep working unchanged.
+pub const FORMAT_VERSION: u32 = 2;
+/// Suffix of an icon id's light variant (`php_light`).
+pub const LIGHT_SUFFIX: &str = "_light";
+/// Suffix of a folder icon's hollow variant (`folder-src_hollow`).
+pub const HOLLOW_SUFFIX: &str = "_hollow";
 
 /// The `icon-theme.json` of an icon theme.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct IconThemeDef {
+    /// The format version ([`FORMAT_VERSION`]); absent means 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<u32>,
     /// Icon id → SVG file, relative to the theme file.
     #[serde(default)]
     pub icons: BTreeMap<String, String>,
+    /// Icon id → SVG file of its light variant (used with light UI themes). An icon
+    /// `<id>_light` in `icons` does the same.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub icons_light: BTreeMap<String, String>,
     /// Default icon of files nothing else matched.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
@@ -53,12 +90,34 @@ pub struct IconThemeDef {
     /// Default icon of expanded folders (else `folder`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder_expanded: Option<String>,
+    /// The project root in the Project view, closed (else the folder icons).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root_folder: Option<String>,
+    /// The expanded project root (else `rootFolder`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root_folder_expanded: Option<String>,
+    /// Hollow folders (folders that hold open files, with the hollow option on) whose icon
+    /// has no `<id>_hollow` variant and is the default folder icon.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder_hollow: Option<String>,
+    /// The expanded hollow folder (else `folderHollow`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder_hollow_expanded: Option<String>,
     /// Exact file names (`composer.json`).
     #[serde(default)]
     pub file_names: BTreeMap<String, String>,
     /// Extensions without the leading dot, compound ones too (`blade.php`).
     #[serde(default)]
     pub file_extensions: BTreeMap<String, String>,
+    /// File type ids (`forge-filetypes`: `php`, `shell`, `python`, …) → icon, for files no
+    /// name or extension rule matched: extensionless scripts detected by their `#!` line.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub file_types: BTreeMap<String, String>,
+    /// Path globs relative to the project root (`Controllers/*.php`; a leading `/` anchors
+    /// a rule at the root, else it matches at any folder depth), tried in order before the
+    /// file names.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub path_rules: Vec<Rule>,
     /// Glob patterns (`*.test.ts`, `docker-compose*.yml`), tried in order. A pattern with a
     /// `/` is matched against the whole path (`**/tests/*.php`).
     #[serde(default)]
@@ -72,6 +131,12 @@ pub struct IconThemeDef {
     /// Expanded folders by name (else the closed icon).
     #[serde(default)]
     pub folder_names_expanded: BTreeMap<String, String>,
+    /// Stable symbol kinds ([`ids::SYMBOL_KINDS`]) → icon.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub symbols: BTreeMap<String, String>,
+    /// Stable UI icon ids ([`ids::UI_ICONS`]) → icon.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub ui: BTreeMap<String, String>,
     #[serde(default)]
     pub options: IconThemeOptions,
 }
@@ -91,7 +156,8 @@ pub struct Rule {
 pub struct IconThemeOptions {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tree_arrows: Option<TreeArrows>,
-    /// `#rgb` or `#rrggbb`: folders are drawn in this color.
+    /// `#rgb` or `#rrggbb`: folders are drawn in this color (their tint layer, or the whole
+    /// icon without one).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub accent_color: Option<String>,
     /// Draw every icon in one color.
@@ -100,6 +166,9 @@ pub struct IconThemeOptions {
     /// Icon size in pixels in trees and tabs (8 to 32).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon_size: Option<u32>,
+    /// Folders that hold open files get their hollow variant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hollow_folders: Option<bool>,
 }
 
 /// The expand arrows of trees (Project view, Structure, …).
@@ -108,10 +177,14 @@ pub struct IconThemeOptions {
 pub enum TreeArrows {
     Chevron,
     Triangle,
+    /// Boxed plus and minus signs.
+    PlusMinus,
+    /// Straight arrows (→ closed, ↓ open).
+    Arrow,
     None,
 }
 
-/// A user association (Settings | File Icons), stored in `ide.iconTheme.associations`.
+/// A user association (Settings | File Icons), stored in `fileIcons.associations`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Association {
@@ -132,22 +205,28 @@ pub enum AssociationKind {
 }
 
 /// What is shown: a file, a closed or an expanded folder.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum IconKind {
+    #[default]
     File,
     Folder,
     FolderOpen,
 }
 
 impl IconKind {
-    /// `0` file, `1` folder, `2` expanded folder (the WebAssembly calling convention).
+    /// `0` file, `1` folder, `2` expanded folder (the WebAssembly calling convention; the
+    /// higher bits are [`Lookup`] flags).
     pub fn from_code(code: u8) -> Self {
-        match code {
+        match code & 3 {
             1 => IconKind::Folder,
             2 => IconKind::FolderOpen,
             _ => IconKind::File,
         }
+    }
+
+    pub fn is_folder(self) -> bool {
+        self != IconKind::File
     }
 }
 
@@ -159,22 +238,46 @@ impl IconThemeDef {
         serde_json::from_str(json).map_err(|e| format!("invalid icon theme: {e}"))
     }
 
-    /// Check paths, icon references, patterns and options.
+    /// The format version, 1 when the theme does not say.
+    pub fn format_version(&self) -> u32 {
+        self.version.unwrap_or(1)
+    }
+
+    /// Check the version, paths, icon references, patterns and options.
     pub fn validate(&self) -> Vec<Problem> {
         let mut out = Vec::new();
+        match self.version {
+            Some(0) => out.push("version: must be 1 or higher".into()),
+            Some(v) if v > FORMAT_VERSION => out.push(format!(
+                "version: format {v} needs a newer Forge (this one reads up to {FORMAT_VERSION})"
+            )),
+            _ => {}
+        }
         if self.icons.is_empty() {
             out.push("icons: declares no icons".into());
         }
-        if self.icons.len() > MAX_ICONS {
+        if self.icons.len() + self.icons_light.len() > MAX_ICONS {
             out.push(format!("icons: more than {MAX_ICONS} icons"));
         }
-        for (id, path) in &self.icons {
-            if id.is_empty() {
-                out.push("icons: an icon id is empty".into());
+        for (field, map) in [("icons", &self.icons), ("iconsLight", &self.icons_light)] {
+            for (id, path) in map {
+                if id.is_empty() {
+                    out.push(format!("{field}: an icon id is empty"));
+                }
+                if !is_svg_path(path) {
+                    out.push(format!(
+                        "{field}.{id}: `{path}` must be a relative `.svg` path inside the plugin"
+                    ));
+                }
             }
-            if !is_svg_path(path) {
+        }
+        for id in self.icons_light.keys() {
+            if !self.icons.contains_key(id) {
+                out.push(format!("iconsLight.{id}: `icons` has no icon `{id}`"));
+            }
+            if self.icons.contains_key(&format!("{id}{LIGHT_SUFFIX}")) {
                 out.push(format!(
-                    "icons.{id}: `{path}` must be a relative `.svg` path inside the plugin"
+                    "iconsLight.{id}: `icons` declares `{id}{LIGHT_SUFFIX}` too"
                 ));
             }
         }
@@ -187,6 +290,10 @@ impl IconThemeDef {
             ("file", &self.file),
             ("folder", &self.folder),
             ("folderExpanded", &self.folder_expanded),
+            ("rootFolder", &self.root_folder),
+            ("rootFolderExpanded", &self.root_folder_expanded),
+            ("folderHollow", &self.folder_hollow),
+            ("folderHollowExpanded", &self.folder_hollow_expanded),
         ] {
             if let Some(icon) = icon {
                 known(field.into(), icon);
@@ -195,14 +302,18 @@ impl IconThemeDef {
         for (field, map) in [
             ("fileNames", &self.file_names),
             ("fileExtensions", &self.file_extensions),
+            ("fileTypes", &self.file_types),
             ("folderNames", &self.folder_names),
             ("folderNamesExpanded", &self.folder_names_expanded),
+            ("symbols", &self.symbols),
+            ("ui", &self.ui),
         ] {
             for (key, icon) in map {
                 known(format!("{field}.{key}"), icon);
             }
         }
         for (field, rules) in [
+            ("pathRules", &self.path_rules),
             ("filePatterns", &self.file_patterns),
             ("fileRegex", &self.file_regex),
         ] {
@@ -210,9 +321,14 @@ impl IconThemeDef {
                 known(format!("{field}[{i}].icon"), &r.icon);
             }
         }
-        for (i, r) in self.file_patterns.iter().enumerate() {
-            if r.pattern.trim().is_empty() {
-                out.push(format!("filePatterns[{i}].pattern: must not be empty"));
+        for (field, rules) in [
+            ("pathRules", &self.path_rules),
+            ("filePatterns", &self.file_patterns),
+        ] {
+            for (i, r) in rules.iter().enumerate() {
+                if r.pattern.trim().is_empty() {
+                    out.push(format!("{field}[{i}].pattern: must not be empty"));
+                }
             }
         }
         for (i, r) in self.file_regex.iter().enumerate() {
@@ -232,6 +348,69 @@ impl IconThemeDef {
             }
         }
         out
+    }
+
+    /// Things that are allowed but probably mistakes: symbol kinds and UI ids Forge does not
+    /// know (it never asks for them). They do not stop a theme from loading.
+    pub fn warnings(&self) -> Vec<Problem> {
+        let mut out = Vec::new();
+        for kind in self.symbols.keys() {
+            if !ids::is_symbol_kind(kind) {
+                out.push(format!("symbols.{kind}: not a symbol kind Forge knows"));
+            }
+        }
+        for id in self.ui.keys() {
+            if !ids::is_ui_id(id) {
+                out.push(format!(
+                    "ui.{id}: UI icon ids start with {}",
+                    UI_PREFIXES.join(", ")
+                ));
+            }
+        }
+        out
+    }
+
+    /// The SVG files of the theme as (key, path) pairs: every `icons` entry under its id and
+    /// every `iconsLight` entry under `<id>_light`, the key the resolver answers with.
+    pub fn svg_files(&self) -> Vec<(String, &str)> {
+        self.icons
+            .iter()
+            .map(|(id, p)| (id.clone(), p.as_str()))
+            .chain(
+                self.icons_light
+                    .iter()
+                    .map(|(id, p)| (format!("{id}{LIGHT_SUFFIX}"), p.as_str())),
+            )
+            .collect()
+    }
+}
+
+/// Whether light variants are drawn: `choice` is the `fileIcons.variant` setting (`light`,
+/// `dark`, or `auto`: follow `ui_theme`, the UI theme id). Light, Solarized Light and High
+/// Contrast Light (every id that is `light` or ends in `-light`) use the light variants; the
+/// dark themes, High Contrast included, the dark ones.
+pub fn uses_light_variant(ui_theme: &str, choice: &str) -> bool {
+    match choice {
+        "light" => true,
+        "dark" => false,
+        _ => ui_theme == "light" || ui_theme.ends_with("-light"),
+    }
+}
+
+/// `path` relative to `root` with `/` separators (unchanged when it is not inside `root`).
+pub fn relative_path(path: &str, root: Option<&str>) -> String {
+    let path = path.replace('\\', "/");
+    let Some(root) = root.map(|r| r.replace('\\', "/")) else {
+        return path;
+    };
+    let root = root.trim_end_matches('/');
+    if root.is_empty() {
+        return path;
+    }
+    match path.strip_prefix(root) {
+        Some(rest) if rest.starts_with('/') => rest[1..].to_string(),
+        Some("") => String::new(),
+        _ => path,
     }
 }
 
@@ -342,208 +521,6 @@ pub fn glob_match(pattern: &str, name: &str) -> bool {
     let p: Vec<char> = pattern.chars().collect();
     let s: Vec<char> = name.chars().collect();
     rec(&p, &s)
-}
-
-enum Matcher {
-    Name(String),
-    Extension(String),
-    Glob(String),
-    Regex(Regex),
-    Folder(String),
-}
-
-/// Resolves paths to icon ids of one theme plus the user's associations, caching per path.
-pub struct IconResolver {
-    theme: IconThemeDef,
-    associations: Vec<(Matcher, String)>,
-    regexes: Vec<(Regex, String)>,
-    names_lower: HashMap<String, String>,
-    extensions_lower: HashMap<String, String>,
-    folders_lower: HashMap<String, String>,
-    folders_open_lower: HashMap<String, String>,
-    cache: HashMap<(String, IconKind), Option<String>>,
-}
-
-fn lower_map(map: &BTreeMap<String, String>) -> HashMap<String, String> {
-    map.iter()
-        .map(|(k, v)| (k.to_lowercase(), v.clone()))
-        .collect()
-}
-
-/// The last segment of a `/` or `\` separated path.
-fn file_name(path: &str) -> &str {
-    path.rsplit(['/', '\\']).next().unwrap_or(path)
-}
-
-impl IconResolver {
-    /// A resolver for `theme`. Associations whose regex does not compile or whose icon the
-    /// theme lacks are skipped and reported.
-    pub fn new(theme: IconThemeDef, associations: &[Association]) -> (Self, Vec<Problem>) {
-        let mut problems = Vec::new();
-        let mut assoc = Vec::new();
-        for (i, a) in associations.iter().enumerate() {
-            if !theme.icons.contains_key(&a.icon) {
-                problems.push(format!(
-                    "associations[{i}]: the theme has no icon `{}`",
-                    a.icon
-                ));
-                continue;
-            }
-            let value = a.value.trim();
-            if value.is_empty() {
-                problems.push(format!("associations[{i}]: the value is empty"));
-                continue;
-            }
-            let m = match a.kind {
-                AssociationKind::FileName => Matcher::Name(value.to_lowercase()),
-                AssociationKind::Extension => {
-                    Matcher::Extension(value.trim_start_matches('.').to_lowercase())
-                }
-                AssociationKind::Pattern => Matcher::Glob(value.to_string()),
-                AssociationKind::FolderName => Matcher::Folder(value.to_lowercase()),
-                AssociationKind::Regex => match Regex::new(value) {
-                    Ok(r) => Matcher::Regex(r),
-                    Err(e) => {
-                        problems.push(format!("associations[{i}]: {e}"));
-                        continue;
-                    }
-                },
-            };
-            assoc.push((m, a.icon.clone()));
-        }
-        let regexes = theme
-            .file_regex
-            .iter()
-            .filter_map(|r| Some((Regex::new(&r.pattern).ok()?, r.icon.clone())))
-            .collect();
-        let resolver = IconResolver {
-            names_lower: lower_map(&theme.file_names),
-            extensions_lower: lower_map(&theme.file_extensions),
-            folders_lower: lower_map(&theme.folder_names),
-            folders_open_lower: lower_map(&theme.folder_names_expanded),
-            associations: assoc,
-            regexes,
-            theme,
-            cache: HashMap::new(),
-        };
-        (resolver, problems)
-    }
-
-    pub fn theme(&self) -> &IconThemeDef {
-        &self.theme
-    }
-
-    /// Number of cached paths.
-    pub fn cached(&self) -> usize {
-        self.cache.len()
-    }
-
-    /// The icon id for `path` (a path or just a file name), or `None` for Forge's own icon.
-    pub fn resolve(&mut self, path: &str, kind: IconKind) -> Option<String> {
-        let key = (path.to_string(), kind);
-        if let Some(hit) = self.cache.get(&key) {
-            return hit.clone();
-        }
-        let icon = self
-            .compute(path, kind)
-            .filter(|id| self.theme.icons.contains_key(id));
-        self.cache.insert(key, icon.clone());
-        icon
-    }
-
-    fn compute(&self, path: &str, kind: IconKind) -> Option<String> {
-        let name = file_name(path);
-        let lower = name.to_lowercase();
-        if kind != IconKind::File {
-            for (m, icon) in &self.associations {
-                if matches!(m, Matcher::Folder(n) if *n == lower) {
-                    return Some(icon.clone());
-                }
-            }
-            let t = &self.theme;
-            if kind == IconKind::FolderOpen {
-                if let Some(icon) = t
-                    .folder_names_expanded
-                    .get(name)
-                    .or_else(|| self.folders_open_lower.get(&lower))
-                {
-                    return Some(icon.clone());
-                }
-            }
-            if let Some(icon) = t
-                .folder_names
-                .get(name)
-                .or_else(|| self.folders_lower.get(&lower))
-            {
-                return Some(icon.clone());
-            }
-            return if kind == IconKind::FolderOpen {
-                t.folder_expanded.clone().or_else(|| t.folder.clone())
-            } else {
-                t.folder.clone()
-            };
-        }
-        let extensions = extensions_of(&lower);
-        for (m, icon) in &self.associations {
-            let hit = match m {
-                Matcher::Name(n) => *n == lower,
-                Matcher::Extension(e) => extensions.iter().any(|x| x == e),
-                Matcher::Glob(g) => glob_on(g, path, name),
-                Matcher::Regex(r) => r.is_match(name),
-                Matcher::Folder(_) => false,
-            };
-            if hit {
-                return Some(icon.clone());
-            }
-        }
-        let t = &self.theme;
-        if let Some(icon) = t
-            .file_names
-            .get(name)
-            .or_else(|| self.names_lower.get(&lower))
-        {
-            return Some(icon.clone());
-        }
-        if let Some(r) = t
-            .file_patterns
-            .iter()
-            .find(|r| glob_on(&r.pattern, path, name))
-        {
-            return Some(r.icon.clone());
-        }
-        if let Some((_, icon)) = self.regexes.iter().find(|(r, _)| r.is_match(name)) {
-            return Some(icon.clone());
-        }
-        for ext in &extensions {
-            if let Some(icon) = t
-                .file_extensions
-                .get(ext.as_str())
-                .or_else(|| self.extensions_lower.get(ext.as_str()))
-            {
-                return Some(icon.clone());
-            }
-        }
-        t.file.clone()
-    }
-}
-
-/// Patterns with a `/` match the whole path (separators normalized), others the file name.
-fn glob_on(pattern: &str, path: &str, name: &str) -> bool {
-    if pattern.contains('/') {
-        glob_match(pattern, &path.replace('\\', "/"))
-    } else {
-        glob_match(pattern, name)
-    }
-}
-
-/// The extensions of a file name, longest first: `a.blade.php` → `blade.php`, `php`;
-/// `.env.local` → `env.local`, `local`.
-fn extensions_of(name: &str) -> Vec<String> {
-    name.char_indices()
-        .filter(|&(_, c)| c == '.')
-        .map(|(i, _)| name[i + 1..].to_string())
-        .filter(|e| !e.is_empty())
-        .collect()
 }
 
 #[cfg(test)]
@@ -772,5 +749,251 @@ mod tests {
         assert!(check_svg("not an image").is_err());
         assert!(check_svg(&format!("<svg>{}</svg>", " ".repeat(MAX_SVG_BYTES))).is_err());
         assert!(is_svg_path("icons/a.svg") && !is_svg_path("/a.svg") && !is_svg_path("a/../b.svg"));
+    }
+
+    fn v2() -> IconThemeDef {
+        IconThemeDef::parse(
+            r##"{
+              "version": 2,
+              "icons": {
+                "file": "f.svg", "php": "php.svg", "php_light": "php-l.svg", "shell": "sh.svg",
+                "controller": "ctl.svg", "folder": "d.svg", "folder-open": "do.svg",
+                "folder-src": "src.svg", "folder-src_hollow": "src-h.svg", "hollow": "h.svg",
+                "hollow-open": "ho.svg", "root": "r.svg", "root-open": "ro.svg",
+                "class": "c.svg", "abstract-class": "ac.svg", "method": "m.svg",
+                "static": "st.svg", "final": "fi.svg", "constant": "k.svg",
+                "tw-project": "twp.svg", "run": "run.svg", "rc-php": "rcphp.svg", "modified": "mod.svg"
+              },
+              "iconsLight": { "folder": "d-light.svg", "class": "c-light.svg" },
+              "file": "file",
+              "folder": "folder",
+              "folderExpanded": "folder-open",
+              "rootFolder": "root",
+              "rootFolderExpanded": "root-open",
+              "folderHollow": "hollow",
+              "folderHollowExpanded": "hollow-open",
+              "fileNames": { "Kernel.php": "php" },
+              "fileExtensions": { "php": "php" },
+              "fileTypes": { "shell": "shell", "php": "php" },
+              "pathRules": [
+                { "pattern": "Controllers/*.php", "icon": "controller" },
+                { "pattern": "/bin/*", "icon": "shell" }
+              ],
+              "folderNames": { "src": "folder-src" },
+              "symbols": {
+                "class": "class", "abstractClass": "abstract-class", "method": "method",
+                "constant": "constant", "marker.static": "static", "marker.final": "final"
+              },
+              "ui": {
+                "toolwindow.project": "tw-project", "action.run": "run",
+                "runconfig.php": "rc-php", "vcs.modified": "modified"
+              },
+              "options": { "treeArrows": "plusMinus", "hollowFolders": true }
+            }"##,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn format_2_validates_and_format_1_still_parses() {
+        assert_eq!(v2().validate(), Vec::<String>::new());
+        assert_eq!(v2().warnings(), Vec::<String>::new());
+        assert_eq!(v2().options.tree_arrows, Some(TreeArrows::PlusMinus));
+        assert_eq!(theme().format_version(), 1);
+        assert_eq!(v2().format_version(), 2);
+        let mut t = v2();
+        t.version = Some(FORMAT_VERSION + 1);
+        t.icons_light.insert("nope".into(), "n.svg".into());
+        t.icons_light.insert("php".into(), "p.svg".into());
+        t.symbols.insert("klass".into(), "class".into());
+        t.symbols.insert("function".into(), "missing".into());
+        t.ui.insert("other.thing".into(), "run".into());
+        let problems = t.validate().join("\n");
+        assert!(problems.contains("needs a newer Forge"), "{problems}");
+        assert!(problems.contains("iconsLight.nope"), "{problems}");
+        assert!(problems.contains("declares `php_light` too"), "{problems}");
+        assert!(
+            problems.contains("symbols.function: unknown icon"),
+            "{problems}"
+        );
+        let warnings = t.warnings().join("\n");
+        assert!(warnings.contains("symbols.klass") && warnings.contains("ui.other.thing"));
+        let keys: Vec<String> = v2().svg_files().into_iter().map(|(k, _)| k).collect();
+        assert!(keys.contains(&"folder_light".to_string()) && keys.contains(&"php".to_string()));
+    }
+
+    #[test]
+    fn path_rules_come_before_names_and_file_types_after_extensions() {
+        let (mut r, _) = IconResolver::new(v2(), &[]);
+        r.set_project_root(Some("/work/shop"));
+        let f = |r: &mut IconResolver, p: &str, ft: Option<&str>| {
+            r.lookup(&Lookup {
+                file_type: ft,
+                ..Lookup::new(p, IconKind::File)
+            })
+        };
+        assert_eq!(
+            f(&mut r, "app/Http/Controllers/UserController.php", None).as_deref(),
+            Some("controller")
+        );
+        assert_eq!(
+            f(&mut r, "/work/shop/app/Http/Controllers/Kernel.php", None).as_deref(),
+            Some("controller"),
+            "absolute paths are made relative to the project root"
+        );
+        assert_eq!(
+            f(&mut r, "app/Http/Kernel.php", None).as_deref(),
+            Some("php")
+        );
+        assert_eq!(f(&mut r, "bin/console", None).as_deref(), Some("shell"));
+        assert_eq!(
+            f(&mut r, "tools/bin/console", None).as_deref(),
+            Some("file"),
+            "anchored"
+        );
+        assert!(r.needs_file_type("deploy"));
+        assert!(!r.needs_file_type("x.php"));
+        assert_eq!(f(&mut r, "deploy", Some("shell")).as_deref(), Some("shell"));
+        assert_eq!(f(&mut r, "deploy", None).as_deref(), Some("file"));
+        assert_eq!(
+            f(&mut r, "x.php", Some("shell")).as_deref(),
+            Some("php"),
+            "extensions first"
+        );
+        assert!(
+            !resolver(&[]).needs_file_type("deploy"),
+            "the theme maps no file types"
+        );
+    }
+
+    #[test]
+    fn root_hollow_and_light_folders() {
+        let (mut r, _) = IconResolver::new(v2(), &[]);
+        let q = |path, kind, root, hollow| Lookup {
+            root,
+            hollow,
+            ..Lookup::new(path, kind)
+        };
+        use IconKind::{Folder, FolderOpen};
+        assert_eq!(
+            r.lookup(&q("shop", FolderOpen, true, false)).as_deref(),
+            Some("root-open")
+        );
+        assert_eq!(
+            r.lookup(&q("shop", Folder, true, false)).as_deref(),
+            Some("root")
+        );
+        assert_eq!(
+            r.lookup(&q("app", Folder, false, true)).as_deref(),
+            Some("hollow")
+        );
+        assert_eq!(
+            r.lookup(&q("app", FolderOpen, false, true)).as_deref(),
+            Some("hollow-open")
+        );
+        assert_eq!(
+            r.lookup(&q("src", Folder, false, true)).as_deref(),
+            Some("folder-src_hollow")
+        );
+        assert_eq!(
+            r.lookup(&q("src", Folder, false, false)).as_deref(),
+            Some("folder-src")
+        );
+
+        r.set_light(true);
+        assert_eq!(r.cached(), 0, "switching the variant clears the cache");
+        assert_eq!(r.resolve("app", Folder).as_deref(), Some("folder_light"));
+        assert_eq!(
+            r.resolve("a.php", IconKind::File).as_deref(),
+            Some("php_light")
+        );
+        assert_eq!(
+            r.resolve("README", IconKind::File).as_deref(),
+            Some("file"),
+            "no light variant"
+        );
+        r.set_light(false);
+        assert_eq!(r.resolve("a.php", IconKind::File).as_deref(), Some("php"));
+
+        // Format 1 themes have no root icon: the root is a folder like the others.
+        let mut old = resolver(&[]);
+        assert_eq!(
+            old.lookup(&q("shop", FolderOpen, true, true)).as_deref(),
+            Some("folder-open")
+        );
+    }
+
+    #[test]
+    fn symbols_use_combined_kinds_fallbacks_and_markers() {
+        let (mut r, _) = IconResolver::new(v2(), &[]);
+        let m = |a, f, s| SymbolModifiers {
+            is_abstract: a,
+            is_final: f,
+            is_static: s,
+        };
+        let sym = |r: &IconResolver, k: &str, mods| r.symbol(k, mods).map(|s| (s.icon, s.markers));
+        assert_eq!(
+            sym(&r, "class", m(false, false, false)),
+            Some(("class".into(), vec![]))
+        );
+        assert_eq!(
+            sym(&r, "class", m(true, false, false)),
+            Some(("abstract-class".into(), vec![]))
+        );
+        assert_eq!(
+            sym(&r, "class", m(false, true, false)),
+            Some(("class".into(), vec!["final".into()]))
+        );
+        assert_eq!(
+            sym(&r, "method", m(false, false, true)),
+            Some(("method".into(), vec!["static".into()]))
+        );
+        assert_eq!(
+            sym(&r, "constructor", m(false, false, false)),
+            Some(("method".into(), vec![]))
+        );
+        assert_eq!(
+            sym(&r, "enumCase", m(false, false, false)),
+            Some(("constant".into(), vec![]))
+        );
+        assert_eq!(
+            sym(&r, "function", m(false, false, false)),
+            None,
+            "Forge's badge"
+        );
+        r.set_light(true);
+        assert_eq!(
+            sym(&r, "class", m(false, false, false)),
+            Some(("class_light".into(), vec![]))
+        );
+    }
+
+    #[test]
+    fn light_variants_follow_the_ui_theme() {
+        assert!(uses_light_variant("light", "auto"));
+        assert!(uses_light_variant("high-contrast-light", "auto"));
+        assert!(uses_light_variant("solarized-light", "auto"));
+        assert!(!uses_light_variant("high-contrast", "auto"));
+        assert!(!uses_light_variant("dark", "auto"));
+        assert!(uses_light_variant("dark", "light"));
+        assert!(!uses_light_variant("light", "dark"));
+    }
+
+    #[test]
+    fn ui_ids_ask_the_theme_with_fallbacks() {
+        let (r, _) = IconResolver::new(v2(), &[]);
+        assert_eq!(r.ui("toolwindow.project").as_deref(), Some("tw-project"));
+        assert_eq!(r.ui("action.run").as_deref(), Some("run"));
+        assert_eq!(
+            r.ui("runconfig.php-builtin-server").as_deref(),
+            Some("rc-php")
+        );
+        assert_eq!(r.ui("vcs.modified").as_deref(), Some("modified"));
+        assert_eq!(r.ui("toolwindow.git"), None);
+        assert_eq!(
+            resolver(&[]).ui("action.run"),
+            None,
+            "format 1 themes have no UI icons"
+        );
     }
 }
