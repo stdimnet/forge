@@ -306,7 +306,11 @@ impl GuestSession {
             match read_msg::<_, HostMessage>(&mut recv, MAX_HOST_FRAME).await {
                 Ok(Some(HostMessage::Ended { reason })) => break Some(reason),
                 Ok(Some(msg)) => self.dispatch(msg, sink),
-                Ok(None) | Err(_) => break None,
+                Ok(None) => break None,
+                Err(e) => {
+                    tracing::warn!("Code With Me: reading from the host failed: {e}");
+                    break None;
+                }
             }
         };
         if ended.is_some() || self.is_ended() {

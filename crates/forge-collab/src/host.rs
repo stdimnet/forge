@@ -1175,7 +1175,11 @@ impl HostSession {
             let _keepalive = keepalive;
             while let Some(msg) = rx.recv().await {
                 let last = matches!(msg, HostMessage::Ended { .. });
-                if write_msg(&mut send, &msg, MAX_HOST_FRAME).await.is_err() || last {
+                if let Err(e) = write_msg(&mut send, &msg, MAX_HOST_FRAME).await {
+                    tracing::warn!("Code With Me: writing to a guest failed: {e}");
+                    break;
+                }
+                if last {
                     break;
                 }
             }
@@ -1186,7 +1190,11 @@ impl HostSession {
         let end = loop {
             match read_msg::<_, GuestMessage>(&mut recv, MAX_GUEST_FRAME).await {
                 Ok(Some(GuestMessage::Leave)) => break ConnectionEnd::Left,
-                Ok(None) | Err(_) => break ConnectionEnd::Lost,
+                Ok(None) => break ConnectionEnd::Lost,
+                Err(e) => {
+                    tracing::warn!("Code With Me: reading from a guest failed: {e}");
+                    break ConnectionEnd::Lost;
+                }
                 Ok(Some(msg)) if !self.within_rate(id, &msg) => {}
                 Ok(Some(GuestMessage::Call { id: call, payload })) => {
                     self.spawn_call(id, call, payload)
