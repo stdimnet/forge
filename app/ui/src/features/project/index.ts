@@ -27,10 +27,10 @@ registerToolWindow({
 // Objections of Rust subscribers to closing the project that no feature asks about itself.
 setObjectionPrompt(async (project, objections) => {
   const id = await askChoice({
-    title: t("dialogs.closeProject.title"),
-    message: t("dialogs.closeProject.anyway", { reasons: objections.map((o) => o.message).join(" "), name: project.name }),
+    title: t("closeProject.title"),
+    message: t("closeProject.anyway", { reasons: objections.map((o) => o.message).join(" "), name: project.name }),
     choices: [
-      { id: "close", label: t("dialogs.closeProject.close") },
+      { id: "close", label: t("closeProject.close") },
     ],
   });
   return id === "close";
