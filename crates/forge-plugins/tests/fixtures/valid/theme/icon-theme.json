@@ -1,0 +1,5 @@
+{
+  "icons": { "file": "icons/file.svg", "folder": "icons/folder.svg" },
+  "file": "file",
+  "folder": "folder"
+}

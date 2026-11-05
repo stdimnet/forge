@@ -1,0 +1,10 @@
+{
+  "manifestVersion": 1,
+  "id": "fixture.bad-svg",
+  "name": "Bad SVG Fixture",
+  "version": "1.0.0",
+  "engines": { "forge": ">=0.1.0" },
+  "contributes": {
+    "iconThemes": [{ "id": "fixture.bad-svg.evil", "label": "Evil", "path": "theme/icon-theme.json" }]
+  }
+}

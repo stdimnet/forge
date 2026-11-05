@@ -11,6 +11,9 @@
 //! `.descriptions.xml` (PHPStorm's format), `inspections.json` or `index.html`. The exit
 //! code is 0, 1 when `-fail-on` is given and a problem of that severity (or worse) was found,
 //! and 2 for wrong arguments or a project that cannot be opened.
+//!
+//! `forge plugin validate|pack …` (the plugin SDK commands, [`forge_plugins::cli`]) is
+//! dispatched here too.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -85,8 +88,11 @@ pub fn parse(args: &[String]) -> Result<Args, String> {
     })
 }
 
-/// `forge inspect …`: `None` when the arguments are not a command-line inspector call.
+/// `forge inspect …` and `forge plugin …`: `None` when the arguments are neither.
 pub fn main(argv: &[String]) -> Option<i32> {
+    if let Some(code) = forge_plugins::cli::main(argv) {
+        return Some(code);
+    }
     if argv.get(1).map(String::as_str) != Some("inspect") {
         return None;
     }
@@ -299,6 +305,13 @@ mod tests {
         assert!(parse(&s(&[".", "p", "o", "-x"])).is_err());
         assert_eq!(main(&s(&["forge", "/some/project"])), None);
         assert_eq!(main(&s(&["forge", "inspect"])), Some(2));
+    }
+
+    #[test]
+    fn dispatches_plugin_commands() {
+        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/../../sdk/examples/shapes-icons");
+        assert_eq!(main(&s(&["forge", "plugin", "validate", example])), Some(0));
+        assert_eq!(main(&s(&["forge", "plugin", "frobnicate"])), Some(2));
     }
 
     #[test]
