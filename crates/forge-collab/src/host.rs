@@ -903,9 +903,14 @@ impl HostSession {
         self.end_shares();
         let guests = std::mem::take(&mut self.state().guests);
         for g in guests.values() {
-            let _ = g.tx.try_send(HostMessage::Ended {
+            if let Err(e) = g.tx.try_send(HostMessage::Ended {
                 reason: reason.to_string(),
-            });
+            }) {
+                tracing::warn!(
+                    "Code With Me: cannot tell {} that the session ended: {e}",
+                    g.participant.name
+                );
+            }
         }
         drop(guests);
         // Let the writers flush the goodbye before the connections close.

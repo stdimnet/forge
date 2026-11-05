@@ -488,6 +488,7 @@ fn on_guest_event(app: &AppHandle, e: GuestEvent) {
         GuestEvent::FollowHost(on) => emit(app, FOLLOW_HOST_EVENT, json!({ "on": on })),
         GuestEvent::Resumed => emit(app, RESUMED_EVENT, json!({})),
         GuestEvent::Ended(reason) => {
+            tracing::info!("Code With Me: the session ended: {reason}");
             end_guest_project(app);
             emit(app, ENDED_EVENT, json!({ "reason": reason }));
             emit_status(app);
