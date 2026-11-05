@@ -815,6 +815,17 @@ or without Git, for local and remote projects.
   without a backdrop (`.wf-modeless`) or, with `browserPopup`, as a browser popup that posts
   its result back to the opener. A tool window in its own window forwards the files it opens
   (`setOpenFileForwarder`) to the owner as `{ type: "openFile", path }` messages.
+- **Layers.** Everything that floats over the window stacks by one scale of CSS variables in
+  `theme.css` (`--z-editor-overlay` < `--z-floating-tool-window` < `--z-popup` < `--z-modal` <
+  `--z-notification` < `--z-context-menu` < `--z-tooltip` < `--z-drag-ghost` < `--z-system`)
+  and one overlay stack (`src/shell/layers.tsx`). `<Layer kind>` portals its content into
+  `#forge-overlays` with the z-index of its parent layer plus an offset (the parent is the
+  surrounding `<Layer>` or the layer of the focused element), so whatever opens from a dialog
+  sits above it and the most recently opened layer is on top; closing releases it. Backdrops,
+  dialogs, menus and popups that features render themselves are adopted onto the same stack by
+  the dialog accessibility manager (`features/accessibility/dialogs.ts`), whose focus trap
+  follows the stack. `pnpm zindex:check` rejects raw z-index values above 10 outside
+  `theme.css`.
 - **Full screen and zoom.** `window_set_fullscreen({ on })`, `window_is_fullscreen() -> bool`
   and `window_set_zoom({ factor })` (webview zoom, 0.5–3) act on the calling window. The UI
   keeps the View | Appearance modes in `src/state/appearanceModes.ts` (Presentation,

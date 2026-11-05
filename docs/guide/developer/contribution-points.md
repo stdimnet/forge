@@ -57,6 +57,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
+| `<Layer kind>` / `createLayer` | `shell/layers.tsx` | a popup, menu, dialog or notification on the shared overlay stack (see [Layers](#layers)) |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
 | `claimFrameworkStatus` | `features/project-type` | hide the generic framework status widget |
 | `registerMock` | `ipc/index.ts` | a browser-mode handler for an IPC command |
@@ -432,6 +433,65 @@ const result = await openDialogWindow("run-configurations", { select: "UserTest"
 In the desktop app the dialog opens as a native window owned by the caller (geometry remembered
 in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends with
 `closeDialog(id, result)`. Small popups stay in-page.
+
+## Layers
+
+Everything that floats over the IDE stacks in one order. The scale is a set of CSS variables
+in `theme/theme.css`, lowest first:
+
+| Variable | Value | For |
+| --- | --- | --- |
+| `--z-editor-overlay` | 300 | CodeMirror's sticky panels (Find/Replace bar, breadcrumbs) and editor tooltips |
+| `--z-floating-tool-window` | 400 | undocked and floating tool windows, windows that are not modal |
+| `--z-popup` | 500 | popups and dropdowns: Search Everywhere, Find in Files, completion lists, status bar popups |
+| `--z-modal` | 600 | modal dialogs and their backdrops |
+| `--z-notification` | 700 | balloons, approval cards |
+| `--z-context-menu` | 800 | context menus and the main menu |
+| `--z-tooltip` | 900 | hover cards (blame) |
+| `--z-drag-ghost` | 1000 | what follows the pointer while dragging |
+| `--z-system` | 1100 | the Presentation Assistant, the window's resize edges |
+
+Rules:
+
+- **No raw z-index above 10.** Use a `--z-*` variable, or `calc(var(--z-modal) + 1)` for a
+  fixed step inside a category. `pnpm zindex:check` fails on anything else (it skips
+  `theme.css`, which defines the scale).
+- **Render popups and dialogs in a layer.** `<Layer kind="popup">…</Layer>` from
+  `@/shell/layers` registers a layer when it mounts, renders its content through a `<Portal>`
+  into the overlay host (`#forge-overlays` at the end of `<body>`) and releases the layer when
+  it unmounts. Its z-index is the parent layer plus an offset: the parent is the `<Layer>`
+  around it or, when there is none, the layer of the element that had focus when it opened.
+  So a menu or a completion popup opened from a dialog is above that dialog, a sub-dialog of
+  Settings is above Settings, and the most recently opened layer is above every earlier one of
+  the same or a lower kind. Notifications therefore stay above dialogs, and nothing but the
+  system layer goes above `--z-system`.
+
+  ```tsx
+  <Show when={open()}>
+    <Layer kind="popup">
+      <div class="my-popup" style={{ left: `${x}px`, top: `${y}px` }}>…</div>
+    </Layer>
+  </Show>
+  ```
+
+  `createLayer(kind)` registers a layer for an element that stays where it is (the floating
+  tool windows): put `layerStyle(layer)` and `data-layer-id` on its root.
+- **Overlays without `<Layer>` are adopted.** The dialog accessibility manager
+  (`features/accessibility/dialogs.ts`) puts every fixed backdrop (`*-backdrop`,
+  `.popup-backdrop`), `role="dialog"`, `role="menu"`, `role="listbox"` and `.popup` that
+  appears on the stack, above the layer of the element that opened it, and releases it when it
+  goes away. Their CSS still uses the category variable, which is the fallback.
+- **Local layers stay local.** Inside a component, values from 1 to 10 are fine for local
+  overlap (a sticky header over a list, a resize handle). Give the component root
+  `isolation: isolate` so they cannot leak out.
+
+The focus trap follows the same order: Tab stays in the modal dialog painted on top.
+
+![A sub-dialog of Settings above Settings](../../screenshots/layers-nested-dialogs-light.png)
+
+The screenshot scenarios in `app/ui/scripts/scenarios/layers.mjs` (`layers-*`, dark and light)
+cover a context menu and a completion list inside a modal dialog, a balloon while a dialog is
+open, a menu from a floating tool window and nested dialogs.
 
 ## Editor tabs that are not files
 
