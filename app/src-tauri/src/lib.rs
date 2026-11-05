@@ -2,6 +2,7 @@ pub mod cli;
 mod commands;
 mod companion;
 mod inspections;
+mod lifecycle;
 mod plugins;
 mod recent;
 mod startup;
@@ -115,6 +116,7 @@ pub fn run() {
 
             // The splash window and the loading steps (settings, plugins, the project from
             // the command line or the last session, services, updates), then the workbench.
+            lifecycle::install(app.handle());
             commands::project_windows::start(app.handle());
             companion::queue_startup_join(app.handle());
             startup::begin(app.handle());
@@ -137,6 +139,7 @@ pub fn run() {
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
+        .manage(lifecycle::LifecycleState::default())
         .manage(run_state)
         .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
@@ -148,6 +151,8 @@ pub fn run() {
         .manage(commands::git_clone::CloneState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
+            lifecycle::workspace_close,
+            lifecycle::project_before_close,
             commands::collab::collab_status,
             commands::collab::collab_parse_link,
             commands::collab::collab_start,
@@ -782,6 +787,9 @@ pub fn run() {
             commands::terminal::terminal_resize,
             commands::terminal::terminal_close,
             commands::terminal::terminal_attach,
+            commands::terminal::terminal_running,
+            commands::terminal::terminal_layout_load,
+            commands::terminal::terminal_layout_save,
             commands::run::run_configurations_load,
             commands::run::run_configurations_save,
             commands::run::run_command_line,

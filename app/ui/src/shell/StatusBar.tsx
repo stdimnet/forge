@@ -47,9 +47,11 @@ export function StatusBar() {
             <FileTypeStatus path={tab()!.path} content={tab()!.content} />
           </>
         )}
-        <button class="status-item" aria-label={t("a11y.statusbar.branch", { branch: branchLabel() })}>
-          <GitBranch size={12} aria-hidden="true" /> {branchLabel()}
-        </button>
+        <Show when={branchLabel()}>
+          <button class="status-item" aria-label={t("a11y.statusbar.branch", { branch: branchLabel() })}>
+            <GitBranch size={12} aria-hidden="true" /> {branchLabel()}
+          </button>
+        </Show>
         <button class="status-item" title={t("statusbar.writable")} aria-label={t("statusbar.writable")}>
           <Lock size={12} />
         </button>

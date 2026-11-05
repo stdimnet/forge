@@ -12,6 +12,16 @@ pub mod l10n;
 pub mod registry;
 pub mod settings_model;
 
+/// The project lifecycle packs subscribe to (re-exported from `forge_core::lifecycle`): a pack
+/// crate implements [`lifecycle::ProjectLifecycle`] and the desktop app subscribes it to the
+/// window's [`lifecycle::ProjectLifecycleBus`] (`app/src-tauri/src/lifecycle.rs`).
+pub mod lifecycle {
+    pub use forge_core::lifecycle::{
+        LifecycleEvent, Objection, PhaseReport, ProjectLifecycle, ProjectLifecycleBus,
+        ProjectPhase, ProjectRef, SubscriptionId, LIFECYCLE_EVENT,
+    };
+}
+
 use serde::{Deserialize, Serialize};
 
 pub use contributions::*;

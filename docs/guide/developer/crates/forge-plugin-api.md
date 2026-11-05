@@ -29,6 +29,7 @@ only on this crate, never on app internals.
 | Module | Summary |
 | --- | --- |
 | `contributions.rs` | Contribution types: everything a plugin can add to the IDE. |
+| `lifecycle` | Re-exports the project lifecycle of `forge_core::lifecycle` (`ProjectLifecycle`, `ProjectLifecycleBus`, `Objection`, …) for packs whose Rust services follow the window's project; the desktop app subscribes them (`app/src-tauri/src/lifecycle.rs`). |
 | `registry.rs` | The plugin registry: which plugins are installed, which are enabled, and lookups over the contributions of the enabled ones. |
 | `settings_model.rs` | The model behind the Settings dialog (Ctrl+Alt+S): the page tree built from registered pages, search over pages, settings and plugins, and highlighting of search hits. The UI sends what it shows and renders the answer; this module decides what matches. |
 

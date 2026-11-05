@@ -40,7 +40,8 @@ Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
    release `Forge <version>` with generated notes (a pre-release for the beta channel); a
    re-run of the same tag reuses that draft,
 2. builds the static remote agents on Linux,
-3. builds the bundles on Ubuntu (AppImage, deb, rpm), Windows (NSIS, MSI) and macOS (Apple
+3. builds the bundles on Ubuntu (AppImage, deb, rpm; no rpm for pre-releases such as
+   `-beta.1`, because RPM versions cannot contain `-`), Windows (NSIS, MSI) and macOS (Apple
    Silicon and Intel) with `pnpm tauri build --config src-tauri/tauri.agents.conf.json`,
    [signing](#code-signing) them when the certificates are configured,
 4. signs the updater artifacts and uploads everything plus `latest.json` to the draft,

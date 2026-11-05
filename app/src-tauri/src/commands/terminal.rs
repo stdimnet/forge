@@ -7,14 +7,16 @@
 //! with guests from what it showed so far, and the host's window shows a terminal a guest
 //! opened on this machine by attaching to it (`terminal_attach`).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use forge_backend::{Backend, LocalBackend, Terminal, TerminalSpec};
 use forge_collab::share::Scrollback;
+use forge_core::lifecycle::{Objection, ProjectLifecycle, ProjectRef};
 use forge_core::{ForgeError, Result};
+use forge_process::terminal_layout::{self, TerminalLayout};
 use forge_process::{PtyEvent, PtySink};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -34,6 +36,9 @@ struct Screen {
 pub struct TerminalState {
     sessions: Mutex<HashMap<String, Arc<dyn Terminal>>>,
     screens: Mutex<HashMap<String, Arc<Mutex<Screen>>>>,
+    /// Sessions ended with their project: their exit is not reported (the UI keeps the tabs
+    /// for the layout it saves).
+    quiet: Mutex<HashSet<String>>,
     next_id: AtomicU64,
 }
 
@@ -93,6 +98,64 @@ impl TerminalState {
         }
     }
 
+    /// `(id, program)` of every session running a program in the foreground, by id.
+    pub(crate) fn running(&self) -> Vec<(String, String)> {
+        let sessions: Vec<_> = self
+            .sessions
+            .lock()
+            .expect("terminal sessions poisoned")
+            .iter()
+            .map(|(id, s)| (id.clone(), s.clone()))
+            .collect();
+        let mut running: Vec<_> = sessions
+            .into_iter()
+            .filter_map(|(id, s)| s.foreground_process().map(|p| (id, p)))
+            .collect();
+        running.sort();
+        running
+    }
+
+    /// The recent output of every session, by id.
+    fn scrollbacks(&self) -> Vec<(String, String)> {
+        let screens = self.screens.lock().expect("terminal screens poisoned");
+        let mut all: Vec<_> = screens
+            .iter()
+            .map(|(id, screen)| {
+                let text = screen
+                    .lock()
+                    .expect("terminal screen poisoned")
+                    .scrollback
+                    .text()
+                    .to_string();
+                (id.clone(), text)
+            })
+            .collect();
+        all.sort();
+        all
+    }
+
+    /// End every session without reporting their exit (their project closes).
+    fn end_all(&self) {
+        let ids: Vec<String> = self
+            .sessions
+            .lock()
+            .expect("terminal sessions poisoned")
+            .keys()
+            .cloned()
+            .collect();
+        for id in ids {
+            self.quiet
+                .lock()
+                .expect("terminal state poisoned")
+                .insert(id.clone());
+            if let Some(s) = self.remove(&id) {
+                if let Err(e) = s.kill() {
+                    tracing::warn!("cannot end terminal {id}: {e}");
+                }
+            }
+        }
+    }
+
     /// Forget a session; returns it so it can be killed.
     pub(crate) fn remove(&self, id: &str) -> Option<Arc<dyn Terminal>> {
         self.screens
@@ -123,7 +186,16 @@ fn pty_sink(app: &AppHandle, id: &str, cols: u16, rows: u16) -> PtySink {
                 crate::commands::collab::on_terminal_output(&app, &id, data);
             }
             PtyEvent::Exited { code } => {
-                crate::commands::collab::on_terminal_exited(&app, &id, *code)
+                crate::commands::collab::on_terminal_exited(&app, &id, *code);
+                let ended_with_project = app
+                    .state::<TerminalState>()
+                    .quiet
+                    .lock()
+                    .expect("terminal state poisoned")
+                    .remove(&id);
+                if ended_with_project {
+                    return;
+                }
             }
         }
         if let Err(err) = app.emit(&event, &e) {
@@ -402,4 +474,114 @@ pub fn terminal_attach(
         cols,
         rows,
     })
+}
+
+/// The setting that keeps each tab's output for the next time the project opens.
+const RESTORE_SCROLLBACK_KEY: &str = "terminal.restoreScrollback";
+
+/// Terminals belong to their project: `beforeClose` objects while commands run, `closing`
+/// keeps the output (setting `terminal.restoreScrollback`) and ends the sessions. The tabs'
+/// layout is the UI's (`terminal_layout_save`).
+pub struct TerminalLifecycle(pub AppHandle);
+
+impl ProjectLifecycle for TerminalLifecycle {
+    fn name(&self) -> &str {
+        "terminals"
+    }
+
+    fn before_close(&self, _project: &ProjectRef) -> Option<Objection> {
+        let running = self.0.state::<TerminalState>().running();
+        if running.is_empty() {
+            return None;
+        }
+        let (targets, items): (Vec<_>, Vec<_>) = running.into_iter().unzip();
+        Some(Objection {
+            source: self.name().to_string(),
+            kind: "terminal.running".into(),
+            message: forge_i18n::t_args(
+                "errors.terminal.running",
+                &forge_i18n::args! { "count" => items.len() as i64 },
+            ),
+            items,
+            targets,
+        })
+    }
+
+    fn closing(&self, project: &ProjectRef) -> Result<()> {
+        let terminals = self.0.state::<TerminalState>();
+        let keep = self
+            .0
+            .state::<AppState>()
+            .read_settings()
+            .get_bool(RESTORE_SCROLLBACK_KEY)
+            .unwrap_or(true);
+        if let Some(dir) = terminal_layout::default_scrollback_dir() {
+            let saved = if keep {
+                terminal_layout::save_scrollback(&dir, &project.root, &terminals.scrollbacks())
+            } else {
+                terminal_layout::clear_scrollback(&dir, &project.root)
+            };
+            if let Err(e) = saved {
+                tracing::warn!("terminal history not saved: {e}");
+            }
+        }
+        terminals.end_all();
+        Ok(())
+    }
+}
+
+/// A terminal running a program in the foreground (`sleep 100`).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunningCommand {
+    pub id: String,
+    pub process: String,
+}
+
+/// The sessions that run a program instead of waiting at the prompt.
+#[tauri::command]
+pub async fn terminal_running(app: AppHandle) -> Vec<RunningCommand> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<TerminalState>()
+            .running()
+            .into_iter()
+            .map(|(id, process)| RunningCommand { id, process })
+            .collect()
+    })
+    .await
+    .unwrap_or_default()
+}
+
+fn layout_dir() -> Result<PathBuf> {
+    terminal_layout::default_layout_dir()
+        .ok_or_else(|| ForgeError::Other("no state directory".into()))
+}
+
+/// The terminal layout of the project at `root` (the root as the UI names it), with the
+/// saved output of each tab when `terminal.restoreScrollback` is on.
+#[tauri::command]
+pub async fn terminal_layout_load(
+    root: String,
+    state: State<'_, AppState>,
+) -> Result<Option<TerminalLayout>> {
+    let keep = state
+        .read_settings()
+        .get_bool(RESTORE_SCROLLBACK_KEY)
+        .unwrap_or(true);
+    blocking(move || {
+        let scrollback = keep.then(terminal_layout::default_scrollback_dir).flatten();
+        Ok(terminal_layout::load(
+            &layout_dir()?,
+            scrollback.as_deref(),
+            &root,
+        ))
+    })
+    .await
+}
+
+/// Store the terminal layout of the project at `root`. Takes the root explicitly: the UI
+/// saves the closing project's layout while the next one may already be open in Rust.
+#[tauri::command]
+pub async fn terminal_layout_save(root: String, layout: TerminalLayout) -> Result<()> {
+    blocking(move || terminal_layout::save(&layout_dir()?, &root, &layout)).await
 }

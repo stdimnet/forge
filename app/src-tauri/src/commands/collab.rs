@@ -506,6 +506,7 @@ fn end_guest_project(app: &AppHandle) {
         .take()
         .is_some()
     {
+        crate::lifecycle::closing(app);
         app.state::<AppState>().close_project();
         app.state::<crate::commands::lsp::LspState>().reset();
     }
@@ -950,6 +951,7 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
         }
     };
     let info = WorkspaceInfo::from(backend.info());
+    crate::lifecycle::closing(&app);
     crate::commands::remote::close_project_connection(&app);
     let target = backend.clone();
     let handle = app.clone();

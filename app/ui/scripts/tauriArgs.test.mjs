@@ -84,4 +84,13 @@ describe("tauri build arguments", () => {
     });
     expect(() => windowsSigning({ FORGE_AZURE_SIGNING_ACCOUNT: "forge" })).toThrow(/Azure Trusted Signing/);
   });
+
+  it("skips the RPM on Linux for pre-release versions", () => {
+    const beta = tauriArgs(["build"], {}, "linux", "0.1.1-beta.1");
+    expect(extra(beta.args).bundle.targets).toEqual(["deb", "appimage"]);
+    expect(beta.notes.join(" ")).toContain("deb and AppImage only");
+    expect(extra(tauriArgs(["build"], {}, "linux", "0.1.1").args).bundle.targets).toBeUndefined();
+    expect(extra(tauriArgs(["build", "--bundles", "rpm"], {}, "linux", "0.1.1-beta.1").args).bundle.targets).toBeUndefined();
+    expect(extra(tauriArgs(["build"], {}, "darwin", "0.1.1-beta.1").args).bundle.targets).toBeUndefined();
+  });
 });

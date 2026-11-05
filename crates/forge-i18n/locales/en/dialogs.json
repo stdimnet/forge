@@ -1,4 +1,7 @@
 {
+  "closeProject.anyway": "{reasons} Close {name} anyway?",
+  "closeProject.close": "Close Project",
+  "closeProject.title": "Close Project",
   "database.addDataSource": "Add data source",
   "database.envFound": "Database found in {file}",
   "newProject.back": "Back",
