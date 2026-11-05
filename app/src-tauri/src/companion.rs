@@ -377,6 +377,15 @@ pub fn open_project_later(app: &AppHandle, dir: &Path, confirm: bool) {
     );
 }
 
+/// Requests wait for a project window.
+pub fn has_pending(app: &AppHandle) -> bool {
+    !app.state::<CompanionState>()
+        .pending
+        .lock()
+        .expect("pending lock poisoned")
+        .is_empty()
+}
+
 /// The project window closed while the LightEdit window keeps Forge running: close its
 /// project, and queue requests until a project window is open again.
 pub fn project_window_closed(app: &AppHandle) {

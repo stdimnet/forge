@@ -58,10 +58,9 @@ pub struct StartupState {
     progress: Mutex<Progress>,
     /// The workbench is shown; the splash is gone.
     finished: AtomicBool,
-    main_ready: Mutex<bool>,
-    main_ready_signal: Condvar,
-    /// The window whose first render ends the startup: `main`, or the LightEdit window.
-    first_window: Mutex<Option<String>>,
+    /// Labels of the windows that rendered their first screen (`main`, the LightEdit window).
+    ready_windows: Mutex<Vec<String>>,
+    ready_signal: Condvar,
     /// An update found while no splash window was shown; the workbench offers it.
     offer_for_workbench: Mutex<Option<UpdateOffer>>,
 }
@@ -251,42 +250,40 @@ fn run_steps(app: &AppHandle) {
 /// `handle_launch_args`) has rendered, then close the splash. No project window opens.
 fn open_light_edit(app: &AppHandle) {
     let startup = app.state::<StartupState>();
-    *startup
-        .first_window
-        .lock()
-        .expect("first window lock poisoned") = Some(crate::commands::light_edit::label());
-    wait_until_ready(&startup);
+    wait_until_ready(&startup, &crate::commands::light_edit::label());
     progress(app, "Ready", "", 100);
     startup.finished.store(true, Ordering::SeqCst);
     if let Some(splash) = app.get_webview_window(SPLASH_LABEL) {
         let _ = splash.close();
     }
+    // A folder that arrived meanwhile (a second launch) waits for a project window.
+    if crate::companion::has_pending(app) {
+        open_project_window(app);
+    }
 }
 
-fn wait_until_ready(startup: &StartupState) {
-    let ready = startup.main_ready.lock().expect("ready lock poisoned");
+/// Wait until the window `label` rendered its first screen (or the timeout passed).
+fn wait_until_ready(startup: &StartupState, label: &str) {
+    let ready = startup.ready_windows.lock().expect("ready lock poisoned");
     let (_ready, timeout) = startup
-        .main_ready_signal
-        .wait_timeout_while(ready, READY_TIMEOUT, |ready| !*ready)
+        .ready_signal
+        .wait_timeout_while(ready, READY_TIMEOUT, |ready| {
+            !ready.iter().any(|l| l == label)
+        })
         .expect("ready lock poisoned");
     if timeout.timed_out() {
-        tracing::warn!("the first window did not report ready; showing it anyway");
+        tracing::warn!("{label} did not report ready; showing it anyway");
     }
 }
 
-/// A window rendered its first screen; the startup waits for the first one.
+/// A window rendered its first screen (the startup waits for the first one).
 pub fn window_ready(app: &AppHandle, label: &str) {
     let startup = app.state::<StartupState>();
-    let first = startup
-        .first_window
-        .lock()
-        .expect("first window lock poisoned")
-        .clone()
-        .unwrap_or_else(|| MAIN_LABEL.to_string());
-    if label == first {
-        *startup.main_ready.lock().expect("ready lock poisoned") = true;
-        startup.main_ready_signal.notify_all();
+    let mut ready = startup.ready_windows.lock().expect("ready lock poisoned");
+    if !ready.iter().any(|l| l == label) {
+        ready.push(label.to_string());
     }
+    startup.ready_signal.notify_all();
 }
 
 /// Open the project window when Forge runs with the LightEdit window only (a folder was
@@ -345,7 +342,7 @@ fn open_workbench(app: &AppHandle) {
         },
     };
     crate::commands::window::apply_decorations(app);
-    wait_until_ready(&startup);
+    wait_until_ready(&startup, MAIN_LABEL);
     progress(app, "Ready", "", 100);
     if let Some(main) = main {
         let _ = main.show();

@@ -13,7 +13,8 @@
  */
 import { createEffect, createMemo, For, on, onCleanup, onMount, Show } from "solid-js";
 import { FilePlus2, FolderOpen, Save } from "lucide-solid";
-import { isTauri } from "@/ipc";
+import { isTauri, listen } from "@/ipc";
+import { windowApi } from "@/ipc/window";
 import { LIGHT_EDIT_PREFIX, lightEditApi, type LightEditSnapshot } from "@/ipc/lightEdit";
 import { activateOpenTab, editor, openFile, registerFileSystem, saveFile, isDirty } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
@@ -59,7 +60,18 @@ function LightEditWindow() {
   onMount(() => {
     void lightEditApi.state().then(apply);
     const off = lightEditApi.onChanged((s) => void apply(s));
-    onCleanup(() => void off.then((unlisten) => unlisten()));
+    // Exit (Cmd+Q) from any window: save first; without a project window, exit afterwards.
+    const offQuit = listen<{ exit: boolean }>("app://quit", (e) => {
+      void saveAll().finally(() => e?.exit && void windowApi.exit());
+    });
+    // Like the IDE window: files are saved when the window loses the focus.
+    const onBlur = () => void saveAll().catch(() => undefined);
+    window.addEventListener("blur", onBlur);
+    onCleanup(() => {
+      void off.then((unlisten) => unlisten());
+      void offQuit.then((unlisten) => unlisten());
+      window.removeEventListener("blur", onBlur);
+    });
   });
 
   // Tabs closed in the editor are closed in Rust too (their files can no longer be written).
