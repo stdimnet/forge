@@ -5,7 +5,8 @@
  * `DOCUMENTS` when present (README.md, LICENSE, CHANGELOG.md, and THIRD_PARTY_NOTICES.md
  * and NOTICE, so attribution travels with the package). Prints the
  * SHA-256 a marketplace index lists for it. Self-contained (Node.js only), so `forge plugin
- * new` copies it into new plugin projects.
+ * new` copies it into new plugin projects. `forge plugin pack` (the Forge binary,
+ * `crates/forge-plugins/src/pack.rs`) selects the same files and validates them first.
  *
  *   node pack.mjs [plugin folder] [--out <file>]
  */
@@ -98,6 +99,8 @@ export function pack(dir, out) {
   const files = ["forge-plugin.json", ...DOCUMENTS]
     .map((f) => join(root, f))
     .filter((f) => existsSync(f));
+  // A bundle outside dist/ is packed on its own.
+  if (manifest.main && !manifest.main.startsWith("dist/")) files.push(join(root, manifest.main));
   if (existsSync(join(root, "dist"))) files.push(...walk(join(root, "dist")));
   // Icon themes: the theme file and everything in its folder (the SVGs it names).
   for (const theme of manifest.contributes?.iconThemes ?? []) {

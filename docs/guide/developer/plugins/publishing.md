@@ -1,8 +1,8 @@
 ---
 title: Publishing plugins
-description: The .forgeplugin package, the marketplace index format (version 1) with SHA-256 per artifact and optional Ed25519 signatures, update checks, Forge's marketplace (stdimnet/marketplace), hosting an index and private marketplaces with an access token.
+description: The .forgeplugin package, forge plugin validate and pack for CI and marketplace repositories, the marketplace index format (version 1) with SHA-256 per artifact and optional Ed25519 signatures, update checks, Forge's marketplace (stdimnet/marketplace), hosting an index and private marketplaces with an access token.
 order: 40
-tags: [plugins, sdk, marketplace, publishing, index, sha256, signature, token, private]
+tags: [plugins, sdk, marketplace, publishing, index, sha256, signature, token, private, validate, cli]
 ---
 
 # Publishing plugins
@@ -19,6 +19,45 @@ SHA-256.
 Forge refuses packages that are larger than 64 MB (packed or unpacked), have more than 4096
 files, contain absolute paths, `..`, drive letters or symbolic links, lack the manifest or the
 `main` file, or whose manifest does not validate for the running Forge version.
+`forge plugin validate` runs the same checks before you publish (see below), and
+`forge plugin pack` packs the same files in Rust.
+
+## Validating and packing in CI
+
+The Forge binary has both steps built in, with Forge's own rules, so a plugin or marketplace
+repository does not need its own copy of them:
+
+```sh
+forge plugin validate plugins/acme-icons --strict --json > report.json
+forge plugin pack plugins/acme-icons -o packages/acme.icons/acme.icons-1.0.0.forgeplugin
+```
+
+`validate` exits with 0 (valid), 1 (errors, or warnings with `--strict`) or 2 (wrong
+arguments); `--json` prints a stable report with the package's size and SHA-256, ready for a
+marketplace index. `--forge-version 0.1.0` checks `engines.forge` against another Forge
+version than the one running. `pack` is reproducible and validates before it writes. Both
+run headless, also on CI machines without a display. See
+[CLI](../../reference/cli-and-links.md#forge-plugin-validate).
+
+A marketplace repository that reimplements the rules in Node.js, like `stdimnet/marketplace`
+(`scripts/lib/forge-rules.mjs`, `scripts/lib/zip.mjs`, the packing in `scripts/lib/plugins.mjs`),
+can switch step by step without changing published packages:
+
+1. Run `forge plugin validate <plugin folder> --strict --json` in `build.mjs` and `check.mjs`
+   instead of `validateManifest`, `loadTheme` and `validatePackage`, and fail on a non-zero
+   exit code. Validate the committed packages the same way (`forge plugin validate
+   packages/<id>/<file>.forgeplugin`). This replaces `forge-rules.mjs` and the
+   `forge-proof.sh` build of Forge's crates.
+2. Write new versions with `forge plugin pack <plugin folder> -o packages/<id>/<id>-<version>.forgeplugin`
+   and take `size` and `sha256` for `index.json` from `--json`. Rust's deflate output differs
+   from Node's, so a repacked version gets a new SHA-256: keep already published packages
+   as they are (they never change) and use the binary for new versions only.
+3. Keep repository-specific checks (listing extras, changelog dates, resolver expectations)
+   in Node.js; they are not part of Forge's install rules.
+
+In CI, download a Forge release for the runner, or build it once with
+`cargo build -p forge-app` from a Forge checkout, and point `FORGE_BIN` at it for the SDK's
+`validate.mjs`.
 
 ## Forge's marketplace
 

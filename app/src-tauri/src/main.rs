@@ -12,7 +12,8 @@ fn main() {
     if let Some(code) = forge_app_lib::mcp_stdio_main(&args) {
         std::process::exit(code);
     }
-    // `forge inspect …`: the command-line inspector runs headless and exits.
+    // `forge inspect …` (the command-line inspector) and `forge plugin validate|pack …`
+    // (the plugin SDK commands) run headless and exit.
     if let Some(code) = forge_app_lib::cli::main(&args) {
         std::process::exit(code);
     }

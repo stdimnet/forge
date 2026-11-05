@@ -25704,6 +25704,104 @@ and writes the results (one XML file per inspection plus `.descriptions.xml`, `i
 or `index.html`). Exit code 0, 1 with `-fail-on` when a problem of that severity or worse was
 found, 2 for wrong arguments. See [Inspections](docs/guide/user/inspections.md#command-line-inspector).
 
+### `forge plugin validate`
+
+```text
+forge plugin validate <folder|file.forgeplugin> [--json] [--strict] [--forge-version <version>]
+```
+
+Checks a plugin the way Forge checks it on install, and reports every problem at once, so
+plugin and marketplace repositories do not have to reimplement the rules. Runs headless (no
+window, no display needed). The input is a plugin folder with `forge-plugin.json`, which is
+packed in memory exactly like `forge plugin pack` would pack it, or a `.forgeplugin` file.
+It checks:
+
+- the package: safe zip reading (no absolute paths, `..`, drive letters or symbolic links),
+  at most 64 MB packed and unpacked, at most 4096 files;
+- the manifest: id, version, `engines.forge` against the running Forge version (or
+  `--forge-version`), permissions, contributions and activation events;
+- the UI bundle of code plugins: `main` is in the package and is text; contributed commands,
+  status items, tool windows or settings pages without a `main` are a warning;
+- icon themes: the theme file format and every SVG it names (Forge's `forge_icons` rules: no
+  scripts, event handlers, foreign objects or external references, size limit);
+- files Forge does not use (warnings), e.g. SVGs no theme names or stray files in a package;
+- finally `Package::read` itself, the installer's check.
+
+| Option | Meaning |
+| --- | --- |
+| `--json` | print the JSON report (below) instead of text |
+| `--strict` | warnings fail too (exit code 1) |
+| `--forge-version <v>` | check `engines.forge` against this Forge version instead of the running one |
+
+Exit codes: **0** valid, **1** errors (or warnings with `--strict`), **2** wrong arguments or
+a path that is neither a plugin folder nor a package file.
+
+```text
+$ forge plugin validate sdk/examples/shapes-icons
+example.shapes-icons 1.0.0 (folder, 27 files, 8435 bytes) for Forge 0.1.0
+valid (0 errors, 0 warnings)
+```
+
+#### JSON report (schema 1)
+
+```json
+{
+  "schema": 1,
+  "forgeVersion": "0.1.0",
+  "path": "plugins/acme-icons",
+  "kind": "folder",
+  "strict": false,
+  "valid": false,
+  "errors": 1,
+  "warnings": 1,
+  "plugin": { "id": "acme.icons", "name": "Acme Icons", "version": "1.0.0" },
+  "package": { "size": 18234, "sha256": "<64 hex digits>", "files": 31 },
+  "diagnostics": [
+    { "severity": "error", "code": "svg", "message": "contains a script", "field": "icons.php", "file": "theme/icons/php.svg" },
+    { "severity": "warning", "code": "unknown-file", "message": "is in an icon theme folder, but no icon theme uses it", "file": "theme/icons/old.svg" }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `schema` | `1`. Fields may be added within schema 1; renamed or removed fields get a new number |
+| `forgeVersion` | the Forge version `engines.forge` was checked against |
+| `path`, `kind` | the input as given; `folder` or `package` |
+| `strict`, `valid` | `valid` is what the exit code says: `true` exactly for exit code 0 |
+| `errors`, `warnings` | counts of the diagnostics |
+| `plugin` | id, name and version from the manifest, or `null` when it cannot be read |
+| `package` | the (packed) package: size in bytes, SHA-256 (what a marketplace index lists), number of files; `null` when the zip cannot be read |
+| `output` | `forge plugin pack --json` only: the file written |
+| `diagnostics[]` | `severity` (`error` / `warning`), `code`, `message`; optional `field` (JSON path in the manifest or theme file) and `file` (package path) |
+
+Diagnostic codes (stable):
+
+| Code | Meaning |
+| --- | --- |
+| `package` | the zip cannot be read, a limit is exceeded, unsafe path, symbolic link |
+| `layout` | a folder that cannot be packed (an icon theme file at the plugin root) |
+| `manifest` | `forge-plugin.json` missing, not UTF-8, not valid JSON, or a manifest rule (`field` names it) |
+| `main` | the UI bundle is missing, empty or not text; code contributions without `main` (warning) |
+| `backend` | `backend` is declared but not run by this Forge version (warning) |
+| `icon-theme` | the theme file is missing, invalid or breaks a theme rule |
+| `svg` | an icon's SVG is missing, leaves the plugin or breaks an SVG rule |
+| `unknown-file` | a file Forge does not use (warning) |
+
+### `forge plugin pack`
+
+```text
+forge plugin pack <folder> [-o <file.forgeplugin>] [--json] [--forge-version <version>]
+```
+
+Packs a plugin folder into `<id>-<version>.forgeplugin` (in the folder, or `-o`): the
+manifest, `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md` and `NOTICE` when
+present, `main`, everything in `dist/`, and the folder of each icon theme file. That is the
+file selection of the SDK's `pack.mjs`. The zip is reproducible (fixed order, timestamps and
+permissions), so the same sources give the same SHA-256. The package is validated first;
+with errors nothing is written and the exit code is 1. Prints the report and `sha256 <hex>`
+(or the JSON report with `output`).
+
 The deb and rpm packages put `forge` on the `PATH`. For the AppImage, create a link yourself,
 e.g. `ln -s ~/Applications/Forge_0.1.0_amd64.AppImage ~/.local/bin/forge`.
 
@@ -27610,6 +27708,7 @@ hello-forge/
   package.json          build, typecheck and pack scripts (esbuild, TypeScript, @forge/plugin-api)
   tsconfig.json
   scripts/pack.mjs      writes the .forgeplugin file
+  scripts/validate.mjs  runs `forge plugin validate` (basic checks without Forge)
   README.md
 ```
 
@@ -27628,6 +27727,22 @@ npm run pack      # → acme.hello-forge-0.1.0.forgeplugin and its SHA-256
 Inside the Forge repository the same works without `npm install`:
 `pnpm plugin build <folder>` and `pnpm plugin pack <folder>` use the esbuild that comes with
 Vite.
+
+## Validate it
+
+```sh
+npm run validate                  # in the plugin folder
+pnpm plugin validate <folder>     # from app/ui in the Forge repository
+forge plugin validate acme.hello-forge-0.1.0.forgeplugin --strict
+```
+
+`forge plugin validate` is part of the Forge binary and checks everything Forge checks on
+install (manifest, `engines.forge` against your Forge, permissions, package limits, icon
+themes and their SVGs, the UI bundle, unused files) and lists every problem at once. The
+scripts look for the binary in `FORGE_BIN`, the Cargo build folders of a Forge checkout and
+on `PATH`; without one they run a few basic manifest checks and say so. See
+[CLI](docs/guide/reference/cli-and-links.md#forge-plugin-validate) for the options, exit codes and
+the JSON report.
 
 ## Install it
 
@@ -27912,6 +28027,45 @@ SHA-256.
 Forge refuses packages that are larger than 64 MB (packed or unpacked), have more than 4096
 files, contain absolute paths, `..`, drive letters or symbolic links, lack the manifest or the
 `main` file, or whose manifest does not validate for the running Forge version.
+`forge plugin validate` runs the same checks before you publish (see below), and
+`forge plugin pack` packs the same files in Rust.
+
+## Validating and packing in CI
+
+The Forge binary has both steps built in, with Forge's own rules, so a plugin or marketplace
+repository does not need its own copy of them:
+
+```sh
+forge plugin validate plugins/acme-icons --strict --json > report.json
+forge plugin pack plugins/acme-icons -o packages/acme.icons/acme.icons-1.0.0.forgeplugin
+```
+
+`validate` exits with 0 (valid), 1 (errors, or warnings with `--strict`) or 2 (wrong
+arguments); `--json` prints a stable report with the package's size and SHA-256, ready for a
+marketplace index. `--forge-version 0.1.0` checks `engines.forge` against another Forge
+version than the one running. `pack` is reproducible and validates before it writes. Both
+run headless, also on CI machines without a display. See
+[CLI](docs/guide/reference/cli-and-links.md#forge-plugin-validate).
+
+A marketplace repository that reimplements the rules in Node.js, like `stdimnet/marketplace`
+(`scripts/lib/forge-rules.mjs`, `scripts/lib/zip.mjs`, the packing in `scripts/lib/plugins.mjs`),
+can switch step by step without changing published packages:
+
+1. Run `forge plugin validate <plugin folder> --strict --json` in `build.mjs` and `check.mjs`
+   instead of `validateManifest`, `loadTheme` and `validatePackage`, and fail on a non-zero
+   exit code. Validate the committed packages the same way (`forge plugin validate
+   packages/<id>/<file>.forgeplugin`). This replaces `forge-rules.mjs` and the
+   `forge-proof.sh` build of Forge's crates.
+2. Write new versions with `forge plugin pack <plugin folder> -o packages/<id>/<id>-<version>.forgeplugin`
+   and take `size` and `sha256` for `index.json` from `--json`. Rust's deflate output differs
+   from Node's, so a repacked version gets a new SHA-256: keep already published packages
+   as they are (they never change) and use the binary for new versions only.
+3. Keep repository-specific checks (listing extras, changelog dates, resolver expectations)
+   in Node.js; they are not part of Forge's install rules.
+
+In CI, download a Forge release for the runner, or build it once with
+`cargo build -p forge-app` from a Forge checkout, and point `FORGE_BIN` at it for the SDK's
+`validate.mjs`.
 
 ## Forge's marketplace
 
@@ -33429,7 +33583,10 @@ Everything that decides what a third-party plugin is and may do; the UI host
 | Module | Summary |
 | --- | --- |
 | `manifest` | `PluginManifest` (`forge-plugin.json`, format 1): id, version, `engines.forge`, `main`, reserved `backend` (WASM / JSON-RPC process, never native), activation events, `Permissions`, `Contributes` (commands, keybindings, status items, tool windows, settings pages, settings, languages, icon themes); `validate(forge_version)` returns every `Problem` with its JSON path |
-| `package` | `Package::read`: a `.forgeplugin` zip, size and path checks, manifest validation, `main` present, every icon theme loads, SHA-256 (feature `disk`) |
+| `package` | `read_entries` (safe zip reading and limits) and `Package::read`: a `.forgeplugin` zip, size and path checks, manifest validation, `main` present, every icon theme loads, SHA-256 (feature `disk`) |
+| `pack` | `pack`/`select`: a plugin folder into a reproducible package (the SDK's file selection: manifest, `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md`, `NOTICE`, `main`, `dist/`, each icon theme's folder; fixed order, 1980-01-01 timestamps, `0644`), symlinks and more than 64 MB refused (feature `disk`) |
+| `validate` | `validate_package` / `validate_folder`: every install check at once as a `Report` of `Diagnostic`s (severity, stable code, field, file): package limits, manifest rules, the UI bundle, icon theme format and SVG rules, unknown files, then `Package::read` itself (feature `disk`) |
+| `cli` | `forge plugin validate` and `forge plugin pack` (arguments, human output, the JSON report, exit codes), dispatched by the Forge binary ([CLI](docs/guide/reference/cli-and-links.md#forge-plugin-validate)) (feature `disk`) |
 | `icon_themes` | `load`: an icon theme of a plugin (`contributes.iconThemes`) with the SVGs its `icons` table names, read through a callback and checked with `forge_icons`; `theme_file_allowed` (only the theme file and `.svg` files of the package), `resolve_asset` ([Icon themes](docs/guide/developer/icon-themes.md)) |
 | `store` | `PluginStore` in `<data dir>/forge/plugins` (`installed.json`, one folder per plugin; data in `plugin-data/<id>`): install/update with a staged swap, uninstall, enablement, granted permissions, the installed list for exported settings and the "wanted" list of imported ones; `descriptor` turns a plugin into a `PluginRegistry` entry (pack `thirdParty`) |
 | `permissions` | `Guard`: `check_fs` (scopes `${project}` / `${pluginData}`, `..` and symlinks resolved), `check_network` (hosts, `*.domain`), `check_process`, `check_setting`, `check_editor`; `summary` (the install prompt, most dangerous first) and `added` (what an update adds) |
@@ -33452,6 +33609,7 @@ default). `forge-wasm` builds it without features for browser mode (`plugins_mar
   `plugins://changed`.
 - `AppState::new` registers installed plugins in the `PluginRegistry`.
 - Settings Sync and Export Settings write the installed list (`commands/settings_sync.rs`).
+- The `forge plugin …` command line (`app/src-tauri/src/cli.rs` dispatches to `cli::main`).
 
 ## Dependencies
 
@@ -33465,7 +33623,7 @@ Manifest rules and every problem field, the SDK example and template manifests, 
 checks (unsafe paths, missing files, engine ranges), install/update/uninstall in a temporary
 folder, imported plugin lists, file scopes with `..` and symlinks, network/process/settings
 checks, the permission prompt, index parsing, search, update checks, URLs, checksums,
-signatures, icon themes (the Shapes Icons example loaded from disk, escaping and unsafe SVGs), and downloads and host fetches from a local mock server.
+signatures, icon themes (the Shapes Icons example loaded from disk, escaping and unsafe SVGs), and downloads and host fetches from a local mock server. `tests/plugin_cli.rs` runs `forge plugin validate|pack` against the fixture plugins in `tests/fixtures/` (valid, bad manifest, bad SVG, engines mismatch) and generated ones (zip-slip path, oversized package and folder, unknown files with `--strict`), checking exit codes and the JSON report; packing is checked to be reproducible.
 
 
 ---

@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 1,
+  "id": "Bad Plugin",
+  "name": "Bad Manifest Fixture",
+  "version": "one",
+  "engines": { "forge": ">=0.1.0" },
+  "main": "dist/plugin.js",
+  "activationEvents": ["onWhenever"],
+  "permissions": { "process": ["/usr/bin/git"] },
+  "contributes": {
+    "commands": [{ "id": "other.plugin.run", "title": "Run" }]
+  }
+}

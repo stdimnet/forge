@@ -1,6 +1,6 @@
 ---
 title: CLI arguments and forge:// links
-description: Command-line forms of the forge launcher, the forge://open and forge://open-symbol links, and the Browser Companion's local HTTP API.
+description: Command-line forms of the forge launcher (forge inspect, forge plugin validate and pack with the JSON report schema), the forge://open and forge://open-symbol links, and the Browser Companion's local HTTP API.
 order: 50
 tags: [cli, launcher, forge links, deep links, reference]
 ---
@@ -49,6 +49,104 @@ The command-line inspector: runs the profile's inspections over the project with
 and writes the results (one XML file per inspection plus `.descriptions.xml`, `inspections.json`
 or `index.html`). Exit code 0, 1 with `-fail-on` when a problem of that severity or worse was
 found, 2 for wrong arguments. See [Inspections](../user/inspections.md#command-line-inspector).
+
+### `forge plugin validate`
+
+```text
+forge plugin validate <folder|file.forgeplugin> [--json] [--strict] [--forge-version <version>]
+```
+
+Checks a plugin the way Forge checks it on install, and reports every problem at once, so
+plugin and marketplace repositories do not have to reimplement the rules. Runs headless (no
+window, no display needed). The input is a plugin folder with `forge-plugin.json`, which is
+packed in memory exactly like `forge plugin pack` would pack it, or a `.forgeplugin` file.
+It checks:
+
+- the package: safe zip reading (no absolute paths, `..`, drive letters or symbolic links),
+  at most 64 MB packed and unpacked, at most 4096 files;
+- the manifest: id, version, `engines.forge` against the running Forge version (or
+  `--forge-version`), permissions, contributions and activation events;
+- the UI bundle of code plugins: `main` is in the package and is text; contributed commands,
+  status items, tool windows or settings pages without a `main` are a warning;
+- icon themes: the theme file format and every SVG it names (Forge's `forge_icons` rules: no
+  scripts, event handlers, foreign objects or external references, size limit);
+- files Forge does not use (warnings), e.g. SVGs no theme names or stray files in a package;
+- finally `Package::read` itself, the installer's check.
+
+| Option | Meaning |
+| --- | --- |
+| `--json` | print the JSON report (below) instead of text |
+| `--strict` | warnings fail too (exit code 1) |
+| `--forge-version <v>` | check `engines.forge` against this Forge version instead of the running one |
+
+Exit codes: **0** valid, **1** errors (or warnings with `--strict`), **2** wrong arguments or
+a path that is neither a plugin folder nor a package file.
+
+```text
+$ forge plugin validate sdk/examples/shapes-icons
+example.shapes-icons 1.0.0 (folder, 27 files, 8435 bytes) for Forge 0.1.0
+valid (0 errors, 0 warnings)
+```
+
+#### JSON report (schema 1)
+
+```json
+{
+  "schema": 1,
+  "forgeVersion": "0.1.0",
+  "path": "plugins/acme-icons",
+  "kind": "folder",
+  "strict": false,
+  "valid": false,
+  "errors": 1,
+  "warnings": 1,
+  "plugin": { "id": "acme.icons", "name": "Acme Icons", "version": "1.0.0" },
+  "package": { "size": 18234, "sha256": "<64 hex digits>", "files": 31 },
+  "diagnostics": [
+    { "severity": "error", "code": "svg", "message": "contains a script", "field": "icons.php", "file": "theme/icons/php.svg" },
+    { "severity": "warning", "code": "unknown-file", "message": "is in an icon theme folder, but no icon theme uses it", "file": "theme/icons/old.svg" }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `schema` | `1`. Fields may be added within schema 1; renamed or removed fields get a new number |
+| `forgeVersion` | the Forge version `engines.forge` was checked against |
+| `path`, `kind` | the input as given; `folder` or `package` |
+| `strict`, `valid` | `valid` is what the exit code says: `true` exactly for exit code 0 |
+| `errors`, `warnings` | counts of the diagnostics |
+| `plugin` | id, name and version from the manifest, or `null` when it cannot be read |
+| `package` | the (packed) package: size in bytes, SHA-256 (what a marketplace index lists), number of files; `null` when the zip cannot be read |
+| `output` | `forge plugin pack --json` only: the file written |
+| `diagnostics[]` | `severity` (`error` / `warning`), `code`, `message`; optional `field` (JSON path in the manifest or theme file) and `file` (package path) |
+
+Diagnostic codes (stable):
+
+| Code | Meaning |
+| --- | --- |
+| `package` | the zip cannot be read, a limit is exceeded, unsafe path, symbolic link |
+| `layout` | a folder that cannot be packed (an icon theme file at the plugin root) |
+| `manifest` | `forge-plugin.json` missing, not UTF-8, not valid JSON, or a manifest rule (`field` names it) |
+| `main` | the UI bundle is missing, empty or not text; code contributions without `main` (warning) |
+| `backend` | `backend` is declared but not run by this Forge version (warning) |
+| `icon-theme` | the theme file is missing, invalid or breaks a theme rule |
+| `svg` | an icon's SVG is missing, leaves the plugin or breaks an SVG rule |
+| `unknown-file` | a file Forge does not use (warning) |
+
+### `forge plugin pack`
+
+```text
+forge plugin pack <folder> [-o <file.forgeplugin>] [--json] [--forge-version <version>]
+```
+
+Packs a plugin folder into `<id>-<version>.forgeplugin` (in the folder, or `-o`): the
+manifest, `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md` and `NOTICE` when
+present, `main`, everything in `dist/`, and the folder of each icon theme file. That is the
+file selection of the SDK's `pack.mjs`. The zip is reproducible (fixed order, timestamps and
+permissions), so the same sources give the same SHA-256. The package is validated first;
+with errors nothing is written and the exit code is 1. Prints the report and `sha256 <hex>`
+(or the JSON report with `output`).
 
 The deb and rpm packages put `forge` on the `PATH`. For the AppImage, create a link yourself,
 e.g. `ln -s ~/Applications/Forge_0.1.0_amd64.AppImage ~/.local/bin/forge`.

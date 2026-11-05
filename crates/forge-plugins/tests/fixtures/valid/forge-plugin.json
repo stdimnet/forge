@@ -1,0 +1,16 @@
+{
+  "manifestVersion": 1,
+  "id": "fixture.valid",
+  "name": "Valid Fixture",
+  "version": "1.2.3",
+  "publisher": "Forge Tests",
+  "license": "MIT",
+  "engines": { "forge": ">=0.1.0" },
+  "main": "dist/plugin.js",
+  "activationEvents": ["onCommand:fixture.valid.hello"],
+  "permissions": { "editor": ["read"] },
+  "contributes": {
+    "commands": [{ "id": "fixture.valid.hello", "title": "Say Hello" }],
+    "iconThemes": [{ "id": "fixture.valid.dots", "label": "Dots", "path": "theme/icon-theme.json" }]
+  }
+}

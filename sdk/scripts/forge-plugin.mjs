@@ -6,12 +6,15 @@
  *       scaffold a TypeScript plugin project from sdk/templates/basic
  *   build <folder>    bundle src/index.ts into dist/plugin.js (esbuild, IIFE `__forgePlugin`)
  *   pack <folder>     build, then write <id>-<version>.forgeplugin and print its SHA-256
+ *   validate <folder|file.forgeplugin> [--json] [--strict] [--forge-version <v>]
+ *                     run `forge plugin validate` of the Forge binary (basic checks without it)
  */
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pack } from "./pack.mjs";
+import { validate } from "./validate.mjs";
 
 const sdk = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repo = resolve(sdk, "..");
@@ -58,6 +61,7 @@ export function scaffold(target, opts = {}) {
   renameSync(join(dir, "gitignore"), join(dir, ".gitignore"));
   mkdirSync(join(dir, "scripts"), { recursive: true });
   cpSync(join(sdk, "scripts/pack.mjs"), join(dir, "scripts/pack.mjs"));
+  cpSync(join(sdk, "scripts/validate.mjs"), join(dir, "scripts/validate.mjs"));
   fill(dir, {
     id,
     name,
@@ -124,8 +128,10 @@ async function main() {
     if (manifest.main) await build(args[0] ?? ".");
     const { file, sha256, size } = pack(args[0] ?? ".");
     console.log(`wrote ${file} (${size} bytes)\nsha256 ${sha256}`);
+  } else if (command === "validate") {
+    process.exitCode = validate(args, { repo });
   } else {
-    console.log("usage: plugin <new|build|pack> <folder>");
+    console.log("usage: plugin <new|build|pack|validate> <folder>");
     process.exitCode = command ? 1 : 0;
   }
 }

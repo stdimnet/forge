@@ -11,3 +11,5 @@ app/src-tauri/gen/
 .claude/worktrees/
 # The SDK example is committed built, so browser mode and the tests load it.
 !sdk/examples/*/dist/
+# Plugin fixtures of `forge plugin validate` tests ship a built UI bundle.
+!crates/forge-plugins/tests/fixtures/*/dist/
