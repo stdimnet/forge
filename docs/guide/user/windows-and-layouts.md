@@ -26,8 +26,14 @@ repository, a new project or a Git worktree) asks where to open it, as in PHPSto
   `thisWindow` or `ask`). Change it there to be asked again.
 
 A project that is already open in another window is not opened twice: that window comes to
-the front. An untrusted folder asks "Trust and Open Project?" first, and the new window opens
-it trusted or in Safe Mode as you decide (see [Project trust and Safe Mode](project-trust.md)). The Welcome screen always opens the project in its own window.
+the front. For an untrusted folder, "Trust and Open Project?" is asked by the window the project
+opens in: this window before it opens the folder, or the new window once it is on screen (it
+shows the project in Safe Mode until you answer; Don't Open closes it again). See
+[Project trust and Safe Mode](project-trust.md). The Welcome screen always opens the project in its own window.
+
+Folders opened from the file manager ("Open Folder in Forge") ask the same question, and files
+opened from there go into the lightweight LightEdit window: see
+[Forge as the system's text editor](open-from-the-os.md).
 
 Every project window keeps its own project state: settings, language servers, terminals,
 run configurations, the file watcher and the search index. Technically each project window is

@@ -865,6 +865,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md) | several project windows, Presentation / Distraction-Free / Zen / Full Screen, Zoom IDE, tool window view modes (Float, Undock, Window), editor tabs in their own window, Window \| Layouts |
+| [Forge as the system's text editor](docs/guide/user/open-from-the-os.md) | Open With → Forge (the LightEdit window), Open Folder in Forge, file associations on Linux, Windows and macOS |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
@@ -1510,8 +1511,14 @@ repository, a new project or a Git worktree) asks where to open it, as in PHPSto
   `thisWindow` or `ask`). Change it there to be asked again.
 
 A project that is already open in another window is not opened twice: that window comes to
-the front. An untrusted folder asks "Trust and Open Project?" first, and the new window opens
-it trusted or in Safe Mode as you decide (see [Project trust and Safe Mode](docs/guide/user/project-trust.md)). The Welcome screen always opens the project in its own window.
+the front. For an untrusted folder, "Trust and Open Project?" is asked by the window the project
+opens in: this window before it opens the folder, or the new window once it is on screen (it
+shows the project in Safe Mode until you answer; Don't Open closes it again). See
+[Project trust and Safe Mode](docs/guide/user/project-trust.md). The Welcome screen always opens the project in its own window.
+
+Folders opened from the file manager ("Open Folder in Forge") ask the same question, and files
+opened from there go into the lightweight LightEdit window: see
+[Forge as the system's text editor](docs/guide/user/open-from-the-os.md).
 
 Every project window keeps its own project state: settings, language servers, terminals,
 run configurations, the file watcher and the search index. Technically each project window is
@@ -1637,6 +1644,152 @@ Window | Layouts keeps tool window arrangements under a name, like PHPStorm:
 Names are compared without case and may be up to 64 characters long. Layouts are a user
 setting (`workbench.layouts`, in `settings.toml`), so they are available in every project;
 editor tabs are not part of a layout.
+
+
+---
+
+Source: docs/guide/user/open-from-the-os.md
+
+# Forge as the system's text editor
+
+The Forge installers register Forge as a text editor for common text and source files, so it
+shows up under **Open With** in the file manager and can be made the default editor for a
+file type. Folders get **Open Folder in Forge**.
+
+- Opening a **file** this way opens it in the **LightEdit** window: just the editor with tabs
+  and the basic actions, without a project, tool windows or indexing (PHPStorm's LightEdit
+  mode). Every further file goes into the same window as a new tab, also when Forge is
+  already running. A file that is open already becomes the active tab again.
+- Opening a **folder** opens it as a project. While a project window is open, Forge asks
+  **This Window / New Window** (or does what Settings | Appearance & Behavior | System Settings
+  | Project | *Open project in* says).
+- A file that belongs to the project open in the project window opens there, not in LightEdit.
+
+## The LightEdit window
+
+![LightEdit window with three files](docs/screenshots/light-edit-window.png)
+
+| Part | What it does |
+| --- | --- |
+| **Open File…** | add files with the system file dialog |
+| **Save All** | save the changed files (also Ctrl+S, the PHPStorm keymap applies) |
+| **Open Project…** | open a folder as a project in the project window; when Forge runs with the LightEdit window only, the project window opens first |
+| tabs | close with the × or Ctrl+F4; the window stays open without tabs |
+| status line | *LightEdit mode* and the path of the active file |
+
+- Files keep their encoding, byte order mark and line separator when they are saved.
+- Closing the window saves its changed files first.
+- When Forge was started for files only, it shows the LightEdit window alone: no splash
+  continues into a project window and the last project is not reopened. Closing the project
+  window while LightEdit is open keeps the LightEdit window (the project closes).
+- There is no project, so project features (code insight from the project index, run
+  configurations, VCS, tool windows) are not available; syntax highlighting, editing, Find and
+  Replace and the editor actions are.
+
+![LightEdit window without files](docs/screenshots/light-edit-empty.png)
+
+## Opening a folder
+
+**Open Folder in Forge** (Explorer, Dolphin), Open With → Forge on a folder (Finder, GNOME
+Files), a folder on the command line (`forge ~/Projects/shop`) and a
+`forge://open?file=/path/to/folder` link all open the folder as a project:
+
+- Without an open project it opens in the project window right away.
+- With an open project Forge asks where:
+
+  ![This Window / New Window](docs/screenshots/open-folder-window-prompt.png)
+
+- A `forge://` link can come from any web page, so Forge first asks whether to open the
+  folder at all:
+
+  ![A forge:// link wants to open a folder](docs/screenshots/open-folder-from-link.png)
+
+### The trust question opens in the target window
+
+"Trust and Open Project?" ([Project trust](docs/guide/user/project-trust.md)) is asked **only in the window
+the project opens in**:
+
+- **This Window**: the current window asks before it opens the folder.
+- **New Window**: the new window opens the folder in Safe Mode and asks as soon as it is on
+  screen. *Trust Project* leaves Safe Mode, *Preview in Safe Mode* keeps it, *Don't Open*
+  closes the new window again.
+- A folder from the command line or the file manager when Forge was not running: the first
+  window asks the same way (*Don't Open* shows the Welcome screen).
+
+The window you started from never asks on behalf of a window that does not exist yet.
+
+## How a launch is routed
+
+Every way in ends in one handler in Rust (`companion::handle_launch_args`, sorted by
+`forge_open::launch`), so they all behave the same:
+
+| Argument | Goes to |
+| --- | --- |
+| a folder | a project (first folder at startup: this window; later: the window question) |
+| a file of the open project (or of the folder opened in the same launch) | the project window |
+| any other file | the LightEdit window |
+| `-e FILE` / `--edit FILE` | the LightEdit window, also for project files |
+| `file:///…` URLs (some file managers pass URLs) | as the path they name |
+| `forge://open?file=/folder` | a project, after the link question |
+| other `forge://` links | as before ([CLI arguments and forge:// links](docs/guide/reference/cli-and-links.md)) |
+
+## Linux
+
+The deb and rpm packages install:
+
+| File | Purpose |
+| --- | --- |
+| `/usr/share/applications/forge.desktop` | `Exec=forge %F`, `MimeType=` for text and source types (`text/plain`, `text/markdown`, `application/json`, `application/x-php`, `text/x-lua`, …) and `inode/directory` |
+| `/usr/share/applications/forge-url-handler.desktop` | the `forge://` scheme (`x-scheme-handler/forge`, `Exec=forge %u`, hidden from menus) |
+| `/usr/share/kio/servicemenus/forge-open-folder.desktop` | Dolphin's **Open Folder in Forge** on folders |
+
+- GNOME Files and other file managers list Forge under *Open With Other Application* for
+  folders and text files; *Set as default* makes it the default editor for a type.
+- The arguments reach a running Forge through the single-instance hand-over.
+- **AppImage:** the image carries the same desktop entry. AppImage integration tools
+  (AppImageLauncher, Gear Lever) install it; without them the AppImage registers only the
+  `forge://` scheme at runtime.
+- **Flatpak:** `dev.forge.ide.desktop` declares the same MIME types and `inode/directory`.
+- Uninstalling the package removes every file above.
+
+## Windows
+
+The NSIS (`.exe`) and MSI installers register:
+
+| Entry | Purpose |
+| --- | --- |
+| file associations (`bundle.fileAssociations`) | `.txt`, `.md`, `.php`, `.js`, `.ts`, `.lua`, `.json`, `.yaml`, … with the verb **Open with Forge**, under `HKCU\Software\Classes` (per-user install) or `HKLM` (per-machine) |
+| `Directory\shell\Forge` | **Open Folder in Forge** on folders |
+| `Directory\Background\shell\Forge` | **Open Folder in Forge** on the background of an open folder |
+| `*\shell\Forge` | **Edit with Forge** on every file, also files without an extension |
+
+- Windows asks once which app opens a type; choose Forge there or under *Settings › Apps ›
+  Default apps*.
+- The arguments reach a running Forge through the single-instance hand-over.
+- Uninstalling removes all associations and context-menu entries (NSIS installer hook, MSI
+  component); the NSIS uninstaller also restores the previous handler of an extension.
+
+## macOS
+
+`Forge.app` declares document types in its `Info.plist` (`CFBundleDocumentTypes`, role
+**Editor**) for plain text, source code, scripts, JSON, XML and YAML, and `public.folder`
+with rank *Alternate* (Forge is offered for folders, never made their default):
+
+- Finder: *Open With → Forge*, or *Get Info › Open with › Change All…* to make it the default
+  editor of a type.
+- Drop files or folders on the Dock icon.
+- macOS hands these to the app as an open-file event (`RunEvent::Opened`), not as
+  command-line arguments; Forge routes them into the same handler, also while it runs.
+- Removing `Forge.app` removes the document types.
+
+## Troubleshooting
+
+- **Forge is missing from Open With (Linux):** run `update-desktop-database
+  ~/.local/share/applications` (or reinstall the package) and log out and in.
+- **A file opens in the project window instead of LightEdit:** it belongs to the open
+  project. Use `forge -e FILE` to force LightEdit.
+- **Nothing happens on macOS when a file is dropped on the Dock icon while Forge starts:** the
+  file opens once the startup reaches "Opening project"; look in the LightEdit window.
 
 
 ---
@@ -17370,8 +17523,11 @@ VCS, the Browser Companion), Forge asks first:
 Projects Forge creates itself (File | **New Project…**) are trusted automatically. Reopening
 the open project (Repair IDE) does not ask again.
 
-A project passed on the command line while Forge starts (`forge path`) opens right away; when it
-is not trusted it opens in Safe Mode and shows the banner.
+The question is always asked by the window the project opens in. A project passed on the
+command line while Forge starts (`forge path`, Open Folder in Forge), and a project opened with
+Open Project › **New Window**, opens in Safe Mode first; its window asks as soon as it is on
+screen. **Don't Open** there closes the new window (or shows the Welcome screen in the first
+one). See [Forge as the system's text editor](docs/guide/user/open-from-the-os.md#the-trust-question-opens-in-the-target-window).
 
 ## Safe Mode
 
@@ -25697,8 +25853,9 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | Form | Meaning |
 | --- | --- |
 | `forge` | start with the Welcome screen |
-| `forge ~/Projects/shop` | open a directory as the project |
-| `forge src/App.tsx` | open a file (in the project it belongs to) |
+| `forge ~/Projects/shop` | open a directory as the project (with the This Window / New Window question when Forge runs with a project) |
+| `forge src/App.tsx` | open a file: in the project window when it belongs to the open project (or to a folder of the same launch), else in the [LightEdit window](docs/guide/user/open-from-the-os.md) |
+| `forge -e notes.txt` / `forge --edit notes.txt` | open a file in the LightEdit window, also a project file |
 | `forge src/App.tsx:12` / `forge src/App.tsx:12:3` | at line 12 (column 3) |
 | `forge --line 12 --column 3 src/App.tsx` | JetBrains style; short `-l`, `-c` |
 | `forge src/App.tsx 12 3` | `launch-editor` style: numbers after a file are its line and column |
@@ -25706,6 +25863,7 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 
 - Relative paths are resolved against the current directory. Arguments that name nothing on
   disk are skipped with a warning (in the log).
+- `file:///…` URLs are accepted as the path they name (file managers launching `%U`).
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
   (single instance) and the new process exits.
@@ -25852,7 +26010,9 @@ forge://open?file=/home/me/shop/app/Models/User.php&line=42&column=5
 | `symbol` | | symbol to locate when no line is given |
 
 `forge:open?…` (without `//`) works too. Values are percent-decoded. Absurd line/column numbers
-and over-long paths are rejected.
+and over-long paths are rejected. When `file` is the absolute path of a **folder**, Forge asks
+whether to open it as a project (a link can come from any web page), then opens it like
+File | Open (with the This Window / New Window question).
 
 ### `forge://open-symbol`
 
@@ -33558,6 +33718,9 @@ Opening files in Forge from the outside world:
 
 - `request`: open requests and `forge://open?file=…&line=…` links,
 - `cli`: the `forge path/to/file:12` launcher,
+- `launch`: where a launch opens: folders as projects, files of the open project in the
+  project window, other files in the LightEdit window, `forge://` links to folders as
+  projects after a confirmation, and the paths of the macOS open-file event,
 - `resolve`: which project a file belongs to (open, recent, or none),
 - `symbols`: find a component/class declaration by name,
 - `server` + `pairing`: the Browser Companion's local HTTP API,
@@ -33568,6 +33731,7 @@ Opening files in Forge from the outside world:
 | Module | Summary |
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
+| `launch.rs` | Where a launch goes (`plan_launch` → `LaunchPlan`: projects, link projects, project files, LightEdit files, links), `wants_light_edit` (`-e` / `--edit`), `link_folder` and `opened_urls_to_args` for `RunEvent::Opened` on macOS. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
 | `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
@@ -33589,6 +33753,7 @@ pub fn open_event(
 
 ## Used by
 
+- Launches: `companion::handle_launch_args` and `companion::handle_opened_urls` (`app/src-tauri/src/companion.rs`), see [Forge as the system's text editor](docs/guide/user/open-from-the-os.md)
 - IPC: `companion_status`, `companion_start_pairing`, `companion_cancel_pairing`, `companion_revoke_client`, `companion_ui_ready`, `companion_open_link`, `companion_project_profile`, `companion_set_env_var` (`app/src-tauri/src/commands/companion.rs`)
 - UI: `app/ui/src/features/browserCompanion`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
@@ -35395,6 +35560,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `light_edit`: the tabs of the LightEdit window (files opened without a project): a file
+  opened again reuses its tab, closing activates the neighbour, ids `light-edit:<path>`, and
+  case-insensitive paths on Windows and macOS.
 - `projects`: the registry of running project windows (one Forge instance each, oldest
   first), Next / Previous Project Window with wrap-around, pruning of instances that no longer
   answer, and the `forge-window <token> info|focus` control lines between instances.
@@ -35413,6 +35581,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `light_edit.rs` | The LightEdit window's tab model (`LightEditTabs`, `LightEditSnapshot`). |
 | `projects.rs` | The project window registry and the control protocol between Forge instances. |
 | `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
@@ -35422,6 +35591,7 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use light_edit::{LightEditFile, LightEditSnapshot, LightEditTabs, LIGHT_EDIT_ID};
 pub use projects::{control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo, ProjectWindows};
 pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
@@ -35430,9 +35600,9 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ## Used by
 
-- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`); `project_windows_list`, `project_window_focus`, `project_window_cycle`, `project_window_open` (`app/src-tauri/src/commands/project_windows.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`); `project_windows_list`, `project_window_focus`, `project_window_cycle`, `project_window_open` (`app/src-tauri/src/commands/project_windows.rs`); `light_edit_state`, `light_edit_open`, `light_edit_close`, `light_edit_activate`, `light_edit_read`, `light_edit_write`, `light_edit_open_project` (`app/src-tauri/src/commands/light_edit.rs`)
 - UI: `app/ui/src/shell/window`
-- Browser mode: built into `forge-wasm`
+- Browser mode: built into `forge-wasm` (`light_edit_apply` for the LightEdit mock)
 
 ## Dependencies
 

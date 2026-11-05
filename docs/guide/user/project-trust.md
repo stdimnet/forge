@@ -30,8 +30,11 @@ VCS, the Browser Companion), Forge asks first:
 Projects Forge creates itself (File | **New Project…**) are trusted automatically. Reopening
 the open project (Repair IDE) does not ask again.
 
-A project passed on the command line while Forge starts (`forge path`) opens right away; when it
-is not trusted it opens in Safe Mode and shows the banner.
+The question is always asked by the window the project opens in. A project passed on the
+command line while Forge starts (`forge path`, Open Folder in Forge), and a project opened with
+Open Project › **New Window**, opens in Safe Mode first; its window asks as soon as it is on
+screen. **Don't Open** there closes the new window (or shows the Welcome screen in the first
+one). See [Forge as the system's text editor](open-from-the-os.md#the-trust-question-opens-in-the-target-window).
 
 ## Safe Mode
 

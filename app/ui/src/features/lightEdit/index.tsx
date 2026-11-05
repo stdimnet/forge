@@ -46,8 +46,9 @@ function LightEditWindow() {
   async function apply(next: LightEditSnapshot): Promise<void> {
     snapshot = next;
     const plan = planSync(next, lightTabs());
+    // Each new tab opens next to the active one: activate them in turn to keep their order.
     for (const id of plan.toOpen) {
-      await openFile(id, { activate: false }).catch((e) => showBalloon(t("tools.lightEdit.cannotOpenTheFile"), message(e)));
+      await openFile(id).catch((e) => showBalloon(t("tools.lightEdit.cannotOpenTheFile"), message(e)));
     }
     if (plan.show) {
       if (plan.show.line) await openFileAt(plan.show.id, plan.show.line, plan.show.column);

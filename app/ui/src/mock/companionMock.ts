@@ -7,6 +7,7 @@ import { emitMock, invoke, registerMock } from "@/ipc";
 import {
   COMPANION_JOIN_SESSION_EVENT,
   COMPANION_OPEN_EVENT,
+  COMPANION_OPEN_PROJECT_EVENT,
   type OpenEvent,
   type PairedClient,
   type PairingCode,
@@ -64,9 +65,15 @@ registerMock("companion_ui_ready", (): PendingEvent[] => {
   const params = new URLSearchParams(location.search);
   if (params.has("cwmLink")) return [{ type: "joinSession", link: DEMO_JOIN_LINK }];
   const folder = params.get("openFolder");
-  if (folder) return [{ type: "openProject", root: folder, confirm: params.has("fromLink") }];
+  // Like a second launch: it arrives once the demo project is open in this window.
+  if (folder) whenProjectOpen(() => emitMock(COMPANION_OPEN_PROJECT_EVENT, { root: folder, confirm: params.has("fromLink") }));
   return [];
 });
+
+function whenProjectOpen(run: () => void): void {
+  const poll = () => (document.querySelector(".cm-content") ? run() : setTimeout(poll, 200));
+  setTimeout(poll, 200);
+}
 
 /** Same shape the Rust side sends; files under the demo root open directly. */
 export function mockOpenEvent(file: string, line?: number, column?: number, source: OpenEvent["source"] = "browser"): OpenEvent {

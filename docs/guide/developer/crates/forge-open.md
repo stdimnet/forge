@@ -15,6 +15,9 @@ Opening files in Forge from the outside world:
 
 - `request`: open requests and `forge://open?file=…&line=…` links,
 - `cli`: the `forge path/to/file:12` launcher,
+- `launch`: where a launch opens: folders as projects, files of the open project in the
+  project window, other files in the LightEdit window, `forge://` links to folders as
+  projects after a confirmation, and the paths of the macOS open-file event,
 - `resolve`: which project a file belongs to (open, recent, or none),
 - `symbols`: find a component/class declaration by name,
 - `server` + `pairing`: the Browser Companion's local HTTP API,
@@ -25,6 +28,7 @@ Opening files in Forge from the outside world:
 | Module | Summary |
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
+| `launch.rs` | Where a launch goes (`plan_launch` → `LaunchPlan`: projects, link projects, project files, LightEdit files, links), `wants_light_edit` (`-e` / `--edit`), `link_folder` and `opened_urls_to_args` for `RunEvent::Opened` on macOS. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
 | `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
@@ -46,6 +50,7 @@ pub fn open_event(
 
 ## Used by
 
+- Launches: `companion::handle_launch_args` and `companion::handle_opened_urls` (`app/src-tauri/src/companion.rs`), see [Forge as the system's text editor](../../user/open-from-the-os.md)
 - IPC: `companion_status`, `companion_start_pairing`, `companion_cancel_pairing`, `companion_revoke_client`, `companion_ui_ready`, `companion_open_link`, `companion_project_profile`, `companion_set_env_var` (`app/src-tauri/src/commands/companion.rs`)
 - UI: `app/ui/src/features/browserCompanion`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
