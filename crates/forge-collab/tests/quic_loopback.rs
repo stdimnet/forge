@@ -193,3 +193,55 @@ async fn an_oversized_guest_message_does_not_drop_the_connection() {
     );
     host.end("The host ended the session.").await;
 }
+
+/// Ending the session reaches a guest over QUIC: it hears why and does not try to reconnect.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn ending_the_session_reaches_the_guest_over_quic() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("Order.php"), "<?php\n").unwrap();
+    let backend: Arc<dyn Backend> = Arc::new(LocalBackend::open(dir.path()).unwrap());
+    let listen = ListenOptions {
+        address: Some("127.0.0.1".parse().unwrap()),
+        port: 0,
+    };
+    let host = HostSession::start(
+        Arc::new(NetTransport::listen(listen).await.unwrap()),
+        backend,
+        HostConfig {
+            host_name: "Robert".into(),
+            machine: None,
+            permissions: Permissions::FULL_ACCESS,
+            excludes: Excludes::defaults(),
+            protected: Excludes::protected_defaults(),
+            max_file_size: 1 << 20,
+            notice: None,
+        },
+        Arc::new(DevAutoAccept),
+        Arc::new(|_| {}),
+    );
+    let link = SessionLink::parse(&host.link().to_url()).unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let seen = events.clone();
+    let guest = GuestSession::join(
+        Arc::new(NetTransport::dialer().await.unwrap()),
+        &link,
+        "Alex",
+        Arc::new(move |e| seen.lock().unwrap().push(format!("{e:?}"))),
+    )
+    .await
+    .unwrap();
+    guest.open_doc("Order.php").await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    host.end("The host ended the session.").await;
+    let mut ended = false;
+    for _ in 0..30 {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        if events.lock().unwrap().iter().any(|e| e.contains("Ended")) {
+            ended = true;
+            break;
+        }
+    }
+    let seen: Vec<String> = events.lock().unwrap().clone();
+    assert!(ended, "{seen:?}");
+    assert!(!seen.iter().any(|e| e.contains("Reconnect")), "{seen:?}");
+}
