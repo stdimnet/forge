@@ -27,7 +27,7 @@
   "plugins.installed": "Installed",
   "plugins.manage": "Manage plugins",
   "plugins.marketplace": "Marketplace",
-  "plugins.marketplaceUrl": "Marketplace URL…",
+  "plugins.marketplaceSettings": "Marketplace Settings…",
   "plugins.notInSafeMode": " · not loaded in Safe Mode",
   "plugins.pack.core": "Bundled",
   "plugins.pack.thirdParty": "Downloaded",

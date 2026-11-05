@@ -12,6 +12,8 @@ default = ["net"]
 disk = ["dep:zip", "dep:dirs"]
 # Marketplace downloads and the plugins' HTTP calls.
 net = ["disk", "dep:reqwest"]
+# The marketplace access token in the OS keychain.
+keychain = ["dep:keyring"]
 
 [dependencies]
 forge-hostspawn.workspace = true
@@ -29,6 +31,7 @@ ed25519-dalek = "3"
 zip = { version = "2", default-features = false, features = ["deflate"], optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"], optional = true }
 url = "2"
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 [dev-dependencies]
 tempfile.workspace = true

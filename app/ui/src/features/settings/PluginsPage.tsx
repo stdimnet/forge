@@ -2,14 +2,16 @@
  * Settings > Plugins: PHPStorm's "Marketplace" and "Installed" tabs. Installed plugins are
  * grouped by pack, with enable toggles, a search field and a details pane; third-party
  * plugins ("Downloaded") also show their permissions and can be uninstalled. The gear menu
- * has Install Plugin from Disk…, Check for Updates and the marketplace URL.
+ * has Install Plugin from Disk…, Check for Updates and Marketplace Settings (index URL and
+ * the access token of a private marketplace, kept in the OS keychain).
  */
-import { createMemo, createSignal, For, onMount, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js";
 import { Puzzle, Search, Settings as Gear } from "lucide-solid";
 import { MarketplaceTab, PermissionList, PermissionPromptView } from "@/features/plugins/PluginViews";
 import { checkPluginUpdates, installFromDisk, installed, refreshInstalled, uninstall } from "@/features/plugins/store";
 import { getSetting, saveSetting } from "@/state/settings";
 import type { PluginInfo } from "@/ipc/settings";
+import { pluginsApi } from "@/ipc/plugins";
 import { settingsState } from "@/state/settings";
 import { pluginEnabled, pluginDraft, setPluginDraftEnabled } from "./dialogState";
 import { createSettingsSearch, segmentsOf, type SearchResult } from "./search";
@@ -78,24 +80,65 @@ function PluginIcon(props: { plugin: PluginInfo; size?: "lg" }) {
 }
 
 const MARKETPLACE_URL = "plugins.marketplace.url";
+/** `forge_plugins::marketplace::DEFAULT_URL`. */
+export const DEFAULT_MARKETPLACE_URL = "https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json";
 
-function MarketplaceUrlEditor(props: { onClose: () => void }) {
-  const [url, setUrl] = createSignal(getSetting<string>(MARKETPLACE_URL) ?? "");
-  const save = () => {
-    void saveSetting(MARKETPLACE_URL, url().trim() || null, "user");
-    props.onClose();
+/** Marketplace Settings: the index URL and a private marketplace's access token, which
+ * Rust keeps in the OS keychain (the UI never reads it back). */
+function MarketplaceSettings(props: { onClose: (saved: boolean) => void }) {
+  const [url, setUrl] = createSignal(getSetting<string>(MARKETPLACE_URL) ?? DEFAULT_MARKETPLACE_URL);
+  const [token, setToken] = createSignal("");
+  const [removeToken, setRemoveToken] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+  const [status, { refetch }] = createResource(() => pluginsApi.tokenStatus().catch(() => null));
+  const save = async () => {
+    try {
+      const u = url().trim();
+      await saveSetting(MARKETPLACE_URL, !u || u === DEFAULT_MARKETPLACE_URL ? null : u, "user");
+      if (token().trim()) await pluginsApi.setToken(token().trim());
+      else if (removeToken()) await pluginsApi.setToken(null);
+      props.onClose(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      void refetch();
+    }
   };
+  const onKey = (e: KeyboardEvent) => e.key === "Enter" && void save();
   return (
-    <div class="plg-url plugins-note" data-testid="marketplace-url">
-      <span>{tr("tools.settings.marketplaceIndexUrlJsonIndex")}</span>
-      <input value={url()} spellcheck={false} onInput={(e) => setUrl(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+    <div class="plg-url plugins-note" data-testid="marketplace-settings">
+      <label for="plg-market-url">{tr("tools.settings.marketplaceIndexUrlJsonIndex")}</label>
+      <input id="plg-market-url" data-testid="marketplace-url" value={url()} spellcheck={false} placeholder={DEFAULT_MARKETPLACE_URL} onInput={(e) => setUrl(e.currentTarget.value)} onKeyDown={onKey} />
+      <label for="plg-market-token">{tr("tools.settings.marketplaceAccessToken")}</label>
+      <input
+        id="plg-market-token"
+        type="password"
+        autocomplete="off"
+        data-testid="marketplace-token"
+        value={token()}
+        placeholder={status()?.set && !removeToken() ? tr("tools.settings.marketplaceTokenStored") : ""}
+        onInput={(e) => setToken(e.currentTarget.value)}
+        onKeyDown={onKey}
+      />
+      <span class="muted">
+        {status()?.set && !removeToken()
+          ? tr("tools.settings.marketplaceTokenIsSet", { scope: status()!.scope })
+          : tr("tools.settings.marketplaceTokenHint", { scope: status()?.scope || "—" })}
+      </span>
+      <Show when={error()}>
+        <span class="plg-error-detail">{error()}</span>
+      </Show>
       <div class="sync-status-row">
-        <button class="btn-primary set-btn" onClick={save}>
+        <button class="btn-primary set-btn" onClick={() => void save()}>
           {tr("common.save")}
         </button>
-        <button class="btn-secondary set-btn" onClick={props.onClose}>
+        <button class="btn-secondary set-btn" onClick={() => props.onClose(false)}>
           {tr("common.cancel")}
         </button>
+        <Show when={status()?.set && !removeToken()}>
+          <button class="btn-secondary set-btn" data-testid="marketplace-token-remove" onClick={() => (setRemoveToken(true), setToken(""))}>
+            {tr("tools.settings.removeMarketplaceToken")}
+          </button>
+        </Show>
       </div>
     </div>
   );
@@ -104,6 +147,8 @@ function MarketplaceUrlEditor(props: { onClose: () => void }) {
 export function PluginsPage() {
   const [tab, setTab] = createSignal<"marketplace" | "installed">("installed");
   const [editUrl, setEditUrl] = createSignal(false);
+  // Bumped when Marketplace Settings were saved, so the tab reads the index again.
+  const [reload, setReload] = createSignal(0);
   onMount(() => void refreshInstalled());
   const [filter, setFilter] = createSignal("");
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
@@ -149,7 +194,7 @@ export function PluginsPage() {
                 { type: "item", label: t("plugins.installFromDisk"), run: () => void installFromDisk() },
                 { type: "item", label: t("plugins.checkUpdates"), run: () => void checkPluginUpdates() },
                 { type: "separator" },
-                { type: "item", label: t("plugins.marketplaceUrl"), run: () => setEditUrl(true) },
+                { type: "item", label: t("plugins.marketplaceSettings"), run: () => setEditUrl(true) },
               ],
               r.left,
               r.bottom + 2,
@@ -160,10 +205,15 @@ export function PluginsPage() {
         </button>
       </div>
       <Show when={editUrl()}>
-        <MarketplaceUrlEditor onClose={() => setEditUrl(false)} />
+        <MarketplaceSettings
+          onClose={(saved) => {
+            setEditUrl(false);
+            if (saved) setReload((n) => n + 1);
+          }}
+        />
       </Show>
       <Show when={tab() === "marketplace"}>
-        <MarketplaceTab />
+        <MarketplaceTab reload={reload} onSettings={() => setEditUrl(true)} />
       </Show>
       <div class="plugins-body" style={{ display: tab() === "installed" ? undefined : "none" }}>
         <div class="plugins-list-pane">

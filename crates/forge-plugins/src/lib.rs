@@ -10,6 +10,7 @@
 //!   the permission prompt.
 //! - [`marketplace`]: the versioned index format, search, update checks and verified
 //!   downloads (SHA-256, optional Ed25519 signatures).
+//! - [`secrets`]: the marketplace access token in the OS keychain (feature `keychain`).
 //!
 //! Plugins run as sandboxed JavaScript in the UI (see the SDK docs); this crate holds
 //! everything that decides what they may do. Native code is never loaded.
@@ -22,6 +23,8 @@ pub mod marketplace;
 #[cfg(feature = "disk")]
 pub mod package;
 pub mod permissions;
+#[cfg(feature = "keychain")]
+pub mod secrets;
 #[cfg(feature = "disk")]
 pub mod store;
 

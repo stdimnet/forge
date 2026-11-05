@@ -402,8 +402,6 @@ static INDEX: Mutex<Option<(String, Index)>> = Mutex::new(None);
 #[serde(rename_all = "camelCase")]
 pub struct MarketplaceView {
     pub url: String,
-    /// The default URL, where no marketplace is live.
-    pub placeholder: bool,
     pub name: String,
     pub entries: Vec<Entry>,
     pub warnings: Vec<String>,
@@ -416,7 +414,14 @@ fn marketplace_url(state: &AppState) -> String {
         .read_settings()
         .get_as::<String>(MARKETPLACE_URL_KEY)
         .filter(|u| !u.trim().is_empty())
-        .unwrap_or_else(|| marketplace::PLACEHOLDER_URL.to_string())
+        .unwrap_or_else(|| marketplace::DEFAULT_URL.to_string())
+}
+
+/// A client that sends the access token stored for `url` (only to the index's host).
+fn marketplace_client(url: &str) -> Result<marketplace::Client> {
+    Ok(marketplace::Client::new()
+        .map_err(err)?
+        .with_token(forge_plugins::secrets::marketplace_token(url)))
 }
 
 fn installed_versions(state: &AppState) -> Result<Vec<InstalledVersion>> {
@@ -448,23 +453,14 @@ pub async fn marketplace_list(
     let (index, warnings) = match cached {
         Some((_, index)) => (index, Vec::new()),
         None => {
-            let client = marketplace::Client::new().map_err(err)?;
-            let (index, warnings) = client.index(&url).await.map_err(|e| {
-                if url == marketplace::PLACEHOLDER_URL {
-                    err(format!(
-                        "No marketplace is configured: {url} is a placeholder. Set the index URL in the Marketplace settings."
-                    ))
-                } else {
-                    err(e)
-                }
-            })?;
+            let client = marketplace_client(&url)?;
+            let (index, warnings) = client.index(&url).await.map_err(err)?;
             *INDEX.lock().expect("index lock poisoned") = Some((url.clone(), index.clone()));
             (index, warnings)
         }
     };
     let entries = marketplace::entries(&index, FORGE_VERSION, &installed_versions(&state)?);
     Ok(MarketplaceView {
-        placeholder: url == marketplace::PLACEHOLDER_URL,
         url,
         name: index.name.clone(),
         entries: marketplace::search(&entries, &query),
@@ -496,7 +492,7 @@ pub async fn marketplace_install(
         .read_settings()
         .get_as(TRUSTED_KEYS_KEY)
         .unwrap_or_default();
-    let client = marketplace::Client::new().map_err(err)?;
+    let client = marketplace_client(&index_url)?;
     let bytes = client
         .download(&index_url, &listed, &keys)
         .await
@@ -510,6 +506,38 @@ pub async fn marketplace_install(
     register(&state, &installed)?;
     emit_changed(&app);
     Ok(view(installed))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketplaceTokenStatus {
+    /// The index URL the token belongs to.
+    pub url: String,
+    /// Where the token is sent (the index's host; `github.com` for GitHub's hosts).
+    pub scope: String,
+    /// Whether the keychain holds a token for it. The token itself never leaves Rust.
+    pub set: bool,
+}
+
+/// The access token state of the configured marketplace.
+#[tauri::command]
+pub fn marketplace_token_status(state: State<'_, AppState>) -> Result<MarketplaceTokenStatus> {
+    let url = marketplace_url(&state);
+    Ok(MarketplaceTokenStatus {
+        scope: marketplace::token_scope(&url).unwrap_or_default(),
+        set: forge_plugins::secrets::marketplace_token(&url).is_some(),
+        url,
+    })
+}
+
+/// Store the configured marketplace's access token in the OS keychain (`null` or empty
+/// removes it). The next listing reads the index again with it.
+#[tauri::command]
+pub fn marketplace_token_set(token: Option<String>, state: State<'_, AppState>) -> Result<()> {
+    let url = marketplace_url(&state);
+    forge_plugins::secrets::set_marketplace_token(&url, token.as_deref()).map_err(err)?;
+    *INDEX.lock().expect("index lock poisoned") = None;
+    Ok(())
 }
 
 /// Installed plugins with a newer compatible version in the marketplace.

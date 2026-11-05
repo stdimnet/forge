@@ -3467,6 +3467,7 @@ dependencies = [
  "forge-langservers",
  "forge-plugin-api",
  "hex",
+ "keyring",
  "reqwest 0.12.28",
  "semver",
  "serde",

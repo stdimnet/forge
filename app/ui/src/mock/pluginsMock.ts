@@ -2,8 +2,11 @@
  * Browser-mode third-party plugins and Settings Sync. The SDK's Word Count example
  * (`sdk/examples/word-count`) is installed and runs in the real sandboxed host, and its
  * Shapes Icons example (`sdk/examples/shapes-icons`) contributes an icon theme; Install
- * Plugin from Disk offers its 1.1.0 build, and the demo marketplace index is evaluated by
- * the same Rust code as WebAssembly (`forge-plugins`). Nothing is downloaded or written.
+ * Plugin from Disk offers its 1.1.0 build, and the demo marketplace index (a copy of Forge's
+ * marketplace, `stdimnet/marketplace`, plus the Word Count example) is evaluated by the same
+ * Rust code as WebAssembly (`forge-plugins`). Any other index URL fails like an unreachable
+ * one, to show the error state. Nothing is downloaded or written, and the access token is
+ * only remembered in memory.
  */
 import { emitMock, registerMock } from "@/ipc";
 import type {
@@ -25,7 +28,11 @@ import { mockPluginRegistry, mockSettingValue, setSetting } from "./settingsMock
 
 const FORGE_VERSION = "0.1.0";
 const CHANGED = "plugins://changed";
-const PLACEHOLDER = "https://plugins.forge.example/index.json";
+/** `forge_plugins::marketplace::DEFAULT_URL`. */
+const DEFAULT_URL = "https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json";
+const SETTINGS_PATH = "Settings | Plugins, gear menu | Marketplace Settings";
+/** Browser mode keeps the access token in memory only (no keychain). */
+const tokens = new Map<string, string>();
 
 const manifest = (version = "1.0.0"): ThirdPartyManifest => ({
   ...(structuredClone(wordCountManifest) as unknown as ThirdPartyManifest),
@@ -101,82 +108,86 @@ const shapesFiles: Record<string, string> = Object.fromEntries(
   ),
 );
 
-/** The demo marketplace: what an index at the configured URL could list. */
+const MARKET = "https://raw.githubusercontent.com/stdimnet/marketplace/main/";
+
+/** The demo marketplace: Forge's marketplace index as published, plus the SDK example. */
 function demoIndex(): string {
-  const v = (version: string, permissions: PluginPermissions, extra: Record<string, unknown> = {}) => ({
-    version,
-    engines: { forge: ">=0.1.0" },
-    url: `files/${version}.forgeplugin`,
-    sha256: "9f2c4e5a1b7d3c8e6f0a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e2f4a6b8c0d2e",
-    size: 4211,
-    permissions,
-    released: "2026-10-28",
-    ...extra,
-  });
   return JSON.stringify({
     formatVersion: 1,
-    name: "Demo marketplace (browser mode)",
+    name: "Forge Marketplace (stdimnet)",
     plugins: [
+      {
+        id: "reeperk.atom-material-icons",
+        name: "Atom Material Icons",
+        publisher: "Reeperk",
+        description:
+          "Material file and folder icons in the style of Atom Material Icons: hundreds of languages, frameworks, tools and special folders, with dark and light variants. Artwork from Material Icon Theme (MIT). Not affiliated with the Atom Material Icons project.",
+        homepage: "https://github.com/stdimnet/marketplace/tree/main/plugins/atom-material-icons",
+        license: "MIT",
+        tags: ["icons", "icon theme", "file icons", "material", "theme"],
+        versions: [
+          {
+            version: "1.0.0",
+            engines: { forge: ">=0.1.0" },
+            url: `${MARKET}packages/reeperk.atom-material-icons/reeperk.atom-material-icons-1.0.0.forgeplugin`,
+            size: 303091,
+            sha256: "d94d4df2722182ac35359e718b52f01f161c8620dc9f1537c2b25de2ff046647",
+            permissions: {},
+            released: "2026-11-05",
+            changes:
+              "First release: 469 Material icons for files and folders (dark and light UI variants), from Material Icon Theme at commit f368264. Laravel, Composer, PHPUnit, Node.js, Vite, Docker, Git, GitHub Actions and many more tools, over 150 file types and over 100 special folders, each with an open variant. Chevron tree arrows and 16 px icons by default; accent color, monochrome, arrows and size can be changed in Settings | Appearance & Behavior | File Icons.",
+          },
+        ],
+      },
       {
         id: "example.word-count",
         name: "Word Count",
         publisher: "Forge SDK Examples",
         description: wordCountManifest.description,
         tags: ["editor", "writing"],
-        downloads: 1840,
-        versions: [
-          v("1.0.0", { editor: ["read"] }),
-          v("1.1.0", { editor: ["read"] }, { changes: "Reading time in the tool window." }),
-        ],
-      },
-      {
-        id: "acme.todo-sync",
-        name: "TODO Sync",
-        publisher: "Acme",
-        description: "Turns TODO comments into issues of your tracker and links them back.",
-        tags: ["todo", "issues"],
-        downloads: 12400,
-        versions: [v("2.3.0", { network: ["api.acme.dev"], fs: { read: ["${project}"] }, editor: ["read"] })],
-      },
-      {
-        id: "acme.changelog",
-        name: "Changelog Helper",
-        publisher: "Acme",
-        description: "Writes CHANGELOG.md entries from the commits since the last tag.",
-        tags: ["git", "release"],
-        downloads: 5300,
-        versions: [v("1.4.2", { process: ["git"], fs: { read: ["${project}"], write: ["${project}"] } })],
-      },
-      {
-        id: "lumen.color-picker",
-        name: "Lumen Color Picker",
-        publisher: "Lumen",
-        description: "A color picker tool window with palettes stored per user.",
-        tags: ["css", "colors"],
-        downloads: 960,
-        versions: [v("0.9.0", { fs: { write: ["${pluginData}"] }, editor: ["read", "write"] })],
-      },
-      {
-        id: "retro.future",
-        name: "Future Feature",
-        publisher: "Retro",
-        description: "Needs a newer Forge.",
-        downloads: 12,
-        versions: [v("3.0.0", {}, { engines: { forge: ">=9.0.0" } })],
+        versions: ["1.0.0", "1.1.0"].map((version) => ({
+          version,
+          engines: { forge: ">=0.1.0" },
+          url: `${MARKET}packages/example.word-count/example.word-count-${version}.forgeplugin`,
+          sha256: "9f2c4e5a1b7d3c8e6f0a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e2f4a6b8c0d2e",
+          size: 4211,
+          permissions: { editor: ["read"] },
+          released: version === "1.0.0" ? "2026-10-28" : "2026-11-02",
+          ...(version === "1.1.0" ? { changes: "Reading time in the tool window." } : {}),
+        })),
       },
     ],
   });
 }
 
+const indexUrl = () => (mockSettingValue("plugins.marketplace.url") as string | null)?.trim() || DEFAULT_URL;
+
 async function marketplace(query: string) {
   await ready;
-  const url = (mockSettingValue("plugins.marketplace.url") as string | null) || PLACEHOLDER;
+  const url = indexUrl();
+  if (url !== DEFAULT_URL) {
+    // As `forge_plugins::marketplace::http_error` for a 404 without a token.
+    const hint = tokens.has(tokenScope(url))
+      ? `Check the index URL in ${SETTINGS_PATH}, and that the access token may read the repository.`
+      : `Check the index URL in ${SETTINGS_PATH}; a private repository (on GitHub, for example) also answers 404 until you set an access token there.`;
+    throw new Error(`${url}: HTTP 404 Not Found. ${hint}`);
+  }
   const out = callWasmSync<{ name: string; entries: MarketplaceEntry[]; warnings: string[] } | { error: string }>(
     (await forgeWasm()).plugins_marketplace,
     { index: demoIndex(), forgeVersion: FORGE_VERSION, installed: installed.map((p) => ({ id: p.manifest.id, version: p.manifest.version })), query },
   );
   if ("error" in out) throw new Error(out.error);
-  return { url, placeholder: url === PLACEHOLDER, wanted: [], ...out };
+  return { url, wanted: [], ...out };
+}
+
+/** `forge_plugins::marketplace::token_scope`. */
+function tokenScope(url: string): string {
+  try {
+    const u = new URL(url);
+    return ["raw.githubusercontent.com", "github.com", "api.github.com"].includes(u.hostname) ? "github.com" : u.host;
+  } catch {
+    return "";
+  }
 }
 
 const byId = (id: unknown) => {
@@ -222,9 +233,19 @@ registerMock("marketplace_list", ({ query }) => marketplace(String(query ?? ""))
 registerMock("marketplace_updates", async () => (await marketplace("")).entries.filter((e) => e.updateAvailable));
 registerMock("marketplace_install", async ({ id }) => {
   if (id !== "example.word-count") throw new Error("Browser mode cannot download plugins; only the Word Count example can be updated here.");
-  const p = await install(manifest("1.1.0"), wordCountBundle, { kind: "marketplace", index: PLACEHOLDER });
+  const p = await install(manifest("1.1.0"), wordCountBundle, { kind: "marketplace", index: indexUrl() });
   emitMock(CHANGED, null);
   return p;
+});
+registerMock("marketplace_token_status", () => {
+  const url = indexUrl();
+  return { url, scope: tokenScope(url), set: tokens.has(tokenScope(url)) };
+});
+registerMock("marketplace_token_set", ({ token }) => {
+  const scope = tokenScope(indexUrl());
+  const t = typeof token === "string" ? token.trim() : "";
+  if (t) tokens.set(scope, t);
+  else tokens.delete(scope);
 });
 registerMock("plugins_wanted_dismiss", () => undefined);
 registerMock("icon_theme_load", async ({ id }) => {
