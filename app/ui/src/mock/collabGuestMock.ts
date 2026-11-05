@@ -14,6 +14,10 @@
  * `&reconnecting=resume` restores it after three seconds (`collab://resumed`).
  */
 import * as Y from "yjs";
+// The host mock registers the same commands: load it first, so this window's guest handlers
+// win even when another mock (trust, workspace) imports this module before `mock/index.ts`
+// reaches `collabMock`.
+import "./collabMock";
 import { emitMock, invoke, registerMock } from "@/ipc";
 import { encodeOpened, encodeSynced, PRESETS, sharedRunId, type ConnectionState, type Permissions, type Presence, type SessionView, type SharedRun, type SharedTerminal } from "@/ipc/collab";
 import type { RunConfigurations } from "@/ipc/run";
@@ -85,6 +89,9 @@ const HOST_PRESENCE: Presence = {
   viewport: { topLine: 14, bottomLine: 46 },
 };
 
+/** Where the host is with `&follow&log`. */
+const LOG_PRESENCE: Presence = { file: "storage/logs/laravel.log", caret: { line: 1, column: 1 }, viewport: { topLine: 1, bottomLine: 30 } };
+
 const idle: SessionView = { role: "none", canHost: false, participants: [], files: [] };
 
 let connection: ConnectionState = params().has("reconnecting")
@@ -106,7 +113,8 @@ function view(): SessionView {
     permissions: p,
     hostLabel: HOST_LABEL,
     workspace: collabGuestWorkspace(),
-    presence: params().has("follow") ? [{ participant: 1, ...HOST_PRESENCE }] : [],
+    // `&log`: the host is in its log, which is over the co-editing limit (read-only for guests).
+    presence: params().has("follow") ? [{ participant: 1, ...(params().has("log") ? LOG_PRESENCE : HOST_PRESENCE) }] : [],
     followEveryone: params().get("follow") === "all",
     terminals: sharing() && p.terminal !== "none" ? shownTerminals : [],
     runs: sharing() && p.run !== "none" ? runs : [],
