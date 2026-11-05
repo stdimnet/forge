@@ -38,7 +38,8 @@ use crate::rate::{GuestLimits, Verdict};
 use crate::reconnect::{same_token, HOST_GRACE};
 use crate::relay::{ConnectionPath, RelayStatus};
 use crate::transport::{
-    read_msg, write_msg, BoxFuture, BoxRead, BoxWrite, Connection, PeerKey, Transport,
+    read_msg, write_msg, write_or_skip, BoxFuture, BoxRead, BoxWrite, Connection, PeerKey,
+    Transport,
 };
 use crate::verify::{check_proof, verification_code};
 
@@ -1175,9 +1176,16 @@ impl HostSession {
             let _keepalive = keepalive;
             while let Some(msg) = rx.recv().await {
                 let last = matches!(msg, HostMessage::Ended { .. });
-                if let Err(e) = write_msg(&mut send, &msg, MAX_HOST_FRAME).await {
-                    tracing::warn!("Code With Me: writing to a guest failed: {e}");
-                    break;
+                match write_or_skip(&mut send, &msg, MAX_HOST_FRAME).await {
+                    Ok(true) => {}
+                    Ok(false) => tracing::warn!(
+                        "Code With Me: not sending a message to a guest: it is larger than {} bytes",
+                        MAX_HOST_FRAME
+                    ),
+                    Err(e) => {
+                        tracing::warn!("Code With Me: writing to a guest failed: {e}");
+                        break;
+                    }
                 }
                 if last {
                     break;

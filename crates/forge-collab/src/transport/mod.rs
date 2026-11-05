@@ -86,6 +86,23 @@ where
     w.flush().await
 }
 
+/// [`write_msg`] for a stream that must outlive one bad message: a message over `limit` is
+/// not sent (`Ok(false)`), and only failures of the stream itself are errors. A frame the
+/// peer would refuse would otherwise end the connection, and after reconnecting the same
+/// message is sent again.
+pub async fn write_or_skip<W, T>(w: &mut W, msg: &T, limit: usize) -> io::Result<bool>
+where
+    W: AsyncWrite + Unpin + ?Sized,
+    T: Serialize,
+{
+    let Ok(frame) = protocol::encode(msg, limit) else {
+        return Ok(false);
+    };
+    w.write_all(&frame).await?;
+    w.flush().await?;
+    Ok(true)
+}
+
 /// Read one framed message; `Ok(None)` when the peer closed the stream between messages.
 pub async fn read_msg<R, T>(r: &mut R, limit: usize) -> io::Result<Option<T>>
 where

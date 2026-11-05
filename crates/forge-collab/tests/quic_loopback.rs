@@ -130,13 +130,66 @@ async fn a_large_view_only_file_crosses_quic_without_dropping_the_connection() {
         guest.ping().await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
     }
-    let events = events.lock().unwrap();
+    let seen: Vec<String> = events.lock().unwrap().clone();
     assert!(
-        !events
+        !seen
             .iter()
             .any(|e| e.contains("Reconnect") || e.contains("Lost")),
-        "{events:?}"
+        "{seen:?}"
     );
-    drop(events);
+    host.end("The host ended the session.").await;
+}
+
+/// A message over the host's frame limit (here an edit of several MB) is dropped on the guest
+/// with a warning; it must not end the connection, or the guest reconnects, resynchronizes,
+/// sends it again and loops.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_oversized_guest_message_does_not_drop_the_connection() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("Order.php"), "<?php\n").unwrap();
+    let backend: Arc<dyn Backend> = Arc::new(LocalBackend::open(dir.path()).unwrap());
+    let listen = ListenOptions {
+        address: Some("127.0.0.1".parse().unwrap()),
+        port: 0,
+    };
+    let host = HostSession::start(
+        Arc::new(NetTransport::listen(listen).await.unwrap()),
+        backend,
+        HostConfig {
+            host_name: "Robert".into(),
+            machine: None,
+            permissions: Permissions::FULL_ACCESS,
+            excludes: Excludes::defaults(),
+            protected: Excludes::protected_defaults(),
+            max_file_size: 5 << 20,
+            notice: None,
+        },
+        Arc::new(DevAutoAccept),
+        Arc::new(|_| {}),
+    );
+    let link = SessionLink::parse(&host.link().to_url()).unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let seen = events.clone();
+    let guest = GuestSession::join(
+        Arc::new(NetTransport::dialer().await.unwrap()),
+        &link,
+        "Alex",
+        Arc::new(move |e| seen.lock().unwrap().push(format!("{e:?}"))),
+    )
+    .await
+    .unwrap();
+    let opened = guest.open_doc("Order.php").await.unwrap();
+    guest.update(opened.doc, vec![0u8; 5 << 20]);
+    for _ in 0..4 {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        guest.ping().await.unwrap();
+    }
+    let seen: Vec<String> = events.lock().unwrap().clone();
+    assert!(
+        !seen
+            .iter()
+            .any(|e| e.contains("Reconnect") || e.contains("Lost")),
+        "{seen:?}"
+    );
     host.end("The host ended the session.").await;
 }

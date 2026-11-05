@@ -20,7 +20,7 @@ use crate::protocol::{
 };
 use crate::reconnect::{ConnectionState, ReconnectPolicy, GAVE_UP, RECONNECTING};
 use crate::relay::{ConnectionPath, RelayStatus};
-use crate::transport::{read_msg, write_msg, BoxRead, BoxWrite, PeerKey, Transport};
+use crate::transport::{read_msg, write_msg, write_or_skip, BoxRead, BoxWrite, PeerKey, Transport};
 use crate::verify::{join_proof, verification_code};
 
 // Project calls of the guest's backend (`guest_backend::CollabBackend`).
@@ -294,7 +294,19 @@ impl GuestSession {
             let mut rx = queue.lock().await;
             while let Some(msg) = rx.recv().await {
                 let last = matches!(msg, GuestMessage::Leave);
-                if write_msg(&mut send, &msg, MAX_GUEST_FRAME).await.is_err() || last {
+                match write_or_skip(&mut send, &msg, MAX_GUEST_FRAME).await {
+                    Ok(true) => {}
+                    Ok(false) => tracing::warn!(
+                        "Code With Me: not sending {} to the host: it is larger than {} bytes",
+                        msg.name(),
+                        MAX_GUEST_FRAME
+                    ),
+                    Err(e) => {
+                        tracing::warn!("Code With Me: writing to the host failed: {e}");
+                        break;
+                    }
+                }
+                if last {
                     break;
                 }
             }
