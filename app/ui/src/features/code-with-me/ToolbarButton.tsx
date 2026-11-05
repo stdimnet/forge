@@ -6,14 +6,15 @@ import { SessionPopup, type StartHandler } from "./SessionPopup";
 import { CustomPermissionsHost } from "./CustomPermissions";
 import { SessionLogHost } from "./SessionLog";
 import { ToolbarAvatars } from "./Participants";
+import { t } from "@/i18n";
 
 export function ToolbarButton(props: { onStart: StartHandler }) {
   let btn!: HTMLButtonElement;
   const title = () => {
     const s = session();
-    if (s.role === "host") return `Code With Me: sharing with ${s.participants.length - 1} guest(s)`;
-    if (s.role === "guest") return `Code With Me: ${s.hostLabel ?? "host"}`;
-    return "Code With Me";
+    if (s.role === "host") return t("tools.codeWithMe.sharingWith", { count: s.participants.length - 1 });
+    if (s.role === "guest") return t("tools.codeWithMe.titleWith", { value: s.hostLabel ?? t("tools.codeWithMe.hostFallback") });
+    return t("tools.codeWithMe.title");
   };
   return (
     <>

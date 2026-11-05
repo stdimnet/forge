@@ -12,6 +12,7 @@ import { StatusPopup } from "@/shell/StatusPopup";
 import { guestLevel, LEVEL_NAMES } from "./guest";
 import { session } from "./store";
 import { connectionLabel, isReconnecting } from "./reconnect";
+import { t } from "@/i18n";
 
 /** Latency class: fast / slow / very slow, colored in the widget. */
 export function latencyClass(ms: number | null): "good" | "fair" | "poor" | "unknown" {
@@ -24,7 +25,7 @@ export function latencyClass(ms: number | null): "good" | "fair" | "poor" | "unk
 export function GuestStatusItem() {
   const [open, setOpen] = createSignal(false);
   const [latency, setLatency] = createSignal<number | null>(null);
-  const host = () => workspace()?.collab?.host ?? session().hostLabel ?? "host";
+  const host = () => workspace()?.collab?.host ?? session().hostLabel ?? t("tools.codeWithMe.hostFallback");
   let el: HTMLDivElement | undefined;
   const measure = () => (isReconnecting() ? setLatency(null) : void collabApi.ping().then(setLatency, () => setLatency(null)));
   const reconnecting = () => (isReconnecting() ? connectionLabel(session().connection) : null);
@@ -39,7 +40,7 @@ export function GuestStatusItem() {
     try {
       await collabApi.leave();
     } catch (e) {
-      showBalloon("Cannot leave the session", String((e as Error)?.message ?? e));
+      showBalloon(t("tools.codeWithMe.cannotLeaveSession"), String((e as Error)?.message ?? e));
     }
   };
 
@@ -49,48 +50,46 @@ export function GuestStatusItem() {
         class="status-item cwm-status"
         data-latency={latencyClass(latency())}
         classList={{ reconnecting: !!reconnecting() }}
-        title={`Code With Me: you are a guest of ${workspace()?.collab?.label ?? host()}`}
+        title={t("tools.codeWithMe.guestOf", { host: workspace()?.collab?.label ?? host() })}
         aria-haspopup="dialog"
         aria-expanded={open()}
         onClick={() => setOpen((v) => !v)}
         data-testid="cwm-status"
       >
         <Users size={12} />
-        <span>Code With Me: {reconnecting() ? "Reconnecting…" : host()}</span>
+        <span>{t("tools.codeWithMe.titleWith", { value: reconnecting() ? t("tools.codeWithMe.reconnecting") : host() })}</span>
         <Show when={latency() != null && !reconnecting()}>
-          <span class="cwm-status-detail">{latency()} ms</span>
+          <span class="cwm-status-detail">{t("tools.codeWithMe.milliseconds", { ms: latency() })}</span>
         </Show>
       </button>
       <Show when={open()}>
-        <StatusPopup anchor={el!} align="end" class="cwm-status-popup" label="Code With Me" onClose={() => setOpen(false)}>
+        <StatusPopup anchor={el!} align="end" class="cwm-status-popup" label={t("tools.codeWithMe.title")} onClose={() => setOpen(false)}>
           <div class="cwm-status-title">
             <Users size={14} /> {workspace()?.collab?.label ?? host()}
           </div>
           <dl class="cwm-status-grid">
-            <dt>Project</dt>
+            <dt>{t("tools.codeWithMe.project")}</dt>
             <dd>{workspace()?.name}</dd>
-            <dt>You are</dt>
-            <dd>
-              a guest ({LEVEL_NAMES[guestLevel() ?? "readOnly"]})
-            </dd>
+            <dt>{t("tools.codeWithMe.youAre")}</dt>
+            <dd>{t("tools.codeWithMe.aGuestWith", { level: LEVEL_NAMES[guestLevel() ?? "readOnly"] })}</dd>
             <Show when={reconnecting()}>
               {(label) => (
                 <>
-                  <dt>Connection</dt>
+                  <dt>{t("tools.codeWithMe.connection")}</dt>
                   <dd class="cwm-status-reconnecting">{label()}</dd>
                 </>
               )}
             </Show>
             <Show when={latency() != null && !reconnecting()}>
-              <dt>Latency</dt>
-              <dd>{latency()} ms</dd>
+              <dt>{t("tools.codeWithMe.latency")}</dt>
+              <dd>{t("tools.codeWithMe.milliseconds", { ms: latency() })}</dd>
             </Show>
-            <dt>Services</dt>
-            <dd>Search, git, language servers and the PHP index run on the host</dd>
+            <dt>{t("tools.codeWithMe.services")}</dt>
+            <dd>{t("tools.codeWithMe.servicesOnHost")}</dd>
           </dl>
           <div class="cwm-status-actions">
             <button class="btn-secondary" onClick={() => void leave()} data-action="CodeWithMe.LeaveSession">
-              Leave Session
+              {t("tools.codeWithMe.leaveSession")}
             </button>
           </div>
         </StatusPopup>

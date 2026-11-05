@@ -8,16 +8,25 @@ import { showBalloon, dismissBalloon } from "@/keymap";
 import { collabApi, type JoinRequest, type PermissionLevel } from "@/ipc/collab";
 import { LEVEL_NAMES } from "./guest";
 import { joinDialogOpen, showJoinWaiting } from "./JoinSession";
+import { t } from "@/i18n";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
 const open = new Map<number, number>();
 
-const WHAT: Record<PermissionLevel, string> = {
-  readOnly: "view files",
-  editFiles: "edit files",
-  fullAccess: "edit files, use the terminal and run code on your machine",
-  custom: "use the permissions you set",
+/** What the host is asked, per level: the code to compare and what the guest may do. */
+const joinRequestText = (level: PermissionLevel, name: string, code: string): string => {
+  const args = { name, code, level: LEVEL_NAMES[level] };
+  switch (level) {
+    case "readOnly":
+      return t("tools.codeWithMe.joinRequest.readOnly", args);
+    case "editFiles":
+      return t("tools.codeWithMe.joinRequest.editFiles", args);
+    case "fullAccess":
+      return t("tools.codeWithMe.joinRequest.fullAccess", args);
+    default:
+      return t("tools.codeWithMe.joinRequest.custom", args);
+  }
 };
 
 function close(id: number): void {
@@ -31,7 +40,7 @@ async function answer(id: number, accept: boolean): Promise<void> {
   try {
     await collabApi.answerJoin(id, accept);
   } catch (e) {
-    showBalloon("Code With Me", message(e), 5000);
+    showBalloon(t("tools.codeWithMe.title"), message(e), 5000);
   }
 }
 
@@ -39,12 +48,12 @@ async function answer(id: number, accept: boolean): Promise<void> {
 export function showJoinRequest(request: JoinRequest): void {
   const { id, name, code, level } = request;
   const balloon = showBalloon(
-    `${name} wants to join the session`,
-    `Make sure the code is ${code}. With ${LEVEL_NAMES[level]} permission ${name} can ${WHAT[level]}.`,
+    t("tools.codeWithMe.wantsToJoin", { name }),
+    joinRequestText(level, name, code),
     0,
     [
-      { label: "Accept", run: () => void answer(id, true) },
-      { label: "Decline", run: () => void answer(id, false) },
+      { label: t("tools.codeWithMe.accept"), run: () => void answer(id, true) },
+      { label: t("tools.codeWithMe.decline"), run: () => void answer(id, false) },
     ],
     // Never hidden by a notification setting: the guest waits for this answer.
     { log: false },
@@ -58,10 +67,10 @@ let waiting: number | undefined;
 export function showWaiting(host: string, code: string): void {
   hideWaiting();
   waiting = showBalloon(
-    `Waiting for ${host} to accept…`,
-    `Verification code: ${code}. ${host} sees the same code.`,
+    t("tools.codeWithMe.waitingForHost", { host }),
+    t("tools.codeWithMe.verificationCodeDetail", { host, code }),
     0,
-    [{ label: "Cancel", run: () => void collabApi.cancelJoin().catch(() => undefined) }],
+    [{ label: t("common.cancel"), run: () => void collabApi.cancelJoin().catch(() => undefined) }],
     { log: false },
   );
 }

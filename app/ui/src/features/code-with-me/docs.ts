@@ -12,6 +12,7 @@ import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, modifyAwareness
 import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant, type ViewOnly } from "@/ipc/collab";
 import { withAuthor, type Author } from "./guestChanges";
 import { session } from "./store";
+import { t } from "@/i18n";
 
 export const GUEST_PREFIX = "cwm://";
 
@@ -70,7 +71,7 @@ export function sanitizeState(state: unknown): unknown {
   const s = state as { user?: { name?: unknown; colorIndex?: unknown } };
   if (!s.user) return state;
   const colorIndex = Math.min(8, Math.max(1, Math.floor(Number(s.user.colorIndex)) || 1));
-  return { ...s, user: { name: String(s.user.name ?? "Guest").slice(0, 64), colorIndex, ...userStyle(colorIndex) } };
+  return { ...s, user: { name: String(s.user.name ?? t("tools.codeWithMe.guestName")).slice(0, 64), colorIndex, ...userStyle(colorIndex) } };
 }
 
 /** Create the local replica of a document the session opened for us. */
@@ -152,7 +153,7 @@ export function releaseAll(): void {
 function authorOf(from: number | undefined): Author | null {
   if (from === undefined) return null;
   const p = session().participants.find((x) => x.id === from);
-  return { color: p?.color ?? 1, name: p?.name ?? "A guest" };
+  return { color: p?.color ?? 1, name: p?.name ?? t("tools.codeWithMe.aGuest") };
 }
 
 function applyEvent(doc: SharedDoc, e: DocEvent): void {

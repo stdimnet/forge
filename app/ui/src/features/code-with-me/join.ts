@@ -7,10 +7,11 @@ import { showBalloon } from "@/keymap";
 import { hideWaiting } from "./approval";
 import { openJoinDialog } from "./JoinSession";
 import { applySession, isGuest, isHost, setPopupOpen } from "./store";
+import { t } from "@/i18n";
 
 export async function joinSession(link = ""): Promise<void> {
   setPopupOpen(false);
-  if (isHost() || isGuest()) return void showBalloon("Code With Me", "A session is already running.");
+  if (isHost() || isGuest()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.sessionAlreadyRunning"));
   try {
     const s = await openJoinDialog(link);
     if (s) applySession(s);
