@@ -149,11 +149,28 @@ pub async fn run_configurations_load(state: State<'_, AppState>) -> Result<RunCo
         if backend.info().is_local() {
             return RunConfigurations::load(&backend.info().root);
         }
-        let shared = backend.read_file(forge_process::config::PROJECT_FILE).ok();
-        let local = backend.read_file(forge_process::config::LOCAL_FILE).ok();
-        RunConfigurations::from_texts(shared.as_deref(), local.as_deref())
+        RunConfigurations::from_texts(
+            backend
+                .read_file(forge_process::config::PROJECT_FILE)
+                .ok()
+                .as_deref(),
+            read_local_file(backend.as_ref()).as_deref(),
+        )
     })
     .await
+}
+
+/// The local configurations file of a project that is not on this machine. A Code With Me
+/// guest has none: the host's local file is never shared, so it is not asked for.
+pub(crate) fn local_file(info: &forge_backend::BackendInfo) -> Option<&'static str> {
+    info.collab
+        .is_none()
+        .then_some(forge_process::config::LOCAL_FILE)
+}
+
+/// The text of [`local_file`], `None` when it is missing or there is none.
+pub(crate) fn read_local_file(backend: &dyn forge_backend::Backend) -> Option<String> {
+    local_file(backend.info()).and_then(|f| backend.read_file(f).ok())
 }
 
 #[tauri::command]
@@ -167,10 +184,11 @@ pub async fn run_configurations_save(
             return configurations.save(&backend.info().root);
         }
         let [shared, local] = configurations.to_texts()?;
-        for (file, text) in [
-            (forge_process::config::PROJECT_FILE, shared),
-            (forge_process::config::LOCAL_FILE, local),
-        ] {
+        // A guest's local configurations and selection stay in its window.
+        let local = local_file(backend.info()).map(|f| (f, local));
+        for (file, text) in
+            std::iter::once((forge_process::config::PROJECT_FILE, shared)).chain(local)
+        {
             match text {
                 Some(t) => backend.write_file(file, &t)?,
                 // No delete on the remote side: empty out an existing file.
