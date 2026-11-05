@@ -1362,6 +1362,9 @@ Deviations from the plan above:
   frame limit ended the connection, so the guest reconnected, resynchronized and sent it again
   every ~1.5 s (`write_or_skip` drops such a message with a warning, and guest calls over the
   limit fail at once).
+- **Binary size measured** (2026-11-06, Linux x86_64 release): forge-collab and the 62 crates
+  only it pulls in add 5.4 MiB of the binary's 109.9 MiB `.text` (about 5 %); details and the
+  method are in ARCHITECTURE.md.
 - Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
   checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
   Linux ran under Xvfb (see its results table).

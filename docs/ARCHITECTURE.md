@@ -1137,15 +1137,16 @@ by `cargo test`) are in `crates/forge-collab/fuzz`: `link_parse`, `frame_decode`
 `host_call_decode`; run one with `cd crates/forge-collab/fuzz && cargo +nightly fuzz run
 link_parse`.
 
-**Binary size.** forge-collab is the only path to 72 crates of the app's 871 (normal
+**Binary size.** forge-collab is the only path to 62 crates of the app's 822 (normal
 dependencies, `cargo tree -p forge-app -e normal --prefix none` compared with the same command
 with `--prune forge-collab`): iroh with its relay client, DNS and mDNS lookup, the QUIC stack
 (`noq`), `netwatch` / `netdev` / `netlink-*`, `yrs`, `blake3`, AES-GCM and `postcard`. TLS
-(`rustls` / `ring`) and tokio are shared with the rest of the app. The size in bytes is
-measured on a release build: `cargo bloat --release -p forge-app --crates -n 60` (cargo-bloat)
-lists the `.text` size per crate; the sum over the crates above is forge-collab's share. It
-was not measured on the development machine (a release build of the app needs more disk and
-time than it has); do it on the release machine before merging the Code With Me PR.
+(`rustls` / `ring`) and tokio are shared with the rest of the app. Measured on 2026-11-06 with
+`CARGO_PROFILE_RELEASE_STRIP=false cargo bloat --release -p forge-app --bin forge --crates -n 0`
+(Linux x86_64, release profile): those crates plus forge-collab add **5.4 MiB of 109.9 MiB
+`.text`** (about 5 %); the largest are forge-collab (1.3 MiB), `netlink-packet-route`
+(1.0 MiB), iroh (0.8 MiB), `noq-proto` (0.7 MiB) and yrs (0.3 MiB). The stripped release binary
+is 145 MiB.
 
 ## Dev Containers and WSL (`forge-devenv`)
 
