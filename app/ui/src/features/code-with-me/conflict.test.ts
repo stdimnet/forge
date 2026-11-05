@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { conflictHandler, KEEP_LABEL, LOAD_LABEL, type ConflictUi } from "./conflict";
+import { conflictHandler, keepLabel, loadLabel, type ConflictUi } from "./conflict";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -38,7 +38,7 @@ describe("File Cache Conflict", () => {
     expect(title).toBe("File Cache Conflict");
     expect(message).toBe("Changes have been made to 'app/Http/Controllers/OrderController.php' in memory and on disk.");
     // The last choice is the default (Enter), as in PHPStorm.
-    expect(choices.map((x: { label: string }) => x.label)).toEqual(["Show Difference", KEEP_LABEL, LOAD_LABEL]);
+    expect(choices.map((x: { label: string }) => x.label)).toEqual(["Show Difference", keepLabel(), loadLabel()]);
     expect(ui.resolve).toHaveBeenCalledWith(3, true);
     expect(c.openConflicts()).toEqual([]);
   });
@@ -63,7 +63,7 @@ describe("File Cache Conflict", () => {
     expect(ui.resolve).not.toHaveBeenCalled();
     const [balloon] = [...balloons.values()];
     expect(balloon.detail).toBe("Changes have been made to web.php in memory and on disk.");
-    expect(balloon.actions?.map((a) => a.label)).toEqual([LOAD_LABEL, KEEP_LABEL]);
+    expect(balloon.actions?.map((a) => a.label)).toEqual([loadLabel(), keepLabel()]);
     balloon.actions![1].run();
     await tick();
     expect(ui.resolve).toHaveBeenCalledWith(4, false);

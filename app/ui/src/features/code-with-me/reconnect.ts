@@ -14,11 +14,14 @@ import { dispatchFsChanges, type FsChanges } from "@/state/fsWatch";
 import { refreshTree } from "@/features/project/ProjectView";
 import { resyncAll } from "./docs";
 import { isGuest, session } from "./store";
+import { t } from "@/i18n";
 
 /** "Reconnecting…" with the next attempt, as the status item and the balloon say it. */
 export function connectionLabel(c: ConnectionState | undefined): string | null {
   if (!c || c.state === "connected") return null;
-  return c.nextRetrySecs > 0 ? `Reconnecting… (next attempt in ${c.nextRetrySecs} s)` : "Reconnecting…";
+  return c.nextRetrySecs > 0
+    ? t("tools.codeWithMe.reconnectingNextAttempt", { secs: c.nextRetrySecs })
+    : t("tools.codeWithMe.reconnecting");
 }
 
 export const isReconnecting = (): boolean => isGuest() && session().connection?.state === "reconnecting";
@@ -57,19 +60,19 @@ export function trackReconnects(): void {
   createRoot(() => {
     createEffect(
       on(isReconnecting, (now, before) => {
-        const host = session().hostLabel ?? "the host";
+        const host = session().hostLabel ?? t("tools.codeWithMe.theHost");
         if (now && !before) {
           hideBalloon();
           balloon = showBalloon(
-            `Connection to ${host} lost`,
-            "Reconnecting… Your edits are kept and sent when the connection is back.",
+            t("tools.codeWithMe.connectionLost", { host }),
+            t("tools.codeWithMe.connectionLostDetail"),
             0,
-            [{ label: "Leave Session", run: () => void collabApi.leave().catch(() => undefined) }],
+            [{ label: t("tools.codeWithMe.leaveSession"), run: () => void collabApi.leave().catch(() => undefined) }],
             { log: false },
           );
         } else if (!now && before) {
           hideBalloon();
-          if (isGuest()) showBalloon("Code With Me", `Reconnected to ${host}.`, 4000);
+          if (isGuest()) showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.reconnectedTo", { host }), 4000);
         }
       }),
     );

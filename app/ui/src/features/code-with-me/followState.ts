@@ -5,6 +5,7 @@
  */
 import type { Participant, Presence } from "@/ipc/collab";
 import { GUEST_PREFIX } from "./docs";
+import { t } from "@/i18n";
 
 export interface FollowState {
   /** The participant this window follows. */
@@ -83,7 +84,9 @@ export function bannerText(s: FollowState, participants: Participant[]): string 
   if (s.leader === null) return undefined;
   const leader = participants.find((p) => p.id === s.leader);
   if (!leader) return undefined;
-  return s.forced ? `${leader.name} asked everyone to follow` : `Following ${leader.name}`;
+  return s.forced
+    ? t("tools.codeWithMe.askedEveryoneToFollow", { name: leader.name })
+    : t("tools.codeWithMe.followingLeader", { name: leader.name });
 }
 
 /** "OrderController.php:42" for the participant list. */

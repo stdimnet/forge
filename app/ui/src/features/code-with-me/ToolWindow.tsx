@@ -9,6 +9,7 @@ import { Participants } from "./Participants";
 import { SessionLogList } from "./SessionLog";
 import { followState } from "./follow";
 import { navKeys } from "./a11y";
+import { t } from "@/i18n";
 
 type Tab = "participants" | "log";
 
@@ -17,32 +18,32 @@ const [tab, setTab] = createSignal<Tab>("participants");
 const tabs = (): { id: Tab; title: string }[] =>
   session().role === "host"
     ? [
-        { id: "participants", title: "Participants" },
-        { id: "log", title: "Session Log" },
+        { id: "participants", title: t("tools.codeWithMe.participants") },
+        { id: "log", title: t("tools.codeWithMe.sessionLog") },
       ]
-    : [{ id: "participants", title: "Participants" }];
+    : [{ id: "participants", title: t("tools.codeWithMe.participants") }];
 
 /** The tabs in the tool window header. */
 export function CodeWithMeTabs() {
   return (
     <div class="run-tabs" role="tablist">
       <For each={tabs()}>
-        {(t) => (
+        {(item) => (
           <div
             class="run-tab"
-            classList={{ active: (tab() === "log" && session().role === "host" ? "log" : "participants") === t.id }}
+            classList={{ active: (tab() === "log" && session().role === "host" ? "log" : "participants") === item.id }}
             role="tab"
             tabIndex={0}
-            aria-selected={(tab() === "log" && session().role === "host" ? "log" : "participants") === t.id}
-            data-cwm-tab={t.id}
+            aria-selected={(tab() === "log" && session().role === "host" ? "log" : "participants") === item.id}
+            data-cwm-tab={item.id}
             onKeyDown={(e) => {
               if (e.key !== "Enter" && e.key !== " ") return;
               e.preventDefault();
-              setTab(t.id);
+              setTab(item.id);
             }}
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(item.id)}
           >
-            <span class="run-tab-title">{t.title}</span>
+            <span class="run-tab-title">{item.title}</span>
           </div>
         )}
       </For>
@@ -61,7 +62,7 @@ export function CodeWithMeToolWindow() {
             <div class="cwm-tool-actions">
               <Show when={followState().leader !== null}>
                 <button class="btn-secondary" data-action="CodeWithMe.StopFollowing" onClick={() => void runCommand("CodeWithMe.StopFollowing")}>
-                  Stop Following
+                  {t("tools.codeWithMe.stopFollowing")}
                 </button>
               </Show>
               <Show when={session().role === "host"}>
@@ -72,11 +73,11 @@ export function CodeWithMeToolWindow() {
                   data-action="CodeWithMe.MakeEveryoneFollow"
                   onClick={() => void runCommand("CodeWithMe.MakeEveryoneFollow")}
                 >
-                  Make Everyone Follow You
+                  {t("tools.codeWithMe.makeEveryoneFollow")}
                 </button>
               </Show>
             </div>
-            <div class="cwm-popup-note muted">Click a participant to follow them; right-click for Jump To and more.</div>
+            <div class="cwm-popup-note muted">{t("tools.codeWithMe.toolWindowHint")}</div>
           </>
         }
       >

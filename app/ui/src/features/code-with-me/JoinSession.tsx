@@ -19,14 +19,15 @@ import { openSettings } from "@/features/settings/dialogState";
 import { workspace } from "@/state/workspace";
 import { editor, isDirty, saveFile, type EditorTab } from "@/state/editor";
 import { safeMode } from "@/features/trust/store";
+import { t } from "@/i18n";
 
 const LINK = /^(forge:\/\/cwm\/join\?|cwm1:)/;
 
 /** Why `text` is not a session link, or null. */
 export function linkProblem(text: string): string | null {
-  const t = text.trim();
-  if (!t) return "Paste the link from the host.";
-  return LINK.test(t) ? null : "This is not a Code With Me link (forge://cwm/join?… or cwm1:…).";
+  const link = text.trim();
+  if (!link) return t("tools.codeWithMe.pasteLinkFromHost");
+  return LINK.test(link) ? null : t("tools.codeWithMe.notALink");
 }
 
 /**
@@ -34,14 +35,14 @@ export function linkProblem(text: string): string | null {
  * would drop. Shared documents of a session are not the window's own.
  */
 export function unsavedFiles(tabs: readonly EditorTab[]): string[] {
-  return tabs.filter((t) => isDirty(t) && !t.shared).map((t) => t.path);
+  return tabs.filter((tab) => isDirty(tab) && !tab.shared).map((tab) => tab.path);
 }
 
 /** The question before the project closes, for `count` unsaved files. */
 export function unsavedMessage(project: string, count: number, safe: boolean): string {
-  const files = count === 1 ? "1 file" : `${count} files`;
-  const note = safe ? " The project is in Safe Mode: saving writes the files, Actions on Save that run tools do not run." : "";
-  return `${project} has unsaved changes in ${files}. Save them before the project is closed?${note}`;
+  return safe
+    ? t("tools.codeWithMe.unsavedChangesSafeMode", { project, count })
+    : t("tools.codeWithMe.unsavedChanges", { project, count });
 }
 
 /** What the dialog shows. */
@@ -131,7 +132,7 @@ function Dialog(props: { req: Request }) {
     try {
       await Promise.all(files.map((f) => saveFile(f, "explicit")));
     } catch (e) {
-      return void setStep({ step: "failed", error: `Cannot save: ${message(e)}` });
+      return void setStep({ step: "failed", error: t("tools.codeWithMe.cannotSaveError", { error: message(e) }) });
     }
     await connect();
   };
@@ -154,7 +155,7 @@ function Dialog(props: { req: Request }) {
     const s = step();
     return s.step === "unsaved" ? s : null;
   };
-  const host = () => summary()?.hostName ?? "the host";
+  const host = () => summary()?.hostName ?? t("tools.codeWithMe.theHost");
   const project = () => workspace()?.name;
 
   return (
@@ -163,7 +164,7 @@ function Dialog(props: { req: Request }) {
         class="dialog cwm-join-dialog"
         style={{ width: "min(500px, calc(100vw - 32px))" }}
         role="dialog"
-        aria-label="Join Session"
+        aria-label={t("tools.codeWithMe.joinSession")}
         tabIndex={-1}
         onKeyDown={(e) => {
           if (e.key === "Escape") cancel();
@@ -174,16 +175,16 @@ function Dialog(props: { req: Request }) {
           e.stopPropagation();
         }}
       >
-        <div class="dialog-title">Join Session</div>
+        <div class="dialog-title">{t("tools.codeWithMe.joinSession")}</div>
         <div class="dialog-body">
           <Show when={unsaved()}>
             {(u) => (
               <div class="cwm-join-unsaved" role="alert" data-testid="cwm-join-unsaved">
-                <div>{unsavedMessage(project() ?? "The project", u().files.length, safeMode())}</div>
+                <div>{unsavedMessage(project() ?? t("tools.codeWithMe.theProject"), u().files.length, safeMode())}</div>
                 <ul class="cwm-join-files">
                   <For each={u().files.slice(0, 5)}>{(f) => <li class="mono">{f}</li>}</For>
                   <Show when={u().files.length > 5}>
-                    <li class="muted">and {u().files.length - 5} more</li>
+                    <li class="muted">{t("tools.codeWithMe.andMore", { count: u().files.length - 5 })}</li>
                   </Show>
                 </ul>
               </div>
@@ -196,16 +197,16 @@ function Dialog(props: { req: Request }) {
                 <div class="cwm-join-waiting" role="status" aria-live="polite">
                   <Show
                     when={step().step === "waiting" ? (step() as Extract<JoinStep, { step: "waiting" }>) : null}
-                    fallback={<div class="cwm-join-headline">Connecting to {summary()?.hostLabel ?? host()}…</div>}
+                    fallback={<div class="cwm-join-headline">{t("tools.codeWithMe.connectingTo", { host: summary()?.hostLabel ?? host() })}</div>}
                   >
                     {(w) => (
                       <>
-                        <div class="cwm-join-headline">Waiting for {w().host} to accept…</div>
-                        <div class="cwm-join-code-label muted">Verification code</div>
+                        <div class="cwm-join-headline">{t("tools.codeWithMe.waitingForHost", { host: w().host })}</div>
+                        <div class="cwm-join-code-label muted">{t("tools.codeWithMe.verificationCode")}</div>
                         <div class="cwm-join-code" data-testid="cwm-join-code">
                           {w().code}
                         </div>
-                        <div class="muted cwm-join-hint">{w().host} sees the same code. Compare it over a call or chat before they accept.</div>
+                        <div class="muted cwm-join-hint">{t("tools.codeWithMe.compareCode", { host: w().host })}</div>
                       </>
                     )}
                   </Show>
@@ -213,13 +214,13 @@ function Dialog(props: { req: Request }) {
               }
             >
               <label class="form-label" for="cwm-join-link">
-                Session link:
+                {t("tools.codeWithMe.sessionLinkLabel")}
               </label>
               <input
                 id="cwm-join-link"
                 ref={(el) => queueMicrotask(() => el.focus())}
                 value={link()}
-                placeholder="forge://cwm/join?…"
+                placeholder={t("tools.codeWithMe.sessionLinkPlaceholder")}
                 onInput={(e) => {
                   setLink(e.currentTarget.value);
                   if (step().step === "failed") setStep({ step: "link" });
@@ -233,28 +234,28 @@ function Dialog(props: { req: Request }) {
               <Show when={summary()}>
                 {(s) => (
                   <dl class="cwm-join-grid" data-testid="cwm-join-summary">
-                    <dt>Host</dt>
+                    <dt>{t("tools.codeWithMe.role.host")}</dt>
                     <dd>
                       <Users size={13} /> {s().hostName}
                     </dd>
                     <Show when={s().machine}>
-                      <dt>Machine</dt>
+                      <dt>{t("tools.codeWithMe.machine")}</dt>
                       <dd>{s().machine}</dd>
                     </Show>
-                    <dt>Connection</dt>
-                    <dd>{s().relay ? `Direct, or through the relay server ${s().relay}` : "Direct"}</dd>
-                    <dt>Join as</dt>
+                    <dt>{t("tools.codeWithMe.connection")}</dt>
+                    <dd>{s().relay ? t("tools.codeWithMe.directOrRelay", { relay: s().relay }) : t("tools.codeWithMe.direct")}</dd>
+                    <dt>{t("tools.codeWithMe.joinAs")}</dt>
                     <dd>
                       {s().userName}{" "}
                       <button class="link-btn" onClick={() => openSettings("tools.code-with-me")}>
-                        Change…
+                        {t("tools.codeWithMe.change")}
                       </button>
                     </dd>
                   </dl>
                 )}
               </Show>
               <Show when={summary() && project()}>
-                <div class="cwm-join-note muted">The project {project()} is closed while you are a guest of {host()}.</div>
+                <div class="cwm-join-note muted">{t("tools.codeWithMe.projectClosedNote", { project: project(), host: host() })}</div>
               </Show>
               <Show when={step().step === "failed" ? (step() as Extract<JoinStep, { step: "failed" }>) : null}>
                 {(f) => (
@@ -269,22 +270,22 @@ function Dialog(props: { req: Request }) {
         <div class="dialog-buttons">
           <Show when={unsaved()}>
             <button class="btn-secondary" onClick={() => void connect()}>
-              Don't Save
+              {t("tools.codeWithMe.dontSave")}
             </button>
           </Show>
           <button class="btn-secondary" onClick={cancel}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <Show when={unsaved()}>
             {(u) => (
               <button class="btn-primary" onClick={() => void saveAndJoin(u().files)}>
-                Save
+                {t("common.save")}
               </button>
             )}
           </Show>
           <Show when={!busy() && !unsaved()}>
             <button class="btn-primary" disabled={!summary()} onClick={() => void join()}>
-              {step().step === "failed" ? "Try Again" : "Join"}
+              {step().step === "failed" ? t("tools.codeWithMe.tryAgain") : t("tools.codeWithMe.join")}
             </button>
           </Show>
         </div>

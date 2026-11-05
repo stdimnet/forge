@@ -5,6 +5,7 @@
  */
 import { Link, Users } from "lucide-solid";
 import { runCommand } from "@/state/commands";
+import { t } from "@/i18n";
 
 const join = () => void runCommand("CodeWithMe.JoinSession");
 
@@ -13,27 +14,24 @@ export function CodeWithMeWelcomePage() {
     <div class="welcome-remote" data-testid="welcome-code-with-me">
       <div class="welcome-remote-head">
         <div>
-          <h2>Code With Me</h2>
-          <p class="muted">
-            Join a session another developer started. Paste the session link from the host; once the host accepts you, the
-            host's project opens in this window.
-          </p>
+          <h2>{t("tools.codeWithMe.title")}</h2>
+          <p class="muted">{t("tools.codeWithMe.welcomeText")}</p>
         </div>
       </div>
 
       <div class="welcome-remote-section">
         <div class="welcome-remote-section-title">
           <Users size={15} />
-          <span>Join Session</span>
+          <span>{t("tools.codeWithMe.joinSession")}</span>
           <button class="btn-primary welcome-remote-new" onClick={join} data-testid="welcome-cwm-join">
-            <Link size={14} /> Join Session…
+            <Link size={14} /> {t("tools.codeWithMe.joinSessionEllipsis")}
           </button>
         </div>
         <div class="welcome-remote-empty">
           <Users size={30} class="muted" />
-          <p>Ask the host for the session link (Tools | Code With Me | Copy Session Link).</p>
+          <p>{t("tools.codeWithMe.askHostForLink")}</p>
           <button class="btn-secondary" onClick={join}>
-            Join Session…
+            {t("tools.codeWithMe.joinSessionEllipsis")}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import type { ConnectionPath } from "@/ipc/collab";
 import { connectionOf, pathLabel, pathTitle, relayProblem, relaySummary, statusBarText, statusBarTitle } from "./connection";
 import { session, setPopupOpen } from "./store";
 import { isReconnecting } from "./reconnect";
+import { t } from "@/i18n";
 
 /** "Direct" or "Relay (relay.example.com)" with an icon and the round-trip time. */
 export function PathBadge(props: { path: ConnectionPath }) {
@@ -16,7 +17,7 @@ export function PathBadge(props: { path: ConnectionPath }) {
       {props.path.kind === "direct" ? <Network size={12} /> : <Waypoints size={12} />}
       {pathLabel(props.path)}
       <Show when={props.path.rttMs !== undefined}>
-        <span class="cwm-path-rtt">{props.path.rttMs} ms</span>
+        <span class="cwm-path-rtt">{t("tools.codeWithMe.milliseconds", { ms: props.path.rttMs })}</span>
       </Show>
     </span>
   );
@@ -27,20 +28,20 @@ export function SessionConnections() {
   const peers = () => session().participants.filter((p) => p.id !== session().me);
   return (
     <div class="cwm-connections" data-testid="cwm-connections">
-      <div class="cwm-popup-label muted">Participants</div>
+      <div class="cwm-popup-label muted">{t("tools.codeWithMe.participants")}</div>
       <For each={peers()}>
         {(p) => (
           <div class="cwm-participant" data-participant={p.id}>
             <span class="cwm-dot" style={{ background: `var(--collab-${p.color})` }} />
             <span class="cwm-participant-name">{p.name}</span>
-            <span class="cwm-participant-role muted">{p.role === "host" ? "Host" : "Guest"}</span>
+            <span class="cwm-participant-role muted">{p.role === "host" ? t("tools.codeWithMe.role.host") : t("tools.codeWithMe.role.guest")}</span>
             <Show
               when={!p.reconnecting && !(p.role === "host" && isReconnecting()) && connectionOf(session(), p.id)}
               fallback={
                 p.reconnecting || (p.role === "host" && isReconnecting()) ? (
-                  <span class="cwm-path pending cwm-participant-reconnecting">Reconnecting…</span>
+                  <span class="cwm-path pending cwm-participant-reconnecting">{t("tools.codeWithMe.reconnecting")}</span>
                 ) : (
-                  <span class="cwm-path pending muted">Connecting…</span>
+                  <span class="cwm-path pending muted">{t("tools.codeWithMe.connecting")}</span>
                 )
               }
             >
@@ -50,7 +51,7 @@ export function SessionConnections() {
         )}
       </For>
       <Show when={peers().length === 0}>
-        <div class="cwm-popup-note muted">No guests yet. Send them the session link.</div>
+        <div class="cwm-popup-note muted">{t("tools.codeWithMe.noGuestsYet")}</div>
       </Show>
       <Show when={relaySummary(session())}>
         {(text) => (
@@ -80,7 +81,7 @@ export function ConnectionStatusItem() {
       <Show when={relayProblem(session())} fallback={first()?.kind === "relay" ? <Waypoints size={12} /> : <Network size={12} />}>
         <TriangleAlert size={12} />
       </Show>
-      Code With Me: {statusBarText(session())}
+      {t("tools.codeWithMe.titleWith", { value: statusBarText(session()) })}
     </button>
   );
 }
