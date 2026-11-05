@@ -41,7 +41,13 @@ const scenarios = {
     await openSettingsPage(page, "plugins");
     await page.click('[data-testid="plugins-tab-marketplace"]');
     await page.waitForSelector('[data-testid="marketplace-error"]');
-    await page.click('[data-testid="marketplace-error"] button.btn-secondary');
+  },
+  "plugins-marketplace-settings": async (page) => {
+    await openSettingsPage(page, "plugins");
+    await page.click('[data-testid="plugins-tab-marketplace"]');
+    await page.waitForSelector('[data-testid="marketplace-list"] [data-plugin="reeperk.atom-material-icons"]');
+    await page.click('[data-testid="plugins-gear"]');
+    await page.click('.context-menu-item:has-text("Marketplace Settings")');
     await page.waitForSelector('[data-testid="marketplace-token"]');
   },
   "plugins-permission-prompt": async (page) => {

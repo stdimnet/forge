@@ -1387,7 +1387,7 @@
   "tools.plugins.downloads": "{publisher} · {version}{value} · {value2} downloads",
   "tools.plugins.publisherVersion": "{publisher} · {version}{value}",
   "tools.plugins.cannotLoadTheMarketplace": "Cannot load the marketplace index",
-  "tools.plugins.marketplaceErrorHint": "Check the network connection. The index URL and the access token of a private marketplace are set in Marketplace Settings (gear menu).",
+  "tools.plugins.marketplaceErrorHint": "Check the network connection, the index URL and, for a private marketplace, the access token.",
   "tools.plugins.needsForge": "Needs Forge {forge}.",
   "tools.plugins.installed": "Installed ({installedVersion}).",
   "tools.plugins.installingEllipsis": "Installing…",

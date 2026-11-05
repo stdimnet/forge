@@ -1387,7 +1387,7 @@
   "tools.plugins.downloads": "{publisher} · {version}{value} · {value2} Downloads",
   "tools.plugins.publisherVersion": "{publisher} · {version}{value}",
   "tools.plugins.cannotLoadTheMarketplace": "Der Marketplace-Index kann nicht geladen werden",
-  "tools.plugins.marketplaceErrorHint": "Prüfen Sie die Netzwerkverbindung. Die Index-URL und das Zugriffstoken eines privaten Marketplace legen Sie in den Marketplace-Einstellungen fest (Zahnradmenü).",
+  "tools.plugins.marketplaceErrorHint": "Prüfen Sie die Netzwerkverbindung, die Index-URL und bei einem privaten Marketplace das Zugriffstoken.",
   "tools.plugins.needsForge": "Benötigt Forge {forge}.",
   "tools.plugins.installed": "Installiert ({installedVersion}).",
   "tools.plugins.installingEllipsis": "Wird installiert…",

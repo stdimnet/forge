@@ -93,6 +93,8 @@ valid signature from one of them is required as well.
 
 ⚙ | **Marketplace Settings…** changes where the plugins come from:
 
+![Marketplace Settings](../../screenshots/plugins-marketplace-settings.png)
+
 - **Marketplace index URL** (setting `plugins.marketplace.url`): the index the tab reads.
   Empty means Forge's marketplace,
   `https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json`. Enter the URL of

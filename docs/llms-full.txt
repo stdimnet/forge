@@ -9749,17 +9749,34 @@ programs or write project files.
 
 ![Marketplace](docs/screenshots/plugins-marketplace.png)
 
-The Marketplace tab reads a plugin index from the URL set with ⚙ | **Marketplace URL…**
-(setting `plugins.marketplace.url`). It lists the plugins with search, details, permissions,
+The Marketplace tab lists the plugins of Forge's marketplace, the
+[`stdimnet/marketplace`](https://github.com/stdimnet/marketplace) repository on GitHub (for
+example the **Atom Material Icons** icon theme). It has search, details, permissions,
 **Install** and **Update**; ⚙ | **Check for Updates** reports installed plugins with newer
 versions. Every download is checked against the SHA-256 checksum in the index. With trusted
 publisher keys (setting `plugins.marketplace.trustedKeys`, base64 Ed25519 public keys) a
 valid signature from one of them is required as well.
 
-> **Note:** no public Forge marketplace is live yet. The default URL
-> `https://plugins.forge.example/index.json` is a placeholder, so the tab says that no
-> marketplace is configured until you enter the URL of an index, for example one your team
-> hosts. The index format is described in [Publishing plugins](docs/guide/developer/plugins/publishing.md).
+⚙ | **Marketplace Settings…** changes where the plugins come from:
+
+![Marketplace Settings](docs/screenshots/plugins-marketplace-settings.png)
+
+- **Marketplace index URL** (setting `plugins.marketplace.url`): the index the tab reads.
+  Empty means Forge's marketplace,
+  `https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json`. Enter the URL of
+  another index, for example one your team hosts. The index format is described in
+  [Publishing plugins](docs/guide/developer/plugins/publishing.md).
+- **Access token**: only for a private marketplace, for example a private GitHub repository
+  (a fine-grained token with read access to its contents). Forge stores it in the OS
+  keychain, never in the settings, and sends it only to the index's host (for an index on
+  GitHub: `raw.githubusercontent.com`, `github.com` and `api.github.com`), never to other
+  hosts the index links to. **Remove Token** deletes it.
+
+![Marketplace error](docs/screenshots/plugins-marketplace-error.png)
+
+When the index cannot be read (offline, a wrong URL, a private marketplace without a valid
+token), the tab says why, for example `HTTP 404 Not Found`, with **Retry** and a button that
+opens Marketplace Settings.
 
 To write a plugin, see the [plugin SDK](docs/guide/developer/plugins/index.md).
 
@@ -27887,17 +27904,28 @@ Source: docs/guide/developer/plugins/publishing.md
 
 A `.forgeplugin` file is a zip archive with `forge-plugin.json` at its root and the files it
 names. `pnpm plugin pack <folder>` (or `npm run pack` in a scaffolded project) writes
-`<id>-<version>.forgeplugin` with the manifest, `dist/`, and `README.md`, `LICENSE`,
-`CHANGELOG.md` when present, and prints its SHA-256.
+`<id>-<version>.forgeplugin` with the manifest, `dist/`, the folder of each icon theme, and
+`README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md` and `NOTICE` when present (so
+the attribution of bundled third-party material travels with the package), and prints its
+SHA-256.
 
 Forge refuses packages that are larger than 64 MB (packed or unpacked), have more than 4096
 files, contain absolute paths, `..`, drive letters or symbolic links, lack the manifest or the
 `main` file, or whose manifest does not validate for the running Forge version.
 
+## Forge's marketplace
+
+The default URL is Forge's marketplace, the
+[`stdimnet/marketplace`](https://github.com/stdimnet/marketplace) repository:
+`https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json`. Its README explains
+how to add a plugin or a version: the plugin sources go into `plugins/<folder>/`, and its
+`scripts/build.mjs` validates them against Forge's rules, packs them reproducibly into
+`packages/` and writes the index.
+
 ## The marketplace index (format 1)
 
 A marketplace is a static JSON file anyone can host (a web server, object storage, GitHub
-Pages). Forge reads it from the URL in `plugins.marketplace.url`.
+Pages, a GitHub repository). Forge reads it from the URL in `plugins.marketplace.url`.
 
 ```json
 {
@@ -27959,12 +27987,31 @@ with Ed25519 and publish your public key: users add it (base64, 32 bytes) to
 `plugins.marketplace.trustedKeys`. With at least one trusted key, Forge installs only packages
 whose `signature` verifies with one of them.
 
+## Private marketplaces
+
+A marketplace that needs authentication (a private GitHub repository, a server behind a
+login) takes an access token: ⚙ | **Marketplace Settings…** in Settings | Plugins has an
+**Access token** field. Forge keeps the token in the OS keychain (service `forge-plugins`,
+one entry per marketplace host), never in the settings, and sends it as
+`Authorization: Bearer <token>` with the index and package requests:
+
+- only to the index's own host and port, over HTTPS (plain HTTP only to `localhost`);
+- for an index on GitHub (`raw.githubusercontent.com`, `github.com`, `api.github.com`), to
+  these three hosts;
+- never to other hosts the index links to, and not after a redirect to another host.
+
+For a private GitHub repository use a fine-grained personal access token with read access to
+its contents. Without a token GitHub answers 404 for private files, so the Marketplace tab
+shows that error with **Retry** and a pointer to Marketplace Settings. A 401 or 403 says
+whether the token is missing or was rejected.
+
 ## Testing an index locally
 
 Serve a folder with the index and the packages, for example
-`python3 -m http.server 8000`, and set the Marketplace URL to
-`http://localhost:8000/index.json`. Forge's own tests use a local mock server the same way;
-no public marketplace is involved.
+`python3 -m http.server 8000`, and set the index URL in ⚙ | **Marketplace Settings…** to
+`http://localhost:8000/index.json`. Forge's own tests use a local mock server the same way
+(also for the access token: which host receives it, 401 and 404); no public marketplace is
+involved.
 
 
 ---
