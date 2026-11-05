@@ -135,6 +135,20 @@ const sharedRun = (theme) => {
   return fn;
 };
 
+/** A file over the co-editing limit opens read-only for an Edit files guest, with a bar saying why. */
+const viewOnly = (theme) => {
+  const fn = async (page) => {
+    await page.waitForSelector("[data-testid=cwm-status]");
+    if (theme === "light") await light(page);
+    await page.waitForSelector(".editor-slot:not(.hidden) .cwm-view-only-banner");
+    await page.waitForTimeout(400);
+  };
+  // The guest follows the host into its log.
+  fn.query = "?project=cwm-guest&permission=edit&follow=all&log";
+  fn.waitFor = "[data-testid=cwm-status]";
+  return fn;
+};
+
 const withQuery = (fn, permission) => {
   fn.query = `?project=cwm-guest&permission=${permission}`;
   return fn;
@@ -158,4 +172,6 @@ export default {
   "cwm-guest-hover-light": withQuery(hover("light"), "readOnly"),
   "cwm-guest-status": withQuery(status("dark"), "readOnly"),
   "cwm-guest-status-light": withQuery(status("light"), "readOnly"),
+  "cwm-guest-view-only": viewOnly("dark"),
+  "cwm-guest-view-only-light": viewOnly("light"),
 };
