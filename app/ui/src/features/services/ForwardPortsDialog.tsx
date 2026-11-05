@@ -4,7 +4,7 @@
  * starts one listener per pair on 127.0.0.1.
  */
 import { createSignal, For, onCleanup, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Plus } from "lucide-solid";
 import { suspendKeymap } from "@/keymap";
 import type { ContainerPort, ServiceDetails } from "@/ipc/services";
@@ -119,9 +119,9 @@ export function ForwardPortsDialog() {
         const release = suspendKeymap();
         onCleanup(release);
         return (
-          <Portal>
+          <Layer kind="modal">
             <Dialog d={d} />
-          </Portal>
+          </Layer>
         );
       }}
     </Show>

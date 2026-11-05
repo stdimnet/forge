@@ -237,7 +237,7 @@
 .wf-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,7 +248,7 @@
   position: fixed;
   right: 48px;
   bottom: 48px;
-  z-index: 90;
+  z-index: var(--z-floating-tool-window);
   display: flex;
   box-shadow: var(--shadow);
   border-radius: 8px;
@@ -261,7 +261,7 @@
 /* Resize handles of undecorated windows. */
 .wf-resize {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-system);
 }
 .wf-resize-n,
 .wf-resize-s {

@@ -61,7 +61,7 @@
 /* ---------- Intention popup (Alt+Enter) ---------- */
 .intention-popup {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-popup);
   display: flex;
   flex-direction: column;
   min-width: 280px;
@@ -157,7 +157,7 @@
 /* ---------- Rename dialog and Refactoring Preview ---------- */
 /* Above the editor's tooltips (the in-place rename hint). */
 .refactoring-backdrop {
-  z-index: 600;
+  z-index: var(--z-modal);
 }
 .rename-dialog {
   width: min(480px, calc(100vw - 32px));

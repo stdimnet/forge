@@ -346,7 +346,7 @@
 }
 .run-dropdown {
   position: fixed;
-  z-index: 140;
+  z-index: var(--z-popup);
   min-width: 280px;
   max-width: 420px;
   max-height: 70vh;

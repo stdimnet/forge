@@ -3,7 +3,8 @@
  * Configurations…"), Run / Rerun, Debug and Stop, like PHPStorm's New UI.
  */
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { Portal, Dynamic } from "solid-js/web";
+import { Dynamic } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Bug, ChevronDown, Play, RotateCcw, Settings2, Square } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
 import { shortcutLabel } from "@/keymap";
@@ -90,7 +91,7 @@ function Dropdown(props: { anchor: HTMLElement }) {
     </div>
   );
   return (
-    <Portal>
+    <Layer kind="popup">
       <div
         ref={el}
         class="popup run-dropdown"
@@ -121,7 +122,7 @@ function Dropdown(props: { anchor: HTMLElement }) {
           <span class="run-dd-name">{t("run.widget.edit")}</span>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }
 

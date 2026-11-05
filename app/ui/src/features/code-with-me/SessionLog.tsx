@@ -4,7 +4,7 @@
  * it is open.
  */
 import { createSignal, For, onCleanup, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { TriangleAlert } from "lucide-solid";
 import { suspendKeymap } from "@/keymap";
 import { collabApi, type SessionLogView } from "@/ipc/collab";
@@ -91,9 +91,9 @@ function Dialog() {
 export function SessionLogHost() {
   return (
     <Show when={open()}>
-      <Portal>
+      <Layer kind="modal">
         <Dialog />
-      </Portal>
+      </Layer>
     </Show>
   );
 }

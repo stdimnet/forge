@@ -3,12 +3,12 @@
  * PHPStorm's, shifts sideways to stay inside the window, flips below only when there is more
  * room there, and scrolls when the window is too low for it.
  *
- * It is rendered into `document.body` with `position: fixed`, so neither the status bar nor
- * CodeMirror's sticky editor panels (z-index 300, e.g. the breadcrumbs above the status bar)
- * can cover or clip it.
+ * It renders in a popup layer of the overlay stack (`layers.tsx`) with `position: fixed`, so
+ * neither the status bar nor CodeMirror's sticky editor panels (e.g. the breadcrumbs above the
+ * status bar) can cover or clip it.
  */
 import { createSignal, onCleanup, onMount, type JSX } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "./layers";
 
 /** Space between the popup and its widget, and between the popup and the window edges. */
 const GAP = 6;
@@ -84,7 +84,7 @@ export function StatusPopup(props: {
     });
   });
   return (
-    <Portal>
+    <Layer kind="popup">
       <div
         ref={el}
         class={`status-popup-anchored ${props.class}`}
@@ -101,6 +101,6 @@ export function StatusPopup(props: {
       >
         {props.children}
       </div>
-    </Portal>
+    </Layer>
   );
 }

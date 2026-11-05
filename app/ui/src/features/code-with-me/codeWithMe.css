@@ -9,7 +9,7 @@
 
 .cwm-popup {
   position: fixed;
-  z-index: 140;
+  z-index: var(--z-popup);
   width: 360px;
   padding: 10px 6px 6px;
 }
@@ -260,7 +260,7 @@
 .cwm-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

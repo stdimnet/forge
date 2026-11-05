@@ -161,7 +161,7 @@
   position: absolute;
   top: 28px;
   left: 0;
-  z-index: 20;
+  z-index: var(--z-popup);
   display: flex;
   flex-direction: column;
   min-width: 180px;

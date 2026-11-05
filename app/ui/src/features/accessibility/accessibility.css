@@ -173,7 +173,7 @@ input[type="color"]:focus-visible,
 /* ---- Presentation Assistant */
 .presentation-assistant {
   position: fixed;
-  z-index: 10000;
+  z-index: var(--z-system);
   display: flex;
   align-items: baseline;
   gap: 0.7em;

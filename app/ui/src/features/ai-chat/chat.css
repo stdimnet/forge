@@ -140,7 +140,7 @@
 /* ---------- popups ---------- */
 .chat-popup {
   position: absolute;
-  z-index: 50;
+  z-index: var(--z-popup);
   min-width: 220px;
   max-width: 320px;
   max-height: 340px;
@@ -853,7 +853,7 @@
 .chat-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

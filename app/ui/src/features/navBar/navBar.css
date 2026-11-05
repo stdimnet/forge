@@ -35,7 +35,7 @@
 }
 .navbar-floating-host {
   position: fixed;
-  z-index: 120;
+  z-index: var(--z-popup);
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -77,7 +77,7 @@
 }
 .navbar-popup {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-popup);
   min-width: 220px;
   max-width: 420px;
   max-height: min(420px, 60vh);

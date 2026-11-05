@@ -3,7 +3,7 @@
  * Used for Start Session, the session's Permissions and one guest's Permissions.
  */
 import { createSignal, For, onCleanup, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { suspendKeymap } from "@/keymap";
 import type { Permissions } from "@/ipc/collab";
 
@@ -128,9 +128,9 @@ export function CustomPermissionsHost() {
   return (
     <Show when={request()} keyed>
       {(req) => (
-        <Portal>
+        <Layer kind="modal">
           <Dialog req={req} />
-        </Portal>
+        </Layer>
       )}
     </Show>
   );
