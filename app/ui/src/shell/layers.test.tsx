@@ -2,6 +2,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { installDialogAccessibility, openDialogs } from "@/features/accessibility/dialogs";
+import { askChoice, DialogHost } from "@/features/contextMenu/dialogs";
 import { LAYER_BASE, LAYER_KINDS, Layer, layerOf, layerZ, openLayer, openLayers, useLayer, type Layer as LayerT } from "./layers";
 
 /** Node's `fs` (vitest runs in Node; app/ui has no @types/node). */
@@ -156,5 +157,19 @@ describe("adopted overlays", () => {
     // `b` opened later but is not on the stack: Tab out of the window wraps into the layered one.
     outside.focus();
     expect(document.activeElement?.className).toBe("in-top");
+  });
+
+  it("shows the shared confirmations (e.g. Terminate on project switch) in a modal layer", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const dispose = render(() => <DialogHost />, host);
+    const answer = askChoice({ title: "Close Project", message: "Terminate 1 running process?", choices: [{ id: "terminate", label: "Terminate" }] });
+    await tick();
+    const layer = document.querySelector<HTMLElement>('#forge-overlays [data-layer-kind="modal"]');
+    expect(layer?.querySelector(".popup-backdrop.modal")).not.toBeNull();
+    expect(host.querySelector(".popup-backdrop")).toBeNull();
+    layer!.querySelector<HTMLButtonElement>("button.btn-primary, .dialog button:last-child")!.click();
+    expect(await answer).not.toBeUndefined();
+    dispose();
   });
 });
