@@ -293,13 +293,21 @@ async fn a_guest_without_terminal_access_sees_no_terminals() {
     assert!(call(&g, HostCall::TerminalOpen { cols: 80, rows: 24 })
         .await
         .is_err());
-    // Getting Read-only later shows the terminal with what it printed so far.
+    // Getting Read-only later shows the terminal with what it printed so far. The host sends
+    // the terminal list and the scrollback snapshot as two messages, so wait for both.
     w.host.set_permissions(READ);
     until("the terminal", || terminal(&g, "Local").is_some()).await;
-    let (before, _, _) = g
-        .session
-        .attach_terminal(terminal(&g, "Local").unwrap().id, Tab::default().sink())
-        .unwrap();
+    let id = terminal(&g, "Local").unwrap().id;
+    let mut before = String::new();
+    until("the scrollback snapshot", || {
+        before = g
+            .session
+            .attach_terminal(id, Tab::default().sink())
+            .unwrap()
+            .0;
+        !before.is_empty()
+    })
+    .await;
     assert_eq!(before, "secret output\r\nmore secret output\r\n");
 }
 
