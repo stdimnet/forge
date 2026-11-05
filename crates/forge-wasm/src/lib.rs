@@ -51,6 +51,7 @@ mod jupyter;
 mod jvm_extras;
 mod keymap;
 mod kotlin;
+mod light_edit;
 mod livetemplates;
 mod localhistory;
 mod lua;
