@@ -118,6 +118,8 @@ the host saves; a binary file shows only its size. Files over 16 MB (or over the
 opened by guests.
 The host edits these files as usual in an unshared tab.
 
+![A log over the size limit, read-only for a guest](../../screenshots/cwm-guest-view-only.png)
+
 ![The host's File Cache Conflict dialog](../../screenshots/code-with-me-file-cache-conflict.png)
 
 ![Lines changed by Alex, marked in the host's gutter](../../screenshots/code-with-me-guest-lines.png)
