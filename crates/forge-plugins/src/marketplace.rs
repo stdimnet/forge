@@ -384,7 +384,9 @@ pub fn token_allowed(index_url: &str, url: &str) -> bool {
 /// The message for a failed request: what the status means for a marketplace and where
 /// to fix it.
 pub fn http_error(url: &str, status: u16, reason: &str, token_sent: bool) -> String {
-    let head = format!("{url}: HTTP {status} {reason}").trim_end().to_string();
+    let head = format!("{url}: HTTP {status} {reason}")
+        .trim_end()
+        .to_string();
     match status {
         401 | 403 if token_sent => format!(
             "{head}. The marketplace rejected the access token; check it in {SETTINGS_PATH}."
@@ -683,22 +685,46 @@ mod tests {
             gh,
             "https://raw.githubusercontent.com/stdimnet/marketplace/main/packages/a.forgeplugin"
         ));
-        assert!(token_allowed(gh, "https://api.github.com/repos/a/b/releases/assets/1"));
-        assert!(token_allowed(gh, "https://github.com/a/b/releases/download/v1/a.forgeplugin"));
-        assert!(!token_allowed(gh, "https://objects.githubusercontent.com/a"));
+        assert!(token_allowed(
+            gh,
+            "https://api.github.com/repos/a/b/releases/assets/1"
+        ));
+        assert!(token_allowed(
+            gh,
+            "https://github.com/a/b/releases/download/v1/a.forgeplugin"
+        ));
+        assert!(!token_allowed(
+            gh,
+            "https://objects.githubusercontent.com/a"
+        ));
         assert!(!token_allowed(gh, "https://cdn.example/a.forgeplugin"));
         assert!(!token_allowed(gh, "http://raw.githubusercontent.com/a"));
         let own = "https://plugins.acme.dev/v1/index.json";
-        assert!(token_allowed(own, "https://plugins.acme.dev/files/a.forgeplugin"));
+        assert!(token_allowed(
+            own,
+            "https://plugins.acme.dev/files/a.forgeplugin"
+        ));
         assert!(token_allowed(own, "https://PLUGINS.acme.dev:443/a"));
         assert!(!token_allowed(own, "https://plugins.acme.dev:8443/a"));
         assert!(!token_allowed(own, "https://acme.dev/a"));
         assert!(!token_allowed(own, "https://evil.plugins.acme.dev/a"));
         assert!(!token_allowed(own, "https://raw.githubusercontent.com/a"));
-        assert!(!token_allowed(own, "http://plugins.acme.dev/a"), "never over plain HTTP");
-        assert!(token_allowed("http://127.0.0.1:8080/i.json", "http://127.0.0.1:8080/a"));
-        assert!(!token_allowed("http://127.0.0.1:8080/i.json", "http://127.0.0.1:9090/a"));
-        assert!(!token_allowed("http://127.0.0.1:8080/i.json", "http://localhost:8080/a"));
+        assert!(
+            !token_allowed(own, "http://plugins.acme.dev/a"),
+            "never over plain HTTP"
+        );
+        assert!(token_allowed(
+            "http://127.0.0.1:8080/i.json",
+            "http://127.0.0.1:8080/a"
+        ));
+        assert!(!token_allowed(
+            "http://127.0.0.1:8080/i.json",
+            "http://127.0.0.1:9090/a"
+        ));
+        assert!(!token_allowed(
+            "http://127.0.0.1:8080/i.json",
+            "http://localhost:8080/a"
+        ));
         assert!(!token_allowed(own, "not a url"));
         assert_eq!(token_scope(gh).as_deref(), Some("github.com"));
         assert_eq!(token_scope(own).as_deref(), Some("plugins.acme.dev"));
@@ -711,14 +737,22 @@ mod tests {
     #[test]
     fn http_errors_say_what_to_do() {
         let e = http_error(DEFAULT_URL, 404, "Not Found", false);
-        assert!(e.contains("HTTP 404 Not Found") && e.contains("access token"), "{e}");
+        assert!(
+            e.contains("HTTP 404 Not Found") && e.contains("access token"),
+            "{e}"
+        );
         assert!(e.contains(SETTINGS_PATH));
         let e = http_error(DEFAULT_URL, 401, "Unauthorized", false);
         assert!(e.contains("needs an access token"), "{e}");
         let e = http_error(DEFAULT_URL, 401, "Unauthorized", true);
         assert!(e.contains("rejected the access token"), "{e}");
         assert_eq!(
-            http_error("https://a.example/i.json", 500, "Internal Server Error", false),
+            http_error(
+                "https://a.example/i.json",
+                500,
+                "Internal Server Error",
+                false
+            ),
             "https://a.example/i.json: HTTP 500 Internal Server Error"
         );
     }
@@ -744,22 +778,28 @@ mod tests {
         market.routes.protect("/index.json", "s3cret");
         market.routes.protect("/own.forgeplugin", "s3cret");
         market.routes.set("/own.forgeplugin", bytes.clone());
-        market
-            .routes
-            .redirect("/moved.forgeplugin", &format!("{}/moved.forgeplugin", other.url));
+        market.routes.redirect(
+            "/moved.forgeplugin",
+            &format!("{}/moved.forgeplugin", other.url),
+        );
         other.routes.set("/cdn.forgeplugin", bytes.clone());
         other.routes.set("/moved.forgeplugin", bytes.clone());
         let url = format!("{}/index.json", market.url);
 
         // Without a token the protected index answers 401 with a hint.
         let e = Client::direct().unwrap().index(&url).await.unwrap_err();
-        assert!(e.contains("401") && e.contains("needs an access token"), "{e}");
+        assert!(
+            e.contains("401") && e.contains("needs an access token"),
+            "{e}"
+        );
         assert_eq!(market.routes.authorization("/index.json"), None);
         let wrong = Client::direct().unwrap().with_token(Some("nope".into()));
         let e = wrong.index(&url).await.unwrap_err();
         assert!(e.contains("rejected the access token"), "{e}");
 
-        let client = Client::direct().unwrap().with_token(Some(" s3cret ".into()));
+        let client = Client::direct()
+            .unwrap()
+            .with_token(Some(" s3cret ".into()));
         let check = |artifact: String| {
             let client = client.clone();
             let url = url.clone();
@@ -789,7 +829,10 @@ mod tests {
         assert_eq!(other.routes.hits("/moved.forgeplugin"), 1);
         assert_eq!(other.routes.authorization("/moved.forgeplugin"), None);
         // localhost is another host than 127.0.0.1.
-        let renamed = format!("{}/cdn.forgeplugin", other.url.replace("127.0.0.1", "localhost"));
+        let renamed = format!(
+            "{}/cdn.forgeplugin",
+            other.url.replace("127.0.0.1", "localhost")
+        );
         assert_eq!(check(renamed).await, Ok(bytes.len()));
         assert_eq!(other.routes.authorization("/cdn.forgeplugin"), None);
 
