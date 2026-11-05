@@ -35,12 +35,21 @@ export interface ToolWindow {
    * Return nothing to show no marker.
    */
   badge?: () => JSX.Element;
+  /**
+   * A stand-in until the real feature registers ("… is coming soon"). It never replaces a
+   * real window with the same id: production bundles can evaluate a feature module before
+   * the placeholders, so the order of registration must not matter.
+   */
+  placeholder?: boolean;
 }
 
 const [toolWindows, setToolWindows] = createSignal<ToolWindow[]>([]);
 
 export function registerToolWindow(tw: ToolWindow): void {
-  setToolWindows((prev) => [...prev.filter((p) => p.id !== tw.id), tw].sort((a, b) => a.order - b.order));
+  setToolWindows((prev) => {
+    if (tw.placeholder && prev.some((p) => p.id === tw.id && !p.placeholder)) return prev;
+    return [...prev.filter((p) => p.id !== tw.id), tw].sort((a, b) => a.order - b.order);
+  });
 }
 
 export { toolWindows };
