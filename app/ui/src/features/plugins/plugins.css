@@ -113,9 +113,35 @@
   background: var(--bg-hover);
 }
 .plg-error {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding: 10px 12px;
   color: var(--fg-muted);
   line-height: 1.5;
+  font-size: var(--fs-small);
+}
+.plg-error-title {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--fg);
+  font-weight: 600;
+}
+.plg-error-title svg {
+  color: var(--warning);
+  flex: none;
+}
+.plg-error-detail {
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.plg-error-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.plg-url .muted {
   font-size: var(--fs-small);
 }
 .plg-wanted {

@@ -28,15 +28,27 @@ const scenarios = {
   "plugins-marketplace": async (page) => {
     await openSettingsPage(page, "plugins");
     await page.click('[data-testid="plugins-tab-marketplace"]');
-    await page.waitForSelector('[data-testid="marketplace-list"] [data-plugin="acme.todo-sync"]');
-    await page.click('[data-testid="marketplace-list"] [data-plugin="acme.todo-sync"]');
-    await page.waitForSelector('[data-testid="marketplace-details"] [data-permission="network"]');
+    await page.waitForSelector('[data-testid="marketplace-list"] [data-plugin="reeperk.atom-material-icons"]');
+    await page.click('[data-testid="marketplace-list"] [data-plugin="reeperk.atom-material-icons"]');
+    await page.waitForSelector('[data-testid="marketplace-details"]:has-text("Atom Material Icons")');
+  },
+  "plugins-marketplace-error": async (page) => {
+    // Browser mode serves only the demo index: any other URL fails like a private repository.
+    await page.evaluate(async () => {
+      const { saveSetting } = await import("/src/state/settings.ts");
+      await saveSetting("plugins.marketplace.url", "https://raw.githubusercontent.com/acme/private-plugins/main/index.json", "user");
+    });
+    await openSettingsPage(page, "plugins");
+    await page.click('[data-testid="plugins-tab-marketplace"]');
+    await page.waitForSelector('[data-testid="marketplace-error"]');
+    await page.click('[data-testid="marketplace-error"] button.btn-secondary');
+    await page.waitForSelector('[data-testid="marketplace-token"]');
   },
   "plugins-permission-prompt": async (page) => {
     await openSettingsPage(page, "plugins");
     await page.click('[data-testid="plugins-tab-marketplace"]');
-    await page.waitForSelector('[data-testid="marketplace-list"] [data-plugin="acme.changelog"]');
-    await page.click('[data-testid="marketplace-list"] [data-plugin="acme.changelog"] button');
+    await page.waitForSelector('[data-testid="marketplace-list"] [data-plugin="example.word-count"] button');
+    await page.click('[data-testid="marketplace-list"] [data-plugin="example.word-count"] button');
     await page.waitForSelector('[data-testid="plugin-permission-prompt"]');
   },
   "plugins-installed-third-party": async (page) => {

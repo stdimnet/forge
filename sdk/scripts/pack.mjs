@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Pack a Forge plugin into `<id>-<version>.forgeplugin` (a zip file): forge-plugin.json,
- * everything in dist/, the folder of each icon theme file, and README.md, LICENSE and CHANGELOG.md when present. Prints the
+ * everything in dist/, the folder of each icon theme file, and the documents in
+ * `DOCUMENTS` when present (README.md, LICENSE, CHANGELOG.md, and THIRD_PARTY_NOTICES.md
+ * and NOTICE, so attribution travels with the package). Prints the
  * SHA-256 a marketplace index lists for it. Self-contained (Node.js only), so `forge plugin
  * new` copies it into new plugin projects.
  *
@@ -82,6 +84,9 @@ function walk(dir) {
     });
 }
 
+/** Files at the plugin root that are packed when present. */
+export const DOCUMENTS = ["README.md", "LICENSE", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md", "NOTICE"];
+
 /** Pack the plugin in `dir`; returns `{ file, sha256, size }`. */
 export function pack(dir, out) {
   const root = resolve(dir);
@@ -90,7 +95,7 @@ export function pack(dir, out) {
   if (manifest.main && !existsSync(join(root, manifest.main))) {
     throw new Error(`${manifest.main} does not exist: build the plugin first`);
   }
-  const files = ["forge-plugin.json", "README.md", "LICENSE", "CHANGELOG.md"]
+  const files = ["forge-plugin.json", ...DOCUMENTS]
     .map((f) => join(root, f))
     .filter((f) => existsSync(f));
   if (existsSync(join(root, "dist"))) files.push(...walk(join(root, "dist")));

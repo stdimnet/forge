@@ -24,6 +24,10 @@
 //! `sha256`; when the user configured trusted publisher keys
 //! (`plugins.marketplace.trustedKeys`), an Ed25519 signature over the package bytes from one
 //! of them is required as well.
+//!
+//! The default index is Forge's marketplace, the `stdimnet/marketplace` repository on
+//! GitHub ([`DEFAULT_URL`]). Private marketplaces take an access token, sent as
+//! `Authorization: Bearer <token>` only to the index's own host (see [`token_allowed`]).
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -33,8 +37,13 @@ use crate::sha256_hex;
 
 /// The index format this Forge reads.
 pub const INDEX_FORMAT: u32 = 1;
-/// The default index URL: a placeholder, no marketplace is live there.
-pub const PLACEHOLDER_URL: &str = "https://plugins.forge.example/index.json";
+/// The default index URL: Forge's marketplace (`stdimnet/marketplace` on GitHub).
+pub const DEFAULT_URL: &str =
+    "https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json";
+/// Where users change the index URL and the access token.
+pub const SETTINGS_PATH: &str = "Settings | Plugins, gear menu | Marketplace Settings";
+/// GitHub's hosts: an index on one of them shares the access token with the others.
+const GITHUB_HOSTS: [&str; 3] = ["raw.githubusercontent.com", "github.com", "api.github.com"];
 /// Largest index Forge reads.
 const MAX_INDEX: usize = 16 * 1024 * 1024;
 
@@ -317,11 +326,88 @@ pub fn verify(bytes: &[u8], version: &IndexVersion, trusted_keys: &[String]) -> 
     Err("the package signature does not match any trusted publisher key".into())
 }
 
+fn is_github(host: &str) -> bool {
+    GITHUB_HOSTS.contains(&host)
+}
+
+fn is_loopback(host: &url::Host<&str>) -> bool {
+    match host {
+        url::Host::Domain(d) => d.eq_ignore_ascii_case("localhost"),
+        url::Host::Ipv4(ip) => ip.is_loopback(),
+        url::Host::Ipv6(ip) => ip.is_loopback(),
+    }
+}
+
+/// The keychain scope of the access token for an index: its host and port (GitHub's
+/// hosts share `github.com`). A token stored for one marketplace never goes to another.
+pub fn token_scope(index_url: &str) -> Option<String> {
+    let url = url::Url::parse(index_url).ok()?;
+    let host = url.host_str()?.to_ascii_lowercase();
+    if is_github(&host) {
+        return Some("github.com".into());
+    }
+    Some(match url.port() {
+        Some(port) => format!("{host}:{port}"),
+        None => host,
+    })
+}
+
+/// Whether the access token of the index at `index_url` may be sent to `url`: only to the
+/// index's own host and port, or to GitHub's hosts when the index is on GitHub, and only
+/// over HTTPS (plain HTTP only to this machine). Hosts the index merely links to never
+/// see it.
+pub fn token_allowed(index_url: &str, url: &str) -> bool {
+    let (Ok(index), Ok(target)) = (url::Url::parse(index_url), url::Url::parse(url)) else {
+        return false;
+    };
+    let (Some(index_host), Some(host)) = (index.host(), target.host()) else {
+        return false;
+    };
+    let secure = match target.scheme() {
+        "https" => true,
+        "http" => is_loopback(&host),
+        _ => false,
+    };
+    if !secure {
+        return false;
+    }
+    let (a, b) = (
+        index_host.to_string().to_ascii_lowercase(),
+        host.to_string().to_ascii_lowercase(),
+    );
+    if is_github(&a) {
+        return is_github(&b) && target.scheme() == "https";
+    }
+    a == b && index.port_or_known_default() == target.port_or_known_default()
+}
+
+/// The message for a failed request: what the status means for a marketplace and where
+/// to fix it.
+pub fn http_error(url: &str, status: u16, reason: &str, token_sent: bool) -> String {
+    let head = format!("{url}: HTTP {status} {reason}").trim_end().to_string();
+    match status {
+        401 | 403 if token_sent => format!(
+            "{head}. The marketplace rejected the access token; check it in {SETTINGS_PATH}."
+        ),
+        401 | 403 => format!(
+            "{head}. The marketplace needs an access token; set one in {SETTINGS_PATH}."
+        ),
+        404 if token_sent => format!(
+            "{head}. Check the index URL in {SETTINGS_PATH}, and that the access token may read the repository."
+        ),
+        404 => format!(
+            "{head}. Check the index URL in {SETTINGS_PATH}; a private repository (on GitHub, for example) also answers 404 until you set an access token there."
+        ),
+        _ => head,
+    }
+}
+
 /// HTTP access to a marketplace (system proxy settings apply).
 #[cfg(feature = "net")]
 #[derive(Clone)]
 pub struct Client {
     http: reqwest::Client,
+    token: Option<String>,
 }
 
 #[cfg(feature = "net")]
@@ -332,7 +418,7 @@ impl Client {
             .connect_timeout(std::time::Duration::from_secs(20))
             .build()
             .map_err(|e| e.to_string())?;
-        Ok(Self { http })
+        Ok(Self { http, token: None })
     }
 
     /// A client without proxy (tests talk to localhost).
@@ -341,18 +427,41 @@ impl Client {
             .no_proxy()
             .build()
             .map_err(|e| e.to_string())?;
-        Ok(Self { http })
+        Ok(Self { http, token: None })
     }
 
-    async fn get(&self, url: &str, limit: u64) -> Result<Vec<u8>, String> {
-        let mut response = self
-            .http
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| format!("cannot reach {url}: {e}"))?;
-        if !response.status().is_success() {
-            return Err(format!("{url}: HTTP {}", response.status()));
+    /// Send `token` (a private marketplace's access token) to the index's host; an empty
+    /// token is none.
+    pub fn with_token(mut self, token: Option<String>) -> Self {
+        self.token = token
+            .map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty());
+        self
+    }
+
+    /// GET `url` for the index at `index_url`. The token goes only where
+    /// [`token_allowed`] says; redirects to another host drop it (reqwest removes
+    /// `Authorization` when a redirect leaves the host).
+    async fn get(&self, index_url: &str, url: &str, limit: u64) -> Result<Vec<u8>, String> {
+        let mut request = self.http.get(url);
+        let token = self
+            .token
+            .as_deref()
+            .filter(|_| token_allowed(index_url, url));
+        if let Some(token) = token {
+            request = request.bearer_auth(token);
+        }
+        let mut response = request.send().await.map_err(|e| {
+            format!("cannot reach {url}: {e}. Check the network connection and proxy settings.")
+        })?;
+        let status = response.status();
+        if !status.is_success() {
+            return Err(http_error(
+                url,
+                status.as_u16(),
+                status.canonical_reason().unwrap_or(""),
+                token.is_some(),
+            ));
         }
         let mut data = Vec::new();
         while let Some(chunk) = response
@@ -369,7 +478,7 @@ impl Client {
     }
 
     pub async fn index(&self, url: &str) -> Result<(Index, Vec<String>), String> {
-        let bytes = self.get(url, MAX_INDEX as u64).await?;
+        let bytes = self.get(url, url, MAX_INDEX as u64).await?;
         Index::parse(&String::from_utf8_lossy(&bytes))
     }
 
@@ -381,7 +490,7 @@ impl Client {
         trusted_keys: &[String],
     ) -> Result<Vec<u8>, String> {
         let url = artifact_url(index_url, &version.url)?;
-        let bytes = self.get(&url, crate::package::MAX_SIZE).await?;
+        let bytes = self.get(index_url, &url, crate::package::MAX_SIZE).await?;
         verify(&bytes, version, trusted_keys)?;
         Ok(bytes)
     }
@@ -564,5 +673,131 @@ mod tests {
             .index(&format!("{}/missing.json", server.url))
             .await
             .is_err());
+    }
+
+    #[test]
+    fn the_token_goes_only_to_the_index_host() {
+        let gh = DEFAULT_URL;
+        assert!(token_allowed(gh, gh));
+        assert!(token_allowed(
+            gh,
+            "https://raw.githubusercontent.com/stdimnet/marketplace/main/packages/a.forgeplugin"
+        ));
+        assert!(token_allowed(gh, "https://api.github.com/repos/a/b/releases/assets/1"));
+        assert!(token_allowed(gh, "https://github.com/a/b/releases/download/v1/a.forgeplugin"));
+        assert!(!token_allowed(gh, "https://objects.githubusercontent.com/a"));
+        assert!(!token_allowed(gh, "https://cdn.example/a.forgeplugin"));
+        assert!(!token_allowed(gh, "http://raw.githubusercontent.com/a"));
+        let own = "https://plugins.acme.dev/v1/index.json";
+        assert!(token_allowed(own, "https://plugins.acme.dev/files/a.forgeplugin"));
+        assert!(token_allowed(own, "https://PLUGINS.acme.dev:443/a"));
+        assert!(!token_allowed(own, "https://plugins.acme.dev:8443/a"));
+        assert!(!token_allowed(own, "https://acme.dev/a"));
+        assert!(!token_allowed(own, "https://evil.plugins.acme.dev/a"));
+        assert!(!token_allowed(own, "https://raw.githubusercontent.com/a"));
+        assert!(!token_allowed(own, "http://plugins.acme.dev/a"), "never over plain HTTP");
+        assert!(token_allowed("http://127.0.0.1:8080/i.json", "http://127.0.0.1:8080/a"));
+        assert!(!token_allowed("http://127.0.0.1:8080/i.json", "http://127.0.0.1:9090/a"));
+        assert!(!token_allowed("http://127.0.0.1:8080/i.json", "http://localhost:8080/a"));
+        assert!(!token_allowed(own, "not a url"));
+        assert_eq!(token_scope(gh).as_deref(), Some("github.com"));
+        assert_eq!(token_scope(own).as_deref(), Some("plugins.acme.dev"));
+        assert_eq!(
+            token_scope("http://127.0.0.1:8080/i.json").as_deref(),
+            Some("127.0.0.1:8080")
+        );
+    }
+
+    #[test]
+    fn http_errors_say_what_to_do() {
+        let e = http_error(DEFAULT_URL, 404, "Not Found", false);
+        assert!(e.contains("HTTP 404 Not Found") && e.contains("access token"), "{e}");
+        assert!(e.contains(SETTINGS_PATH));
+        let e = http_error(DEFAULT_URL, 401, "Unauthorized", false);
+        assert!(e.contains("needs an access token"), "{e}");
+        let e = http_error(DEFAULT_URL, 401, "Unauthorized", true);
+        assert!(e.contains("rejected the access token"), "{e}");
+        assert_eq!(
+            http_error("https://a.example/i.json", 500, "Internal Server Error", false),
+            "https://a.example/i.json: HTTP 500 Internal Server Error"
+        );
+    }
+
+    #[tokio::test]
+    async fn sends_the_token_to_the_index_host_only() {
+        let bytes = word_count_package("1.1.0");
+        let index = |url: &str| {
+            serde_json::json!({
+                "formatVersion": 1,
+                "plugins": [{
+                    "id": "example.word-count", "name": "Word Count",
+                    "versions": [{
+                        "version": "1.1.0", "engines": { "forge": ">=0.1.0" }, "url": url,
+                        "sha256": sha256_hex(&bytes), "size": bytes.len()
+                    }]
+                }]
+            })
+            .to_string()
+        };
+        let market = testserver::start().await;
+        let other = testserver::start().await;
+        market.routes.protect("/index.json", "s3cret");
+        market.routes.protect("/own.forgeplugin", "s3cret");
+        market.routes.set("/own.forgeplugin", bytes.clone());
+        market
+            .routes
+            .redirect("/moved.forgeplugin", &format!("{}/moved.forgeplugin", other.url));
+        other.routes.set("/cdn.forgeplugin", bytes.clone());
+        other.routes.set("/moved.forgeplugin", bytes.clone());
+        let url = format!("{}/index.json", market.url);
+
+        // Without a token the protected index answers 401 with a hint.
+        let e = Client::direct().unwrap().index(&url).await.unwrap_err();
+        assert!(e.contains("401") && e.contains("needs an access token"), "{e}");
+        assert_eq!(market.routes.authorization("/index.json"), None);
+        let wrong = Client::direct().unwrap().with_token(Some("nope".into()));
+        let e = wrong.index(&url).await.unwrap_err();
+        assert!(e.contains("rejected the access token"), "{e}");
+
+        let client = Client::direct().unwrap().with_token(Some(" s3cret ".into()));
+        let check = |artifact: String| {
+            let client = client.clone();
+            let url = url.clone();
+            let json = index(&artifact);
+            market.routes.set("/index.json", json);
+            async move {
+                let (index, _) = client.index(&url).await.unwrap();
+                let v = find_version(&index, "example.word-count", None, "0.1.0")
+                    .unwrap()
+                    .clone();
+                client.download(&url, &v, &[]).await.map(|b| b.len())
+            }
+        };
+        // Index and packages on the index's host get the token.
+        assert_eq!(check("own.forgeplugin".into()).await, Ok(bytes.len()));
+        let bearer = Some("Bearer s3cret".to_string());
+        assert_eq!(market.routes.authorization("/index.json"), bearer);
+        assert_eq!(market.routes.authorization("/own.forgeplugin"), bearer);
+        // A package on another host (another port) does not.
+        let cdn = format!("{}/cdn.forgeplugin", other.url);
+        assert_eq!(check(cdn).await, Ok(bytes.len()));
+        assert_eq!(other.routes.hits("/cdn.forgeplugin"), 1);
+        assert_eq!(other.routes.authorization("/cdn.forgeplugin"), None);
+        // Nor does a redirect from the index's host to another one.
+        assert_eq!(check("moved.forgeplugin".into()).await, Ok(bytes.len()));
+        assert_eq!(market.routes.authorization("/moved.forgeplugin"), bearer);
+        assert_eq!(other.routes.hits("/moved.forgeplugin"), 1);
+        assert_eq!(other.routes.authorization("/moved.forgeplugin"), None);
+        // localhost is another host than 127.0.0.1.
+        let renamed = format!("{}/cdn.forgeplugin", other.url.replace("127.0.0.1", "localhost"));
+        assert_eq!(check(renamed).await, Ok(bytes.len()));
+        assert_eq!(other.routes.authorization("/cdn.forgeplugin"), None);
+
+        // A missing index explains the 404.
+        let e = client
+            .index(&format!("{}/missing.json", market.url))
+            .await
+            .unwrap_err();
+        assert!(e.contains("404") && e.contains("index URL"), "{e}");
     }
 }

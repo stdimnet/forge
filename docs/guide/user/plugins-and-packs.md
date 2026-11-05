@@ -83,16 +83,31 @@ programs or write project files.
 
 ![Marketplace](../../screenshots/plugins-marketplace.png)
 
-The Marketplace tab reads a plugin index from the URL set with ⚙ | **Marketplace URL…**
-(setting `plugins.marketplace.url`). It lists the plugins with search, details, permissions,
+The Marketplace tab lists the plugins of Forge's marketplace, the
+[`stdimnet/marketplace`](https://github.com/stdimnet/marketplace) repository on GitHub (for
+example the **Atom Material Icons** icon theme). It has search, details, permissions,
 **Install** and **Update**; ⚙ | **Check for Updates** reports installed plugins with newer
 versions. Every download is checked against the SHA-256 checksum in the index. With trusted
 publisher keys (setting `plugins.marketplace.trustedKeys`, base64 Ed25519 public keys) a
 valid signature from one of them is required as well.
 
-> **Note:** no public Forge marketplace is live yet. The default URL
-> `https://plugins.forge.example/index.json` is a placeholder, so the tab says that no
-> marketplace is configured until you enter the URL of an index, for example one your team
-> hosts. The index format is described in [Publishing plugins](../developer/plugins/publishing.md).
+⚙ | **Marketplace Settings…** changes where the plugins come from:
+
+- **Marketplace index URL** (setting `plugins.marketplace.url`): the index the tab reads.
+  Empty means Forge's marketplace,
+  `https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json`. Enter the URL of
+  another index, for example one your team hosts. The index format is described in
+  [Publishing plugins](../developer/plugins/publishing.md).
+- **Access token**: only for a private marketplace, for example a private GitHub repository
+  (a fine-grained token with read access to its contents). Forge stores it in the OS
+  keychain, never in the settings, and sends it only to the index's host (for an index on
+  GitHub: `raw.githubusercontent.com`, `github.com` and `api.github.com`), never to other
+  hosts the index links to. **Remove Token** deletes it.
+
+![Marketplace error](../../screenshots/plugins-marketplace-error.png)
+
+When the index cannot be read (offline, a wrong URL, a private marketplace without a valid
+token), the tab says why, for example `HTTP 404 Not Found`, with **Retry** and a button that
+opens Marketplace Settings.
 
 To write a plugin, see the [plugin SDK](../developer/plugins/index.md).

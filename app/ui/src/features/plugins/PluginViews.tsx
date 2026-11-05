@@ -79,12 +79,13 @@ export function PermissionPromptView() {
 
 const downloads = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : String(n));
 
-export function MarketplaceTab() {
+/** The Marketplace tab; `onSettings` opens Marketplace Settings (index URL, access token). */
+export function MarketplaceTab(props: { onSettings?: () => void; reload?: () => number }) {
   const [query, setQuery] = createSignal("");
   const [refresh, setRefresh] = createSignal(0);
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
   const [view] = createResource(
-    () => ({ q: query(), r: refresh() }),
+    () => ({ q: query(), r: refresh() + (props.reload?.() ?? 0) }),
     async ({ q, r }) => {
       try {
         return { ok: await pluginsApi.marketplace(q, r > 0), error: null };
@@ -120,7 +121,28 @@ export function MarketplaceTab() {
         </Show>
         <div class="plugins-list" data-testid="marketplace-list">
           <Show when={!view.loading} fallback={<div class="set-empty">{tr("common.loadingEllipsis")}</div>}>
-            <Show when={!view()?.error} fallback={<div class="plg-error">{view()?.error}</div>}>
+            <Show
+              when={!view()?.error}
+              fallback={
+                <div class="plg-error" data-testid="marketplace-error">
+                  <div class="plg-error-title">
+                    <AlertTriangle size={14} /> {tr("tools.plugins.cannotLoadTheMarketplace")}
+                  </div>
+                  <div class="plg-error-detail">{view()?.error}</div>
+                  <div>{tr("tools.plugins.marketplaceErrorHint")}</div>
+                  <div class="plg-error-actions">
+                    <button class="btn-primary set-btn" data-testid="marketplace-retry" onClick={() => setRefresh((n) => n + 1)}>
+                      {tr("common.retry")}
+                    </button>
+                    <Show when={props.onSettings}>
+                      <button class="btn-secondary set-btn" onClick={() => props.onSettings?.()}>
+                        {tr("plugins.marketplaceSettings")}
+                      </button>
+                    </Show>
+                  </div>
+                </div>
+              }
+            >
               <For each={entries()} fallback={<div class="set-empty">{tr("common.nothingFound")}</div>}>
                 {(e) => (
                   <div class="plugin-item" classList={{ selected: selected()?.id === e.id }} data-plugin={e.id} onClick={() => setSelectedId(e.id)}>
@@ -131,9 +153,11 @@ export function MarketplaceTab() {
                       <div class="plugin-item-name">{e.name}</div>
                       <div class="plugin-item-meta">
                         <span class="muted">{e.publisher}</span>
-                        <span class="muted">
-                          <Download size={10} /> {downloads(e.downloads)}
-                        </span>
+                        <Show when={e.downloads > 0}>
+                          <span class="muted">
+                            <Download size={10} /> {downloads(e.downloads)}
+                          </span>
+                        </Show>
                       </div>
                     </div>
                     <Show
@@ -173,7 +197,9 @@ export function MarketplaceTab() {
                 <div class="plugin-details-name">{e().name}</div>
                 <div class="plugin-item-meta">
                   <span class="muted">
-                    {tr("tools.plugins.downloads", { publisher: e().publisher, version: e().latest.version, value: e().latest.released ? ` · ${e().latest.released}` : "", value2: downloads(e().downloads) })}
+                    {e().downloads > 0
+                      ? tr("tools.plugins.downloads", { publisher: e().publisher, version: e().latest.version, value: e().latest.released ? ` · ${e().latest.released}` : "", value2: downloads(e().downloads) })
+                      : tr("tools.plugins.publisherVersion", { publisher: e().publisher, version: e().latest.version, value: e().latest.released ? ` · ${e().latest.released}` : "" })}
                   </span>
                 </div>
               </div>

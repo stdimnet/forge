@@ -2137,9 +2137,9 @@ order = 3
 [[contributions.settings]]
 key = "plugins.marketplace.url"
 title = "Marketplace index URL"
-description = "The plugin index (JSON, format 1) the Marketplace tab reads. The default is a placeholder: no public Forge marketplace is live yet."
+description = "The plugin index (JSON, format 1) the Marketplace tab reads. The default is Forge's marketplace (stdimnet/marketplace on GitHub). A private marketplace's access token is stored in the OS keychain, not here."
 type = "string"
-default = "https://plugins.forge.example/index.json"
+default = "https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json"
 group = "plugins"
 hidden = true
 order = 0

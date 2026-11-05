@@ -301,6 +301,8 @@ pub fn run() {
             commands::third_party::marketplace_list,
             commands::third_party::marketplace_install,
             commands::third_party::marketplace_updates,
+            commands::third_party::marketplace_token_status,
+            commands::third_party::marketplace_token_set,
             commands::third_party::plugins_wanted_dismiss,
             commands::settings_sync::settings_sync_status,
             commands::settings_sync::settings_sync_now,

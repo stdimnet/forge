@@ -4139,14 +4139,26 @@ the keymap resolver.
   `plugin_host_setting_get/set`, `marketplace_list({ query, refresh }) -> MarketplaceView`,
   `marketplace_install({ id, version? })` (download, size + SHA-256 + optional Ed25519 from
   `plugins.marketplace.trustedKeys`, listing must match the package), `marketplace_updates()`,
+  `marketplace_token_status() -> { url, scope, set }`, `marketplace_token_set({ token? })`
+  (`null` removes it; the token itself never goes back to the UI),
   `plugins_wanted_dismiss()`; event `plugins://changed` (every window reloads its plugins).
   The marketplace index URL is `plugins.marketplace.url`; the default
-  `https://plugins.forge.example/index.json` is a placeholder. The browser mock installs the
-  SDK example (`sdk/examples/word-count`) and evaluates a demo index with the same Rust code
-  (`forge-wasm`: `plugins_marketplace`, `plugins_permission_lines`, `plugins_validate_manifest`).
+  (`marketplace::DEFAULT_URL`) is Forge's marketplace,
+  `https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json`. A private
+  marketplace's access token lives in the OS keychain (`forge_plugins::secrets`, feature
+  `keychain`: service `forge-plugins`, account `marketplace:<token_scope>`) and is sent as
+  `Authorization: Bearer` only where `marketplace::token_allowed` says: the index's host and
+  port over HTTPS (HTTP only to loopback), GitHub's three hosts for an index on GitHub, never
+  other hosts the index links to (reqwest drops it on redirects to another host).
+  `marketplace::http_error` turns 401 / 403 / 404 into messages that point to Marketplace
+  Settings. The browser mock installs the SDK example (`sdk/examples/word-count`) and
+  evaluates a demo index (a copy of the real one plus the Word Count example) with the same
+  Rust code (`forge-wasm`: `plugins_marketplace`, `plugins_permission_lines`,
+  `plugins_validate_manifest`); any other index URL fails with a 404 to show the error state.
 - SDK: `sdk/plugin-api` (types of `@forge/plugin-api`), `sdk/templates/basic`,
   `sdk/scripts/forge-plugin.mjs` (`pnpm plugin new|build|pack` in `app/ui`),
-  `sdk/scripts/pack.mjs`. Docs: `docs/guide/developer/plugins/`.
+  `sdk/scripts/pack.mjs` (packs `README.md`, `LICENSE`, `CHANGELOG.md`,
+  `THIRD_PARTY_NOTICES.md` and `NOTICE` when present). Docs: `docs/guide/developer/plugins/`.
 - Export / Import Settings groups (`forge_maintenance::groups`) include Color Schemes, every
   `*.codeStyle.*` key and `installed-plugins.json` (written from the store on export; on import
   the missing plugins become the store's "wanted" list shown in the Marketplace tab).

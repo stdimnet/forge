@@ -126,11 +126,18 @@ export interface PluginRef {
 
 export interface MarketplaceView {
   url: string;
-  placeholder: boolean;
   name: string;
   entries: MarketplaceEntry[];
   warnings: string[];
   wanted: PluginRef[];
+}
+
+/** The access token of the configured marketplace; the token itself stays in Rust. */
+export interface MarketplaceTokenStatus {
+  url: string;
+  /** Where the token is sent: the index's host (`github.com` for GitHub's hosts). */
+  scope: string;
+  set: boolean;
 }
 
 export interface FetchRequest {
@@ -187,6 +194,9 @@ export const pluginsApi = {
   marketplaceInstall: (id: string, version?: string) =>
     invoke<InstalledPlugin>("marketplace_install", { id, version: version ?? null }),
   updates: () => invoke<MarketplaceEntry[]>("marketplace_updates"),
+  tokenStatus: () => invoke<MarketplaceTokenStatus>("marketplace_token_status"),
+  /** Store the token in the OS keychain; `null` removes it. */
+  setToken: (token: string | null) => invoke<void>("marketplace_token_set", { token }),
   dismissWanted: () => invoke<void>("plugins_wanted_dismiss"),
 };
 
