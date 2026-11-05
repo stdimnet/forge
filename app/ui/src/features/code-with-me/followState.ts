@@ -4,7 +4,7 @@
  * `follow.ts` feeds it with presence and local actions and drives the editor.
  */
 import type { Participant, Presence } from "@/ipc/collab";
-import { GUEST_PREFIX } from "./docs";
+import { GUEST_PREFIX, isGuestTabPath, projectPathOf } from "@/ipc/projectPath";
 import { t } from "@/i18n";
 
 export interface FollowState {
@@ -52,7 +52,7 @@ const isProjectFile = (path: string) => !path.includes("://") && !path.startsWit
 /** The workspace-relative file of a tab, as presence names it (`undefined` for other tabs). */
 export function presenceFile(tabPath: string | null | undefined): string | undefined {
   if (!tabPath) return undefined;
-  if (tabPath.startsWith(GUEST_PREFIX)) return tabPath.slice(GUEST_PREFIX.length) || undefined;
+  if (isGuestTabPath(tabPath)) return projectPathOf(tabPath) || undefined;
   return isProjectFile(tabPath) ? tabPath : undefined;
 }
 

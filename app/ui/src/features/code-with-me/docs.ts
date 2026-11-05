@@ -14,7 +14,9 @@ import { withAuthor, type Author } from "./guestChanges";
 import { session } from "./store";
 import { t } from "@/i18n";
 
-export const GUEST_PREFIX = "cwm://";
+import { GUEST_PREFIX } from "@/ipc/projectPath";
+
+export { GUEST_PREFIX };
 
 /** Origin of updates that came from the session (other participants, the disk). */
 export const REMOTE = Symbol("collab-remote");
