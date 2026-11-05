@@ -51,6 +51,11 @@ export interface DialogDef<P = Record<string, unknown>, R = unknown> {
   modal?: boolean;
   /** Browser mode: open as a browser popup window instead of in-page (not modal only). */
   browserPopup?: boolean;
+  /**
+   * A window of its own, not opened by a project window (the LightEdit window): it does not
+   * show the project the IDE window has open.
+   */
+  standalone?: boolean;
 }
 
 // Definitions are heterogeneous; callers get typed access through `registerDialog`.

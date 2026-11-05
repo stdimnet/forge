@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Forge
+Comment=Open forge:// links in Forge
+Exec=forge %u
+Icon=forge
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/forge;

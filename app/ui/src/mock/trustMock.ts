@@ -75,6 +75,8 @@ registerMock("trust_project", ({ path, location }) => {
   changed();
   return check(target);
 });
+// Browser mode opens no project from a launch.
+registerMock("trust_launch_prompt", () => null);
 registerMock("trust_locations", () => entries());
 registerMock("trust_location_add", ({ path }) => {
   const p = clean(String(path));

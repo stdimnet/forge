@@ -2092,5 +2092,19 @@
   "tools.vim.visual": "Visual",
   "tools.vulnerabilities.vulnerableDependencies": "Vulnerable Dependencies",
   "tools.forges.into": "into",
-  "tools.forges.openedAgo": "opened {value}"
+  "tools.forges.openedAgo": "opened {value}",
+  "tools.lightEdit.title": "LightEdit",
+  "tools.lightEdit.mode": "LightEdit mode",
+  "tools.lightEdit.openFile": "Open File…",
+  "tools.lightEdit.saveAll": "Save All",
+  "tools.lightEdit.openProject": "Open Project…",
+  "tools.lightEdit.noFilesOpen": "No files are open",
+  "tools.lightEdit.noFilesHint": "Use Open File…, or Open With › Forge in the file manager",
+  "tools.lightEdit.cannotOpenTheFile": "Cannot open the file",
+  "tools.lightEdit.cannotOpenTheProject": "Cannot open the project",
+  "tools.lightEdit.cannotSave": "Cannot save the files",
+  "tools.lightEdit.openFolderTitle": "Open Folder",
+  "tools.lightEdit.linkWantsToOpenFolder": "A forge:// link wants to open a folder as a project:",
+  "tools.lightEdit.openItAsAProject": "Open it as a project?",
+  "tools.lightEdit.openFolder": "Open Folder"
 }

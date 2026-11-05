@@ -1,17 +1,20 @@
 //! Browser Companion and other ways to open files from outside: the local HTTP server for
-//! the browser extension, `forge://` links and `forge file:12` launches. The logic lives
-//! in `forge-open`; this module wires it to the window, the settings and the UI. For a
+//! the browser extension, `forge://` links, `forge file:12` launches, "Open With → Forge" and
+//! "Open Folder in Forge" from the file manager, and the macOS open-file event. The logic
+//! lives in `forge-open` (`forge_open::launch` sorts a launch into projects, project files and
+//! LightEdit files); this module wires it to the windows, the settings and the UI. For a
 //! remote project, browser paths are mapped to the project on the host
 //! (`forge_open::resolve_remote`) and checked and searched through the project's backend.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use forge_backend::Backend;
 use forge_collab::link::JoinRoute;
 use forge_core::{FileKind, FileMatch};
-use forge_open::cli::{parse_launch_args, LaunchTarget};
+use forge_open::cli::parse_launch_args;
+use forge_open::launch::{link_folder, opened_urls_to_args, plan_launch, wants_light_edit};
 use forge_open::live_edit::LiveEditHub;
 use forge_open::pairing::{ClientInfo, Pairing};
 use forge_open::server::{
@@ -64,9 +67,12 @@ pub struct CompanionState {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum PendingEvent {
     Open(OpenEvent),
+    /// A folder to open as a project (the UI asks "This Window / New Window" when a project
+    /// is open). `confirm`: it comes from a `forge://` link, so the UI asks first.
     #[serde(rename_all = "camelCase")]
     OpenProject {
         root: String,
+        confirm: bool,
     },
     /// A Code With Me session link (canonical, checked) for the Join Session dialog.
     #[serde(rename_all = "camelCase")]
@@ -126,21 +132,47 @@ fn focus_main_window(app: &AppHandle) {
     }
 }
 
-/// Send an event to the UI, or queue it until the UI is ready.
+/// `OPEN_PROJECT_EVENT` payload.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenProjectPayload<'a> {
+    root: &'a str,
+    confirm: bool,
+}
+
+/// Send an event to the project window, or queue it until its UI is ready. When Forge runs
+/// with the LightEdit window only, the project window opens first and gets it then.
 fn dispatch(app: &AppHandle, event: PendingEvent) {
     let state = app.state::<CompanionState>();
+    let no_project_window = app.get_webview_window(crate::startup::MAIN_LABEL).is_none()
+        && app.state::<crate::startup::StartupState>().finished();
+    if no_project_window {
+        state.ui_ready.store(false, Ordering::SeqCst);
+    }
     if !state.ui_ready.load(Ordering::SeqCst) {
         state
             .pending
             .lock()
             .expect("pending lock poisoned")
             .push(event);
+        if no_project_window {
+            crate::startup::open_project_window(app);
+        }
         return;
     }
     let sent = match &event {
-        PendingEvent::Open(e) => app.emit(OPEN_EVENT, e),
-        PendingEvent::OpenProject { root } => app.emit(OPEN_PROJECT_EVENT, root),
-        PendingEvent::JoinSession { link } => app.emit(JOIN_SESSION_EVENT, link),
+        PendingEvent::Open(e) => app.emit_to(crate::startup::MAIN_LABEL, OPEN_EVENT, e),
+        PendingEvent::OpenProject { root, confirm } => app.emit_to(
+            crate::startup::MAIN_LABEL,
+            OPEN_PROJECT_EVENT,
+            OpenProjectPayload {
+                root,
+                confirm: *confirm,
+            },
+        ),
+        PendingEvent::JoinSession { link } => {
+            app.emit_to(crate::startup::MAIN_LABEL, JOIN_SESSION_EVENT, link)
+        }
     };
     if let Err(e) = sent {
         tracing::warn!("cannot forward open request to the UI: {e}");
@@ -287,8 +319,13 @@ pub fn open_symbol(
     Ok(event)
 }
 
-/// Handle a `forge://` link (from the OS, so it is not trusted).
+/// Handle a `forge://` link (from the OS, so it is not trusted). A link to a folder opens it
+/// as a project once the user confirms.
 pub fn open_link(app: &AppHandle, link: &LinkAction) {
+    if let Some(dir) = link_folder(link) {
+        open_project_later(app, &dir, true);
+        return;
+    }
     let result = match link {
         LinkAction::Open(r) => open_request(app, r, OpenSource::Link, None)
             .map(|_| ())
@@ -327,9 +364,84 @@ pub fn queue_startup_join(app: &AppHandle) {
     }
 }
 
-/// Handle launcher arguments: at startup (`startup = true`) a project or file argument
-/// opens its project directly; later (second launch) everything goes through the UI.
-pub fn handle_launch_args<I, S>(app: &AppHandle, args: I, cwd: &Path, startup: bool)
+/// Open a folder as a project through the project window's UI ("This Window / New
+/// Window" when a project is open, "Trust and Open Project?" in the window it opens in).
+/// `confirm`: the request comes from a link, so the UI asks first.
+pub fn open_project_later(app: &AppHandle, dir: &Path, confirm: bool) {
+    dispatch(
+        app,
+        PendingEvent::OpenProject {
+            root: dir.display().to_string(),
+            confirm,
+        },
+    );
+}
+
+/// The project window closed while the LightEdit window keeps Forge running: close its
+/// project, and queue requests until a project window is open again.
+pub fn project_window_closed(app: &AppHandle) {
+    app.state::<CompanionState>()
+        .ui_ready
+        .store(false, Ordering::SeqCst);
+    app.state::<AppState>().close_project();
+}
+
+/// The project a launch opened in this window at startup, until the UI asks whether to
+/// trust it (`trust_launch_prompt`): the question belongs to the window the project opens in.
+static LAUNCH_TRUST: Mutex<Option<String>> = Mutex::new(None);
+
+/// The project root [`handle_launch_args`] opened at startup, once.
+pub fn take_launch_trust() -> Option<String> {
+    LAUNCH_TRUST
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take()
+}
+
+/// Paths of macOS open-file events that arrived before the startup read the launch
+/// arguments (`None` once it has).
+static EARLY_OPENED: Mutex<Option<Vec<String>>> = Mutex::new(Some(Vec::new()));
+
+/// The launch arguments at startup: the command line plus the files and folders of macOS
+/// open-file events that arrived so far. Later events are handled as they come.
+pub fn startup_launch_args() -> Vec<String> {
+    let early = EARLY_OPENED
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take()
+        .unwrap_or_default();
+    std::env::args().skip(1).chain(early).collect()
+}
+
+/// macOS open-file event (`RunEvent::Opened`: Finder "Open With", files and folders dropped
+/// on the Dock icon), also while Forge runs: routed like launcher arguments. Its `forge://`
+/// URLs go to the deep-link plugin.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn handle_opened_urls<I, S>(app: &AppHandle, urls: I)
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = opened_urls_to_args(urls);
+    if args.is_empty() {
+        return;
+    }
+    {
+        let mut early = EARLY_OPENED.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(queue) = early.as_mut() {
+            queue.extend(args);
+            return;
+        }
+    }
+    handle_launch_args(app, args, Path::new("/"), false);
+}
+
+/// Handle launcher arguments. Folders open as projects: at startup (`startup = true`) the
+/// first one opens in this window right away, later ones (second launch, "Open Folder in
+/// Forge") go through the UI. Files of the open project (or of the folder opened at startup)
+/// open in the project window; other files open in the LightEdit window. Returns whether the
+/// launch only opened LightEdit files (at startup Forge then shows the LightEdit window only).
+pub fn handle_launch_args<I, S>(app: &AppHandle, args: I, cwd: &Path, startup: bool) -> bool
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
@@ -339,40 +451,48 @@ where
         .into_iter()
         .map(|a| a.as_ref().to_string())
         .partition(|a| forge_collab::link::is_join_url(a));
-    for url in joins {
-        if let Err(e) = open_join_link(app, &url) {
+    for url in &joins {
+        if let Err(e) = open_join_link(app, url) {
             tracing::warn!("ignoring session link: {e}");
         }
     }
-    for target in parse_launch_args(args, cwd) {
-        match target {
-            LaunchTarget::Project(dir) => {
-                if startup {
-                    open_workspace_now(app, &dir);
-                } else {
-                    dispatch(
-                        app,
-                        PendingEvent::OpenProject {
-                            root: dir.display().to_string(),
-                        },
-                    );
-                }
+    let roots: Vec<PathBuf> = app
+        .state::<AppState>()
+        .local_workspace()
+        .map(|ws| ws.root().to_path_buf())
+        .into_iter()
+        .collect();
+    let force_light_edit = wants_light_edit(&args);
+    let plan = plan_launch(
+        parse_launch_args(&args, cwd),
+        &roots,
+        force_light_edit,
+        startup,
+    );
+    let light_edit_only = plan.light_edit_only() && joins.is_empty();
+    for (i, dir) in plan.projects.iter().enumerate() {
+        if startup && i == 0 && roots.is_empty() {
+            open_workspace_now(app, dir);
+            if let Some(info) = app.state::<AppState>().project_info() {
+                *LAUNCH_TRUST.lock().unwrap_or_else(|e| e.into_inner()) = Some(info.display_root());
             }
-            LaunchTarget::File(request) => {
-                if startup && app.state::<AppState>().project_info().is_none() {
-                    // Open the file's project first, so the file opens in it right away.
-                    let ctx = known_projects(app);
-                    if let Ok((_, target)) = forge_open::resolve_file(&request, &ctx) {
-                        open_workspace_now(app, Path::new(target.root()));
-                    }
-                }
-                if let Err(e) = open_request(app, &request, OpenSource::Cli, None) {
-                    tracing::warn!("cannot open {}: {e}", request.file);
-                }
-            }
-            LaunchTarget::Link(link) => open_link(app, &link),
+        } else {
+            open_project_later(app, dir, false);
         }
     }
+    for dir in &plan.link_projects {
+        open_project_later(app, dir, true);
+    }
+    for request in &plan.project_files {
+        if let Err(e) = open_request(app, request, OpenSource::Cli, None) {
+            tracing::warn!("cannot open {}: {e}", request.file);
+        }
+    }
+    crate::commands::light_edit::open_files(app, &plan.light_edit);
+    for link in &plan.links {
+        open_link(app, link);
+    }
+    light_edit_only
 }
 
 pub(crate) fn open_workspace_now(app: &AppHandle, dir: &Path) {

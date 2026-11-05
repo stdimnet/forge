@@ -304,6 +304,7 @@ export const kotlin_command_line: (a: number, b: number, c: number) => void;
 export const kotlin_coroutines: (a: number, b: number, c: number) => void;
 export const kotlin_lint_report: (a: number, b: number, c: number) => void;
 export const kotlin_main_functions: (a: number, b: number, c: number) => void;
+export const light_edit_apply: (a: number, b: number, c: number) => void;
 export const live_templates_applicable: (a: number, b: number, c: number) => void;
 export const live_templates_catalog: (a: number, b: number, c: number) => void;
 export const live_templates_expand: (a: number, b: number, c: number) => void;

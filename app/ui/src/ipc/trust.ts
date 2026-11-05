@@ -35,6 +35,13 @@ export interface TrustedEntry {
   kind: "location" | "project";
 }
 
+/** "Trust and Open Project?" for the project a launch opened in this window. */
+export interface LaunchTrustPrompt {
+  status: TrustStatus;
+  /** The window was opened for the project (New Window): Don't Open closes it. */
+  closeWindowOnCancel: boolean;
+}
+
 export const TRUST_CHANGED_EVENT = "trust://changed";
 
 export const trustApi = {
@@ -43,6 +50,11 @@ export const trustApi = {
   status: () => invoke<TrustStatus | null>("trust_status"),
   /** Trust `path` (or the open project without it); `location` trusts its whole folder. */
   trust: (path?: string, location?: string) => invoke<TrustCheck>("trust_project", { path, location }),
+  /**
+   * The project the command line, "Open Folder in Forge" or Open Project › New Window opened
+   * in this window, when it is untrusted: asked once, here, in the window it opened in.
+   */
+  launchPrompt: () => invoke<LaunchTrustPrompt | null>("trust_launch_prompt"),
   locations: () => invoke<TrustedEntry[]>("trust_locations"),
   addLocation: (path: string) => invoke<TrustedEntry[]>("trust_location_add", { path }),
   removeLocation: (key: string) => invoke<TrustedEntry[]>("trust_location_remove", { key }),

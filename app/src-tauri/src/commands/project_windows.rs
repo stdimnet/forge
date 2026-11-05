@@ -215,6 +215,13 @@ pub fn stop() {
     }
 }
 
+/// Register this instance again (its project window opened again from the LightEdit window).
+pub fn resume() {
+    if let Some(me) = ME.get() {
+        update_registry(|r| r.register(me.clone()));
+    }
+}
+
 /// Send a request to another instance; its answer line, or `None` when it does not answer.
 fn request(entry: &ProjectWindowEntry, req: ControlRequest) -> Option<String> {
     let addr = SocketAddr::from(([127, 0, 0, 1], entry.port));

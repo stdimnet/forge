@@ -60,6 +60,8 @@ export function DialogWindowApp(props: { boot: DialogBoot }) {
   const dialogProps = props.boot.props ?? {};
   const [ready] = createResource(async () => {
     // The project the IDE window has open (project-scoped settings, run configurations).
+    // A standalone window (LightEdit) has no project.
+    if (def?.standalone) return prepare(id, dialogProps);
     if (isTauri()) await restoreWorkspace().catch(() => undefined);
     else await openWorkspace("demo").catch(() => undefined);
     return prepare(id, dialogProps);

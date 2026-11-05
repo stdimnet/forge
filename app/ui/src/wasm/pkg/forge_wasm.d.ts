@@ -1567,6 +1567,12 @@ export function kotlin_lint_report(request_json: string): string;
 export function kotlin_main_functions(request_json: string): string;
 
 /**
+ * `{ tabs?, ops: [{ op: "open", path, line?, column? } | { op: "close" | "activate", id }] }`
+ * → `{ tabs, snapshot }` (pass `tabs` back in with the next call).
+ */
+export function light_edit_apply(request_json: string): string;
+
+/**
  * `ApplicableRequest` → `ApplicableResult`.
  */
 export function live_templates_applicable(request_json: string): string;
@@ -3095,6 +3101,7 @@ export interface InitOutput {
     readonly kotlin_coroutines: (a: number, b: number, c: number) => void;
     readonly kotlin_lint_report: (a: number, b: number, c: number) => void;
     readonly kotlin_main_functions: (a: number, b: number, c: number) => void;
+    readonly light_edit_apply: (a: number, b: number, c: number) => void;
     readonly live_templates_applicable: (a: number, b: number, c: number) => void;
     readonly live_templates_catalog: (a: number, b: number, c: number) => void;
     readonly live_templates_expand: (a: number, b: number, c: number) => void;

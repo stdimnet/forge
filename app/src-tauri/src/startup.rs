@@ -6,7 +6,10 @@
 //! of the wordmark is the real progress: core services, plugins, the project from the command
 //! line or the last session (with framework detection), background services, the update check
 //! and finally the workbench. The main window is created hidden once loading is done and shown
-//! when its UI has rendered (`startup_workbench_ready`); then the splash closes.
+//! when its UI has rendered (`startup_workbench_ready`); then the splash closes. When Forge
+//! starts only for files ("Open With → Forge"), the LightEdit window is the first window
+//! instead, and the project window opens later, when a project is opened
+//! ([`open_project_window`]).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Condvar, Mutex};
@@ -57,6 +60,8 @@ pub struct StartupState {
     finished: AtomicBool,
     main_ready: Mutex<bool>,
     main_ready_signal: Condvar,
+    /// The window whose first render ends the startup: `main`, or the LightEdit window.
+    first_window: Mutex<Option<String>>,
     /// An update found while no splash window was shown; the workbench offers it.
     offer_for_workbench: Mutex<Option<UpdateOffer>>,
 }
@@ -152,8 +157,15 @@ fn run_steps(app: &AppHandle) {
     // 3. The project from the command line, a forge:// link or the last session.
     progress(app, "Opening project", "", 34);
     let cwd = std::env::current_dir().unwrap_or_default();
-    crate::companion::handle_launch_args(app, std::env::args().skip(1), &cwd, true);
-    if state.project_info().is_none() && !crate::commands::project_windows::is_secondary() {
+    let secondary = crate::commands::project_windows::is_secondary();
+    let light_edit_only = crate::companion::handle_launch_args(
+        app,
+        crate::companion::startup_launch_args(),
+        &cwd,
+        true,
+    ) && !secondary;
+    // Opened for files only: the LightEdit window, without the last project.
+    if state.project_info().is_none() && !secondary && !light_edit_only {
         reopen_last_project(app);
     }
     let detected = match state.backend() {
@@ -228,7 +240,75 @@ fn run_steps(app: &AppHandle) {
 
     // 6. The workbench.
     progress(app, "Opening workbench", "", 92);
-    open_workbench(app);
+    if light_edit_only {
+        open_light_edit(app);
+    } else {
+        open_workbench(app);
+    }
+}
+
+/// Forge started for files only: wait until the LightEdit window (opened by
+/// `handle_launch_args`) has rendered, then close the splash. No project window opens.
+fn open_light_edit(app: &AppHandle) {
+    let startup = app.state::<StartupState>();
+    *startup
+        .first_window
+        .lock()
+        .expect("first window lock poisoned") = Some(crate::commands::light_edit::label());
+    wait_until_ready(&startup);
+    progress(app, "Ready", "", 100);
+    startup.finished.store(true, Ordering::SeqCst);
+    if let Some(splash) = app.get_webview_window(SPLASH_LABEL) {
+        let _ = splash.close();
+    }
+}
+
+fn wait_until_ready(startup: &StartupState) {
+    let ready = startup.main_ready.lock().expect("ready lock poisoned");
+    let (_ready, timeout) = startup
+        .main_ready_signal
+        .wait_timeout_while(ready, READY_TIMEOUT, |ready| !*ready)
+        .expect("ready lock poisoned");
+    if timeout.timed_out() {
+        tracing::warn!("the first window did not report ready; showing it anyway");
+    }
+}
+
+/// A window rendered its first screen; the startup waits for the first one.
+pub fn window_ready(app: &AppHandle, label: &str) {
+    let startup = app.state::<StartupState>();
+    let first = startup
+        .first_window
+        .lock()
+        .expect("first window lock poisoned")
+        .clone()
+        .unwrap_or_else(|| MAIN_LABEL.to_string());
+    if label == first {
+        *startup.main_ready.lock().expect("ready lock poisoned") = true;
+        startup.main_ready_signal.notify_all();
+    }
+}
+
+/// Open the project window when Forge runs with the LightEdit window only (a folder was
+/// opened from there or from outside). It is shown when its UI has rendered.
+pub fn open_project_window(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        if app.get_webview_window(MAIN_LABEL).is_some() {
+            return;
+        }
+        match window_from_config(&app, MAIN_LABEL).and_then(|b| b.visible(false).build()) {
+            Ok(main) => {
+                crate::commands::window::apply_decorations(&app);
+                crate::commands::project_windows::resume();
+                std::thread::sleep(READY_TIMEOUT);
+                if !main.is_visible().unwrap_or(true) {
+                    let _ = main.show();
+                }
+            }
+            Err(e) => tracing::error!("cannot open the project window: {e}"),
+        }
+    });
 }
 
 /// `system.reopenLastProject`: open the most recent local project that still exists.
@@ -265,16 +345,7 @@ fn open_workbench(app: &AppHandle) {
         },
     };
     crate::commands::window::apply_decorations(app);
-    {
-        let ready = startup.main_ready.lock().expect("ready lock poisoned");
-        let (_ready, timeout) = startup
-            .main_ready_signal
-            .wait_timeout_while(ready, READY_TIMEOUT, |ready| !*ready)
-            .expect("ready lock poisoned");
-        if timeout.timed_out() {
-            tracing::warn!("the workbench did not report ready; showing it anyway");
-        }
-    }
+    wait_until_ready(&startup);
     progress(app, "Ready", "", 100);
     if let Some(main) = main {
         let _ = main.show();
@@ -290,14 +361,19 @@ fn open_workbench(app: &AppHandle) {
 /// the splash could not offer (splash turned off).
 #[tauri::command]
 pub fn startup_workbench_ready(
+    app: AppHandle,
     window: WebviewWindow,
     startup: State<'_, StartupState>,
 ) -> Option<UpdateOffer> {
     if window.label() != MAIN_LABEL {
         return None;
     }
-    *startup.main_ready.lock().expect("ready lock poisoned") = true;
-    startup.main_ready_signal.notify_all();
+    window_ready(&app, MAIN_LABEL);
+    // A project window opened after the startup (from the LightEdit window) shows itself.
+    if startup.finished() && !window.is_visible().unwrap_or(true) {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
     startup
         .offer_for_workbench
         .lock()

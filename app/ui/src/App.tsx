@@ -7,6 +7,7 @@ import { isTauri } from "./ipc";
 import { drawsControls, trackMaximized } from "./shell/window/chrome";
 import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
 import { reportWorkbenchReady } from "./features/updates";
+import { askLaunchTrust } from "./features/trust";
 // The project's tool window layout and editor tabs are restored and saved (main window only).
 import "./state/layoutPersistence";
 import { installSystemBehaviour } from "./features/system";
@@ -19,7 +20,7 @@ export function App() {
       await restoreWorkspace();
       // The window is shown (and the splash closed) once the first screen has rendered.
       // The window is still hidden here, so no animation frame would ever run: use a task.
-      setTimeout(() => void reportWorkbenchReady(), 0);
+      setTimeout(() => void reportWorkbenchReady().then(() => askLaunchTrust()), 0);
       return;
     }
     // In browser mode open the demo project so the IDE is explorable without a backend,

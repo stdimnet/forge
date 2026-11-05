@@ -54,11 +54,19 @@ registerMock("companion_revoke_client", ({ id }) => {
 export const DEMO_JOIN_LINK =
   "forge://cwm/join?v=1&name=Robert&m=workstation&s=browsermodedemo0000000000#h=demo&k=demo&a=192.168.1.20:41641";
 
-registerMock("companion_ui_ready", (): PendingEvent[] =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).has("cwmLink")
-    ? [{ type: "joinSession", link: DEMO_JOIN_LINK }]
-    : [],
-);
+/**
+ * `?cwmLink` starts browser mode as if Forge was opened by clicking a session link;
+ * `?openFolder=<path>` as if a folder was opened from the file manager ("Open Folder in
+ * Forge") while the demo project is open, `&fromLink` as if a forge:// link named it.
+ */
+registerMock("companion_ui_ready", (): PendingEvent[] => {
+  if (typeof location === "undefined") return [];
+  const params = new URLSearchParams(location.search);
+  if (params.has("cwmLink")) return [{ type: "joinSession", link: DEMO_JOIN_LINK }];
+  const folder = params.get("openFolder");
+  if (folder) return [{ type: "openProject", root: folder, confirm: params.has("fromLink") }];
+  return [];
+});
 
 /** Same shape the Rust side sends; files under the demo root open directly. */
 export function mockOpenEvent(file: string, line?: number, column?: number, source: OpenEvent["source"] = "browser"): OpenEvent {
