@@ -4,14 +4,14 @@
 .ssh-overlay {
   position: fixed;
   inset: 0;
-  z-index: 115;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
 }
 .ssh-overlay-top {
-  z-index: 125;
+  z-index: calc(var(--z-modal) + 1);
   background: color-mix(in srgb, var(--bg-app) 35%, transparent);
 }
 .ssh-dialog {

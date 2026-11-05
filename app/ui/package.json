@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "zindex:check": "node scripts/zindex-check.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "docs:llms": "node ../../docs/scripts/build-llms.mjs",
     "plugin": "node ../../sdk/scripts/forge-plugin.mjs",

@@ -106,7 +106,8 @@ describe("main menu rendering and keys", () => {
     const menus = await loadMainMenu({ git: true, plugins: [] });
     showResolvedMenu(menus, 0, 0, { crossTopLevel: true, selectFirst: true, class: "main-menu-popup" });
     await Promise.resolve();
-    const root = host.querySelector<HTMLElement>(".context-menu.main-menu-popup")!;
+    // The menu renders in its layer of the overlay stack, outside `host`.
+    const root = document.querySelector<HTMLElement>("#forge-overlays .context-menu.main-menu-popup")!;
     expect(root.querySelector(".context-menu-item.active")?.textContent).toContain("File");
     expect(root.querySelector(".context-menu-item .mnemonic")?.textContent).toBe("F");
 
@@ -133,7 +134,7 @@ describe("main menu rendering and keys", () => {
     const menus = await loadMainMenu({ git: true, plugins: [] });
     showResolvedMenu(menus, 0, 0, { crossTopLevel: true, selectFirst: true });
     await Promise.resolve();
-    const root = host.querySelector<HTMLElement>(".context-menu")!;
+    const root = document.querySelector<HTMLElement>("#forge-overlays .context-menu")!;
     root.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     await Promise.resolve();
     const fileMenu = root.querySelector<HTMLElement>(".context-menu-item.open .context-menu")!;

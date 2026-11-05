@@ -2,6 +2,7 @@
 import { createSignal, onCleanup, Show } from "solid-js";
 import { suspendKeymap } from "@/keymap";
 import { t } from "@/i18n";
+import { Layer } from "@/shell/layers";
 
 interface NameRequest {
   kind: "name";
@@ -228,12 +229,16 @@ export function DialogHost() {
       {(req) => {
         const release = suspendKeymap();
         onCleanup(release);
-        return req.kind === "name" ? (
-          <NameDialog req={req} />
-        ) : req.kind === "choice" ? (
-          <ChoiceDialog req={req} />
-        ) : (
-          <ConfirmDialog req={req} />
+        return (
+          <Layer kind="modal">
+            {req.kind === "name" ? (
+              <NameDialog req={req} />
+            ) : req.kind === "choice" ? (
+              <ChoiceDialog req={req} />
+            ) : (
+              <ConfirmDialog req={req} />
+            )}
+          </Layer>
         );
       }}
     </Show>

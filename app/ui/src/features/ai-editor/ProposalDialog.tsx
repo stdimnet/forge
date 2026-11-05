@@ -4,7 +4,7 @@
  * is changed before Apply.
  */
 import { onMount, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { CircleAlert, LoaderCircle, Sparkles, X } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { DiffView } from "@/features/ai-chat/DiffView";
@@ -35,7 +35,7 @@ export function ProposalDialog() {
     if (s.kind !== "explain") void runProposal(s.kind, s.path, s.view, s.request.problems);
   };
   return (
-    <Portal>
+    <Layer kind="modal">
       <div class="chat-dialog-backdrop" onClick={closeProposal}>
         <div
           ref={dialog}
@@ -107,6 +107,6 @@ export function ProposalDialog() {
           </footer>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }

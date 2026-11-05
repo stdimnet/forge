@@ -4,7 +4,7 @@
  * this session / Deny. Rust waits for the answer (and denies when nobody answers).
  */
 import { For, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Ban, Check, CheckCheck, PlugZap } from "lucide-solid";
 import type { McpApprovalRequest } from "@/ipc/mcp";
 import { answerApproval, mcpApprovals } from "./store";
@@ -73,11 +73,11 @@ function Card(props: { req: McpApprovalRequest }) {
 export function ApprovalCards() {
   return (
     <Show when={mcpApprovals().length}>
-      <Portal>
+      <Layer kind="notification">
         <div class="mcp-approvals" data-testid="mcp-approvals">
           <For each={mcpApprovals()}>{(req) => <Card req={req} />}</For>
         </div>
-      </Portal>
+      </Layer>
     </Show>
   );
 }

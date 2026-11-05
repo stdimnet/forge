@@ -30,7 +30,7 @@
 /* ---------- Color picker ---------- */
 .color-picker {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-popup);
   width: 268px;
   padding: 8px;
   background: var(--bg-elevated);

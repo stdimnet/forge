@@ -255,7 +255,7 @@
 .message-history-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-popup);
 }
 .message-history {
   position: fixed;
@@ -346,7 +346,7 @@
 .signing-dialog {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

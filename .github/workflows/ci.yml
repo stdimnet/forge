@@ -28,6 +28,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # release.yml runs only on pushed `v*` tags, every other workflow only manually.
       - run: pnpm workflows:check
+      # Every z-index above 10 uses the layer scale of theme.css.
+      - run: pnpm zindex:check
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

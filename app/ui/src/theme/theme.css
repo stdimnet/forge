@@ -664,6 +664,25 @@
   --font-display: "Unbounded", "Arial Black", "Helvetica Neue", sans-serif;
 }
 
+/* UI layers, lowest first (see docs/guide/developer/contribution-points.md, "Layers").
+   Features use only these variables for a z-index above 10; `pnpm zindex:check` enforces it.
+   Popups and dialogs that register with the overlay stack (`shell/layers.tsx`) get their
+   parent's layer plus an offset, so whatever a dialog opens sits above that dialog. The
+   numbers are mirrored in `LAYER_BASE` there. */
+:root {
+  /* CodeMirror's own sticky panels (300) and tooltips sit in this band. */
+  --z-editor-overlay: 300;
+  --z-floating-tool-window: 400;
+  --z-popup: 500;
+  --z-modal: 600;
+  --z-notification: 700;
+  --z-context-menu: 800;
+  --z-tooltip: 900;
+  --z-drag-ghost: 1000;
+  /* Presentation Assistant, window resize edges. */
+  --z-system: 1100;
+}
+
 /* Usages of the element at the caret (Highlight Usages in File): reads and writes, in the
    text and on the scrollbar's error stripe. */
 :root,

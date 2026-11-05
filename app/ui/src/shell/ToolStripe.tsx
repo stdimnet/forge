@@ -1,5 +1,5 @@
 import { For, Show, createSignal } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "./layers";
 import { Ellipsis } from "lucide-solid";
 import { findToolWindow, type ToolWindow } from "@/features/registry";
 import { isToolWindowVisible, moveToolWindowTo, stripeToolWindows, toggleToolWindow, type ToolWindowSlot } from "@/state/layout";
@@ -169,14 +169,14 @@ export function ToolStripe(props: { side: "left" | "right" }) {
       </div>
       <Show when={props.side === "left" && drag()}>
         {(d) => (
-          <Portal>
+          <Layer kind="drag-ghost">
             <div class="stripe-drag-ghost" style={{ left: `${d().x + (d().x > window.innerWidth - 60 ? -40 : 10)}px`, top: `${d().y + 10}px` }}>
               {(() => {
                 const tw = findToolWindow(d().id);
                 return tw ? <tw.icon size={18} stroke-width={1.75} /> : null;
               })()}
             </div>
-          </Portal>
+          </Layer>
         )}
       </Show>
     </nav>

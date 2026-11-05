@@ -335,7 +335,7 @@
 .dbg-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
@@ -644,7 +644,7 @@ textarea.dbg-input {
 .dbg-popup-layer {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-popup);
 }
 .dbg-bp-popup {
   position: fixed;
@@ -819,7 +819,7 @@ textarea.dbg-input {
   position: absolute;
   left: 0;
   top: calc(100% + 2px);
-  z-index: 120;
+  z-index: var(--z-popup);
   min-width: 260px;
   max-width: 480px;
   max-height: 220px;
