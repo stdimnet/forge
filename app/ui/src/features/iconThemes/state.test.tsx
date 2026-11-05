@@ -67,7 +67,7 @@ afterEach(async () => {
   await settle();
 });
 
-const tintSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M1 3h14v10H1z" fill="#da4" data-forge-tint/><circle cx="11" cy="10" r="2" fill="#48d"/></svg>`;
+const tintSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M1 3h14v10H1z" fill="#da4" data-forge-tint="fill"/><circle cx="11" cy="10" r="2" fill="#48d"/></svg>`;
 
 const v2: IconThemeData = {
   definition: {

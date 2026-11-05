@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn tint_and_open_folders() {
-        let svg = r##"<svg viewBox="0 0 16 16"><path data-forge-tint fill="#000"/></svg>"##;
+        let svg = r##"<svg viewBox="0 0 16 16"><path data-forge-tint="fill" fill="#000"/></svg>"##;
         assert!(icons_has_tint_layer(svg));
         assert!(icons_tint(svg, "#123456").contains("#123456"));
         assert_eq!(icons_tint("<svg/>", "#123456"), "");

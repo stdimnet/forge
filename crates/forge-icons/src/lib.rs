@@ -458,6 +458,14 @@ pub fn check_svg(svg: &str) -> Result<(), Problem> {
     {
         return Err("contains an event handler attribute".into());
     }
+    if Regex::new(r#"data-forge-tint(?:\s|/|>)"#)
+        .expect("valid regex")
+        .is_match(&lower)
+    {
+        return Err(
+            "has a `data-forge-tint` without a value (write `data-forge-tint=\"fill\"`)".into(),
+        );
+    }
     if Regex::new(r#"href\s*=\s*["']\s*(?:https?:|//|data:)"#)
         .expect("valid regex")
         .is_match(&lower)
@@ -746,6 +754,9 @@ mod tests {
         assert!(check_svg(r#"<svg onload="x()"></svg>"#).is_err());
         assert!(check_svg(r#"<svg><image href="https://evil.example/x.png"/></svg>"#).is_err());
         assert!(check_svg(r#"<svg><foreignObject/></svg>"#).is_err());
+        assert!(check_svg(r#"<svg><path data-forge-tint/></svg>"#).is_err());
+        assert!(check_svg(r#"<svg><path data-forge-tint d="M0 0"/></svg>"#).is_err());
+        assert!(check_svg(r#"<svg><path data-forge-tint="stroke"/></svg>"#).is_ok());
         assert!(check_svg("not an image").is_err());
         assert!(check_svg(&format!("<svg>{}</svg>", " ".repeat(MAX_SVG_BYTES))).is_err());
         assert!(is_svg_path("icons/a.svg") && !is_svg_path("/a.svg") && !is_svg_path("a/../b.svg"));

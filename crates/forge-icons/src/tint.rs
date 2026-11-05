@@ -5,12 +5,14 @@
 //!
 //! | Marker | Recolors |
 //! | --- | --- |
-//! | `data-forge-tint` or `data-forge-tint="fill"`, `class="forge-tint"` | the fill |
+//! | `data-forge-tint="fill"` (any value but `stroke` / `both`), `class="forge-tint"` | the fill |
 //! | `data-forge-tint="stroke"`, `class="forge-tint-stroke"` | the stroke |
 //! | `data-forge-tint="both"` | fill and stroke |
 //!
-//! A marked group (`<g data-forge-tint>`) recolors everything inside it. Icons without a
-//! marker are drawn as a one-color mask, as with format 1 themes.
+//! A marked group (`<g data-forge-tint="fill">`) recolors everything inside it. SVGs are XML,
+//! so the attribute needs a value: a bare `data-forge-tint` breaks the image and is refused
+//! by [`crate::check_svg`]. Icons without a marker are drawn as a one-color mask, as with
+//! format 1 themes.
 
 use regex_lite::Regex;
 
@@ -58,7 +60,7 @@ mod tests {
     use super::*;
     use crate::check_svg;
 
-    const TWO_TONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M1 3h5l1 1h7v9H1z" fill="#d9a441" data-forge-tint/><path d="M3 7h10v5H3z" fill="#fff"/></svg>"##;
+    const TWO_TONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M1 3h5l1 1h7v9H1z" fill="#d9a441" data-forge-tint="fill"/><path d="M3 7h10v5H3z" fill="#fff"/></svg>"##;
 
     #[test]
     fn markers_are_found_and_pass_the_svg_checks() {
@@ -94,6 +96,6 @@ mod tests {
         assert_eq!(tint_svg("<svg><path/></svg>", "#fff"), None);
         assert_eq!(tint_svg(TWO_TONE, "red"), None);
         assert_eq!(tint_svg(TWO_TONE, "#fff;}*{fill:red"), None);
-        assert_eq!(tint_svg(r#"<svg data-forge-tint/>"#, "#fff"), None);
+        assert_eq!(tint_svg(r#"<svg data-forge-tint="fill"/>"#, "#fff"), None);
     }
 }
