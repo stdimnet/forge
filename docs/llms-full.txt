@@ -20755,6 +20755,13 @@ A new permission counts from the guest's next request. When files become read-on
 guest, their open editors turn read-only and they are told so; changes they send afterwards are
 refused by your Forge.
 
+Your Forge also limits how fast each guest may send requests, far above what a person does by
+hand. A guest whose Forge sends too many project requests (search, file tree, language server),
+opens or saves too many files, or types too fast into a terminal gets "Too many requests. Try
+again in a moment." for those requests, and the session log notes it once per burst. Edits and
+carets are never dropped; a guest that sends far more of them than anyone can type is
+disconnected and told why, and the session log records it.
+
 ![A guest's menu in the session popup](docs/screenshots/code-with-me-guest-menu.png)
 
 The popup works with the keyboard: **Up** and **Down** move between its entries (**Home** and

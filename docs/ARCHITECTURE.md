@@ -1052,7 +1052,12 @@ S7), and the host refuses other versions in the knock. `GuestMessage` holds only
 host's policy can check; project calls travel as the closed `HostCall` enum inside
 `GuestMessage::Call`. Frames are limited (`MAX_GUEST_FRAME` 4 MB, `MAX_HOST_FRAME` 32 MB);
 per-guest queues are bounded (`GUEST_QUEUE`, a guest that does not keep up is cut off;
-`HostSession::backlog` reports the deepest queue). Documents use Yjs v1 updates and
+`HostSession::backlog` reports the deepest queue). Each guest also has rate limits
+(`rate::GuestLimits`, token buckets checked in `run_guest` before anything else): project calls,
+document open / save / sync and terminal / run input over their rate are answered "Too many
+requests. Try again in a moment." and logged once per burst; edits and carets are never dropped
+(that would break convergence), but a guest sending far more messages than anyone types
+(`FLOOD_RATE`) is disconnected. Documents use Yjs v1 updates and
 `y-protocols/awareness`; the host stamps every awareness entry with the sender's name and
 color, so carets cannot be spoofed.
 
@@ -1120,6 +1125,7 @@ network: edits, saves, disk changes and conflicts, renames, permissions, reconne
 editing, following and sharing a terminal; asserts convergence and bounded queues; a heavier
 variant is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`),
 `decoding.rs` (proptest: links, frames and host calls from peers fail cleanly and round-trip),
+`rate_limits.rs` (flooding guests are refused or disconnected, the others are not affected),
 `guest_backend.rs`, `guest_lsp.rs`, `terminals_runs.rs`, `approval.rs`, `relay.rs` (an
 in-process `iroh-relay`), `quic_loopback.rs`. Fuzz targets (cargo-fuzz, own workspace, not run
 by `cargo test`) are in `crates/forge-collab/fuzz`: `link_parse`, `frame_decode`,

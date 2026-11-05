@@ -1337,8 +1337,25 @@ Deviations from the plan above:
   updates and saves refused, no language server requests, binary ones without content, with a
   banner in the guest's editor. The host's tab of such a file stays unshared. Larger files are
   refused as before.
-- Not done in S7: per-guest rate limits are not implemented (bounded queues and frame limits
-  are); the manual desktop test plan on Linux, Windows and macOS.
+- **Per-guest rate limits** (`rate`, `HostSession::within_rate` in `run_guest`, before a
+  message is checked or dispatched): token buckets per admitted guest, kept across
+  reconnects, with the clock passed in for the unit tests. Project calls (`CALL_RATE`: burst
+  1000, 200 a second; the hostile-guest test alone sends about 450 in a row; at most
+  `MAX_PENDING_CALLS` run at once anyway), document open / save / sync (`DOC_RATE`: 100, 20 a second) and terminal
+  and run input (`INPUT_RATE`: 500, 100 a second) over their rate get their normal answer
+  (`CallResult` error, `DocError`, `SaveResult` with error, `Denied` once per burst for input)
+  with "Too many requests. Try again in a moment.", and the session log one `Denied` entry per
+  burst (refusals less than `QUIET`, 5 seconds, apart); requests never disconnect. Edits,
+  awareness, presence and document close are never refused, which would break convergence;
+  instead they count against `FLOOD_RATE` (burst 1000, 300 a second, about ten times fast
+  typing with carets), and a guest over it is disconnected (`HostMessage::Ended` "... sent far more messages than anyone can type",
+  session log entry, host notice). `tests/rate_limits.rs`: a guest flooding calls is refused
+  and logged once while another guest is unaffected; a guest flooding edits is disconnected,
+  the host keeps every edit up to the cut-off, the other guest stays. The stress test (both
+  variants) stays below the limits; with `FORGE_CWM_STRESS_ROUNDS` in the thousands, its
+  1 ms pause between edits (several hundred messages a second per guest) would exceed
+  `FLOOD_RATE` after a few seconds.
+- Not done in S7: the manual desktop test plan on Linux, Windows and macOS.
 
 ## Keeping one large PR reviewable
 
