@@ -70,6 +70,9 @@ impl GuestCalls {
 }
 
 const NO_ANSWER: &str = "The host did not answer.";
+const TOO_LARGE: &str = "The request is too large to send to the host.";
+/// Room for the `Call` envelope around a payload in a frame.
+const CALL_OVERHEAD: usize = 64;
 
 impl GuestSession {
     /// Handle the messages of the project backend; `true` if `msg` was one of them.
@@ -108,6 +111,16 @@ impl GuestSession {
     ) -> Result<oneshot::Receiver<Result<Vec<u8>, String>>, String> {
         self.check_usable()?;
         let payload = call.encode().map_err(|e| e.to_string())?;
+        // The host refuses frames over its limit; fail now instead of waiting for the timeout
+        // (e.g. analysis of a multi-megabyte file that sends the editor's text).
+        if payload.len() + CALL_OVERHEAD > crate::protocol::MAX_GUEST_FRAME {
+            tracing::debug!(
+                "Code With Me: {} of {} bytes is too large for the host",
+                call.name(),
+                payload.len()
+            );
+            return Err(TOO_LARGE.into());
+        }
         let id = self.calls.next.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
         self.calls

@@ -1560,3 +1560,24 @@ async fn backend_calls_on_a_runtime_worker_do_not_panic() {
         .unwrap();
     assert!(listed > 0);
 }
+
+/// A call over the host's frame limit (e.g. analysis that sends a multi-megabyte editor text)
+/// fails at once on the guest; the connection and later calls are unaffected.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn an_oversized_call_fails_at_once_and_the_session_goes_on() {
+    let mut w = World::new(FULL);
+    let g = w.join("Alex").await;
+    let started = std::time::Instant::now();
+    let err = g
+        .call(HostCall::WriteFile {
+            path: "big.txt".into(),
+            contents: "x".repeat(5 << 20),
+        })
+        .await
+        .unwrap_err();
+    assert!(err.contains("too large"), "{err}");
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert!(!w.root.join("big.txt").exists());
+    let text = g.on(|b| b.read_file("app/Http/Order.php")).await.unwrap();
+    assert!(text.contains("class Order"));
+}
