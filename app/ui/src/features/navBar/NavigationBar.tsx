@@ -8,7 +8,7 @@
  */
 import { t, t as tr } from "@/i18n";
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { ChevronRight, Search } from "lucide-solid";
 import { activeTab, type EditorTab } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
@@ -321,7 +321,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
       </Show>
       <Show when={popup() && anchorRect()}>
         {(rect) => (
-          <Portal>
+          <Layer kind="popup">
             <div
               class="navbar-popup"
               ref={popupEl}
@@ -372,7 +372,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
                 </For>
               </Show>
             </div>
-          </Portal>
+          </Layer>
         )}
       </Show>
     </div>

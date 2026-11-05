@@ -1,6 +1,7 @@
 /** A small context/popup menu at a screen position (uses the shared `.context-menu` chrome). */
 import { createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
-import { Dynamic, Portal } from "solid-js/web";
+import { Dynamic } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import type { IconComponent } from "./types";
 
 export interface MenuItem {
@@ -51,7 +52,7 @@ function PopupMenu(props: { request: MenuRequest }) {
   });
   onCleanup(() => document.removeEventListener("mousedown", onDoc, true));
   return (
-    <Portal>
+    <Layer kind="context-menu">
       <div
         ref={el}
         class="context-menu popup run-popup-menu"
@@ -91,7 +92,7 @@ function PopupMenu(props: { request: MenuRequest }) {
           }
         </For>
       </div>
-    </Portal>
+    </Layer>
   );
 }
 

@@ -50,7 +50,7 @@
 .plg-prompt-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -8,7 +8,7 @@
  */
 import { createEffect, createResource, createSignal, For, Match, on, onCleanup, Show, Switch, type JSX } from "solid-js";
 import { createStore, produce, unwrap } from "solid-js/store";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Box, Container, Copy, FolderOpen, Minus, Plus, RefreshCw, Server, Terminal } from "lucide-solid";
 import { isTauri } from "@/ipc";
 import { remoteApi, type SshConfigView } from "@/ipc/remote";
@@ -51,7 +51,7 @@ function Modal(props: { title: string; width: number; class?: string; testId?: s
   const release = suspendKeymap();
   onCleanup(release);
   return (
-    <Portal>
+    <Layer kind="modal">
       <div class="popup-backdrop modal" onMouseDown={(e) => e.target === e.currentTarget && props.onClose()}>
         <div
           class={`dialog php-interp-dialog ${props.class ?? ""}`}
@@ -71,7 +71,7 @@ function Modal(props: { title: string; width: number; class?: string; testId?: s
           <div class="dialog-buttons">{props.buttons}</div>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }
 

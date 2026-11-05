@@ -38,7 +38,7 @@
   left: 8px;
   right: 8px;
   top: calc(100% + 2px);
-  z-index: 30;
+  z-index: var(--z-popup);
   display: flex;
   flex-direction: column;
   max-height: 340px;

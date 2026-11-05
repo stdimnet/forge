@@ -5,7 +5,7 @@
  * the native tools. Menus are built here; the dialogs render in `ObjectDialogs`.
  */
 import { Match, Switch } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { ArchiveRestore, Copy, DatabaseBackup, FileCode, FileDown, FileUp, PencilLine, Plus, ScrollText, SquareTerminal, TableProperties, Trash2 } from "lucide-solid";
 import { modelOf, type DataSourceInfo } from "@/ipc/db";
 import type { DdlObject, DumpAction, DumpTool } from "@/ipc/dbObjects";
@@ -39,7 +39,7 @@ export interface ObjectRow {
 export function ObjectDialogs() {
   // Outside the tree: its key handling must not see the dialogs' keys.
   return (
-    <Portal>
+    <Layer kind="modal">
     <Switch>
       <Match when={dialog()?.kind === "table" && dialog()} keyed>
         {(d) => d.kind === "table" && <TableDialog ds={d.ds} schema={d.schema} table={d.table} />}
@@ -60,7 +60,7 @@ export function ObjectDialogs() {
         {(d) => d.kind === "dump" && <DumpDialog ds={d.ds} tool={d.tool} action={d.action} schema={d.schema} tables={d.tables} />}
       </Match>
     </Switch>
-    </Portal>
+    </Layer>
   );
 }
 

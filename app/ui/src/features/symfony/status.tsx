@@ -1,6 +1,6 @@
 /** Status bar widget "Symfony 7.2 · dev" with a menu of Symfony actions. */
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import { openSettings } from "@/features/settings/dialogState";
 import { showToolWindow } from "@/state/layout";
@@ -66,9 +66,9 @@ export function SymfonyStatus() {
           </button>
           <Show when={menu()}>
             {(m) => (
-              <Portal>
+              <Layer kind="context-menu">
                 <Menu x={m().x} y={m().y} onClose={() => setMenu(null)} />
-              </Portal>
+              </Layer>
             )}
           </Show>
         </>

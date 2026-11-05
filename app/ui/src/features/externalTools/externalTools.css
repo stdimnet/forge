@@ -56,7 +56,7 @@
   color: var(--fg);
 }
 .et-modal {
-  z-index: 400;
+  z-index: var(--z-modal);
 }
 .et-dialog {
   width: min(720px, calc(100vw - 32px));

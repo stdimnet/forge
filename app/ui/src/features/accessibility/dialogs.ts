@@ -11,13 +11,22 @@
  *   when the dialog opened, or to the editor.
  *
  * Popups that belong to a dialog (menus, list popups, completion) may take focus outside it.
+ *
+ * The same observer puts the dialogs, backdrops, menus and popups that features render
+ * themselves on the overlay stack (`shell/layers.tsx`), above the layer they were opened
+ * from, and releases them when they go away. The topmost modal dialog is the one painted on
+ * top.
  */
+import { adoptOverlay, layerZOf, releaseOverlaysIn, type LayerKind } from "@/shell/layers";
+
 
 const DIALOG = '[role="dialog"], [role="alertdialog"]';
 const BACKDROP = '.popup-backdrop, .modal-backdrop, [class*="-backdrop"], .ssh-overlay';
 /** Focus may go here even while a modal dialog is open. */
 const ALLOWED_OUTSIDE =
-  '[role="menu"], [role="listbox"], .context-menu, .cm-tooltip, [data-focus-trap-allow], [data-live-region], [data-presentation-assistant]';
+  '[role="menu"], [role="listbox"], .context-menu, .cm-tooltip, [data-focus-trap-allow], [data-live-region], [data-presentation-assistant], [data-layer-kind="popup"], [data-layer-kind="context-menu"], [data-layer-kind="tooltip"]';
+/** Floating elements besides dialogs that join the overlay stack when they are fixed. */
+const FLOATING = '[role="menu"], [role="listbox"], .context-menu, .popup';
 const TABBABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"], [contenteditable=""]';
 
@@ -28,6 +37,9 @@ interface Open {
 
 const open: Open[] = [];
 let lastFocusOutside: HTMLElement | null = null;
+/** The focused element and the one before it: who opened an overlay that focused itself. */
+let focusNow: HTMLElement | null = null;
+let focusBefore: HTMLElement | null = null;
 let installedOn: Document | null = null;
 
 /** Controls Tab reaches inside `root`, in DOM order (hidden ones left out). */
@@ -83,7 +95,32 @@ function dialogOfBackdrop(backdrop: HTMLElement): HTMLElement | null {
   return backdrop.firstElementChild as HTMLElement | null;
 }
 
-const topModal = (): Open | undefined => [...open].reverse().find((o) => o.el.isConnected && isModal(o.el));
+/** The modal dialog painted on top: the highest layer, the latest one among equals. */
+function topModal(): Open | undefined {
+  let top: Open | undefined;
+  let topZ = -Infinity;
+  for (const o of open) {
+    if (!o.el.isConnected || !isModal(o.el)) continue;
+    const z = layerZOf(o.el) ?? 0;
+    if (z >= topZ) [top, topZ] = [o, z];
+  }
+  return top;
+}
+
+/** The element an overlay was opened from: focused outside it now, or just before it. */
+function openerOf(el: HTMLElement): HTMLElement | null {
+  const active = el.ownerDocument.activeElement as HTMLElement | null;
+  if (active && active !== el.ownerDocument.body && !el.contains(active)) return active;
+  return focusBefore?.isConnected && !el.contains(focusBefore) ? focusBefore : null;
+}
+
+/** Put a dialog's outermost element (its backdrop) on the overlay stack. */
+function layerDialog(el: HTMLElement): void {
+  const backdrop = el.parentElement?.closest<HTMLElement>(BACKDROP);
+  const root = backdrop ?? el;
+  const kind: LayerKind = root.matches(".popup-backdrop:not(.modal)") || !isModal(el) ? "popup" : "modal";
+  adoptOverlay(root, kind, openerOf(root));
+}
 
 function track(el: HTMLElement): void {
   if (open.some((o) => o.el === el)) return;
@@ -91,6 +128,7 @@ function track(el: HTMLElement): void {
   const active = el.ownerDocument.activeElement as HTMLElement | null;
   const opener = active && active !== el.ownerDocument.body && !el.contains(active) ? active : lastFocusOutside;
   open.push({ el, opener });
+  layerDialog(el);
   // Content shown a moment later (resources, `Show`) gets its labels too.
   setTimeout(() => el.isConnected && labelControls(el), 120);
   // Dialogs usually focus their first field themselves; otherwise focus the first control.
@@ -145,7 +183,12 @@ function scan(nodes: NodeList, added: boolean): void {
         if (d) found.add(d);
       }
       found.forEach(track);
+      const floating = [...(node.matches(FLOATING) ? [node] : []), ...node.querySelectorAll<HTMLElement>(FLOATING)];
+      for (const f of floating) {
+        adoptOverlay(f, f.matches('[role="menu"], .context-menu') ? "context-menu" : "popup", openerOf(f));
+      }
     } else {
+      releaseOverlaysIn(node);
       for (const o of [...open]) if (o.el === node || node.contains(o.el)) untrack(o.el);
     }
   }
@@ -154,6 +197,7 @@ function scan(nodes: NodeList, added: boolean): void {
 function onFocusIn(e: FocusEvent): void {
   const target = e.target as HTMLElement | null;
   if (!target || target.nodeType !== 1 /* element */ || !target.dataset) return;
+  if (target !== focusNow && target.dataset.focusGuard === undefined) [focusBefore, focusNow] = [focusNow, target];
   const top = topModal();
   if (target.dataset.focusGuard !== undefined) {
     // Focus left the document's last (or first) control: wrap inside the dialog, or into the

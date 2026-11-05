@@ -89,7 +89,7 @@
 /* ---------- Context menu ---------- */
 .db-menu {
   position: fixed;
-  z-index: 200;
+  z-index: var(--z-context-menu);
   min-width: 190px;
   padding: 4px;
   background: var(--bg-elevated);
@@ -1196,7 +1196,7 @@
 /* ---- Quick Documentation popup -------------------------------------------------------- */
 .db-doc {
   position: fixed;
-  z-index: 220;
+  z-index: var(--z-popup);
   width: min(560px, calc(100vw - 32px));
   max-height: min(460px, calc(100vh - 32px));
   display: flex;
@@ -1254,7 +1254,7 @@
 .db-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 350;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
@@ -1571,7 +1571,7 @@
   position: absolute;
   top: 26px;
   left: 0;
-  z-index: 30;
+  z-index: var(--z-popup);
   min-width: 180px;
   max-height: 260px;
   overflow: auto;
@@ -2115,7 +2115,7 @@
 .db-overlay {
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-popup);
   display: flex;
   align-items: flex-start;
   justify-content: center;

@@ -1,10 +1,13 @@
-/* Context menus (editor right-click, Shift+F10). Colors come from theme.css only. */
-.context-menu {
+/* Context menus (editor right-click, Shift+F10) and the small `.context-item` menus of
+   features. Colors come from theme.css only. */
+.context-menu,
+.context-menu.popup {
   position: fixed;
-  /* Above CodeMirror's panels (z-index 300), e.g. the breadcrumbs below the editor. */
-  z-index: 400;
+  z-index: var(--z-context-menu);
   min-width: 220px;
   padding: 4px;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -80,4 +83,24 @@
   overflow: visible;
   margin-right: -16px;
   color: var(--fg-muted);
+}
+
+/* Items of the small feature menus (`<div class="context-menu popup">` with buttons). */
+.context-item {
+  text-align: left;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+}
+.context-item:hover:not(:disabled) {
+  background: var(--bg-selection);
+}
+.context-item:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.context-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
 }

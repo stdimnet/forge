@@ -4,7 +4,7 @@
  * and the session actions.
  */
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Check, ChevronRight } from "lucide-solid";
 import { levelOf, PRESETS, type PermissionLevel, type Permissions } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
@@ -233,7 +233,7 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler
   });
   onCleanup(() => document.removeEventListener("mousedown", onDoc, true));
   return (
-    <Portal>
+    <Layer kind="popup">
       <div
         ref={el}
         class="popup cwm-popup"
@@ -266,6 +266,6 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler
           </div>
         </Show>
       </div>
-    </Portal>
+    </Layer>
   );
 }

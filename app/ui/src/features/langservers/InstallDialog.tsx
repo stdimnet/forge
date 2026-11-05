@@ -5,7 +5,7 @@
  * its language servers run.
  */
 import { createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { CircleCheck, CircleX, Copy, ExternalLink, LoaderCircle, TriangleAlert, X } from "lucide-solid";
 import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
 import { workspace } from "@/state/workspace";
@@ -77,7 +77,7 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
   const machine = () => host() ?? "this machine";
 
   return (
-    <Portal>
+    <Layer kind="modal">
       <div class="ls-overlay" onMouseDown={(e) => e.target === e.currentTarget && phase() !== "running" && close()}>
         <div
           class="ls-dialog ls-install-dialog"
@@ -209,6 +209,6 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
           </footer>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }

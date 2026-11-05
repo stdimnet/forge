@@ -7,6 +7,7 @@ import { Dynamic } from "solid-js/web";
 import { Check, ChevronRight } from "lucide-solid";
 import { runAction, suspendKeymap } from "@/keymap";
 import { closeContextMenu, openMenu, type ResolvedEntry, type ResolvedItem } from "./state";
+import { Layer } from "@/shell/layers";
 
 const MARGIN = 6;
 
@@ -269,23 +270,25 @@ export function ContextMenuHost() {
           window.removeEventListener("resize", closeContextMenu);
         });
         return (
-          <MenuList
-            entries={menu.entries}
-            x={menu.x}
-            y={menu.y}
-            focused
-            selectFirst={menu.selectFirst}
-            above={menu.above}
-            class={menu.class}
-            crossLevel={menu.crossTopLevel}
-            onCross={menu.onCross}
-            onPick={(item) => {
-              if (item.disabled) return;
-              closeContextMenu();
-              if (item.run) item.run();
-              else void runAction(item.action!);
-            }}
-          />
+          <Layer kind="context-menu">
+            <MenuList
+              entries={menu.entries}
+              x={menu.x}
+              y={menu.y}
+              focused
+              selectFirst={menu.selectFirst}
+              above={menu.above}
+              class={menu.class}
+              crossLevel={menu.crossTopLevel}
+              onCross={menu.onCross}
+              onPick={(item) => {
+                if (item.disabled) return;
+                closeContextMenu();
+                if (item.run) item.run();
+                else void runAction(item.action!);
+              }}
+            />
+          </Layer>
         );
       }}
     </Show>
