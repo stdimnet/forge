@@ -1,7 +1,8 @@
 /** The open project's trust state (Safe Mode), kept in sync with Rust. */
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { trustApi, type TrustStatus } from "@/ipc/trust";
-import { onProjectSwitch, workspace } from "@/state/workspace";
+import { workspace } from "@/state/workspace";
+import { onProject } from "@/state/projectLifecycle";
 
 const [status, setStatus] = createSignal<TrustStatus | null>(null);
 
@@ -32,10 +33,10 @@ export async function refreshTrust(): Promise<void> {
 }
 
 // The previous project's state (its Safe Mode banner) goes with it, before the new one is asked.
-onProjectSwitch(() => {
+onProject("closing", () => {
   generation++;
   setStatus(null);
-});
+}, { name: "trust" });
 
 createRoot(() => {
   createEffect(() => {

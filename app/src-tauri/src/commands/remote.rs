@@ -409,6 +409,7 @@ pub async fn remote_open_project(
     }
     forward_status(&app, connection_id.clone(), conn.clone());
 
+    crate::lifecycle::closing(&app);
     app.state::<LspState>().reset();
     {
         // Reads the project settings on the host.

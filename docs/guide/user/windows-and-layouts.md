@@ -20,7 +20,11 @@ repository, a new project or a Git worktree) asks where to open it, as in PHPSto
 ![Open Project: New Window or This Window](../../screenshots/open-project-new-window.png)
 
 - **New Window** opens the project in a window of its own; the current project stays open.
-- **This Window** closes the current project and opens the new one in its place.
+- **This Window** closes the current project and opens the new one in its place. Everything
+  that belonged to the old project goes with it: its editor tabs, search and inspection
+  results, problems, the branch and file colors of its repository, its language servers and
+  file watcher. The branch widgets show the new project's branch at once ("Version Control"
+  for a folder without git).
 - **Remember, don't ask again** stores the answer in Settings | Appearance & Behavior |
   System Settings | Project | **Open project in** (`system.openProjectIn`: `newWindow`,
   `thisWindow` or `ask`). Change it there to be asked again.

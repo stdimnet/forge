@@ -5,10 +5,10 @@
  */
 import { createRoot, createSignal, createEffect, on, onCleanup } from "solid-js";
 import { listen } from "@/ipc";
-import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
+import { resetVcsState, setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
 import { editor, readOpenFile, type Eol } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
-import { workspace } from "@/state/workspace";
+import { onProject } from "@/state/projectLifecycle";
 import { logNotification, modeOf, registerNotificationGroup } from "@/state/notifications";
 import { getSetting } from "@/state/settings";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
@@ -22,6 +22,9 @@ export { status, repoAvailable, revision };
 
 let refreshing: Promise<void> | null = null;
 let queued = false;
+/** Bumped when the project closes: answers about the old repository are dropped. */
+let projectEpoch = 0;
+const STALE = new Error("the project closed");
 
 /** Re-read `git status` (coalesces concurrent calls). */
 export async function refreshStatus(): Promise<void> {
@@ -29,9 +32,11 @@ export async function refreshStatus(): Promise<void> {
     queued = true;
     return refreshing;
   }
+  const epoch = projectEpoch;
   refreshing = (async () => {
     try {
       const st = await gitApi.status();
+      if (epoch !== projectEpoch) throw STALE;
       setRepoAvailable(true);
       setStatus(st);
       setCurrentBranch(st.branch ?? (st.head ? st.head.slice(0, 8) : "main"));
@@ -39,10 +44,15 @@ export async function refreshStatus(): Promise<void> {
       for (const e of st.entries) map[e.path] = displayStatus(e);
       setFileStatuses(map);
     } catch (err) {
-      setRepoAvailable(false);
-      setStatus(null);
-      setFileStatuses({});
-      console.debug("git status unavailable:", err);
+      // The answer is about the project that closed: read the new one's.
+      if (epoch !== projectEpoch) queued = true;
+      else {
+        // A folder without git shows no branch, not the last project's.
+        setRepoAvailable(false);
+        setStatus(null);
+        resetVcsState();
+        console.debug("git status unavailable:", err);
+      }
     } finally {
       refreshing = null;
     }
@@ -142,9 +152,19 @@ export function startGitStore(): void {
     if (c.git) void repositoryChanged();
     else void refreshStatus();
   });
+  // Another project in this window (This Window, a Code With Me guest got the host's): the
+  // old repository's branch and file colors go at once, the new one's are read.
+  onProject(
+    "closing",
+    () => {
+      projectEpoch++;
+      setStatus(null);
+      resetVcsState();
+    },
+    { name: "git", order: -50 },
+  );
+  onProject("opened", () => void repositoryChanged(), { name: "git", order: -50 });
   createRoot(() => {
-    // Another project in this window (a Code With Me guest got the host's): its repository.
-    createEffect(on(() => workspace()?.root, () => void repositoryChanged(), { defer: true }));
     // Refresh after saves: watch the saved snapshot of every tab.
     createEffect(
       on(
