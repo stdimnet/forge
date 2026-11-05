@@ -4,6 +4,9 @@
 //! - [`manifest`]: the `forge-plugin.json` format (id, version, engine range, permissions,
 //!   contributions, activation events) and its validation.
 //! - [`package`]: reading `.forgeplugin` packages (zip files) safely.
+//! - [`pack`]: packing a plugin folder into a reproducible package (the SDK's file selection).
+//! - [`validate`]: every install check at once, as a report (`forge plugin validate`).
+//! - [`cli`]: the `forge plugin validate|pack` commands of the Forge binary.
 //! - [`store`]: installed plugins in the user data directory (never in a project), their
 //!   enablement and granted permissions.
 //! - [`permissions`]: checking a plugin's backend calls against what the user granted, and
@@ -15,11 +18,15 @@
 //! Plugins run as sandboxed JavaScript in the UI (see the SDK docs); this crate holds
 //! everything that decides what they may do. Native code is never loaded.
 
+#[cfg(feature = "disk")]
+pub mod cli;
 #[cfg(feature = "net")]
 pub mod host;
 pub mod icon_themes;
 pub mod manifest;
 pub mod marketplace;
+#[cfg(feature = "disk")]
+pub mod pack;
 #[cfg(feature = "disk")]
 pub mod package;
 pub mod permissions;
@@ -27,6 +34,8 @@ pub mod permissions;
 pub mod secrets;
 #[cfg(feature = "disk")]
 pub mod store;
+#[cfg(feature = "disk")]
+pub mod validate;
 
 pub use manifest::{PluginManifest, Problem};
 #[cfg(feature = "disk")]
