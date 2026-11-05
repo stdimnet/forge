@@ -7,6 +7,7 @@ import { STRIPE_SLOTS, dropBefore, dropIndex } from "@/state/toolWindowLayout";
 import { openStripeMenu } from "./toolWindowMenu";
 import { openMoreToolWindows } from "./MoreToolWindows";
 import { t } from "@/i18n";
+import { UiIcon } from "@/features/iconThemes/UiIcon";
 
 /** Where a dragged stripe button would land. */
 interface DropTarget {
@@ -103,7 +104,9 @@ function StripeButton(props: { tw: ToolWindow }) {
         openStripeMenu(props.tw.id, e.clientX, e.clientY);
       }}
     >
-      <props.tw.icon size={18} stroke-width={1.75} />
+      <UiIcon id={`toolwindow.${props.tw.id}`} size={18}>
+        <props.tw.icon size={18} stroke-width={1.75} />
+      </UiIcon>
       <Show when={number()}>
         <span class="stripe-num">{number()}</span>
       </Show>

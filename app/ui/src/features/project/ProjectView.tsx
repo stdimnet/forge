@@ -16,6 +16,7 @@ import { openFileReported } from "@/features/navigation/openReported";
 import { statusOf, dirHasChanges, dirHasConflicts } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { TreeArrow } from "@/shell/TreeArrow";
+import { isHollowFolder } from "@/features/iconThemes/state";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isToolWindowVisible } from "@/state/layout";
 import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
@@ -413,7 +414,14 @@ function TreeNode(props: { row: TreeRow; depth: number }) {
             <TreeArrow open={isOpen()} />
           </Show>
         </span>
-        <FileIcon name={entry().name} path={props.row.path} dir={isDir()} open={isOpen() && isDir()} dimmed={props.row.ignored} />
+        <FileIcon
+          name={entry().name}
+          path={props.row.path}
+          dir={isDir()}
+          open={isOpen() && isDir()}
+          hollow={isDir() && isHollowFolder(props.row.path)}
+          dimmed={props.row.ignored}
+        />
         <span class={`tree-label ${status() ? `vcs-${status()}` : ""}`}>{props.row.name}</span>
         <Show when={decoration()?.hint}>
           <span class="tree-hint">{decoration()?.hint}</span>
@@ -561,7 +569,7 @@ export function ProjectView() {
               <span class="tree-chevron">
                 <TreeArrow open />
               </span>
-              <FileIcon name={workspace()?.name ?? ""} dir open />
+              <FileIcon name={workspace()?.name ?? ""} dir open root />
               <span class="tree-label strong">{workspace()?.name}</span>
               <span class="tree-hint">{workspace()?.collab?.label ?? root}</span>
             </div>

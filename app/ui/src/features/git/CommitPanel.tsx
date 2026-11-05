@@ -46,6 +46,7 @@ import {
 import { COMMIT_CHECKS, runCommitChecks } from "./commitChecks";
 import { shelveDialog } from "./gitDialogs";
 import { FileIcon } from "@/shell/FileIcon";
+import { UiIcon } from "@/features/iconThemes/UiIcon";
 import { openFile } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
 import { textApi, type CommitMessageProblem } from "@/ipc/text";
@@ -201,8 +202,9 @@ function FileRow(props: { entry: StatusEntry; item: ListItem; list: string; dept
     >
       <span class="tree-chevron" />
       <Checkbox items={[props.item]} label={nameOf(props.entry.path)} />
-      <FileIcon name={nameOf(props.entry.path)} />
+      <FileIcon name={nameOf(props.entry.path)} path={props.entry.path} />
       <span class={`tree-label vcs-${st()}`}>{nameOf(props.entry.path)}</span>
+      <UiIcon id={`vcs.${st()}`} size={12} class="vcs-status-icon" />
       <Show when={props.showDir && dirOf(props.entry.path)}>
         <span class="tree-hint">{dirOf(props.entry.path)}</span>
       </Show>

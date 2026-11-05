@@ -12,6 +12,7 @@ import { chrome, dragRegion, drawsControls } from "./window/chrome";
 import { WindowControls } from "./window/WindowControls";
 import { MainMenuButton, SeparateMainMenuBar } from "@/features/mainMenu/MainMenuButton";
 import { t } from "@/i18n";
+import { UiIcon } from "@/features/iconThemes/UiIcon";
 
 /**
  * Top toolbar, laid out like PHPStorm's New UI main toolbar. It is also the window's title
@@ -56,24 +57,32 @@ export function MainToolbar() {
       <div class="toolbar-center" />
       <div class="toolbar-right">
         <button class="icon-btn" title={t("toolbar.buildProject", { shortcut: "Ctrl+F9" })}>
-          <Hammer size={16} />
+          <UiIcon id="action.build" size={16}>
+            <Hammer size={16} />
+          </UiIcon>
         </button>
         <For each={toolbarItems()}>{(item) => <Dynamic component={item.component} />}</For>
         <RunWidget />
         <div class="toolbar-sep" />
         <Show when={!isCollabGuest()}>
           <button class="icon-btn" title={t("toolbar.aiChat")} onClick={() => showToolWindow("ai-chat")}>
-            <Sparkles size={16} />
+            <UiIcon id="action.aiChat" size={16}>
+              <Sparkles size={16} />
+            </UiIcon>
           </button>
         </Show>
         <button class="icon-btn" title={t("toolbar.searchEverywhere", { shortcut: "Double Shift" })} onClick={() => runCommand("search.everywhere")}>
-          <Search size={16} />
+          <UiIcon id="action.search" size={16}>
+            <Search size={16} />
+          </UiIcon>
         </button>
         <button class="icon-btn" title={t("toolbar.toggleTheme")} onClick={toggleTheme}>
           {isDarkTheme(theme()) ? <Sun size={16} /> : <Moon size={16} />}
         </button>
         <button class="icon-btn" title={t("toolbar.settings", { shortcut: "Ctrl+Alt+S" })} onClick={() => runCommand("settings.open")}>
-          <Settings size={16} />
+          <UiIcon id="action.settings" size={16}>
+            <Settings size={16} />
+          </UiIcon>
         </button>
       </div>
       <Show when={drawsControls() && chrome()!.buttons.right.length > 0}>

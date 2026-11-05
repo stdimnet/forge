@@ -21,6 +21,7 @@ import {
   type SeTab,
 } from "./state";
 import { t, tOr } from "@/i18n";
+import { ThemedSymbolIcon } from "@/features/iconThemes/UiIcon";
 
 /** Render `text` with matched characters emphasized. */
 export function Highlight(props: { text: string; positions?: number[] }) {
@@ -53,7 +54,14 @@ export function ItemIcon(props: { item: SearchItem }): JSX.Element {
   const badge = () => (props.item.kind ? KIND_BADGE[props.item.kind] : undefined);
   return (
     <span class="se-icon">
-      <Show when={props.item.icon} fallback={<Show when={badge()}>{(b) => <span class={`kind-badge ${b().cls}`}>{b().letter}</span>}</Show>}>
+      <Show
+        when={props.item.icon}
+        fallback={
+          <Show when={badge()}>
+            {(b) => <ThemedSymbolIcon kind={props.item.kind!} size={16} fallback={<span class={`kind-badge ${b().cls}`}>{b().letter}</span>} />}
+          </Show>
+        }
+      >
         {(icon) => <Dynamic component={icon()} />}
       </Show>
     </span>

@@ -8,7 +8,9 @@ import {
   FileTerminal,
   FileText,
   Folder,
+  FolderDot,
   FolderOpen,
+  FolderOpenDot,
   Database,
   Lock,
   Mail,
@@ -18,7 +20,7 @@ import {
 } from "lucide-solid";
 import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { iconStyle, themedIcon, type IconKind } from "@/features/iconThemes/state";
+import { folderColor, iconStyle, themedIconKey, type IconKind } from "@/features/iconThemes/state";
 
 type Spec = { icon: typeof File; color: string };
 
@@ -145,14 +147,31 @@ function specFor(name: string): Spec {
 
 /**
  * The icon of a file or folder: the active icon theme's (`features/iconThemes`), else
- * Forge's own. `path` (when known) lets theme patterns match on folders too; `name` is used
- * otherwise.
+ * Forge's own. `path` (when known) lets theme patterns and path rules match on folders too;
+ * `name` is used otherwise. `root` marks the project root (the theme's root folder icon),
+ * `hollow` a folder that holds open files (its hollow variant, with the option on). Folder
+ * colors (`fileIcons.folderColors`) apply to both themed and built-in folder icons.
  */
-export function FileIcon(props: { name: string; path?: string; dir?: boolean; open?: boolean; size?: number; dimmed?: boolean }) {
+export function FileIcon(props: {
+  name: string;
+  path?: string;
+  dir?: boolean;
+  open?: boolean;
+  size?: number;
+  dimmed?: boolean;
+  root?: boolean;
+  hollow?: boolean;
+}) {
   const kind = (): IconKind => (props.dir ? (props.open ? "folderOpen" : "folder") : "file");
-  const themed = () => themedIcon(props.path || props.name, kind());
+  const themed = () => themedIconKey(props.path || props.name, kind(), { root: props.root, hollow: props.hollow });
+  const color = () => (props.dir && !props.root ? folderColor(props.path || props.name) : null);
   const spec = (): Spec =>
-    props.dir ? { icon: props.open ? FolderOpen : Folder, color: "var(--fg-muted)" } : specFor(props.name);
+    props.dir
+      ? {
+          icon: props.hollow ? (props.open ? FolderOpenDot : FolderDot) : props.open ? FolderOpen : Folder,
+          color: color() ?? "var(--fg-muted)",
+        }
+      : specFor(props.name);
   return (
     <Show
       when={themed()}
@@ -162,15 +181,16 @@ export function FileIcon(props: { name: string; path?: string; dir?: boolean; op
           class="file-icon"
           size={props.size ?? 15}
           stroke-width={1.75}
+          aria-hidden="true"
           style={{ color: spec().color, "flex-shrink": 0, opacity: props.dimmed ? 0.6 : undefined }}
         />
       }
     >
-      {(url) => (
+      {(key) => (
         <span
           class="file-icon themed-file-icon"
           aria-hidden="true"
-          style={{ ...iconStyle(url(), kind(), props.size ?? 15), opacity: props.dimmed ? "0.6" : undefined }}
+          style={{ ...iconStyle(key(), kind(), props.size ?? 15, color()), ...(props.dimmed ? { opacity: "0.6" } : {}) }}
         />
       )}
     </Show>

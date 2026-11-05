@@ -61,6 +61,10 @@ pub fn symbol_fallback(kind: &str) -> Option<&'static str> {
         "abstractMethod" | "finalMethod" | "staticMethod" | "constructor" => "method",
         "staticProperty" | "field" => "property",
         "enumCase" => "constant",
+        // Language server completion kinds that are no stable kind of their own.
+        "enumMember" => "enumCase",
+        "struct" => "class",
+        "typeParameter" => "parameter",
         "parameter" => "variable",
         "module" => "namespace",
         _ => return None,
