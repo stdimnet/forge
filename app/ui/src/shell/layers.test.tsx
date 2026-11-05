@@ -1,10 +1,14 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { installDialogAccessibility, openDialogs } from "@/features/accessibility/dialogs";
 import { LAYER_BASE, LAYER_KINDS, Layer, layerOf, layerZ, openLayer, openLayers, useLayer, type Layer as LayerT } from "./layers";
+
+/** Node's `fs` (vitest runs in Node; app/ui has no @types/node). */
+const proc = (globalThis as unknown as { process: { cwd(): string; getBuiltinModule(id: string): unknown } }).process;
+const fs = proc.getBuiltinModule("node:fs") as { readFileSync(path: string, encoding: "utf8"): string };
+// vitest runs in app/ui.
+const themeCss = fs.readFileSync(`${proc.cwd()}/src/theme/theme.css`, "utf8");
 
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 
@@ -17,8 +21,7 @@ afterEach(() => {
 
 describe("layer scale", () => {
   it("matches the --z-* variables of theme.css, lowest first", () => {
-    const css = readFileSync(resolve(__dirname, "../theme/theme.css"), "utf8");
-    const values = LAYER_KINDS.map((k) => Number(new RegExp(`--z-${k}:\\s*(\\d+);`).exec(css)?.[1]));
+    const values = LAYER_KINDS.map((k) => Number(new RegExp(`--z-${k}:\\s*(\\d+);`).exec(themeCss)?.[1]));
     expect(values).toEqual(LAYER_KINDS.map((k) => LAYER_BASE[k]));
     expect([...values].sort((a, b) => a - b)).toEqual(values);
   });
