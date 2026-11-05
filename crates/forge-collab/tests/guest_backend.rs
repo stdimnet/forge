@@ -1542,3 +1542,21 @@ async fn large_and_binary_files_open_read_only_for_guests() {
     assert!(!o.read_only);
     assert_eq!(o.view, None);
 }
+
+/// Some app commands call `Backend` methods directly on a runtime worker; the guest's backend
+/// must answer them instead of panicking ("Cannot block the current thread").
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn backend_calls_on_a_runtime_worker_do_not_panic() {
+    let mut w = World::new(READ);
+    let g = w.join("Alex").await;
+    // Directly on the worker, as `inspections_profiles` does.
+    let text = g.backend.read_optional("app/Http/Order.php").unwrap();
+    assert!(text.unwrap().contains("class Order"));
+    // And from a task the runtime spawned.
+    let b = g.backend.clone();
+    let listed = tokio::spawn(async move { b.list_dir("app").map(|e| e.len()) })
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(listed > 0);
+}

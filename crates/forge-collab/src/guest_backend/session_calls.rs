@@ -137,11 +137,20 @@ impl GuestSession {
         }
     }
 
-    /// [`call`](Self::call) for threads that may block (the `Backend` methods). Must not be
-    /// used from the async runtime's worker threads.
+    /// [`call`](Self::call) for threads that may block (the `Backend` methods). Async code
+    /// should use `spawn_blocking`, but some commands call `Backend` methods on a worker of
+    /// the multi-threaded runtime (the app's): the wait then moves off the worker
+    /// (`block_in_place`, which just runs it on other threads) instead of panicking.
     pub fn call_blocking(&self, call: &HostCall, timeout: Duration) -> Result<Vec<u8>, String> {
+        let multi_thread = Handle::try_current()
+            .is_ok_and(|h| h.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread);
         let rx = self.start_call(call, timeout)?;
-        match rx.blocking_recv() {
+        let received = if multi_thread {
+            tokio::task::block_in_place(|| rx.blocking_recv())
+        } else {
+            rx.blocking_recv()
+        };
+        match received {
             Ok(result) => result,
             Err(_) => Err(NO_ANSWER.into()),
         }
