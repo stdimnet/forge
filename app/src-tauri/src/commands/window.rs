@@ -398,11 +398,110 @@ pub async fn dialog_window_open(
     Ok(())
 }
 
+/// Open a dialog window without a parent (the LightEdit window): not modal, with a taskbar
+/// entry, centered on the primary monitor or where the user left it, and not closed with the
+/// project window. Its UI shows it with `dialog_window_ready`.
+pub fn open_standalone(
+    app: &AppHandle,
+    id: &str,
+    title: &str,
+    (width, height): (u32, u32),
+    (min_width, min_height): (u32, u32),
+) -> Result<WebviewWindow> {
+    let label = dialog_label(id).ok_or_else(|| err(format!("invalid dialog id {id:?}")))?;
+    if let Some(existing) = app.get_webview_window(&label) {
+        return Ok(existing);
+    }
+    let dialogs = app.state::<DialogWindowsState>();
+    let chrome = chrome_for(&setting(&app.state::<AppState>()));
+    let monitor = app.primary_monitor().ok().flatten();
+    let scale = monitor.as_ref().map_or(1.0, |m| m.scale_factor());
+    let px = |logical: u32| (logical as f64 * scale).round() as u32;
+    let default = Size {
+        width: px(width),
+        height: px(height),
+    };
+    let min = Size {
+        width: px(min_width),
+        height: px(min_height),
+    };
+    let monitors: Vec<Rect> = app
+        .available_monitors()
+        .unwrap_or_default()
+        .iter()
+        .map(|m| {
+            let area = m.work_area();
+            Rect::new(
+                area.position.x,
+                area.position.y,
+                area.size.width,
+                area.size.height,
+            )
+        })
+        .collect();
+    // Centered on the primary monitor, unless the user moved it before.
+    let screen = monitor
+        .map(|m| {
+            let area = m.work_area();
+            Rect::new(
+                area.position.x,
+                area.position.y,
+                area.size.width,
+                area.size.height,
+            )
+        })
+        .unwrap_or(Rect::new(0, 0, default.width, default.height));
+    let remembered = dialogs.with_states(|s| s.get(id));
+    let rect = place_dialog(screen, default, min, remembered, &monitors);
+    let boot = DialogBoot {
+        id,
+        parent: "",
+        props: &Value::Object(Default::default()),
+    };
+    let init = format!(
+        "window.__FORGE_DIALOG__ = {};",
+        serde_json::to_string(&boot).map_err(err)?
+    );
+    let url = WebviewUrl::App(format!("index.html?dialog={id}").into());
+    let window = WebviewWindowBuilder::new(app, &label, url)
+        .title(title)
+        .decorations(chrome.native)
+        .resizable(true)
+        .visible(false)
+        .min_inner_size(min.width as f64 / scale, min.height as f64 / scale)
+        .initialization_script(&init)
+        .build()
+        .map_err(err)?;
+    dialogs.open.lock().expect("dialogs lock poisoned").insert(
+        label,
+        OpenDialog {
+            id: id.to_string(),
+            parent: String::new(),
+            modal: false,
+            result: None,
+            closing: false,
+            close_requested: None,
+            geometry: Some(rect),
+        },
+    );
+    let _ = window.set_size(PhysicalSize::new(rect.width, rect.height));
+    let _ = window.set_position(PhysicalPosition::new(rect.x, rect.y));
+    let fallback = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(DIALOG_READY_TIMEOUT);
+        let _ = fallback.show();
+    });
+    Ok(window)
+}
+
 /// The dialog window's UI has rendered: show it.
 #[tauri::command]
-pub fn dialog_window_ready(window: WebviewWindow) -> Result<()> {
+pub fn dialog_window_ready(app: AppHandle, window: WebviewWindow) -> Result<()> {
     window.show().map_err(err)?;
-    window.set_focus().map_err(err)
+    window.set_focus().map_err(err)?;
+    // Forge started for a file: the LightEdit window is the first window, the splash closes.
+    crate::startup::window_ready(&app, window.label());
+    Ok(())
 }
 
 /// Close the calling dialog window and report `result` to its parent (`null` = cancelled).
@@ -484,6 +583,11 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
                 let _ = child.destroy();
             }
             super::project_windows::stop();
+            // The LightEdit window keeps this instance running: close the project, so a
+            // project window opened from it later starts without it.
+            if super::light_edit::is_open(app) {
+                crate::companion::project_window_closed(app);
+            }
         }
         return;
     }
@@ -540,6 +644,9 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             else {
                 return;
             };
+            if entry.id == forge_window::LIGHT_EDIT_ID {
+                super::light_edit::closed(app);
+            }
             if let Some(rect) = entry.geometry {
                 if let Some(json) =
                     dialogs.with_states(|s| s.remember(&entry.id, rect).then(|| s.clone()))
@@ -553,6 +660,9 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             {
                 let _ = parent.set_enabled(true);
                 let _ = parent.set_focus();
+            }
+            if entry.parent.is_empty() {
+                return;
             }
             let closed = DialogClosed {
                 window: entry.parent.clone(),

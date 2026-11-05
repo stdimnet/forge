@@ -5,11 +5,12 @@
  * user typed the command in a terminal. Code With Me session links open the Join Session
  * dialog, filled in.
  */
-import { companionApi, type OpenEvent, type PendingEvent } from "@/ipc/companion";
+import { companionApi, type OpenEvent, type OpenProjectRequest, type PendingEvent } from "@/ipc/companion";
 import { openFileAt } from "@/editor/views";
-import { openWorkspace, restoreWorkspace, workspace } from "@/state/workspace";
+import { openProject, openWorkspace, restoreWorkspace, workspace } from "@/state/workspace";
 import { joinSession } from "@/features/code-with-me/join";
 import { confirmDialog } from "./ConfirmDialog";
+import { t } from "@/i18n";
 
 export type OpenPlan =
   | { kind: "open"; path: string }
@@ -74,8 +75,29 @@ export async function handleOpenEvent(event: OpenEvent): Promise<void> {
   await openFileAt(plan.path, event.line, event.column);
 }
 
+/**
+ * A folder from "Open Folder in Forge", the command line or a forge:// link: opened like
+ * File | Open (asking "This Window / New Window" while a project is open; "Trust and Open
+ * Project?" then comes from the window it opens in). Links ask first.
+ */
+export async function handleOpenProject(request: OpenProjectRequest): Promise<void> {
+  if (!workspace()) await restoreWorkspace();
+  if (request.confirm) {
+    const ok = await confirmDialog({
+      title: t("tools.lightEdit.openFolderTitle"),
+      message: t("tools.lightEdit.linkWantsToOpenFolder"),
+      detail: request.root,
+      question: t("tools.lightEdit.openItAsAProject"),
+      okLabel: t("tools.lightEdit.openFolder"),
+      warning: true,
+    });
+    if (!ok) return;
+  }
+  await openProject(request.root);
+}
+
 async function handlePending(e: PendingEvent): Promise<void> {
-  if (e.type === "openProject") await openWorkspace(e.root);
+  if (e.type === "openProject") await handleOpenProject(e);
   else if (e.type === "joinSession") await joinSession(e.link);
   else await handleOpenEvent(e);
 }
@@ -89,7 +111,7 @@ const enqueue = (job: () => Promise<void>) => {
 /** Subscribe to open requests, then fetch the ones that arrived during startup. */
 export async function listenForOpenRequests(): Promise<void> {
   await companionApi.onOpen((e) => enqueue(() => handleOpenEvent(e)));
-  await companionApi.onOpenProject((root) => enqueue(async () => void (await openWorkspace(root))));
+  await companionApi.onOpenProject((request) => enqueue(() => handleOpenProject(request)));
   await companionApi.onJoinSession((link) => enqueue(() => joinSession(link)));
   for (const e of await companionApi.uiReady()) enqueue(() => handlePending(e));
 }

@@ -50,7 +50,15 @@ pub fn companion_revoke_client(id: String, state: State<'_, CompanionState>) -> 
 /// Called once by the UI after it subscribed to `companion://open`: returns requests that
 /// arrived earlier (e.g. `forge src/App.tsx:12` at startup).
 #[tauri::command]
-pub fn companion_ui_ready(state: State<'_, CompanionState>) -> Vec<PendingEvent> {
+pub fn companion_ui_ready(
+    window: tauri::WebviewWindow,
+    state: State<'_, CompanionState>,
+) -> Vec<PendingEvent> {
+    // Requests are for the project window; dialog windows (LightEdit, detached editors)
+    // load the same features but must not take them.
+    if window.label() != crate::startup::MAIN_LABEL {
+        return Vec::new();
+    }
     state.take_pending()
 }
 

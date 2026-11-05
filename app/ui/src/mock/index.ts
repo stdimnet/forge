@@ -125,6 +125,7 @@ import "./webToolingMock";
 import "./saveActionsMock";
 import "./windowMock";
 import "./projectWindowsMock";
+import "./lightEditMock";
 import "./updatesMock";
 import "./templatesMock";
 // Wraps workspace_open and the run mocks (Safe Mode).

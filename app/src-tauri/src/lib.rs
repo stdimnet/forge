@@ -32,8 +32,9 @@ pub fn run() {
     let run_state = commands::run::RunState::new(&app_state);
 
     let mut builder = tauri::Builder::default();
-    // A second `forge …` launch is forwarded to this instance. forge:// links among its
-    // arguments arrive through the deep-link plugin's event instead, so they are skipped.
+    // A second `forge …` launch ("Open With → Forge", "Open Folder in Forge") is forwarded to
+    // this instance. forge:// links among its arguments arrive through the deep-link plugin's
+    // event instead, so they are skipped.
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
     if !commands::project_windows::is_secondary() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -76,6 +77,7 @@ pub fn run() {
         .manage(commands::composer::ComposerState::default())
         .manage(commands::vulnerabilities::VulnerabilitiesState::default())
         .manage(commands::window::DialogWindowsState::default())
+        .manage(commands::light_edit::LightEditState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
             commands::window::on_window_event(window, event);
@@ -248,6 +250,14 @@ pub fn run() {
             commands::project_windows::project_window_cycle,
             commands::project_windows::project_window_open,
             commands::project_windows::project_window_new,
+            commands::light_edit::light_edit_state,
+            commands::light_edit::light_edit_open,
+            commands::light_edit::light_edit_close,
+            commands::light_edit::light_edit_activate,
+            commands::light_edit::light_edit_read,
+            commands::light_edit::light_edit_write,
+            commands::light_edit::light_edit_open_project,
+            commands::trust::trust_launch_prompt,
             commands::project_state::agent_history_list,
             commands::project_state::agent_history_load,
             commands::project_state::agent_history_save,
@@ -1285,8 +1295,17 @@ pub fn run() {
             commands::window::window_is_fullscreen,
             commands::window::window_set_zoom,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Forge");
+        .build(tauri::generate_context!())
+        .expect("error while building Forge")
+        .run(|app, event| {
+            // macOS hands files and folders to the app ("Open With", the Dock icon) as an
+            // open-file event, not as arguments; route them like a second launch.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &event {
+                companion::handle_opened_urls(app, urls.iter().map(|u| u.as_str()));
+            }
+            let _ = (app, event);
+        });
 }
 
 /// Startup step "Loading plugins": the settings listeners of the built-in plugins and the
@@ -1458,4 +1477,85 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 commands::gamedev::spawn_sync_lsp_server(&handle);
             }
         });
+}
+
+#[cfg(test)]
+mod bundle_tests {
+    use std::path::Path;
+
+    use tauri::utils::config::{BundleTypeRole, Config, HandlerRank};
+
+    fn config() -> Config {
+        let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tauri.conf.json"))
+            .expect("tauri.conf.json");
+        serde_json::from_str(&text).expect("tauri.conf.json is a valid Tauri config")
+    }
+
+    /// Forge registers as an editor for text and source files and as a handler of folders
+    /// (Finder's Open With, Linux `inode/directory`), see docs/guide/user/open-from-the-os.md.
+    #[test]
+    fn registers_as_editor_for_text_files_and_folders() {
+        let bundle = config().bundle;
+        let assoc = bundle.file_associations.expect("fileAssociations");
+        assert!(assoc.iter().all(|a| a.role == BundleTypeRole::Editor));
+        let exts: Vec<String> = assoc
+            .iter()
+            .flat_map(|a| a.ext.iter().map(|e| e.0.clone()))
+            .collect();
+        for ext in ["txt", "md", "php", "ts", "lua", "json", "yaml"] {
+            assert!(exts.iter().any(|e| e == ext), "{ext} is not associated");
+        }
+        let folder = assoc
+            .iter()
+            .find(|a| {
+                a.content_types
+                    .as_ref()
+                    .is_some_and(|t| t.iter().any(|t| t == "public.folder"))
+            })
+            .expect("public.folder");
+        // Forge is offered for folders, never made their default handler.
+        assert_eq!(folder.rank, HandlerRank::Alternate);
+        assert!(folder.ext.is_empty());
+    }
+
+    #[test]
+    fn installer_files_exist_and_register_folders() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let bundle = config().bundle;
+        let hooks = bundle
+            .windows
+            .nsis
+            .as_ref()
+            .and_then(|n| n.installer_hooks.clone());
+        let hooks = std::fs::read_to_string(dir.join(hooks.expect("NSIS hooks"))).unwrap();
+        for key in ["Directory", "Directory\\Background"] {
+            assert!(hooks.contains(&format!("\"{key}\" \"Open Folder in Forge\"")));
+        }
+        for key in [
+            "Directory\\shell\\Forge",
+            "Directory\\Background\\shell\\Forge",
+            "*\\shell\\Forge",
+        ] {
+            assert!(
+                hooks.contains(&format!("DeleteRegKey SHCTX \"Software\\Classes\\{key}\"")),
+                "the uninstaller keeps {key}"
+            );
+        }
+        let wix = &bundle.windows.wix.as_ref().expect("wix").fragment_paths;
+        let fragment = std::fs::read_to_string(dir.join(&wix[0])).unwrap();
+        assert!(fragment.contains("Directory\\Background\\shell\\Forge"));
+        let deb = &bundle.linux.deb;
+        let template =
+            std::fs::read_to_string(dir.join(deb.desktop_template.as_ref().unwrap())).unwrap();
+        let exec = template.lines().find(|l| l.starts_with("Exec=")).unwrap();
+        assert!(exec.ends_with(" %F"), "{exec}");
+        let mime = template
+            .lines()
+            .find(|l| l.starts_with("MimeType="))
+            .unwrap();
+        assert!(mime.contains("text/plain;") && mime.contains("inode/directory;"));
+        for source in deb.files.values().chain(bundle.linux.rpm.files.values()) {
+            assert!(dir.join(source).is_file(), "{}", source.display());
+        }
+    }
 }
