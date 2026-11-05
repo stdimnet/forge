@@ -88,6 +88,9 @@ app/ui/            SolidJS UI
     (`src/features/services/providers.ts`) — nodes of the Services tool window before
     Docker / Compose / Kubernetes, with their own details (the `ServiceDetails` shape) and
     toolbar actions (the Spring Boot run dashboard).
+  - `onProject(phase, handler, { order?, name? })` (`src/state/projectLifecycle.ts`) — follow
+    the window's project: `beforeClose` (veto), `closing`, `opened`, `ready` (see "Project
+    lifecycle").
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
 - Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `notebook` (a Jupyter notebook in command mode, `[data-focus-context="notebook"]`) and `notebook-editor` (a cell's editor; editor actions apply too), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
@@ -175,10 +178,11 @@ app/ui/            SolidJS UI
 - Layout, wording and shortcuts follow PHPStorm; colors are Forge's own.
 - Every UI change is checked with `pnpm screenshots` (see `.claude/skills/verify-ui-with-screenshots`).
 - Project tree: single click selects, double click opens (setting `projectView.openFilesWithSingleClick`).
-- Per-project UI state (tree expansion, problems, search results, banners) is dropped through
-  `onProjectSwitch` (`src/state/workspace.ts`) when the window's project changes: This Window,
-  a Code With Me guest getting the host's project, Close Project. Views keyed on the project
-  render from `workspace()?.root`, not just from `workspace()` being set.
+- Per-project UI state (tree expansion, problems, search results, branches, terminals) follows
+  the project lifecycle with `onProject(phase, handler)` (`src/state/projectLifecycle.ts`, see
+  "Project lifecycle") when the window's project changes: This Window, a Code With Me guest
+  getting the host's project, Close Project. Views keyed on the project render from
+  `workspace()?.root`, not just from `workspace()` being set.
 - Commits: small, imperative subject lines, no co-author trailers.
 
 ## Shared IPC contracts
@@ -555,6 +559,68 @@ app/ui/            SolidJS UI
   `local_history_record({ kind, name, files })`, `local_history_begin({ kind, name }) -> token`,
   `local_history_end({ token })`, `local_history_snapshot({ paths })`; event
   `local-history://changed` after new change sets are written.
+
+## Project lifecycle (`forge_core::lifecycle`)
+
+Every feature with per-project state follows one lifecycle per window. Rust owns it (Rust owns
+the workspace) and publishes it to the UI as one event stream, `project://lifecycle`
+(`{ phase, generation, project }`, `project` = the `WorkspaceInfo` fields plus `vcsRoot` and
+`trusted`).
+
+| Phase | Project | Purpose |
+| --- | --- | --- |
+| `beforeClose` | old | can veto: `project_before_close() -> Objection[]` asks the Rust subscribers (`{ source, kind, message, items }`, e.g. `terminal.running`), then the UI handlers run; one "Cancel" keeps the project |
+| `closing` | old | stop and save: file watcher, language servers, terminal sessions; UI state is dropped |
+| `opened` | new | load and start: branch and file statuses, terminals, watchers |
+| `ready` | new | after the search index is built (once per open; dropped when another project opened meanwhile) |
+
+- **Rust**: `ProjectLifecycleBus` (`forge-core`, re-exported by `forge_plugin_api::lifecycle`)
+  holds the subscribers, implementations of the `ProjectLifecycle` trait (`name`, `order`,
+  `before_close -> Option<Objection>`, `closing`, `opened`, `ready`). Phases run in order
+  (`order`, then subscription) with error isolation: a subscriber that returns an error or
+  panics is logged in the `PhaseReport` and the others still run. `before_close` only
+  collects objections and closes nothing. `app/src-tauri/src/lifecycle.rs` subscribes the
+  built-in services (file watcher, language servers, terminals), runs `closing` before every
+  path replaces or drops the project's backend (`workspace_open`, remote, dev container and
+  WSL projects, joining and leaving a Code With Me session, `workspace_close` for Close
+  Project) and `opened` in `project_opened` and at startup, then waits for the index for
+  `ready`. Packs subscribe their own services there.
+- **Trust and windows**: each project window is a process of its own, so events reach only the
+  window whose project changed. `opened` is sent after that window's trust decision: the UI
+  asks "Trust and Open Project?" before `workspace_open`, a new window gets the decision of
+  the window that opened it, and remote projects are in Safe Mode (`trusted: false`) until
+  trusted.
+- **UI**: `onProject(phase, handler, { order?, name? })` (`src/state/projectLifecycle.ts`)
+  replaces `onProjectSwitch` (kept as a deprecated alias for `closing`). Handlers run in the
+  same fixed order with error isolation; a handler that returns a promise is awaited before
+  the next one, and a phase of synchronous handlers completes synchronously. `opened`
+  handlers may return a cleanup that runs at that project's `closing`. `beforeClose` handlers
+  get `{ objections, claim(kind) }` and return `false` to veto; objections no handler claims
+  are asked about with a generic "Close the project anyway?" dialog (`setObjectionPrompt`).
+  `state/workspace.ts` drives the phases: `openWorkspace`, `openRemoteProject` and Close
+  Project (`requestCloseWorkspace`) ask `beforeClose` first; the IPC result and the Rust
+  event are deduplicated by root, so every project gets `opened` and `closing` exactly once
+  whichever arrives first. `closing` runs while `workspace()` is still the old project, after
+  its editor tabs closed. Dialog windows do not run the lifecycle.
+- **Plugins**: third-party UI plugins get `closing`, `opened` and `ready` through
+  `forge.workspace.onDidChangeProject(callback)`; they cannot veto.
+- **Mocks**: `src/mock/lifecycleMock.ts` sends the same events for every mocked open and
+  answers `project_before_close` / `workspace_close`; `~/Projects/symfony-api`,
+  `~/Projects/shop-api` (other branches) and `~/.config/nvim` (no git) open as projects of
+  their own for trying a switch.
+
+Audit of the features with per-project state:
+
+| Feature | How it follows the project |
+| --- | --- |
+| VCS widget, git store (`state/vcs.ts`, `features/git/store.ts`) | `closing` clears branch, file statuses and the branch operation at once and drops answers still on their way; `opened` reads the new repository; a folder without git shows "Version Control" and no status bar branch |
+| Terminals (`features/terminal`, `TerminalLifecycle`) | `beforeClose` asks about running commands, `closing` saves the layout and ends the sessions in Rust, `opened` restores the project's tabs (see "Terminal and Run/Debug") |
+| Project tree, Find, Find Usages, inspections, problems, notifications, Safe Mode banner | `closing` handlers (formerly `onProjectSwitch`) |
+| Services (`features/services/store.ts`) | `closing` drops selection, expansion and picked containers; Rust reconfigures the services in `project_opened` |
+| Editor tabs, recent files, navigation history | closed with the project's tabs (`closeAllTabs`, `onTabsReset`) before `closing` |
+| Run configurations, tool window layout, database connections, debug state, AI chat, bookmarks, TODO, Code With Me session | derive from `workspace()?.root` (they reload in an effect on the root) |
+| Scratches | not project state (scratches belong to the IDE, as in PHPStorm) |
+| Run sessions | keep running after a switch, as before (their consoles name their project) |
 
 ## Local History (`forge-localhistory`)
 
@@ -1273,6 +1339,24 @@ time than it has); do it on the release machine before merging the Code With Me 
   a grace period. With `terminal.shellIntegration` bash and zsh start with Forge's scripts
   (`forge_process::integration`, written to the cache dir of the machine the shell runs on),
   which report OSC 7 (working directory) and OSC 133 (prompt, command start, exit code).
+- Terminals belong to the project (`forge_process::terminal_layout`, `TerminalLifecycle` in
+  `commands/terminal.rs`, `features/terminal/projectTerminals.ts`): `terminal_running() ->
+  { id, process }[]` lists sessions whose PTY has a foreground process other than the shell
+  (`PtySession::foreground_process`: `tcgetpgrp` on Unix; remote, SSH and Windows sessions report
+  none). The lifecycle's `beforeClose` objects with `{ kind: "terminal.running", items:
+  processes, targets: session ids }`, which the terminal UI claims and asks "Terminate …?"
+  (Terminate / Cancel). `closing` keeps each session's recent output when
+  `terminal.restoreScrollback` is on (capped at 256 KB per tab, `<cache dir>/forge/
+  terminal-scrollback/<project key>/<tab id>.txt`), then ends the sessions without reporting
+  their exit, so the UI still has the tabs for the layout. The layout (tabs, names, renamed,
+  working directories from OSC 7 relative to the root, shell profiles, the selected tab) is
+  workspace state: `terminal_layout_save({ root, layout })` / `terminal_layout_load({ root })
+  -> TerminalLayout | null` (`<state dir>/forge/terminal-layouts/<project key>.json`, with the
+  saved output per tab when the option is on), keyed by the explicit root because the closing
+  project's layout is saved while the next one may already be open in Rust. The UI saves it a
+  moment after every change and in `closing`, and restores it in `opened` (the restored output
+  is written before the new shell starts). SSH sessions, programs started elsewhere (`docker
+  exec`) and Code With Me terminals are not restored; the Terminal has no split panes yet.
 - Terminal sequences: OSC 9;4 progress, OSC 9 / 777 notifications, OSC 7 working directories,
   OSC 133 boundaries and OSC 8 link targets are parsed by `forge_output::osc`, which the UI calls
   synchronously through WebAssembly (`terminal_parse_osc`, `terminal_link_target`) from

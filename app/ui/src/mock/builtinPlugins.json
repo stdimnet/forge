@@ -3421,6 +3421,17 @@
           "order": 6
         },
         {
+          "key": "terminal.restoreScrollback",
+          "title": "Restore terminal history",
+          "description": "Terminal tabs come back when a project opens again; with this option also what they showed (up to 256 KB per tab, kept in the user cache directory, never in the project).",
+          "type": "bool",
+          "default": true,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 7
+        },
+        {
           "key": "terminal.optionAsMeta",
           "title": "Use Option as Meta key",
           "description": "macOS only.",

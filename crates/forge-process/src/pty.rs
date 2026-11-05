@@ -222,6 +222,32 @@ impl PtySession {
             .map_err(other)
     }
 
+    /// The program running in the foreground of the terminal instead of the shell (`sleep`,
+    /// `vim`, a dev server), or `None` while the shell waits at its prompt. Unix only: the
+    /// terminal's foreground process group (`tcgetpgrp`) is not the shell's own.
+    pub fn foreground_process(&self) -> Option<String> {
+        if self.has_exited() {
+            return None;
+        }
+        #[cfg(unix)]
+        {
+            let leader = self
+                .master
+                .lock()
+                .expect("pty master poisoned")
+                .process_group_leader()?;
+            let shell = self.pid? as libc::pid_t;
+            if leader <= 0 || leader == shell {
+                return None;
+            }
+            Some(process_name(leader as u32).unwrap_or_else(|| format!("process {leader}")))
+        }
+        #[cfg(not(unix))]
+        {
+            None
+        }
+    }
+
     /// Whether the shell has exited.
     pub fn has_exited(&self) -> bool {
         self.exited.load(Ordering::SeqCst)
@@ -266,6 +292,24 @@ impl Drop for PtySession {
     fn drop(&mut self) {
         let _ = self.kill();
     }
+}
+
+/// The command name of a process (`/proc/<pid>/comm` on Linux, `ps` elsewhere).
+#[cfg(unix)]
+fn process_name(pid: u32) -> Option<String> {
+    let name = match std::fs::read_to_string(format!("/proc/{pid}/comm")) {
+        Ok(name) => name,
+        Err(_) => {
+            let out = std::process::Command::new("ps")
+                .args(["-o", "comm=", "-p", &pid.to_string()])
+                .output()
+                .ok()?;
+            String::from_utf8_lossy(&out.stdout).into_owned()
+        }
+    };
+    let name = name.trim();
+    let name = name.rsplit('/').next().unwrap_or(name);
+    (!name.is_empty()).then(|| name.to_string())
 }
 
 fn other(e: impl std::fmt::Display) -> ForgeError {
@@ -354,6 +398,38 @@ mod tests {
         s.kill().unwrap();
         let (_, exit) = collect_until(&rx, |_| false);
         assert!(exit.is_some(), "no exit after kill");
+    }
+
+    /// `sleep 100` in an interactive shell (job control on) is the terminal's foreground
+    /// process; at the prompt there is none.
+    #[test]
+    fn detects_the_foreground_process() {
+        let (s, rx) = start("/bin/sh", vec!["-i".into()]);
+        s.write(b"echo ready-$((1+1))\n").unwrap();
+        collect_until(&rx, |t| t.contains("ready-2"));
+        assert_eq!(
+            s.foreground_process(),
+            None,
+            "the shell waits at its prompt"
+        );
+        s.write(b"sleep 100\n").unwrap();
+        let mut found = None;
+        for _ in 0..50 {
+            found = s.foreground_process();
+            if found.is_some() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        assert_eq!(found.as_deref(), Some("sleep"));
+        s.kill().unwrap();
+        let (_, exit) = collect_until(&rx, |_| false);
+        assert!(exit.is_some());
+        assert_eq!(
+            s.foreground_process(),
+            None,
+            "an ended session runs nothing"
+        );
     }
 
     /// A live shell with Forge's integration scripts reports its directory (OSC 7) and the

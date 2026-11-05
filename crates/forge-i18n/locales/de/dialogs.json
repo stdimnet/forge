@@ -1,4 +1,7 @@
 {
+  "closeProject.anyway": "{reasons} {name} trotzdem schließen?",
+  "closeProject.close": "Projekt schließen",
+  "closeProject.title": "Projekt schließen",
   "database.addDataSource": "Datenquelle hinzufügen",
   "database.envFound": "Datenbank in {file} gefunden",
   "newProject.back": "Zurück",

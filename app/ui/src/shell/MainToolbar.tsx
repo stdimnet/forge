@@ -50,7 +50,7 @@ export function MainToolbar() {
         </button>
         <button class="pill-btn" title={t("toolbar.gitBranches")} onClick={() => runCommand("git.branches")}>
           <GitBranch size={15} class="muted" />
-          <span>{branchLabel()}</span>
+          <span>{branchLabel() || t("toolbar.versionControl")}</span>
           <ChevronDown size={14} class="muted" />
         </button>
       </div>

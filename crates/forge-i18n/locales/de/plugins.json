@@ -2257,6 +2257,8 @@
   "setting.terminal.renderer.option.dom": "DOM",
   "setting.terminal.renderer.option.webgl": "WebGL",
   "setting.terminal.renderer.title": "Renderer",
+  "setting.terminal.restoreScrollback.description": "Terminal-Tabs kommen zurück, wenn ein Projekt wieder geöffnet wird; mit dieser Option auch ihre Ausgabe (bis zu 256 KB pro Tab, im Cache-Verzeichnis des Benutzers gespeichert, nie im Projekt).",
+  "setting.terminal.restoreScrollback.title": "Terminalverlauf wiederherstellen",
   "setting.terminal.scrollback.description": "Anzahl der Zeilen, die oberhalb des sichtbaren Bereichs erhalten bleiben.",
   "setting.terminal.scrollback.title": "Scrollback-Puffer",
   "setting.terminal.shellIntegration.description": "bash und zsh melden ihr Arbeitsverzeichnis (im Tooltip des Tabs angezeigt) und Befehlsgrenzen (grüne und rote Markierungen in der Bildlaufleiste für erfolgreiche und fehlgeschlagene Befehle). Gilt für neue Sitzungen.",

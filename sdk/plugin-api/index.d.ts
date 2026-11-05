@@ -58,6 +58,13 @@ export interface FetchResponse {
   body: string;
 }
 
+export interface ProjectChange {
+  phase: "closing" | "opened" | "ready";
+  name: string;
+  /** The project's folder (`user@host:/path` for a remote project). */
+  root: string;
+}
+
 export interface RunOutput {
   exitCode: number | null;
   stdout: string;
@@ -108,6 +115,11 @@ export interface ForgeApi {
   workspace: {
     /** The open project's folder, or null. */
     root(): Promise<string | null>;
+    /**
+     * The window's project lifecycle: `closing` (the old project closes), `opened` (another
+     * project opened in this window) and `ready` (its index is built).
+     */
+    onDidChangeProject(callback: (change: ProjectChange) => void): Disposable;
   };
   fs: {
     /** Absolute paths inside the granted `"fs"` scopes (`${project}`, `${pluginData}`). */

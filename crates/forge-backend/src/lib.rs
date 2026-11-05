@@ -276,6 +276,11 @@ pub trait Terminal: Send + Sync {
     fn write(&self, data: &[u8]) -> Result<()>;
     fn resize(&self, cols: u16, rows: u16) -> Result<()>;
     fn kill(&self) -> Result<()>;
+    /// The program running in the foreground instead of the shell (`sleep`, a dev server),
+    /// or `None` at the prompt or when it cannot be told (remote and SSH sessions).
+    fn foreground_process(&self) -> Option<String> {
+        None
+    }
 }
 
 /// A started process (run configurations, tools).

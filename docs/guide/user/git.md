@@ -248,7 +248,8 @@ The caret line also shows an inline blame hint at its end: "Marlon, 2 days ago â
 ## Branches
 
 Click the branch widget in the toolbar (or **Branchesâ€¦** in Find Action) to open **Git
-Branches**:
+Branches**. The widget always shows the open project's branch; in a folder without a git
+repository it reads **Version Control** and the status bar shows no branch.
 
 ![Branches](../../screenshots/vcs-branches.png)
 

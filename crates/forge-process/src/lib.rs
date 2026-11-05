@@ -8,6 +8,8 @@
 //!   turns a configuration into a command line.
 //! - [`host`]: every process above runs on the host when Forge itself runs in a Flatpak
 //!   sandbox (`flatpak-spawn --host`); a no-op elsewhere.
+//! - [`terminal_layout`]: the Terminal tool window of each project (tabs, directories,
+//!   shell profiles) and the optional scrollback, restored when the project opens again.
 //! - [`test_history`]: the results of the last test runs per project (Test History).
 //! - [`output`]: the pure output models of the `forge-output` crate (ANSI, console lines,
 //!   file links, TeamCity test trees), re-exported for the run backend.
@@ -20,6 +22,7 @@ pub mod pty;
 pub mod runner;
 pub mod shell;
 pub mod termenv;
+pub mod terminal_layout;
 pub mod test_history;
 mod utf8;
 

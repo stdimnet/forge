@@ -18,6 +18,8 @@ import { chooseSshSession, confirmSshHostKey, setSshTabOpener } from "./ssh";
 import { progressLabel } from "./osc";
 import { ProgressRing } from "./ProgressRing";
 import { t, t as tr } from "@/i18n";
+// Terminals belong to the project: confirm running commands, keep the layout per project.
+import "./projectTerminals";
 
 /** Stripe marker while the Terminal is hidden: combined progress, else a bell dot. */
 function TerminalStripeBadge() {

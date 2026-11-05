@@ -74,6 +74,7 @@ fn store_changed(app: &AppHandle) {
             crate::commands::project::emit_detection(app);
         }
     }
+    crate::lifecycle::trust_changed(app);
     if let Err(e) = app.emit(TRUST_CHANGED_EVENT, status(&state)) {
         tracing::warn!("cannot emit {TRUST_CHANGED_EVENT}: {e}");
     }

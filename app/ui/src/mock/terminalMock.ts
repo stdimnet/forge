@@ -7,7 +7,9 @@
  */
 import { emitMock, invoke, registerMock } from "@/ipc";
 import { mockSafeMode } from "./trustMock";
-import type { TerminalEvent, TerminalOpenOptions } from "@/ipc/terminal";
+import type { RunningCommand, TerminalEvent, TerminalLayout, TerminalOpenOptions } from "@/ipc/terminal";
+import { mockSettingValue } from "./settingsMock";
+import { mockOpenRoot, onMockProjectClosing, registerMockObjections } from "./lifecycleHooks";
 import { demoProjectName } from "./demoProject";
 import { initialLogs } from "./servicesDemoData";
 import { mockContainerFor } from "./servicesMock";
@@ -17,7 +19,12 @@ import { REPLAYS, replayExit, replayFrames, type ReplayName } from "./terminalRe
 
 /** Prompt user and project folder: the remote host's for a remote project. */
 const who = () => (currentRemote() ? `${currentRemote()!.user}@shop-web-01` : "dev@forge");
-const projectDir = () => currentRemote()?.path ?? `~/Projects/${demoProjectName}`;
+const projectDir = () => currentRemote()?.path ?? localRoot() ?? `~/Projects/${demoProjectName}`;
+/** The open local project (a Code With Me guest's `cwm://…` project is the host's demo). */
+const localRoot = () => {
+  const root = mockOpenRoot();
+  return root && /^[~/]/.test(root) ? root : null;
+};
 
 interface FakeShell {
   line: string;
@@ -32,6 +39,8 @@ interface FakeShell {
   attached?: boolean;
   /** Timer of a running replay; input other than Ctrl+C is ignored meanwhile. */
   replay?: ReturnType<typeof setTimeout>;
+  /** A program in the foreground (`sleep 100`) until it ends or Ctrl+C. */
+  busy?: { process: string; timer: ReturnType<typeof setTimeout> };
 }
 
 const shells = new Map<string, FakeShell>();
@@ -213,6 +222,22 @@ function run(id: string, s: FakeShell, line: string): void {
     out(id, "\x1b[2J\x1b[3J\x1b[H");
     return;
   }
+  if (cmd === "sleep") {
+    const seconds = Number(args[0] ?? "1");
+    if (!Number.isFinite(seconds) || seconds < 0) {
+      out(id, `sleep: invalid time interval '${args[0]}'\n`);
+      return;
+    }
+    // The terminal's foreground process until it ends (terminal_running reports it).
+    s.busy = {
+      process: "sleep",
+      timer: setTimeout(() => {
+        s.busy = undefined;
+        if (shells.has(id)) out(id, prompt(s));
+      }, seconds * 1000),
+    };
+    return;
+  }
   if (cmd === "exit") {
     emit(id, { type: "exited", code: 0 });
     shells.delete(id);
@@ -269,7 +294,9 @@ registerMock("terminal_open", async ({ options }) => {
     setTimeout(() => out(id, SSH_MOTD(account.host) + prompt(s)), 30);
     return { id, shell: `${account.user}@${account.host}`, cwd: "~" };
   }
-  const s: FakeShell = { line: "", cwd: `${projectDir()}${o.cwd ? `/${o.cwd}` : ""}`, history: [], historyPos: 0 };
+  // An absolute start directory (a restored tab's last directory, OSC 7 spelling) as the prompt shows it.
+  const start = o.cwd?.startsWith("/") ? o.cwd.replace(/^\/home\/dev(?=\/|$)/, "~") : o.cwd ? `${projectDir()}/${o.cwd}` : projectDir();
+  const s: FakeShell = { line: "", cwd: start, history: [], historyPos: 0 };
   // `docker exec -it <id> sh …`, `docker attach <id>`, `kubectl … exec -it <pod> …`.
   const args = o.args ?? [];
   if (o.shell === "docker" || o.shell === "kubectl") {
@@ -302,6 +329,14 @@ registerMock("terminal_write", ({ id, data }) => {
     return;
   }
   for (const ch of String(data).match(/\x1b\[[A-D]|[\s\S]/g) ?? []) {
+    if (s.busy) {
+      if (ch === "\x03") {
+        clearTimeout(s.busy.timer);
+        s.busy = undefined;
+        out(key, "^C\n" + prompt(s));
+      }
+      continue;
+    }
     if (s.replay !== undefined) {
       if (ch === "\x03") {
         stopReplay(key, s);
@@ -315,7 +350,7 @@ registerMock("terminal_write", ({ id, data }) => {
       s.historyPos = s.history.length;
       run(key, s, s.line);
       s.line = "";
-      if (shells.has(key) && s.replay === undefined) out(key, prompt(s));
+      if (shells.has(key) && s.replay === undefined && !s.busy) out(key, prompt(s));
     } else if (ch === "\x7f" || ch === "\b") {
       if (s.line) {
         s.line = s.line.slice(0, -1);
@@ -337,6 +372,52 @@ registerMock("terminal_write", ({ id, data }) => {
       out(key, ch);
     }
   }
+});
+
+// ---- Terminals belong to a project (lifecycle) -----------------------------------------
+
+/** What runs in the foreground of each fake shell, like `TerminalState::running` in Rust. */
+const running = (): RunningCommand[] =>
+  [...shells.entries()]
+    .flatMap(([id, s]) => (s.busy ? [{ id, process: s.busy.process }] : s.replay !== undefined ? [{ id, process: "claude" }] : []))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+registerMock("terminal_running", () => running());
+registerMockObjections(() => {
+  const list = running();
+  if (!list.length) return [];
+  const message = list.length === 1 ? "A command is still running in the terminal." : `${list.length} commands are still running in the terminal.`;
+  return [{ source: "terminals", kind: "terminal.running", message, items: list.map((r) => r.process), targets: list.map((r) => r.id) }];
+});
+
+/** Saved layouts and output per project root (Rust keeps them in the state and cache dirs). */
+const layouts = new Map<string, TerminalLayout>();
+const histories = new Map<string, Map<string, string>>();
+
+// The project closes: keep each shell's output (setting `terminal.restoreScrollback`) and end
+// the shells without reporting their exit.
+onMockProjectClosing((project) => {
+  const keep = mockSettingValue("terminal.restoreScrollback") !== false;
+  histories.set(project.root, keep ? new Map(printed) : new Map());
+  for (const s of shells.values()) {
+    clearTimeout(s.replay);
+    if (s.busy) clearTimeout(s.busy.timer);
+  }
+  shells.clear();
+  printed.clear();
+});
+
+registerMock("terminal_layout_save", ({ root, layout }) => {
+  const l = layout as TerminalLayout;
+  if (l.tabs.length) layouts.set(String(root), structuredClone({ ...l, tabs: l.tabs.map(({ scrollback: _s, ...t }) => t) }));
+  else layouts.delete(String(root));
+});
+registerMock("terminal_layout_load", ({ root }): TerminalLayout | null => {
+  const saved = layouts.get(String(root));
+  if (!saved) return null;
+  const keep = mockSettingValue("terminal.restoreScrollback") !== false;
+  const history = histories.get(String(root));
+  return { ...saved, tabs: saved.tabs.map((t) => ({ ...t, ...(keep && history?.get(t.id) ? { scrollback: history.get(t.id) } : {}) })) };
 });
 
 registerMock("terminal_resize", () => undefined);
