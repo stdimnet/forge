@@ -17,3 +17,42 @@
 .icon-associations .set-input {
   width: 100%;
 }
+.tree-plus-minus,
+.tree-straight-arrow {
+  margin: 0 2px;
+  color: var(--fg-muted);
+}
+/* Themed UI icons sit where a lucide icon would. */
+.themed-ui-icon {
+  vertical-align: middle;
+}
+/* A themed symbol icon: the icon, marker overlays on top, Forge's visibility overlay. */
+.themed-symbol-icon {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.themed-symbol-marker {
+  position: absolute;
+  inset: 0;
+}
+.vcs-status-icon {
+  margin-left: 2px;
+}
+.icon-folder-colors .set-input {
+  width: 100%;
+}
+.icon-folder-color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.icon-color-swatch {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: transparent;
+  flex-shrink: 0;
+}

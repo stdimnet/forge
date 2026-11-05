@@ -1161,17 +1161,61 @@ export function i18n_t(key: string): string;
 export function i18n_t_args(key: string, args_json: string): string;
 
 /**
- * The icon id for `path` (`kind`: 0 file, 1 folder, 2 expanded folder), or "" for Forge's
- * own icon.
+ * The user's color of the folder at `path` (`fileIcons.folderColors`), or "".
  */
-export function icons_resolve(path: string, kind: number): string;
+export function icons_folder_color(path: string): string;
 
 /**
- * `{ theme: IconThemeDef | null, associations }` → problems (`string[]`) of the theme and
- * the associations; the resolver is replaced either way (associations with problems are
- * skipped).
+ * Whether `svg` marks a tint layer (`data-forge-tint`, class `forge-tint`).
+ */
+export function icons_has_tint_layer(svg: string): boolean;
+
+/**
+ * Whether the icon of `path` may depend on its detected file type (ask for it only then).
+ */
+export function icons_needs_file_type(path: string): boolean;
+
+/**
+ * `{ openFiles, projectRoot }` → the folders (relative, `string[]`) that hold open files.
+ */
+export function icons_open_folders(request_json: string): string;
+
+/**
+ * The icon key for `path` (`flags`: 0 file, 1 folder, 2 expanded folder, plus 4 for the
+ * project root and 8 for a hollow folder; `file_type`: the detected file type id or ""),
+ * or "" for Forge's own icon.
+ */
+export function icons_resolve(path: string, flags: number, file_type: string): string;
+
+/**
+ * `{ uiTheme, variant, projectRoot, folderColors }` → `{ light, problems }`: whether light
+ * variants are drawn now and the problems of the folder colors (skipped rows). Clears the
+ * caches when something changed.
+ */
+export function icons_set_options(options_json: string): string;
+
+/**
+ * `{ theme: IconThemeDef | null, associations }` → problems (`string[]`) of the theme
+ * (errors and warnings) and the associations; the resolver is replaced either way
+ * (associations with problems are skipped). The options of `icons_set_options` stay.
  */
 export function icons_set_theme(request_json: string): string;
+
+/**
+ * The icon of a code symbol (`modifiers`: 1 abstract, 2 final, 4 static) as
+ * `{ icon, markers }` JSON, or "" for Forge's own badge.
+ */
+export function icons_symbol(kind: string, modifiers: number): string;
+
+/**
+ * `svg` with its tint layer in `color`, or "" when it has none (draw it as a mask then).
+ */
+export function icons_tint(svg: string, color: string): string;
+
+/**
+ * The icon key of a UI id (`toolwindow.project`, `action.run`, …), or "".
+ */
+export function icons_ui(id: string): string;
 
 /**
  * `IconThemeDef` JSON → problems (`string[]`).
@@ -2975,8 +3019,16 @@ export interface InitOutput {
     readonly i18n_set_locale: (a: number, b: number, c: number, d: number) => void;
     readonly i18n_t: (a: number, b: number, c: number) => void;
     readonly i18n_t_args: (a: number, b: number, c: number, d: number, e: number) => void;
-    readonly icons_resolve: (a: number, b: number, c: number, d: number) => void;
+    readonly icons_folder_color: (a: number, b: number, c: number) => void;
+    readonly icons_has_tint_layer: (a: number, b: number) => number;
+    readonly icons_needs_file_type: (a: number, b: number) => number;
+    readonly icons_open_folders: (a: number, b: number, c: number) => void;
+    readonly icons_resolve: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly icons_set_options: (a: number, b: number, c: number) => void;
     readonly icons_set_theme: (a: number, b: number, c: number) => void;
+    readonly icons_symbol: (a: number, b: number, c: number, d: number) => void;
+    readonly icons_tint: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly icons_ui: (a: number, b: number, c: number) => void;
     readonly icons_validate_theme: (a: number, b: number, c: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
     readonly imports_folder_summary: (a: number, b: number, c: number, d: number) => void;

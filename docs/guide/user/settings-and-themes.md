@@ -195,24 +195,51 @@ Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5)
 
 Settings | Appearance & Behavior | **File Icons** picks the icon theme of the Project view,
 editor tabs, Recent Files, Search Everywhere, Find in Files, the Structure tool window, code
-completion and the navigation bar. Icon themes come from plugins (for example an Atom
-Material Icons plugin from the Marketplace); "Forge (built-in)" keeps Forge's own icons, and
-files a theme has no icon for keep them too.
+completion and the navigation bar. Themes that include them also replace the symbol icons
+(classes, methods, properties, … in Structure, completion, Go to Class / Symbol, breadcrumbs
+and the navigation bar), the tool window stripe buttons, the Run / Debug / Stop buttons, run
+configuration icons and the VCS status of files in the Commit tool window. Icon themes come
+from plugins (for example an Atom Material Icons plugin from the Marketplace); "Forge
+(built-in)" keeps Forge's own icons, and anything a theme has no icon for keeps them too.
 
 ![File Icons settings](../../screenshots/settings-file-icons.png)
 
 | Option | Setting | Default |
 | --- | --- | --- |
 | Icon theme | `fileIcons.theme` | Forge (built-in) |
-| Tree arrows (as the theme sets, chevrons, triangles, none) | `fileIcons.treeArrows` | as the theme sets |
+| Tree arrows (as the theme sets, chevrons, triangles, plus and minus, arrows, none) | `fileIcons.treeArrows` | as the theme sets |
 | Monochrome icons (as the theme sets, on, off) | `fileIcons.monochrome` | as the theme sets |
 | Folder accent color (`#rrggbb`; empty: the theme's) | `fileIcons.accentColor` | empty |
 | Icon size in pixels (0: the theme's or the view's) | `fileIcons.size` | 0 |
+| Light and dark icons (follow the UI theme, always dark, always light) | `fileIcons.variant` | follow the UI theme |
+| Accent and monochrome colors (recolor the tint layer only, recolor the whole icon) | `fileIcons.tintMode` | the tint layer only |
+| Saturation in percent (0: gray) | `fileIcons.saturation` | 100 |
+| Opacity in percent (10 to 100) | `fileIcons.opacity` | 100 |
+| Hollow folders: folders that hold open files (as the theme sets, on, off) | `fileIcons.hollowFolders` | as the theme sets |
+| Folder colors: folder name or glob → color | `fileIcons.folderColors` | none |
 | Custom associations: file name, extension, pattern, regular expression or folder name → an icon of the active theme | `fileIcons.associations` | none |
 
+- **Light and dark icons.** A theme can ship light variants of its icons. With "Follow the
+  UI theme" they are used with the Light, Solarized Light and High Contrast Light themes;
+  the dark themes, High Contrast included, use the dark icons. Switching the UI theme
+  switches the icons at once.
+- **Tint layer.** The accent color, a folder color and monochrome recolor only the part of an
+  icon that the theme marks as its tint layer, so two-tone folders keep their badge. Icons
+  without such a layer are recolored as a whole, as is every icon with "Recolor the whole
+  icon".
+- **Hollow folders.** With the option on, folders that hold a file open in the editor get the
+  theme's hollow folder icon; Forge's own icons show a folder with a dot.
+- **Folder colors.** A row matches a folder by name or glob (`vendor`, `*-cache`) or by a path
+  relative to the project root when it contains a `/` (`app/Http/*`; a leading `/` matches
+  only at the root). The first matching row wins, before the accent color. Folder colors
+  also color Forge's own folder icons.
+- **Root folder.** Themes can give the project root in the Project view an icon of its own.
+
+![Themed icons in the Project view and Structure](../../screenshots/icon-themes-structure.png)
+
 Custom associations come before the theme's own rules, so `Makefile` or `*.stub` can get the
-icon you want. Associations that name an icon the theme does not have are listed under the
-theme picker and ignored.
+icon you want. Associations that name an icon the theme does not have, and folder colors that
+are not colors, are listed under the theme picker and ignored.
 
 ![Shapes icon theme in the Project view](../../screenshots/icon-theme-project-view.png)
 

@@ -336,8 +336,29 @@ fn check_icon_themes(
             d.field = field;
             out.push(d);
         }
-        for (id, rel) in &def.icons {
-            let field = format!("icons.{id}");
+        // Unknown symbol kinds and UI ids: allowed (a newer Forge may ask for them), but
+        // probably typos.
+        for p in def.warnings() {
+            let (field, message) = match p.split_once(": ") {
+                Some((f, m)) if !f.contains(' ') => (Some(f.to_string()), m.to_string()),
+                _ => (None, p.clone()),
+            };
+            let mut d = Diagnostic::warning("icon-theme", message).file(&theme.path);
+            d.field = field;
+            out.push(d);
+        }
+        // `icons` and the light variants of `iconsLight`; `check_svg` also checks the tint
+        // markers (`data-forge-tint` needs a value).
+        let light: BTreeSet<String> = def
+            .icons_light
+            .keys()
+            .map(|id| format!("{id}{}", forge_icons::LIGHT_SUFFIX))
+            .collect();
+        for (key, rel) in def.svg_files() {
+            let field = match key.strip_suffix(forge_icons::LIGHT_SUFFIX) {
+                Some(id) if light.contains(&key) => format!("iconsLight.{id}"),
+                _ => format!("icons.{key}"),
+            };
             let Some(path) = resolve_asset(&theme.path, rel) else {
                 out.push(
                     Diagnostic::error("svg", format!("`{rel}` leaves the plugin"))
@@ -458,6 +479,51 @@ mod tests {
         assert!(fields.contains(&"id"), "{r:?}");
         assert!(fields.contains(&"version"), "{r:?}");
         assert!(!r.is_valid(false));
+    }
+
+    #[test]
+    fn checks_format_2_sections_light_variants_and_tint_markers() {
+        let mut files = shapes_files();
+        files.insert(
+            "theme/icon-theme.json".into(),
+            br#"{
+              "version": 2,
+              "icons": { "file": "icons/file.svg", "php": "icons/php.svg", "folder": "icons/folder.svg" },
+              "iconsLight": { "php": "icons/php-light.svg" },
+              "file": "file",
+              "folder": "folder",
+              "symbols": { "class": "php", "klass": "php" },
+              "ui": { "action.run": "php", "toolwindow.project": "missing" }
+            }"#
+            .to_vec(),
+        );
+        files.insert(
+            "theme/icons/folder.svg".into(),
+            br#"<svg xmlns="http://www.w3.org/2000/svg"><path data-forge-tint/></svg>"#.to_vec(),
+        );
+        let r = validate_package(&package(&files), "0.1.0");
+        let found: Vec<(Severity, &str, Option<&str>)> = r
+            .diagnostics
+            .iter()
+            .map(|d| (d.severity, d.code.as_str(), d.field.as_deref()))
+            .collect();
+        assert!(
+            found.contains(&(Severity::Error, "icon-theme", Some("ui.toolwindow.project"))),
+            "{found:?}"
+        );
+        assert!(
+            found.contains(&(Severity::Warning, "icon-theme", Some("symbols.klass"))),
+            "{found:?}"
+        );
+        assert!(
+            found.contains(&(Severity::Error, "svg", Some("iconsLight.php"))),
+            "{found:?}"
+        );
+        assert!(
+            found.contains(&(Severity::Error, "svg", Some("icons.folder"))),
+            "{found:?}"
+        );
+        assert!(!found.iter().any(|f| f.2 == Some("symbols.class")));
     }
 
     #[test]

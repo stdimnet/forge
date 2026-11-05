@@ -5455,20 +5455,18 @@ export function i18n_t_args(key, args_json) {
 }
 
 /**
- * The icon id for `path` (`kind`: 0 file, 1 folder, 2 expanded folder), or "" for Forge's
- * own icon.
+ * The user's color of the folder at `path` (`fileIcons.folderColors`), or "".
  * @param {string} path
- * @param {number} kind
  * @returns {string}
  */
-export function icons_resolve(path, kind) {
+export function icons_folder_color(path) {
     let deferred2_0;
     let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passStringToWasm0(path, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
         const len0 = WASM_VECTOR_LEN;
-        wasm.icons_resolve(retptr, ptr0, len0, kind);
+        wasm.icons_folder_color(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         deferred2_0 = r0;
@@ -5481,9 +5479,113 @@ export function icons_resolve(path, kind) {
 }
 
 /**
- * `{ theme: IconThemeDef | null, associations }` → problems (`string[]`) of the theme and
- * the associations; the resolver is replaced either way (associations with problems are
- * skipped).
+ * Whether `svg` marks a tint layer (`data-forge-tint`, class `forge-tint`).
+ * @param {string} svg
+ * @returns {boolean}
+ */
+export function icons_has_tint_layer(svg) {
+    const ptr0 = passStringToWasm0(svg, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.icons_has_tint_layer(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ * Whether the icon of `path` may depend on its detected file type (ask for it only then).
+ * @param {string} path
+ * @returns {boolean}
+ */
+export function icons_needs_file_type(path) {
+    const ptr0 = passStringToWasm0(path, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.icons_needs_file_type(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ * `{ openFiles, projectRoot }` → the folders (relative, `string[]`) that hold open files.
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function icons_open_folders(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_open_folders(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * The icon key for `path` (`flags`: 0 file, 1 folder, 2 expanded folder, plus 4 for the
+ * project root and 8 for a hollow folder; `file_type`: the detected file type id or ""),
+ * or "" for Forge's own icon.
+ * @param {string} path
+ * @param {number} flags
+ * @param {string} file_type
+ * @returns {string}
+ */
+export function icons_resolve(path, flags, file_type) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(path, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(file_type, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.icons_resolve(retptr, ptr0, len0, flags, ptr1, len1);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred3_0 = r0;
+        deferred3_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * `{ uiTheme, variant, projectRoot, folderColors }` → `{ light, problems }`: whether light
+ * variants are drawn now and the problems of the folder colors (skipped rows). Clears the
+ * caches when something changed.
+ * @param {string} options_json
+ * @returns {string}
+ */
+export function icons_set_options(options_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(options_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_set_options(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `{ theme: IconThemeDef | null, associations }` → problems (`string[]`) of the theme
+ * (errors and warnings) and the associations; the resolver is replaced either way
+ * (associations with problems are skipped). The options of `icons_set_options` stay.
  * @param {string} request_json
  * @returns {string}
  */
@@ -5495,6 +5597,83 @@ export function icons_set_theme(request_json) {
         const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
         const len0 = WASM_VECTOR_LEN;
         wasm.icons_set_theme(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * The icon of a code symbol (`modifiers`: 1 abstract, 2 final, 4 static) as
+ * `{ icon, markers }` JSON, or "" for Forge's own badge.
+ * @param {string} kind
+ * @param {number} modifiers
+ * @returns {string}
+ */
+export function icons_symbol(kind, modifiers) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(kind, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_symbol(retptr, ptr0, len0, modifiers);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `svg` with its tint layer in `color`, or "" when it has none (draw it as a mask then).
+ * @param {string} svg
+ * @param {string} color
+ * @returns {string}
+ */
+export function icons_tint(svg, color) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(svg, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(color, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.icons_tint(retptr, ptr0, len0, ptr1, len1);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred3_0 = r0;
+        deferred3_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * The icon key of a UI id (`toolwindow.project`, `action.run`, …), or "".
+ * @param {string} id
+ * @returns {string}
+ */
+export function icons_ui(id) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(id, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.icons_ui(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         deferred2_0 = r0;

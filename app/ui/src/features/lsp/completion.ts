@@ -32,7 +32,7 @@ import { lspApi, type EditorCompletionItem } from "@/ipc/lsp";
 import { buildHoverDom, hoverDocOf } from "./hoverDoc";
 import { syncNow } from "./sync";
 import { fromLsp, h, iconNode, toLsp } from "./util";
-import { themedIconElement } from "@/features/iconThemes/state";
+import { themedIconElement, themedSymbolElement } from "@/features/iconThemes/state";
 
 const kindIcons: Record<string, Parameters<typeof iconNode>[0]> = {
   method: SquareFunction,
@@ -85,7 +85,9 @@ export function kindGroup(kind: string): string {
 export function kindIconNode(kind: string, label?: string): Element {
   const span = h("span", `cm-lsp-kind kind-${kindGroup(kind)}`);
   // File and folder completions (paths, includes) use the active icon theme's icon.
-  const themed = label && (kind === "file" || kind === "folder") ? themedIconElement(label, kind === "file" ? "file" : "folder", 14) : null;
+  // Code symbols use its `symbols` icons (`forge_icons::ids`), with Forge's as the fallback.
+  const themed =
+    label && (kind === "file" || kind === "folder") ? themedIconElement(label, kind === "file" ? "file" : "folder", 14) : themedSymbolElement(kind, 14);
   span.append(themed ?? iconNode(kindIcons[kind] ?? Text, 14));
   span.title = kind;
   return span;

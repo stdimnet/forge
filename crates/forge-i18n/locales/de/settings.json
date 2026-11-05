@@ -1,6 +1,10 @@
 {
   "iconThemes.builtIn": "Forge (integriert)",
   "iconThemes.chooseThemeFirst": "Wählen Sie ein Symbolthema, um Zuordnungen mit seinen Symbolen hinzuzufügen.",
+  "iconThemes.color": "Farbe",
+  "iconThemes.colorPicker": "Eine Farbe für {folder} wählen",
+  "iconThemes.folder": "Ordner",
+  "iconThemes.folderColorsEmpty": "Keine Ordnerfarben. Fügen Sie eine Zeile hinzu, um Ordnern eine eigene Farbe zu geben.",
   "iconThemes.icon": "Symbol",
   "iconThemes.kind": "Art",
   "iconThemes.kind.extension": "Endung",

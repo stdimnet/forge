@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "icons": {
     "file": "icons/file.svg",
     "php": "icons/php.svg",
@@ -24,11 +25,53 @@
     "folder-config": "icons/folder-config.svg",
     "folder-config-open": "icons/folder-config-open.svg",
     "folder-public": "icons/folder-public.svg",
-    "folder-public-open": "icons/folder-public-open.svg"
+    "folder-public-open": "icons/folder-public-open.svg",
+    "folder-root": "icons/folder-root.svg",
+    "folder-root-open": "icons/folder-root-open.svg",
+    "folder-hollow": "icons/folder-hollow.svg",
+    "folder-hollow-open": "icons/folder-hollow-open.svg",
+    "shell": "icons/shell.svg",
+    "controller": "icons/controller.svg",
+    "sym-class": "icons/sym-class.svg",
+    "sym-abstract-class": "icons/sym-abstract-class.svg",
+    "sym-interface": "icons/sym-interface.svg",
+    "sym-trait": "icons/sym-trait.svg",
+    "sym-enum": "icons/sym-enum.svg",
+    "sym-method": "icons/sym-method.svg",
+    "sym-function": "icons/sym-function.svg",
+    "sym-property": "icons/sym-property.svg",
+    "sym-constant": "icons/sym-constant.svg",
+    "sym-namespace": "icons/sym-namespace.svg",
+    "marker-static": "icons/marker-static.svg",
+    "ui-project": "icons/ui-project.svg",
+    "ui-structure": "icons/ui-structure.svg",
+    "ui-commit": "icons/ui-commit.svg",
+    "ui-terminal": "icons/ui-terminal.svg",
+    "ui-git": "icons/ui-git.svg",
+    "ui-problems": "icons/ui-problems.svg",
+    "ui-run": "icons/ui-run.svg",
+    "ui-debug": "icons/ui-debug.svg",
+    "ui-stop": "icons/ui-stop.svg",
+    "runconfig-php": "icons/runconfig-php.svg",
+    "vcs-modified": "icons/vcs-modified.svg",
+    "vcs-added": "icons/vcs-added.svg",
+    "vcs-deleted": "icons/vcs-deleted.svg",
+    "vcs-untracked": "icons/vcs-untracked.svg"
+  },
+  "iconsLight": {
+    "file": "icons/light/file.svg",
+    "php": "icons/light/php.svg",
+    "folder": "icons/light/folder.svg",
+    "folder-open": "icons/light/folder-open.svg",
+    "ui-project": "icons/light/ui-project.svg"
   },
   "file": "file",
   "folder": "folder",
   "folderExpanded": "folder-open",
+  "rootFolder": "folder-root",
+  "rootFolderExpanded": "folder-root-open",
+  "folderHollow": "folder-hollow",
+  "folderHollowExpanded": "folder-hollow-open",
   "fileNames": {
     "composer.json": "composer",
     "composer.lock": "lock",
@@ -48,8 +91,16 @@
     "html": "html",
     "yml": "yaml",
     "yaml": "yaml",
-    "lock": "lock"
+    "lock": "lock",
+    "sh": "shell"
   },
+  "fileTypes": {
+    "shell": "shell",
+    "php": "php"
+  },
+  "pathRules": [
+    { "pattern": "Controllers/*.php", "icon": "controller" }
+  ],
   "filePatterns": [
     { "pattern": "*Test.php", "icon": "test" },
     { "pattern": "*.test.ts", "icon": "test" },
@@ -72,6 +123,37 @@
     "tests": "folder-tests-open",
     "config": "folder-config-open",
     "public": "folder-public-open"
+  },
+  "symbols": {
+    "namespace": "sym-namespace",
+    "class": "sym-class",
+    "abstractClass": "sym-abstract-class",
+    "interface": "sym-interface",
+    "trait": "sym-trait",
+    "enum": "sym-enum",
+    "method": "sym-method",
+    "function": "sym-function",
+    "property": "sym-property",
+    "constant": "sym-constant",
+    "marker.static": "marker-static"
+  },
+  "ui": {
+    "toolwindow.project": "ui-project",
+    "toolwindow.structure": "ui-structure",
+    "toolwindow.commit": "ui-commit",
+    "toolwindow.terminal": "ui-terminal",
+    "toolwindow.git": "ui-git",
+    "toolwindow.problems": "ui-problems",
+    "toolwindow.run": "ui-run",
+    "toolwindow.debug": "ui-debug",
+    "action.run": "ui-run",
+    "action.debug": "ui-debug",
+    "action.stop": "ui-stop",
+    "runconfig.php": "runconfig-php",
+    "vcs.modified": "vcs-modified",
+    "vcs.added": "vcs-added",
+    "vcs.deleted": "vcs-deleted",
+    "vcs.untracked": "vcs-untracked"
   },
   "options": {
     "treeArrows": "triangle",

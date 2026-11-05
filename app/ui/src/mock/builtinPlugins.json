@@ -1056,6 +1056,14 @@
               "label": "Triangles"
             },
             {
+              "value": "plusMinus",
+              "label": "Plus and minus"
+            },
+            {
+              "value": "arrow",
+              "label": "Arrows"
+            },
+            {
               "value": "none",
               "label": "None"
             }
@@ -1113,6 +1121,116 @@
           "section": "Look",
           "project": false,
           "order": 13
+        },
+        {
+          "key": "fileIcons.variant",
+          "title": "Light and dark icons",
+          "description": "Which variant of a theme's icons to draw. Automatic: the light icons with the Light, Solarized Light and High Contrast Light themes, the dark icons with the others.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Follow the UI theme"
+            },
+            {
+              "value": "dark",
+              "label": "Always dark"
+            },
+            {
+              "value": "light",
+              "label": "Always light"
+            }
+          ],
+          "default": "auto",
+          "group": "appearance.fileIcons",
+          "section": "Look",
+          "project": false,
+          "order": 14
+        },
+        {
+          "key": "fileIcons.tintMode",
+          "title": "Accent and monochrome colors",
+          "description": "Icons that mark a tint layer (data-forge-tint) can keep their other colors; icons without one are always recolored as a whole.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "layer",
+              "label": "Recolor the tint layer only"
+            },
+            {
+              "value": "mask",
+              "label": "Recolor the whole icon"
+            }
+          ],
+          "default": "layer",
+          "group": "appearance.fileIcons",
+          "section": "Look",
+          "project": false,
+          "order": 15
+        },
+        {
+          "key": "fileIcons.saturation",
+          "title": "Saturation (%)",
+          "description": "100: the icons' own colors, 0: gray.",
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 100,
+          "group": "appearance.fileIcons",
+          "section": "Look",
+          "project": false,
+          "order": 16
+        },
+        {
+          "key": "fileIcons.opacity",
+          "title": "Opacity (%)",
+          "type": "int",
+          "min": 10,
+          "max": 100,
+          "default": 100,
+          "group": "appearance.fileIcons",
+          "section": "Look",
+          "project": false,
+          "order": 17
+        },
+        {
+          "key": "fileIcons.hollowFolders",
+          "title": "Hollow folders",
+          "description": "Folders that hold open files get the icon theme's hollow folder icon (Forge's own icons: a folder with a dot).",
+          "type": "enum",
+          "options": [
+            {
+              "value": "theme",
+              "label": "As the icon theme sets"
+            },
+            {
+              "value": "on",
+              "label": "On"
+            },
+            {
+              "value": "off",
+              "label": "Off"
+            }
+          ],
+          "default": "theme",
+          "group": "appearance.fileIcons",
+          "section": "Folders",
+          "project": false,
+          "order": 18
+        },
+        {
+          "key": "fileIcons.folderColors",
+          "title": "Folder colors",
+          "description": "Folders drawn in a color of their own (a folder name or glob like vendor or *-cache, or a path glob relative to the project root like app/Http/*). The first matching row wins; it comes before the accent color.",
+          "type": "objects",
+          "unique": [
+            "pattern"
+          ],
+          "default": [],
+          "group": "appearance.fileIcons",
+          "section": "Folders",
+          "project": false,
+          "order": 19
         },
         {
           "key": "fileIcons.associations",

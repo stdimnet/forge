@@ -1,6 +1,10 @@
 {
   "iconThemes.builtIn": "Forge (built-in)",
   "iconThemes.chooseThemeFirst": "Choose an icon theme to add associations with its icons.",
+  "iconThemes.color": "Color",
+  "iconThemes.colorPicker": "Pick a color for {folder}",
+  "iconThemes.folder": "Folder",
+  "iconThemes.folderColorsEmpty": "No folder colors. Add a row to give folders a color of their own.",
   "iconThemes.icon": "Icon",
   "iconThemes.kind": "Kind",
   "iconThemes.kind.extension": "Extension",

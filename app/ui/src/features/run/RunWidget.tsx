@@ -13,6 +13,7 @@ import { debugConfiguration, isRunning, runConfiguration, runningFor, stopConfig
 import { openRunConfigurations } from "./dialogState";
 import { findType } from "./types";
 import { t } from "@/i18n";
+import { UiIcon } from "@/features/iconThemes/UiIcon";
 
 const keyHint = (title: string, action: string) => {
   const k = shortcutLabel(action);
@@ -23,7 +24,9 @@ export function ConfigIcon(props: { cfg: RunConfiguration; size?: number }) {
   const type = () => findType(props.cfg.type);
   return (
     <span class="run-config-type-icon" classList={{ temporary: isTemporary(props.cfg) }} style={{ color: type()?.color }}>
-      <Dynamic component={type()?.icon ?? Play} size={props.size ?? 14} />
+      <UiIcon id={`runconfig.${props.cfg.type}`} size={props.size ?? 14}>
+        <Dynamic component={type()?.icon ?? Play} size={props.size ?? 14} />
+      </UiIcon>
     </span>
   );
 }
@@ -153,12 +156,23 @@ export function RunWidget() {
         title={cfg() ? keyHint(isRunning(running()) ? t("run.widget.rerun", { name: cfg()!.name }) : t("run.widget.run", { name: cfg()!.name }), "Run") : keyHint(t("run.widget.runPlain"), "Run")}
         onClick={() => void runConfiguration()}
       >
-        <Show when={running()} fallback={<Play size={16} fill="currentColor" />}>
-          <RotateCcw size={16} />
+        <Show
+          when={running()}
+          fallback={
+            <UiIcon id="action.run" size={16}>
+              <Play size={16} fill="currentColor" />
+            </UiIcon>
+          }
+        >
+          <UiIcon id="action.rerun" size={16}>
+            <RotateCcw size={16} />
+          </UiIcon>
         </Show>
       </button>
       <button class="icon-btn debug-btn" title={cfg() ? keyHint(t("run.widget.debug", { name: cfg()!.name }), "Debug") : keyHint(t("run.widget.debugPlain"), "Debug")} onClick={() => void debugConfiguration()}>
-        <Bug size={16} />
+        <UiIcon id="action.debug" size={16}>
+          <Bug size={16} />
+        </UiIcon>
       </button>
       <Show when={running()}>
         {(s) => (
@@ -167,7 +181,9 @@ export function RunWidget() {
             title={keyHint(t("run.widget.stop", { name: cfg()?.name ?? s().name }), "Stop")}
             onClick={() => void stopConfiguration(cfg())}
           >
-            <Square size={13} fill="currentColor" />
+            <UiIcon id="action.stop" size={13}>
+              <Square size={13} fill="currentColor" />
+            </UiIcon>
           </button>
         )}
       </Show>
