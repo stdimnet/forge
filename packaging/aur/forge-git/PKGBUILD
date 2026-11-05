@@ -25,7 +25,8 @@ pkgver() {
   cd forge
   local version
   version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
-  printf '%s.r%s.g%s' "${version//-/_}" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+  # Without "-" (0.1.1-beta.1 -> 0.1.1beta.1): pacman sorts that before the final 0.1.1.
+  printf '%s.r%s.g%s' "${version//-/}" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
 }
 
 prepare() {
