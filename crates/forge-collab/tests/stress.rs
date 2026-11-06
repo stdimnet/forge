@@ -14,6 +14,10 @@
 //! ```
 //!
 //! `FORGE_CWM_STRESS_ROUNDS` sets the number of rounds per participant for both variants.
+//!
+//! The host's session runs on its own runtime (threads named `cwm-host`), so the CPU time it
+//! uses while everyone types is measured apart from the guests' (Linux `/proc`, see
+//! `cpu/mod.rs`); the heavy variant checks the plan's "host CPU < 10 % of one core".
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -33,6 +37,8 @@ use forge_process::PtyEvent;
 use futures_util::future::BoxFuture;
 use yrs::updates::decoder::Decode;
 use yrs::{Doc, GetString, OffsetKind, Options, ReadTxn, Text, TextRef, Transact, Update};
+
+mod cpu;
 
 const GUESTS: usize = 9;
 const FILES: [&str; 2] = ["app/Order.php", "routes/web.php"];
@@ -147,6 +153,37 @@ fn rounds(default: usize) -> usize {
         .unwrap_or(default)
 }
 
+/// The host's own runtime, shut down without blocking when the test ends (dropping a
+/// runtime inside another one panics).
+struct HostRuntime(Option<tokio::runtime::Runtime>);
+
+impl HostRuntime {
+    fn new() -> Self {
+        Self(Some(
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .thread_name("cwm-host")
+                .enable_all()
+                .build()
+                .unwrap(),
+        ))
+    }
+}
+
+impl Drop for HostRuntime {
+    fn drop(&mut self) {
+        if let Some(rt) = self.0.take() {
+            rt.shutdown_background();
+        }
+    }
+}
+
+/// What the stress run measured while everyone typed.
+struct Load {
+    /// CPU time of the host's session threads, as a percentage of one core.
+    host_cpu: Option<f64>,
+}
+
 async fn until(what: &str, limit: Duration, mut ok: impl FnMut() -> bool) {
     let start = Instant::now();
     while !ok() {
@@ -155,8 +192,9 @@ async fn until(what: &str, limit: Duration, mut ok: impl FnMut() -> bool) {
     }
 }
 
-async fn stress(rounds: usize, latency: Duration, pause: Duration) {
+async fn stress(rounds: usize, latency: Duration, pause: Duration) -> Load {
     let started = Instant::now();
+    let host_rt = HostRuntime::new();
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     std::fs::create_dir_all(root.join("app")).unwrap();
@@ -173,6 +211,8 @@ async fn stress(rounds: usize, latency: Duration, pause: Duration) {
 
     let host_editor: Shared = Arc::default();
     let sink = host_editor.clone();
+    // Everything the session spawns (accepting, one task per guest) runs on the host's runtime.
+    let host_context = host_rt.0.as_ref().unwrap().enter();
     let host = HostSession::start(
         Arc::new(net.endpoint([1; 32])),
         backend,
@@ -192,6 +232,7 @@ async fn stress(rounds: usize, latency: Duration, pause: Duration) {
             }
         }),
     );
+    drop(host_context);
     let shell = Arc::new(Shell::default());
     host.set_services(shell.clone());
     host.share_terminal("term-1", "Local", 120, 30, "$ ", true);
@@ -254,6 +295,7 @@ async fn stress(rounds: usize, latency: Duration, pause: Duration) {
     }
     let ids: Vec<ParticipantId> = guests.iter().map(|g| g.session.me()).collect();
     let joined = started.elapsed();
+    let cpu_start = (cpu::process(), cpu::threads("cwm-host"));
 
     // Sample the backlogs while everyone works.
     let peak = Arc::new(Mutex::new((0usize, 0usize)));
@@ -360,6 +402,14 @@ async fn stress(rounds: usize, latency: Duration, pause: Duration) {
         t.await.unwrap();
     }
     let typed = started.elapsed();
+    let cpu_end = (cpu::process(), cpu::threads("cwm-host"));
+    let typing = typed - joined;
+    let usage = |a: Option<Duration>, b: Option<Duration>| {
+        a.zip(b)
+            .map(|(a, b)| cpu::percent(b.saturating_sub(a), typing))
+    };
+    let process_cpu = usage(cpu_start.0, cpu_end.0);
+    let host_cpu = usage(cpu_start.1, cpu_end.1);
 
     // Convergence: every replica equals the host's editor.
     let limit = Duration::from_secs(30);
@@ -421,10 +471,17 @@ async fn stress(rounds: usize, latency: Duration, pause: Duration) {
         host_peak < CUT_OFF / 4 && guest_peak < CUT_OFF / 4,
         "backlog peaks: host {host_peak}, guest {guest_peak} (cut off at {CUT_OFF})"
     );
+    let cores = cpu::cores();
     eprintln!(
         "stress: {GUESTS} guests x {rounds} rounds, latency {latency:?}: joined {joined:?}, \
-         typed {typed:?}, converged {converged:?}; backlog peaks host {host_peak}, guest {guest_peak}"
+         typed {typed:?}, converged {converged:?}; backlog peaks host {host_peak}, guest {guest_peak}; \
+         CPU while typing ({typing:?}, {cores} cores): host session {}, whole process {} \
+         ({} per core)",
+        host_cpu.map_or("n/a".into(), |p| format!("{p:.1} % of one core")),
+        process_cpu.map_or("n/a".into(), |p| format!("{p:.1} % of one core")),
+        process_cpu.map_or("n/a".into(), |p| format!("{:.1} %", p / cores as f64)),
     );
+    Load { host_cpu }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -436,10 +493,13 @@ async fn ten_participants_edit_follow_and_share_a_terminal() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "heavy: run on demand, see the module docs"]
 async fn ten_participants_under_load() {
-    stress(
+    let load = stress(
         rounds(300),
         Duration::from_millis(5),
         Duration::from_millis(200),
     )
     .await;
+    if let Some(host) = load.host_cpu {
+        assert!(host < 10.0, "the host used {host:.1} % of one core");
+    }
 }
