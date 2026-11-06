@@ -38,7 +38,7 @@ import { showResolvedMenu } from "@/features/contextMenu/state";
 import type { Participant } from "@/ipc/collab";
 import { activeTab as activeTerminalTab, tabs as terminalTabs } from "@/features/terminal/store";
 import { setTerminalShared, trackTerminalsAndRuns } from "./terminalsRuns";
-import { isReconnecting, trackReconnects } from "./reconnect";
+import { trackReconnects } from "./reconnect";
 import { joinSession } from "./join";
 import "./binding";
 import "./codeWithMe.css";
@@ -117,7 +117,8 @@ registerSettingsPage({
 
 // The path in use (direct or relayed) while a session runs.
 // A guest that is reconnecting sees that in its own status item instead.
-registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: () => inSession() && !isReconnecting(), component: ConnectionStatusItem });
+// Hosts only: a guest's own item (`codeWithMe.guest`) shows the path to the host.
+registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: isHost, component: ConnectionStatusItem });
 
 // PHPStorm binds no shortcuts to Code With Me; the actions are listed under its plugin.
 registerKeymapActions(

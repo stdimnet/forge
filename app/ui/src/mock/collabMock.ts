@@ -23,6 +23,7 @@ import {
   toBase64,
   type DocOpened,
   type Participant,
+  type ParticipantConnection,
   type PermissionLevel,
   type Permissions,
   type Presence,
@@ -105,6 +106,23 @@ const logLines: { time: number; message: string; warning: boolean }[] = [];
 const log = (message: string, warning = false) => logLines.push({ time: Date.now(), message, warning });
 const levelTitle = (p: Permissions) => ({ readOnly: "Read-only", editFiles: "Edit files", fullAccess: "Full access", custom: "Custom" })[levelOf(p)];
 
+/** `?cwmRelay`: the demo session goes through a relay server instead of connecting directly. */
+const DEMO_RELAY = "https://relay.example.com/";
+const relayed = () => typeof location !== "undefined" && new URLSearchParams(location.search).has("cwmRelay");
+
+/** The path to a peer as the backend reports it: direct on the LAN, or through the relay. */
+function demoPath(participant: number, rttMs: number): ParticipantConnection {
+  return relayed()
+    ? { participant, kind: "relay", remote: DEMO_RELAY, rttMs: rttMs + 36 }
+    : { participant, kind: "direct", remote: `192.168.1.${41 + participant}:41641`, rttMs };
+}
+
+/** Host: the path of every connected guest (not of one that is reconnecting); guest: the path to the host. */
+function connections(): ParticipantConnection[] {
+  if (role === "guest") return [demoPath(0, 12)];
+  return participants.filter((p) => p.role === "guest" && !p.reconnecting).map((p) => demoPath(p.id, 10 + 2 * p.id));
+}
+
 function view(): SessionView {
   if (role === "none") return { role, canHost: true, participants: [], files: [] };
   return {
@@ -117,6 +135,8 @@ function view(): SessionView {
     permissions: role === "host" ? permissions : participants.find((p) => p.id === me)?.permissions,
     hostLabel: role === "guest" ? `${HOST_NAME} (demo)` : undefined,
     notice: NOTICE,
+    connections: connections(),
+    relay: relayed() ? { url: DEMO_RELAY, connected: true } : undefined,
     presence: [...presences].filter(([id]) => id !== me).map(([participant, p]) => ({ participant, ...p })),
     followEveryone,
     terminals: role === "host" ? [...sharedTerminals.values()] : [],

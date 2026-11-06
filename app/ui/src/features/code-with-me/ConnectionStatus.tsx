@@ -69,9 +69,9 @@ export function RelayLine() {
   );
 }
 
-/** Status bar item while a session is running: the path in use, or how many guests are relayed. */
+/** Status bar item of the host: the path in use, or how many guests are relayed (guests show theirs in `GuestStatusItem`). */
 export function ConnectionStatusItem() {
-  const first = () => (session().role === "guest" ? connectionOf(session(), 0) : session().connections?.[0]);
+  const first = () => session().connections?.[0];
   return (
     <button
       class="status-item cwm-status"
