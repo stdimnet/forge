@@ -828,23 +828,44 @@ No test touches the network, a relay, installed language servers or real account
 
 ## Performance targets
 
-| Metric | Target |
-| --- | --- |
-| Local keystroke | No added latency (applied locally first) |
-| Remote edit visible, LAN | p50 < 30 ms, p99 < 100 ms |
-| Remote edit visible, via relay | RTT + 30 ms |
-| Caret and selection updates | ≤ 20 Hz per participant, visible within RTT + 50 ms |
-| Join with 20 open files, LAN | Workbench usable < 2 s after Accept |
-| Open a 1 MB file as a guest, LAN | < 300 ms |
-| Shared file size | Up to 5 MB editable (setting); larger read-only |
-| Applying one update, 100 000-line file | < 1 ms in the UI, < 1 ms on the host |
-| Host memory per shared document | < 3 × the text size |
-| Participants | 1 host + 9 guests, each typing 5 characters/s, no growing backlog; host CPU < 10 % of one core |
-| Idle session | < 1 % CPU, < 1 KB/s per guest |
-| Find in Files for a guest | Host's search time + one RTT |
+| Metric | Target | Measured (2026-11-06) |
+| --- | --- | --- |
+| Local keystroke | No added latency (applied locally first) | Met by design: the editor applies the edit, then sends the Yjs update (not timed) |
+| Remote edit visible, LAN | p50 < 30 ms, p99 < 100 ms | **Met.** QUIC on loopback, guest → host → guest: p50 0.41 ms, p99 0.58 ms; host → guest: p50 0.26 ms, p99 0.44 ms. In-memory network with 1 ms per link: p50 4.3 ms, p99 4.5 ms (the timer's 1 ms granularity doubles each delay) |
+| Remote edit visible, via relay | RTT + 30 ms | **Met.** In-memory network with 40 ms per link (80 ms RTT), guest → host → guest: p50 82.7 ms, p99 83.1 ms, so RTT + 2.7 ms |
+| Caret and selection updates | ≤ 20 Hz per participant, visible within RTT + 50 ms | **Met.** Visible: QUIC loopback p50 0.39 ms, p99 0.56 ms; 80 ms RTT: p50 82.6 ms (RTT + 2.6 ms). Rate: carets (awareness) were sent on every selection change; now at most every 50 ms (`AWARENESS_INTERVAL` in `features/code-with-me/docs.ts`); presence is sent at 10 Hz |
+| Join with 20 open files, LAN | Workbench usable < 2 s after Accept | **Met.** QUIC loopback: join 2.0 ms (p50); join and open all 20 files (451 KB) into replicas: p50 6.2 ms, max 6.6 ms |
+| Open a 1 MB file as a guest, LAN | < 300 ms | **Met.** QUIC loopback, first open (the host reads the file and builds the document), replica applied and text built: p50 11.3 ms, max 13.2 ms |
+| Shared file size | Up to 5 MB editable (setting); larger read-only | Met (feature): `codeWithMe.maxSharedFileSize`, larger files view-only up to 16 MiB (`quic_loopback.rs`) |
+| Applying one update, 100 000-line file | < 1 ms in the UI, < 1 ms on the host | **Host met:** `SharedDoc::apply_update` p50 0.01 ms, p99 0.21 ms fresh, p99 0.04 ms after 20 000 edits; the whole `HostSession::host_update` with 9 guests p50 0.03 ms, p99 0.22 ms. **UI not met after many edits:** `Y.applyUpdate` alone p99 0.03 to 0.09 ms, but with y-codemirror.next's observer and the CodeMirror transaction: fresh p50 0.17 ms, p99 0.45 ms; after 20 000 characters typed in runs p50 0.81 ms, p99 1.79 ms; after 20 000 more at random places p50 6.7 ms, p99 10.8 ms (see below) |
+| Host memory per shared document | < 3 × the text size | **Met for normal editing:** 2.00 × fresh (the saved text plus the CRDT), 2.02 × to 2.20 × after 10 000 characters typed in runs (1 MB and 4 MB files). Worst case, 10 000 single characters at random places: 6.2 × for 1 MB, 3.0 × for 4 MB (about 400 bytes per item) |
+| Participants | 1 host + 9 guests, each typing 5 characters/s, no growing backlog; host CPU < 10 % of one core | **Met.** Stress test, heavy variant (300 rounds, 200 ms apart, 5 ms latency, 60 s): host session 1.0 % of one core; the whole process (host, 9 guests, their editors) 4.3 % of one core, 1.1 % per core; backlog peaks 13 (host) and 1 (guest), drained |
+| Idle session | < 1 % CPU, < 1 KB/s per guest | **Met.** Host and 2 guests over QUIC on loopback, 10 s idle: 0.026 % of one core for the whole process; 439 B/s per guest on the loopback interface (iroh's QUIC keep-alive, one a second); the session itself sends nothing (0 B/s) |
+| Find in Files for a guest | Host's search time + one RTT | **Met.** 2 000 files over QUIC on loopback: host's own search p50 26.6 ms, the guest's p50 26.9 ms (+ 0.35 ms; the loopback round trip is 0.32 ms) |
 
-Measured with the simulation tests (latency injected) and a bench target in `forge-collab`;
-the 10-participant target is a stress test that runs on demand.
+How these were measured: `crates/forge-collab/tests/perf.rs` (timing tests `#[ignore]`d:
+`cargo test -p forge-collab --release --test perf -- --ignored --nocapture --test-threads=1`)
+and `tests/stress.rs` (`cargo test -p forge-collab --release --test stress -- --ignored
+--nocapture`; the host session runs on its own runtime, its threads' CPU time comes from
+`/proc/self/task/*/schedstat`), and for the UI `node app/ui/scripts/cwm-yjs-bench.mjs` (Yjs
+13.6 and `@codemirror/state` in Node 22, no browser; layout and painting not included).
+Machine: a 4 vCPU Linux x86_64 container, nothing else running; release build with
+`CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16` (faster to build,
+slightly less optimized than the shipped profile). Loopback has a far smaller RTT than a LAN
+(0.3 ms), so the QUIC numbers are the software's share; the in-memory network adds the
+network's delay. Not measured: a real LAN or relay between two machines, painting in the
+webview.
+
+**The UI miss.** `Y.applyUpdate` itself stays far below 1 ms. y-codemirror.next turns every
+remote update into CodeMirror changes with `YTextEvent.delta`, and Yjs computes the delta by
+walking every item of the text from its start. A fresh file is one item; each place someone
+types at adds items (a run of typing is one, a single character between others splits one
+into three). So the cost grows with the edit history, not with the file's length: a
+10 000-line file gives the same numbers (p50 0.94 ms, p99 1.9 ms after 20 000 characters
+typed in runs; each phase also includes the benchmark's own 2 500 single keystrokes at random
+places). A fix needs a binding that computes the changed positions without the delta (for
+example from the transaction's inserted and deleted items and the text's search markers) or
+a change in Yjs; it is not part of S7.
 
 ## Stages (one PR)
 
@@ -1310,7 +1331,14 @@ Deviations from the plan above:
   cut-off (`GUEST_QUEUE` = 4096; measured 21 and 2 at 200 rounds) and drain to zero. About two
   seconds in `cargo test`; the plan's target load (5 characters per second each, 5 ms latency,
   300 rounds) is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`
-  (`FORGE_CWM_STRESS_ROUNDS` sets the rounds). CPU per core is not measured.
+  (`FORGE_CWM_STRESS_ROUNDS` sets the rounds). The host session runs on its own runtime, and
+the test measures its CPU (heavy variant: 1.0 % of one core, asserted below 10 %).
+- **Performance targets checked** (`tests/perf.rs`, `app/ui/scripts/cwm-yjs-bench.mjs`): every
+  target is met on the host and over the network; the numbers are in the
+  [Performance targets](#performance-targets) table. One is missed in the UI: one update on a
+  100 000-line file takes more than 1 ms in y-codemirror.next's observer once the file has a
+  long edit history (Yjs' `YTextEvent.delta` walks every item). Shared carets were sent on
+  every selection change; they are now throttled to 20 Hz.
 - **Fuzzing**: cargo-fuzz targets in `crates/forge-collab/fuzz` (own workspace, `Cargo.lock`
   ignored): `link_parse` (parse, then the URL and text forms round-trip), `frame_decode`
   (guest and host frames from arbitrary chunks), `host_call_decode` (decode, then round-trip).
