@@ -154,7 +154,7 @@ pub const ACTION_GROUP_ORDER: [&str; 5] = [
 
 /// Ids that Forge features already register under another name, plus common alternate
 /// spellings. The UI follows these when the PHPStorm id itself has no command.
-pub const ACTION_ALIASES: [(&str, &[&str]); 22] = [
+pub const ACTION_ALIASES: [(&str, &[&str]); 33] = [
     ("SearchEverywhere", &["search.everywhere"]),
     ("ShowSettings", &["settings.open"]),
     ("Run", &["run.run"]),
@@ -177,6 +177,25 @@ pub const ACTION_ALIASES: [(&str, &[&str]); 22] = [
     ("OpenFile", &["workspace.open"]),
     ("CloseProject", &["workspace.close"]),
     ("IntroduceVariable", &["ExtractVariable"]),
+    // Code With Me: the action ids of the plugin bundled with PHPStorm 2026.1 (`cwm-plugin`)
+    // for the commands Forge registered first under `CodeWithMe.*`.
+    ("GetJoinLinkAction", &["CodeWithMe.StartSession"]),
+    ("CopyJoinLinkAction", &["CodeWithMe.CopySessionLink"]),
+    ("ShutdownCodeWithMe", &["CodeWithMe.EndSession"]),
+    ("ThinClientDisconnect", &["CodeWithMe.LeaveSession"]),
+    ("ShowPermissionsAction", &["CodeWithMe.Permissions"]),
+    ("SingleUserFollowAction", &["CodeWithMe.FollowParticipant"]),
+    (
+        "SingleJumpToCursorAction",
+        &["CodeWithMe.JumpToParticipant"],
+    ),
+    ("CurrentLeadUnfollowAction", &["CodeWithMe.StopFollowing"]),
+    (
+        "ForceOthersToFollowAction",
+        &["CodeWithMe.MakeEveryoneFollow"],
+    ),
+    ("CWMHostShowPopupAction", &["CodeWithMe.ShowToolWindow"]),
+    ("CWMHostOpenSettingsAction", &["CodeWithMe.Settings"]),
 ];
 
 /// Aliases of one action id.
@@ -570,5 +589,33 @@ mod tests {
         assert_eq!(aliases_of("Run"), &["run.run"]);
         assert!(aliases_of("GotoClass").is_empty());
         assert_eq!(aliases_of("OverrideMethods"), &["php.overrideMethods"]);
+    }
+
+    #[test]
+    fn code_with_me_actions_follow_phpstorm_ids_to_forge_commands() {
+        assert_eq!(
+            aliases_of("GetJoinLinkAction"),
+            &["CodeWithMe.StartSession"]
+        );
+        assert_eq!(aliases_of("ShutdownCodeWithMe"), &["CodeWithMe.EndSession"]);
+        assert_eq!(
+            aliases_of("ThinClientDisconnect"),
+            &["CodeWithMe.LeaveSession"]
+        );
+        assert_eq!(
+            aliases_of("ForceOthersToFollowAction"),
+            &["CodeWithMe.MakeEveryoneFollow"]
+        );
+        // Every PHPStorm id maps to one Forge command, and no Forge id is listed twice.
+        let cwm: Vec<_> = ACTION_ALIASES
+            .iter()
+            .flat_map(|(_, list)| list.iter())
+            .filter(|a| a.starts_with("CodeWithMe."))
+            .collect();
+        assert_eq!(cwm.len(), 11);
+        let unique: std::collections::HashSet<_> = cwm.iter().collect();
+        assert_eq!(unique.len(), cwm.len());
+        // Forge's own actions without a PHPStorm counterpart keep their ids.
+        assert!(aliases_of("CodeWithMe.JoinSession").is_empty());
     }
 }

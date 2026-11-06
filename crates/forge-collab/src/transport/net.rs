@@ -16,7 +16,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Mutex;
 use std::time::Duration;
 
-use iroh::endpoint::presets;
+use iroh::endpoint::{presets, QuicTransportConfig};
 use iroh::{
     Endpoint, EndpointAddr, NetReportConfig, PublicKey, RelayMode, SecretKey, TransportAddr,
     Watcher,
@@ -48,6 +48,20 @@ pub struct NetTransport {
     conns: Mutex<HashMap<PeerKey, iroh::endpoint::Connection>>,
 }
 
+/// How long a connection may go without hearing from the peer before it counts as dropped
+/// (both ends send a keep-alive every 5 seconds, iroh's heartbeat). iroh's default is 30
+/// seconds: a guest whose network went away kept showing "Connected" for half a minute
+/// before reconnecting. 15 seconds is three missed keep-alives; outages shorter than that
+/// (a Wi-Fi reconnect, a cellular handoff) pass without a reconnect. The shorter of the two
+/// ends' values applies. Measured in `tests/quic_outage.rs`.
+pub const IDLE_TIMEOUT: Duration = Duration::from_secs(15);
+
+/// A change to the iroh endpoint before it is bound. Tests use it to put both ends on a
+/// simulated network (an iroh custom transport) whose link they can cut, see
+/// `tests/quic_outage.rs`; on one machine iroh's hole punching finds a way around any cut
+/// between two UDP sockets.
+pub type EndpointHook = Box<dyn FnOnce(iroh::endpoint::Builder) -> iroh::endpoint::Builder + Send>;
+
 fn err(e: impl std::fmt::Display) -> io::Error {
     io::Error::other(e.to_string())
 }
@@ -58,6 +72,11 @@ fn builder(accept: bool, cfg: &NetConfig) -> io::Result<iroh::endpoint::Builder>
         .relay_mode(RelayMode::Disabled)
         .clear_address_lookup()
         .net_report_config(NetReportConfig::minimal())
+        .transport_config(
+            QuicTransportConfig::builder()
+                .max_idle_timeout(Some(IDLE_TIMEOUT.try_into().map_err(err)?))
+                .build(),
+        )
         .alpns(if accept {
             vec![ALPN.to_vec()]
         } else {
@@ -86,6 +105,23 @@ impl NetTransport {
     /// call returns once the relay is connected (or says why it is not), so the session link
     /// can name it.
     pub async fn listen_with(opts: ListenOptions, cfg: NetConfig) -> io::Result<Self> {
+        Self::listen_hooked(opts, cfg, None).await
+    }
+
+    /// [`Self::listen_with`] with a change to the endpoint (tests).
+    pub async fn listen_with_hook(
+        opts: ListenOptions,
+        cfg: NetConfig,
+        hook: EndpointHook,
+    ) -> io::Result<Self> {
+        Self::listen_hooked(opts, cfg, Some(hook)).await
+    }
+
+    async fn listen_hooked(
+        opts: ListenOptions,
+        cfg: NetConfig,
+        hook: Option<EndpointHook>,
+    ) -> io::Result<Self> {
         let mut b = builder(true, &cfg)?;
         if opts.address.is_some() || opts.port != 0 {
             b = b.clear_ip_transports();
@@ -99,6 +135,9 @@ impl NetTransport {
             for a in addrs {
                 b = b.bind_addr(a).map_err(err)?;
             }
+        }
+        if let Some(hook) = hook {
+            b = hook(b);
         }
         let endpoint = b.bind().await.map_err(err)?;
         let plan = cfg.relay.plan();
@@ -129,7 +168,20 @@ impl NetTransport {
     /// A guest endpoint that also uses the relay of the session link (see
     /// [`crate::relay::RelayOptions::guest`]).
     pub async fn dialer_with(cfg: NetConfig) -> io::Result<Self> {
-        let endpoint = builder(false, &cfg)?.bind().await.map_err(err)?;
+        Self::dialer_hooked(cfg, None).await
+    }
+
+    /// [`Self::dialer_with`] with a change to the endpoint (tests).
+    pub async fn dialer_with_hook(cfg: NetConfig, hook: EndpointHook) -> io::Result<Self> {
+        Self::dialer_hooked(cfg, Some(hook)).await
+    }
+
+    async fn dialer_hooked(cfg: NetConfig, hook: Option<EndpointHook>) -> io::Result<Self> {
+        let mut b = builder(false, &cfg)?;
+        if let Some(hook) = hook {
+            b = hook(b);
+        }
+        let endpoint = b.bind().await.map_err(err)?;
         let plan = cfg.relay.plan();
         let relay_url = match &plan {
             RelayPlan::Custom { url, .. } => Some(url.clone()),

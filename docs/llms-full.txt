@@ -6007,6 +6007,7 @@ Plugins add their own actions under **Plugins** (and some under Main Menu), for 
 | Database: Execute | `Ctrl+Enter` (macOS `Cmd+Enter`), in a console |
 | Database: Submit / Add Row / Delete Rows / Revert Selected | `Ctrl+Enter` / `Alt+Insert` / `Ctrl+Y` / `Ctrl+Alt+Z` in a data grid |
 | Database: Jump to Query Console… | `Ctrl+Shift+F10` in the Database tool window |
+| Code With Me: Code With Me (popup) / Make Everyone Follow You / Follow single user | `Ctrl+Shift+Y` / `Ctrl+Shift+O` / `Ctrl+Alt+Shift+Y` (the same keys on macOS), with PHPStorm's action ids (see [Code With Me](docs/guide/user/code-with-me.md)) |
 | Symfony: Run Console Command…, Symfony Routes | none |
 | Doctrine Entities, npm tool window, Reload npm Scripts | none |
 
@@ -21040,10 +21041,18 @@ sees the path to every guest; a guest sees the path to the host. Below the list 
 Following** and, for the host, **Make Everyone Follow You**; the host also has the **Session
 Log** tab.
 
-All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me:
-**Follow Participant…** and **Jump To Participant…** (a chooser of the participants), **Stop
-Following**, **Make Everyone Follow You** and **Code With Me** (the tool window). PHPStorm binds
-no shortcuts to them; you can add your own.
+All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me, with
+PHPStorm's action names and ids, so a keymap imported from PHPStorm keeps its Code With Me
+shortcuts: **Follow single user** (`SingleUserFollowAction`, Ctrl+Alt+Shift+Y) and **Jump to
+cursor** (`SingleJumpToCursorAction`) open a chooser of the participants, **Unfollow current
+lead** (`CurrentLeadUnfollowAction`) stops following, **Make Everyone Follow You**
+(`ForceOthersToFollowAction`, Ctrl+Shift+O) and **Code With Me** (`CWMHostShowPopupAction`,
+Ctrl+Shift+Y) opens the popup, or the tool window while a session runs. The shortcuts are
+PHPStorm's defaults and the same in the macOS keymap (with Ctrl, not Cmd). The other session
+actions are there too: **Start Code With Me Session**, **Copy Session Link**, **Code With Me:
+Permissions…**, **End Session**, **Leave Session** and **Open Code With Me Settings** under
+PHPStorm's ids, and Forge's own **Join Session…**, **Open Shared File…**, **Regenerate Link**,
+**Session Log…** and **Share Terminal with Guests**.
 
 ![Following Alex](docs/screenshots/code-with-me-following.png)
 
@@ -21205,7 +21214,9 @@ register it when they start.
 ### When the connection drops
 
 If the connection to the host drops (Wi-Fi gone, laptop asleep, VPN reconnecting), the session
-is not over:
+is not over. An interruption of a few seconds passes unnoticed: what you and the others typed
+meanwhile arrives once the network is back. After 15 to 20 seconds without an answer, both
+sides count the connection as lost:
 
 - Your window keeps the host's project and your open files. The status bar says **Code With Me:
   Reconnecting…**, and a balloon **Connection to <host> lost** stays until the connection is

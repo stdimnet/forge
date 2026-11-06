@@ -324,5 +324,16 @@
   "action.Csv.EditAsText": "Edit as Text",
   "menu.group.external-tools": "External Tools",
   "menu.group.http-client": "HTTP Client",
-  "menu.group.prisma": "Prisma"
+  "menu.group.prisma": "Prisma",
+  "action.CWMHostShowPopupAction": "Code With Me",
+  "action.GetJoinLinkAction": "Start Code With Me Session",
+  "action.CopyJoinLinkAction": "Copy Session Link",
+  "action.ShowPermissionsAction": "Code With Me: Permissions…",
+  "action.ShutdownCodeWithMe": "End Session",
+  "action.ThinClientDisconnect": "Leave Session",
+  "action.SingleUserFollowAction": "Follow single user",
+  "action.SingleJumpToCursorAction": "Jump to cursor",
+  "action.CurrentLeadUnfollowAction": "Unfollow current lead",
+  "action.ForceOthersToFollowAction": "Make Everyone Follow You",
+  "action.CWMHostOpenSettingsAction": "Open Code With Me Settings"
 }

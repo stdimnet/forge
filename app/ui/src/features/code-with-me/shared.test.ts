@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
-import { Awareness, encodeAwarenessUpdate } from "y-protocols/awareness";
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from "y-protocols/awareness";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { history } from "@codemirror/commands";
@@ -8,7 +8,7 @@ import { collabApi, toBase64, type DocEvent, type DocOpened } from "@/ipc/collab
 import { extensionsFor } from "@/editor/extensions";
 import { historyCompartment, redoIn, undoIn } from "@/editor/reload";
 import { contentHash, isDirty, type EditorTab } from "@/state/editor";
-import { adoptDoc, handleDocEvent, onSharedDocEvent, releaseAll, sanitizeState, sharedDoc, userStyle } from "./docs";
+import { AWARENESS_INTERVAL, adoptDoc, handleDocEvent, onSharedDocEvent, releaseAll, sanitizeState, sharedDoc, userStyle } from "./docs";
 import "./binding";
 
 const PATH = "app/Order.php";
@@ -164,6 +164,36 @@ describe("participant presence", () => {
     const remote = doc.awareness.getStates().get(peer.clientID) as { user: { color: string } } | undefined;
     expect(remote?.user.color).toBe("var(--collab-3)");
     peer.destroy();
+  });
+
+  it("sends carets and selections at most every 50 ms, the latest state last", () => {
+    vi.useFakeTimers();
+    try {
+      const { doc } = connect();
+      const sent = vi.mocked(collabApi.awareness);
+      sent.mockClear();
+      const cursorOf = (call: number) => {
+        const peer = new Awareness(new Y.Doc());
+        applyAwarenessUpdate(peer, sent.mock.calls[call][1], "test");
+        return (peer.getStates().get(doc.ydoc.clientID) as { cursor?: { at: number } } | undefined)?.cursor?.at;
+      };
+      for (let at = 0; at < 10; at++) doc.awareness.setLocalStateField("cursor", { at });
+      expect(sent).toHaveBeenCalledTimes(1);
+      expect(cursorOf(0)).toBe(0);
+      vi.advanceTimersByTime(AWARENESS_INTERVAL);
+      expect(sent).toHaveBeenCalledTimes(2);
+      expect(cursorOf(1)).toBe(9);
+      // Closing the document removes the caret at once, also within the interval.
+      doc.awareness.setLocalStateField("cursor", { at: 10 });
+      expect(sent).toHaveBeenCalledTimes(2);
+      doc.dispose();
+      expect(sent).toHaveBeenCalledTimes(3);
+      expect(cursorOf(2)).toBeUndefined();
+      vi.advanceTimersByTime(AWARENESS_INTERVAL);
+      expect(sent).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("starts with the participant's own name and color", () => {

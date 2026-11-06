@@ -120,25 +120,31 @@ registerSettingsPage({
 // Hosts only: a guest's own item (`codeWithMe.guest`) shows the path to the host.
 registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: isHost, component: ConnectionStatusItem });
 
-// PHPStorm binds no shortcuts to Code With Me; the actions are listed under its plugin.
+// The actions of PHPStorm 2026.1's Code With Me plugin under its ids, titles and default
+// shortcuts, so imported PHPStorm keymaps and Find Action match. Each one runs the
+// `CodeWithMe.*` command it is an alias for (`ACTION_ALIASES` in crates/forge-keymap); Forge's
+// actions without a PHPStorm counterpart keep their `CodeWithMe.*` ids. The mapping and its
+// source are in docs/plans/code-with-me.md ("Keymap actions").
+const sameOnMac = (key: string) => ({ $default: [key], macOS: [key] });
 registerKeymapActions(
   [
-    ["CodeWithMe.StartSession", "Start Session…"],
-    ["CodeWithMe.CopySessionLink", "Copy Session Link"],
-    ["CodeWithMe.RegenerateLink", "Regenerate Link"],
-    ["CodeWithMe.Permissions", "Permissions…"],
-    ["CodeWithMe.ShowSessionLog", "Session Log…"],
-    ["CodeWithMe.EndSession", "End Session"],
-    ["CodeWithMe.JoinSession", "Join Session…"],
-    ["CodeWithMe.OpenSharedFile", "Open Shared File…"],
-    ["CodeWithMe.LeaveSession", "Leave Session"],
-    ["CodeWithMe.FollowParticipant", "Follow Participant…"],
-    ["CodeWithMe.StopFollowing", "Stop Following"],
-    ["CodeWithMe.MakeEveryoneFollow", "Make Everyone Follow You"],
-    ["CodeWithMe.JumpToParticipant", "Jump To Participant…"],
-    ["CodeWithMe.ShowToolWindow", "Code With Me"],
-    ["CodeWithMe.ShareTerminal", "Share Terminal with Guests"],
-  ].map(([id, title]) => ({ id, title, group: "Plugins/Code With Me" })),
+    { id: "CWMHostShowPopupAction", title: "Code With Me", shortcuts: sameOnMac("Ctrl+Shift+Y") },
+    { id: "GetJoinLinkAction", title: "Start Code With Me Session" },
+    { id: "CopyJoinLinkAction", title: "Copy Session Link" },
+    { id: "ShowPermissionsAction", title: "Code With Me: Permissions…" },
+    { id: "ShutdownCodeWithMe", title: "End Session" },
+    { id: "ThinClientDisconnect", title: "Leave Session" },
+    { id: "SingleUserFollowAction", title: "Follow single user", shortcuts: sameOnMac("Ctrl+Alt+Shift+Y") },
+    { id: "SingleJumpToCursorAction", title: "Jump to cursor" },
+    { id: "CurrentLeadUnfollowAction", title: "Unfollow current lead" },
+    { id: "ForceOthersToFollowAction", title: "Make Everyone Follow You", shortcuts: sameOnMac("Ctrl+Shift+O") },
+    { id: "CWMHostOpenSettingsAction", title: "Open Code With Me Settings" },
+    { id: "CodeWithMe.RegenerateLink", title: "Regenerate Link" },
+    { id: "CodeWithMe.ShowSessionLog", title: "Session Log…" },
+    { id: "CodeWithMe.JoinSession", title: "Join Session…" },
+    { id: "CodeWithMe.OpenSharedFile", title: "Open Shared File…" },
+    { id: "CodeWithMe.ShareTerminal", title: "Share Terminal with Guests" },
+  ].map((a) => ({ ...a, group: "Plugins/Code With Me" })),
 );
 
 /** Share With Guests for the active terminal tab (host). */
