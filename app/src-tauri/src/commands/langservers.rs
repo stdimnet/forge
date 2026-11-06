@@ -26,7 +26,7 @@ use forge_core::{ForgeError, Result};
 use forge_langservers::install::{InstallOutcome, Stream};
 use forge_langservers::managed::{Event, PackageUpdate};
 use forge_langservers::{Catalog, ServerRow};
-use forge_lsp::model::EditorWorkspaceSymbol;
+use forge_lsp::model::{retain_project_symbols, EditorWorkspaceSymbol};
 use forge_lsp::{LspManager, LspServerConfig, ServerState};
 use serde::Serialize;
 use serde_json::Value;
@@ -468,21 +468,25 @@ pub fn langservers_cancel_install(id: String, state: State<'_, LangServersState>
 }
 
 /// Project-wide symbol search over every running language server (`workspace/symbol`).
-/// Paths are workspace relative like everywhere else.
+/// Paths are workspace relative like everywhere else. Library and other non-project hits
+/// (e.g. php-lsp's bundled PHP stubs) only come with `include_non_project`.
 #[tauri::command]
 pub async fn lsp_workspace_symbols(
     query: String,
     limit: Option<usize>,
+    include_non_project: Option<bool>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<EditorWorkspaceSymbol>> {
+    let include_non_project = include_non_project.unwrap_or(false);
     if let Some(guest) = crate::commands::collab::guest_session(&app) {
         let mut hits: Vec<EditorWorkspaceSymbol> = crate::commands::collab::guest_lsp(
             &guest,
             forge_collab::guest_backend::LspQuery::WorkspaceSymbols { query },
         )
         .await?;
+        retain_project_symbols(&mut hits, include_non_project);
         hits.truncate(limit.unwrap_or(500));
         return Ok(hits);
     }
@@ -501,6 +505,7 @@ pub async fn lsp_workspace_symbols(
                 .join("/");
         }
     }
+    retain_project_symbols(&mut hits, include_non_project);
     hits.truncate(limit.unwrap_or(500));
     Ok(hits)
 }

@@ -3360,6 +3360,7 @@ dependencies = [
  "forge-codeintel",
  "forge-core",
  "forge-hostspawn",
+ "forge-scopes",
  "futures-util",
  "lsp-types 0.95.1",
  "serde",
