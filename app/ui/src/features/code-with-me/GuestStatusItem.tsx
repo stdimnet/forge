@@ -1,10 +1,12 @@
 /**
- * Status bar widget of a Code With Me guest: "Code With Me: <host>" with the round trip time
- * to the host, or "Reconnecting…" while a dropped connection is being restored. Clicking it
- * shows the session (host, project, permission) with Leave Session.
+ * Status bar widget of a Code With Me guest, its only Code With Me item: "Code With Me: <host>"
+ * with the connection path and round trip time to the host ("Direct · 23 ms"), or
+ * "Reconnecting…" while a dropped connection is being restored. Clicking it shows the session
+ * (host, project, permission, connection, relay) with Leave Session.
  */
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
-import { Users } from "lucide-solid";
+import { TriangleAlert, Users } from "lucide-solid";
+import type { ConnectionPath } from "@/ipc/collab";
 import { collabApi } from "@/ipc/collab";
 import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
@@ -12,6 +14,8 @@ import { StatusPopup } from "@/shell/StatusPopup";
 import { guestLevel, LEVEL_NAMES } from "./guest";
 import { session } from "./store";
 import { connectionLabel, isReconnecting } from "./reconnect";
+import { connectionOf, pathLabel, pathTitle, relayProblem } from "./connection";
+import { RelayLine } from "./ConnectionStatus";
 import { tooltip } from "@/shell/tooltip";
 import { t } from "@/i18n";
 
@@ -23,9 +27,21 @@ export function latencyClass(ms: number | null): "good" | "fair" | "poor" | "unk
   return "poor";
 }
 
+/** The item's detail: "Direct · 23 ms", "Relay (relay.example.com)", "23 ms" or nothing. */
+export function guestStatusDetail(path: ConnectionPath | undefined, ms: number | null): string | null {
+  const time = ms != null ? t("tools.codeWithMe.milliseconds", { ms }) : null;
+  if (!path) return time;
+  return time ? `${pathLabel(path)} · ${time}` : pathLabel(path);
+}
+
 export function GuestStatusItem() {
   const [open, setOpen] = createSignal(false);
-  const [latency, setLatency] = createSignal<number | null>(null);
+  const [pinged, setLatency] = createSignal<number | null>(null);
+  /** The path to the host (participant 0) while the connection is up. */
+  const path = () => (isReconnecting() ? undefined : connectionOf(session(), 0));
+  /** The measured round trip, or the one the backend reported for the path. */
+  const latency = () => pinged() ?? path()?.rttMs ?? null;
+  const detail = () => guestStatusDetail(path(), latency());
   const host = () => workspace()?.collab?.host ?? session().hostLabel ?? t("tools.codeWithMe.hostFallback");
   let el: HTMLDivElement | undefined;
   const measure = () => (isReconnecting() ? setLatency(null) : void collabApi.ping().then(setLatency, () => setLatency(null)));
@@ -50,18 +66,26 @@ export function GuestStatusItem() {
       <button
         class="status-item cwm-status"
         data-latency={latencyClass(latency())}
-        classList={{ reconnecting: !!reconnecting() }}
-        {...tooltip(() => t("tools.codeWithMe.guestOf", { host: workspace()?.collab?.label ?? host() }), { open, label: false })}
+        classList={{ reconnecting: !!reconnecting(), relay: path()?.kind === "relay", problem: !reconnecting() && relayProblem(session()) }}
+        data-path={path()?.kind}
+        {...tooltip(
+          () => {
+            const p = path();
+            const title = t("tools.codeWithMe.guestOf", { host: workspace()?.collab?.label ?? host() });
+            return p ? `${title}\n${pathTitle(p)}` : title;
+          },
+          { open, label: false },
+        )}
         aria-haspopup="dialog"
         aria-expanded={open()}
         onClick={() => setOpen((v) => !v)}
         data-testid="cwm-status"
       >
-        <Users size={12} />
-        <span>{t("tools.codeWithMe.titleWith", { value: reconnecting() ? t("tools.codeWithMe.reconnecting") : host() })}</span>
-        <Show when={latency() != null && !reconnecting()}>
-          <span class="cwm-status-detail">{t("tools.codeWithMe.milliseconds", { ms: latency() })}</span>
+        <Show when={!reconnecting() && relayProblem(session())} fallback={<Users size={12} />}>
+          <TriangleAlert size={12} />
         </Show>
+        <span>{t("tools.codeWithMe.titleWith", { value: reconnecting() ? t("tools.codeWithMe.reconnecting") : host() })}</span>
+        <Show when={!reconnecting() && detail()}>{(text) => <span class="cwm-status-detail">{text()}</span>}</Show>
       </button>
       <Show when={open()}>
         <StatusPopup anchor={el!} align="end" class="cwm-status-popup" label={t("tools.codeWithMe.title")} onClose={() => setOpen(false)}>
@@ -81,6 +105,16 @@ export function GuestStatusItem() {
                 </>
               )}
             </Show>
+            <Show when={path()}>
+              {(p) => (
+                <>
+                  <dt>{t("tools.codeWithMe.connection")}</dt>
+                  <dd data-testid="cwm-guest-path" title={pathTitle(p())}>
+                    {pathLabel(p())}
+                  </dd>
+                </>
+              )}
+            </Show>
             <Show when={latency() != null && !reconnecting()}>
               <dt>{t("tools.codeWithMe.latency")}</dt>
               <dd>{t("tools.codeWithMe.milliseconds", { ms: latency() })}</dd>
@@ -88,6 +122,9 @@ export function GuestStatusItem() {
             <dt>{t("tools.codeWithMe.services")}</dt>
             <dd>{t("tools.codeWithMe.servicesOnHost")}</dd>
           </dl>
+          <Show when={!reconnecting()}>
+            <RelayLine />
+          </Show>
           <div class="cwm-status-actions">
             <button class="btn-secondary" onClick={() => void leave()} data-action="CodeWithMe.LeaveSession">
               {t("tools.codeWithMe.leaveSession")}
