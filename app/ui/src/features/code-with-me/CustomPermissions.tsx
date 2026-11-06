@@ -6,42 +6,65 @@ import { createSignal, For, onCleanup, Show } from "solid-js";
 import { Layer } from "@/shell/layers";
 import { suspendKeymap } from "@/keymap";
 import type { Permissions } from "@/ipc/collab";
+import { t } from "@/i18n";
 
 type Area = keyof Permissions;
 
-export const AREAS: { area: Area; label: string; values: { value: string; label: string }[] }[] = [
+/** One value of an area: `label` in the dialog, `short` in summaries ("Read-only"). */
+interface AreaValue {
+  value: string;
+  readonly label: string;
+  readonly short: string;
+}
+
+const option = (value: string, label: () => string, short: () => string = label): AreaValue => ({
+  value,
+  get label() {
+    return label();
+  },
+  get short() {
+    return short();
+  },
+});
+
+const noAccess = () => t("tools.codeWithMe.access.none");
+const readOnly = () => t("tools.codeWithMe.access.readOnly");
+const fullAccess = () => t("tools.codeWithMe.access.full");
+
+export const AREAS: { area: Area; readonly label: string; values: AreaValue[] }[] = [
   {
     area: "files",
-    label: "Files",
-    values: [
-      { value: "readOnly", label: "Read-only" },
-      { value: "edit", label: "Edit" },
-    ],
+    get label() {
+      return t("tools.codeWithMe.area.files");
+    },
+    values: [option("readOnly", readOnly), option("edit", () => t("tools.codeWithMe.access.edit"))],
   },
   {
     area: "terminal",
-    label: "Terminal",
-    values: [
-      { value: "none", label: "No access" },
-      { value: "readOnly", label: "Read-only" },
-      { value: "full", label: "Full access" },
-    ],
+    get label() {
+      return t("tools.codeWithMe.area.terminal");
+    },
+    values: [option("none", noAccess), option("readOnly", readOnly), option("full", fullAccess)],
   },
   {
     area: "run",
-    label: "Run",
+    get label() {
+      return t("tools.codeWithMe.area.run");
+    },
     values: [
-      { value: "none", label: "No access" },
-      { value: "readOnly", label: "Read-only (see output)" },
-      { value: "full", label: "Full access (start, stop, rerun)" },
+      option("none", noAccess),
+      option("readOnly", () => t("tools.codeWithMe.access.run.readOnly"), readOnly),
+      option("full", () => t("tools.codeWithMe.access.run.full"), fullAccess),
     ],
   },
   {
     area: "vcs",
-    label: "Version control",
+    get label() {
+      return t("tools.codeWithMe.area.vcs");
+    },
     values: [
-      { value: "readOnly", label: "Read-only (status, diff, blame, log)" },
-      { value: "full", label: "Full access (commit, push, checkout, …)" },
+      option("readOnly", () => t("tools.codeWithMe.access.vcs.readOnly"), readOnly),
+      option("full", () => t("tools.codeWithMe.access.vcs.full"), fullAccess),
     ],
   },
 ];
@@ -92,7 +115,7 @@ function Dialog(props: { req: Request }) {
             {(a) => (
               <>
                 <label class="form-label" for={`cwm-custom-${a.area}`}>
-                  {a.label}:
+                  {t("tools.codeWithMe.fieldLabel", { label: a.label })}
                 </label>
                 <select
                   id={`cwm-custom-${a.area}`}
@@ -105,17 +128,14 @@ function Dialog(props: { req: Request }) {
               </>
             )}
           </For>
-          <div class="cwm-custom-note muted">
-            Changing run configurations, composer.json, package.json and other files that control what runs on your machine needs
-            Files Edit and Run Full access.
-          </div>
+          <div class="cwm-custom-note muted">{t("tools.codeWithMe.protectedFilesNote")}</div>
         </div>
         <div class="dialog-buttons">
           <button class="btn-secondary" onClick={() => close(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" onClick={() => close(value())}>
-            OK
+            {t("common.ok")}
           </button>
         </div>
       </div>

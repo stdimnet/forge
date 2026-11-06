@@ -9,14 +9,24 @@ import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/fea
 import { askCustomPermissions } from "./CustomPermissions";
 import { applySession, isHost, refreshSession, session } from "./store";
 import { writeClipboardText } from "@/features/clipboard/system";
+import { t } from "@/i18n";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
-export const LEVEL_TITLES: Record<PermissionLevel, string> = {
-  readOnly: "Read-only",
-  editFiles: "Edit files",
-  fullAccess: "Full access",
-  custom: "Custom",
+/** The permission levels' names, in the IDE language. */
+export const LEVEL_TITLES: Readonly<Record<PermissionLevel, string>> = {
+  get readOnly() {
+    return t("tools.codeWithMe.level.readOnly");
+  },
+  get editFiles() {
+    return t("tools.codeWithMe.level.editFiles");
+  },
+  get fullAccess() {
+    return t("tools.codeWithMe.level.fullAccess");
+  },
+  get custom() {
+    return t("tools.codeWithMe.level.custom");
+  },
 };
 
 const PRESET_LEVELS = ["readOnly", "editFiles", "fullAccess"] as const;
@@ -28,9 +38,9 @@ export const sessionPermissions = (): Permissions => session().permissions ?? PR
 export async function setSessionPermissions(p: Permissions): Promise<void> {
   try {
     applySession(await collabApi.setPermissions(p));
-    showBalloon("Code With Me", `Guests now have ${LEVEL_TITLES[levelOf(p)]} permissions.`, 4000);
+    showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.guestsNowHave", { level: LEVEL_TITLES[levelOf(p)] }), 4000);
   } catch (e) {
-    showBalloon("Cannot change the permissions", message(e), 6000);
+    showBalloon(t("tools.codeWithMe.cannotChangePermissions"), message(e), 6000);
   }
 }
 
@@ -39,29 +49,29 @@ export async function setGuestPermissions(guest: Participant, p: Permissions): P
     await collabApi.setGuestPermissions(guest.id, p);
     await refreshSession();
   } catch (e) {
-    showBalloon("Cannot change the permissions", message(e), 6000);
+    showBalloon(t("tools.codeWithMe.cannotChangePermissions"), message(e), 6000);
   }
 }
 
 /** Permissions… (Custom): the dialog for the whole session. */
 export async function editSessionPermissions(): Promise<void> {
-  if (!isHost()) return void showBalloon("Code With Me", "No session is running.");
-  const p = await askCustomPermissions("Custom Permissions", sessionPermissions());
+  if (!isHost()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.noSessionRunning"));
+  const p = await askCustomPermissions(t("tools.codeWithMe.customPermissions"), sessionPermissions());
   if (p) await setSessionPermissions(p);
 }
 
 export async function removeGuest(guest: Participant): Promise<void> {
   const ok = await askConfirm({
-    title: "Remove Guest",
-    message: `Remove ${guest.name} from the session? They can ask to join again with the link unless you regenerate it.`,
-    confirm: "Remove",
+    title: t("tools.codeWithMe.removeGuest"),
+    message: t("tools.codeWithMe.removeGuestQuestion", { name: guest.name }),
+    confirm: t("common.remove"),
   });
   if (!ok) return;
   try {
     await collabApi.removeGuest(guest.id);
     await refreshSession();
   } catch (e) {
-    showBalloon("Cannot remove the guest", message(e), 6000);
+    showBalloon(t("tools.codeWithMe.cannotRemoveGuest"), message(e), 6000);
   }
 }
 
@@ -76,23 +86,19 @@ async function copy(text: string): Promise<boolean> {
 
 /** Regenerate Link: the old link stops working; the new one is copied. */
 export async function regenerateLink(): Promise<void> {
-  if (!isHost()) return void showBalloon("Code With Me", "No session is running.");
+  if (!isHost()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.noSessionRunning"));
   const ok = await askConfirm({
-    title: "Regenerate Link",
-    message: "The current session link stops working. Guests in the session stay. Create a new link?",
-    confirm: "Regenerate",
+    title: t("tools.codeWithMe.regenerateLink"),
+    message: t("tools.codeWithMe.regenerateLinkQuestion"),
+    confirm: t("tools.codeWithMe.regenerate"),
   });
   if (!ok) return;
   try {
     const link = await collabApi.regenerateLink();
     await refreshSession();
-    showBalloon(
-      "Code With Me",
-      (await copy(link)) ? "A new session link is copied to the clipboard. The old link no longer works." : link,
-      6000,
-    );
+    showBalloon(t("tools.codeWithMe.title"), (await copy(link)) ? t("tools.codeWithMe.newLinkCopied") : link, 6000);
   } catch (e) {
-    showBalloon("Cannot regenerate the link", message(e), 6000);
+    showBalloon(t("tools.codeWithMe.cannotRegenerateLink"), message(e), 6000);
   }
 }
 
@@ -102,7 +108,7 @@ export function permissionEntries(current: Permissions, title: string, apply: (p
   return [
     ...PRESET_LEVELS.map((l) => item(LEVEL_TITLES[l], () => apply(PRESETS[l]), undefined, { checked: level === l })),
     item(
-      "Custom…",
+      t("tools.codeWithMe.customEllipsis"),
       () =>
         void askCustomPermissions(title, current).then((p) => {
           if (p) apply(p);
@@ -116,7 +122,7 @@ export function permissionEntries(current: Permissions, title: string, apply: (p
 /** The session's Permissions menu (popup). */
 export function showSessionPermissionsMenu(x: number, y: number): void {
   showContextMenu(
-    permissionEntries(sessionPermissions(), "Custom Permissions", (p) => void setSessionPermissions(p)),
+    permissionEntries(sessionPermissions(), t("tools.codeWithMe.customPermissions"), (p) => void setSessionPermissions(p)),
     x,
     y,
   );
@@ -126,11 +132,11 @@ export function showSessionPermissionsMenu(x: number, y: number): void {
 export function guestEntries(guest: Participant): MenuEntry[] {
   return [
     submenu(
-      "Permissions",
-      permissionEntries(guest.permissions, `Permissions of ${guest.name}`, (p) => void setGuestPermissions(guest, p)),
+      t("tools.codeWithMe.permissions"),
+      permissionEntries(guest.permissions, t("tools.codeWithMe.permissionsOf", { name: guest.name }), (p) => void setGuestPermissions(guest, p)),
     ),
     separator,
-    item("Remove Guest", () => void removeGuest(guest)),
+    item(t("tools.codeWithMe.removeGuest"), () => void removeGuest(guest)),
   ];
 }
 

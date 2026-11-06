@@ -30,7 +30,12 @@ The popup has tabs; `Tab` / `Shift+Tab` switch between them:
   **Include non-project items** (most tabs) or **Include disabled actions** (Actions).
 
 Results from language servers appear once a server for that language runs, so the Symbols
-tab also finds TypeScript, Python, Go or Rust symbols in a polyglot project.
+tab also finds TypeScript, Python, Go or Rust symbols in a polyglot project. A class or symbol
+that both the PHP index and a language server report is listed once, with the index's details.
+Library symbols (`vendor/`, `node_modules/`, and stubs a server bundles, such as php-lsp's PHP
+stubs) only appear with **Include non-project items**. As a Code With Me guest you get the
+host's `vendor/` and `node_modules/` symbols with that option, but never files outside the
+host's project, such as the bundled stubs.
 
 ![Symbols from language servers](../../screenshots/search-everywhere-lsp-symbols.png)
 

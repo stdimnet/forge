@@ -11,11 +11,12 @@
  *   normal edit and save state.
  */
 import type { DocEvent } from "@/ipc/collab";
+import { t } from "@/i18n";
 
-export const CONFLICT_TITLE = "File Cache Conflict";
-export const LOAD_LABEL = "Load File System Changes";
-export const KEEP_LABEL = "Keep Memory Changes";
-export const DIFF_LABEL = "Show Difference";
+export const conflictTitle = () => t("tools.codeWithMe.conflict.title");
+export const loadLabel = () => t("tools.codeWithMe.conflict.load");
+export const keepLabel = () => t("tools.codeWithMe.conflict.keep");
+export const diffLabel = () => t("tools.codeWithMe.conflict.diff");
 
 export const fileName = (path: string): string => path.split("/").pop() || path;
 
@@ -55,11 +56,11 @@ export function conflictHandler(ui: ConflictUi) {
     const c = open.get(docId);
     if (!c || c.balloon !== undefined) return;
     c.balloon = ui.balloon(
-      CONFLICT_TITLE,
-      `Changes have been made to ${fileName(c.path)} in memory and on disk.`,
+      conflictTitle(),
+      t("tools.codeWithMe.conflict.balloon", { name: fileName(c.path) }),
       [
-        { label: LOAD_LABEL, run: () => void answer(docId, true) },
-        { label: KEEP_LABEL, run: () => void answer(docId, false) },
+        { label: loadLabel(), run: () => void answer(docId, true) },
+        { label: keepLabel(), run: () => void answer(docId, false) },
       ],
       true,
     );
@@ -73,10 +74,10 @@ export function conflictHandler(ui: ConflictUi) {
     if (!c) return void next();
     asking = true;
     try {
-      const id = await ui.ask(CONFLICT_TITLE, `Changes have been made to '${c.path}' in memory and on disk.`, [
-        { id: "diff", label: DIFF_LABEL },
-        { id: "keep", label: KEEP_LABEL },
-        { id: "load", label: LOAD_LABEL },
+      const id = await ui.ask(conflictTitle(), t("tools.codeWithMe.conflict.question", { path: c.path }), [
+        { id: "diff", label: diffLabel() },
+        { id: "keep", label: keepLabel() },
+        { id: "load", label: loadLabel() },
       ]);
       if (id === "load" || id === "keep") await answer(docId, id === "load");
       else if (open.has(docId)) {
@@ -106,11 +107,11 @@ export function conflictHandler(ui: ConflictUi) {
         queue.push(e.docId);
         void next();
       } else if (role === "guest") {
-        const name = ui.docName(e.docId) ?? "A shared file";
+        const name = ui.docName(e.docId) ?? t("tools.codeWithMe.conflict.aSharedFile");
         open.set(e.docId, { path: name });
         open.get(e.docId)!.balloon = ui.balloon(
-          CONFLICT_TITLE,
-          `${name} changed on ${ui.hostName()}'s disk while it has unsaved changes. ${ui.hostName()} is choosing which version to keep; saving waits until then.`,
+          conflictTitle(),
+          t("tools.codeWithMe.conflict.guest", { name, host: ui.hostName() }),
           undefined,
           false,
         );

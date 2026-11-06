@@ -12,10 +12,30 @@
  *
  * `&reconnecting` shows the window while the connection to the host is being restored;
  * `&reconnecting=resume` restores it after three seconds (`collab://resumed`).
+ *
+ * The host is participant 0, as with the real backend. The connection to it is direct
+ * (`192.168.1.20:41641`, 23 ms like `collab_ping`); `&relay` routes it through a relay server.
  */
 import * as Y from "yjs";
+// The host mock registers the same commands: load it first, so this window's guest handlers
+// win even when another mock (trust, workspace) imports this module before `mock/index.ts`
+// reaches `collabMock`.
+import "./collabMock";
 import { emitMock, invoke, registerMock } from "@/ipc";
-import { encodeOpened, encodeSynced, PRESETS, sharedRunId, type ConnectionState, type Permissions, type Presence, type SessionView, type SharedRun, type SharedTerminal } from "@/ipc/collab";
+import {
+  encodeOpened,
+  encodeSynced,
+  PRESETS,
+  sharedRunId,
+  type ConnectionState,
+  type ParticipantConnection,
+  type Permissions,
+  type Presence,
+  type RelayStatus,
+  type SessionView,
+  type SharedRun,
+  type SharedTerminal,
+} from "@/ipc/collab";
 import type { RunConfigurations } from "@/ipc/run";
 import { contentHash } from "@/state/editor";
 import type { WorkspaceInfo } from "@/ipc/workspace";
@@ -63,8 +83,8 @@ const permissions = (): Permissions => {
 
 /** The host's terminal and runs with `&share`. */
 const sharing = () => params().has("share");
-const terminals: SharedTerminal[] = [{ id: 1, title: "Local", owner: 1, cols: 110, rows: 24, running: true }];
-const runs: SharedRun[] = [{ id: 1, title: "UserTest", kind: "phpunit", startedBy: 1, running: true }];
+const terminals: SharedTerminal[] = [{ id: 1, title: "Local", owner: 0, cols: 110, rows: 24, running: true }];
+const runs: SharedRun[] = [{ id: 1, title: "UserTest", kind: "phpunit", startedBy: 0, running: true }];
 
 /** What the host's terminal showed before the guest joined. */
 const TRANSCRIPT = [
@@ -85,12 +105,29 @@ const HOST_PRESENCE: Presence = {
   viewport: { topLine: 14, bottomLine: 46 },
 };
 
+/** Where the host is with `&follow&log`. */
+const LOG_PRESENCE: Presence = { file: "storage/logs/laravel.log", caret: { line: 1, column: 1 }, viewport: { topLine: 1, bottomLine: 30 } };
+
 const idle: SessionView = { role: "none", canHost: false, participants: [], files: [] };
 
 let connection: ConnectionState = params().has("reconnecting")
   ? { state: "reconnecting", attempt: 3, nextRetrySecs: 4, error: "Cannot connect to the host: network is unreachable" }
   : { state: "connected" };
 let shownTerminals = terminals;
+
+/** The round trip to the demo host (`collab_ping`). */
+const RTT_MS = 23;
+const RELAY = "https://relay.example.com/";
+
+/** The path to the host while connected (the backend reports none while reconnecting). */
+function hostConnections(): ParticipantConnection[] {
+  if (connection.state !== "connected") return [];
+  return params().has("relay")
+    ? [{ participant: 0, kind: "relay", remote: RELAY, rttMs: RTT_MS }]
+    : [{ participant: 0, kind: "direct", remote: "192.168.1.20:41641", rttMs: RTT_MS }];
+}
+
+const relayStatus = (): RelayStatus | undefined => (params().has("relay") ? { url: RELAY, connected: true } : undefined);
 
 function view(): SessionView {
   const p = permissions();
@@ -99,18 +136,21 @@ function view(): SessionView {
     canHost: false,
     me: 2,
     participants: [
-      { id: 1, name: HOST, role: "host", color: 1, permissions: PRESETS.fullAccess },
+      { id: 0, name: HOST, role: "host", color: 1, permissions: PRESETS.fullAccess },
       { id: 2, name: "Alex", role: "guest", color: 2, permissions: p },
     ],
     files: [],
     permissions: p,
     hostLabel: HOST_LABEL,
     workspace: collabGuestWorkspace(),
-    presence: params().has("follow") ? [{ participant: 1, ...HOST_PRESENCE }] : [],
+    // `&log`: the host is in its log, which is over the co-editing limit (read-only for guests).
+    presence: params().has("follow") ? [{ participant: 0, ...(params().has("log") ? LOG_PRESENCE : HOST_PRESENCE) }] : [],
     followEveryone: params().get("follow") === "all",
     terminals: sharing() && p.terminal !== "none" ? shownTerminals : [],
     runs: sharing() && p.run !== "none" ? runs : [],
     connection,
+    connections: hostConnections(),
+    relay: relayStatus(),
   };
 }
 
@@ -125,7 +165,7 @@ if (isCollabGuestDemo() || isCollabJoinDemo()) {
     emitMock("collab://status", view());
     return view();
   });
-  registerMock("collab_ping", () => 23);
+  registerMock("collab_ping", () => RTT_MS);
   if (!params().has("follow")) setSetting("codeWithMe.followHostOnJoin", false, "user");
   // The host's files as shared documents (following the host opens them), read-only here.
   let nextDoc = 1;
@@ -133,7 +173,9 @@ if (isCollabGuestDemo() || isCollabJoinDemo()) {
     const text = String(await invoke<string>("fs_read_file", { path }));
     const doc = new Y.Doc();
     doc.getText("content").insert(0, text);
-    return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: permissions().files !== "edit" });
+    // The demo host's logs stand in for a file over the co-editing limit: read-only for guests.
+    const view = String(path).endsWith(".log") ? { kind: "large" as const, size: 3_400_000 } : undefined;
+    return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: !!view || permissions().files !== "edit", view });
   });
   registerMock("collab_doc_save", () => undefined);
   // Nothing changed on the demo host while the connection was down.

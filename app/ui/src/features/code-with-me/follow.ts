@@ -20,7 +20,9 @@ import { editor, openFile } from "@/state/editor";
 import { getSetting } from "@/state/settings";
 import { showBalloon } from "@/keymap";
 import { h } from "@/features/lsp/util";
+import { t } from "@/i18n";
 import { bannerText, followTarget, nextFollow, NOT_FOLLOWING, type FollowEvent, type FollowState } from "./followState";
+import { stopOnLocalActions } from "./followStop";
 import { onPresence, presenceOf, schedulePresence, setFollowingSource } from "./presence";
 import { applySession, session } from "./store";
 
@@ -96,7 +98,7 @@ async function goToLeader(): Promise<void> {
 /** Jump To: open the participant's file at its caret, once. */
 export async function jumpTo(p: Participant): Promise<void> {
   const target = followTarget(presenceOf(p.id), session().role);
-  if (!target) return void showBalloon("Code With Me", `${p.name} has no file open that you can see.`, 4000);
+  if (!target) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.noVisibleFile", { name: p.name }), 4000);
   if (state().leader !== null) stopFollowing();
   await openFileAt(target.tab, target.caret?.line, target.caret?.column, { flash: false });
 }
@@ -105,15 +107,17 @@ export async function jumpTo(p: Participant): Promise<void> {
 export async function setFollowEveryone(on: boolean): Promise<void> {
   try {
     applySession(await collabApi.followEveryone(on));
-    showBalloon("Code With Me", on ? "Everyone follows you now. Guests can stop following." : "Guests no longer have to follow you.", 4000);
+    showBalloon(
+      t("tools.codeWithMe.title"),
+      on ? t("tools.codeWithMe.everyoneFollowsYou") : t("tools.codeWithMe.noLongerFollowYou"),
+      4000,
+    );
   } catch (e) {
-    showBalloon("Code With Me", String((e as Error)?.message ?? e), 6000);
+    showBalloon(t("tools.codeWithMe.title"), String((e as Error)?.message ?? e), 6000);
   }
 }
 
 // ---- the editor --------------------------------------------------------------------------
-
-const STOPPING_EVENTS = ["input", "delete", "move", "select", "undo", "redo"];
 
 /** The banner above the editor while following: "Following Alex" with Stop. */
 function followBanner(): Panel {
@@ -121,7 +125,7 @@ function followBanner(): Panel {
   dom.setAttribute("role", "status");
   const dot = h("span", "cwm-follow-dot");
   const text = h("span", "cwm-follow-text");
-  const stop = h("button", "link-btn cwm-follow-stop", "Stop");
+  const stop = h("button", "link-btn cwm-follow-stop", t("tools.codeWithMe.stop"));
   stop.onclick = () => stopFollowing();
   dom.append(dot, text, stop);
   let dispose = () => {};
@@ -140,16 +144,7 @@ function followBanner(): Panel {
 
 registerEditorExtension(() => [
   showPanel.of(followBanner),
-  EditorView.updateListener.of((u) => {
-    if (state().leader === null) return;
-    if (u.transactions.some((tr) => STOPPING_EVENTS.some((ev) => tr.isUserEvent(ev)))) localAction();
-  }),
-  EditorView.domEventHandlers({
-    mousedown: () => {
-      localAction();
-      return false;
-    },
-  }),
+  stopOnLocalActions(() => state().leader !== null, localAction),
 ]);
 
 // ---- the session -------------------------------------------------------------------------
@@ -175,7 +170,7 @@ export function trackFollow(): void {
     const host = hostOf();
     if (session().role !== "guest" || !host) return;
     dispatch({ type: "forced", on, host: host.id });
-    if (on) showBalloon("Code With Me", `${host.name} asked everyone to follow.`, 4000);
+    if (on) showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.askedEveryoneToFollowBalloon", { name: host.name }), 4000);
   });
   createRoot(() => {
     createEffect(

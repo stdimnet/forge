@@ -44,6 +44,20 @@ describe("Code With Me mock: host approval", () => {
     await vi.waitFor(async () => expect((await invoke<{ participants: { name: string }[] }>("collab_status")).participants.map((p) => p.name)).toContain("Alex"));
     await invoke("collab_end");
   });
+
+  it("reports a direct connection for every admitted guest", async () => {
+    const requests: { id: number }[] = [];
+    await listen<{ id: number }>("collab://join-request", (r) => requests.push(r));
+    expect((await invoke<SessionView>("collab_start", { level: "readOnly" })).connections).toEqual([]);
+    await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0), { timeout: 3000 });
+    await invoke("collab_answer_join", { id: requests[requests.length - 1].id, accept: true });
+    await vi.waitFor(async () => expect((await invoke<SessionView>("collab_status")).participants.some((p) => p.name === "Alex")).toBe(true));
+    const s = await invoke<SessionView>("collab_status");
+    const alex = s.participants.find((p) => p.name === "Alex")!;
+    expect(s.connections).toEqual([{ participant: alex.id, kind: "direct", remote: expect.stringMatching(/:41641$/), rttMs: expect.any(Number) }]);
+    expect(s.relay).toBeUndefined();
+    await invoke("collab_end");
+  });
 });
 
 describe("Code With Me mock: during a session", () => {

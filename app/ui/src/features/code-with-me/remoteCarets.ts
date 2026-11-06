@@ -16,6 +16,7 @@ import { EditorView, ViewPlugin, type PluginValue } from "@codemirror/view";
 import * as Y from "yjs";
 import type { Awareness } from "y-protocols/awareness";
 import { stripeMarks, type StripeMark } from "@/editor/errorStripe";
+import { t } from "@/i18n";
 
 /** How long a name label stays after the caret stopped moving. */
 export const LABEL_MS = 2000;
@@ -27,7 +28,7 @@ const colorOf = (state: unknown): number => {
   return Number.isFinite(n) ? Math.min(COLORS, Math.max(1, n)) : 1;
 };
 
-const nameOf = (state: unknown): string => String((state as { user?: { name?: unknown } })?.user?.name ?? "Guest").slice(0, 64);
+const nameOf = (state: unknown): string => String((state as { user?: { name?: unknown } })?.user?.name ?? t("tools.codeWithMe.guestName")).slice(0, 64);
 
 /** Where the remote carets are: one stripe mark per participant with a caret in this file. */
 export function caretMarks(awareness: Awareness, ytext: Y.Text): StripeMark[] {
@@ -77,7 +78,7 @@ function caretActivity(awareness: Awareness, ytext: Y.Text) {
         const now = Date.now();
         plugin.labels = activeLabels(moved, now);
         clearTimeout(timer);
-        const next = Math.min(...[...moved.values()].map((at) => at + LABEL_MS).filter((t) => t > now));
+        const next = Math.min(...[...moved.values()].map((at) => at + LABEL_MS).filter((due) => due > now));
         if (Number.isFinite(next)) timer = setTimeout(() => plugin.refresh(), next - now + 10);
         view.dispatch({ effects: setMarks.of(caretMarks(awareness, ytext)) });
       },

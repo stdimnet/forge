@@ -2,12 +2,23 @@ import { createSignal } from "solid-js";
 import { workspaceApi, type WorkspaceInfo } from "@/ipc/workspace";
 import { remoteApi } from "@/ipc/remote";
 import { isTauri } from "@/ipc";
+import { setGuestRoot } from "@/ipc/projectPath";
 import { projectLifecycleApi, type LifecycleEvent, type LifecycleProject } from "@/ipc/projectLifecycle";
 import { isDialogWindow } from "@/shell/window/mode";
 import { closeAllTabs } from "./editor";
 import { confirmProjectClose, onProject, runProjectPhase } from "./projectLifecycle";
 
-const [workspace, setWorkspace] = createSignal<WorkspaceInfo | null>(null);
+const sameWorkspace = (a: WorkspaceInfo | null, b: WorkspaceInfo | null) =>
+  a === b || (!!a && !!b && JSON.stringify(a) === JSON.stringify(b));
+
+// An equal project is not set again: a guest gets the session's project with every status
+// update, and everything that follows `workspace()` would reload each time.
+const [workspace, setWorkspaceSignal] = createSignal<WorkspaceInfo | null>(null, { equals: sameWorkspace });
+
+function setWorkspace(info: WorkspaceInfo | null): void {
+  setGuestRoot(info?.collab ? info.root : null);
+  setWorkspaceSignal(info);
+}
 
 export { workspace };
 

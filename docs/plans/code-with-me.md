@@ -1330,10 +1330,44 @@ Deviations from the plan above:
   reachable through forge-collab (iroh, its QUIC stack `noq`, relay client, DNS / mDNS,
   `netwatch` / `netlink-*`, `yrs`, `blake3`, AES-GCM, `postcard`); the method for the release
   machine is in ARCHITECTURE.md.
-- Not done in S7: large and binary files are still refused for sharing rather than opened
-  read-only for guests (oversized files stay normal host tabs); per-guest rate limits are not
-  implemented (bounded queues and frame limits are); the manual desktop test plan on Linux,
-  Windows and macOS.
+- **Large and binary files read-only** (finished on `dev/charming-ritchie-qqs4fk`): files over
+  `codeWithMe.maxSharedFileSize` and binary files (NUL byte in the first 8 KiB, or not UTF-8)
+  up to `MAX_VIEW_SIZE` (16 MiB) open for guests as view-only documents
+  (`protocol::ViewOnly`, `view` in `DocOpened` / `DocSynced`): read-only for every permission,
+  updates and saves refused, no language server requests, binary ones without content, with a
+  banner in the guest's editor. The host's tab of such a file stays unshared. Larger files are
+  refused as before.
+- **Per-guest rate limits** (`rate`, `HostSession::within_rate` in `run_guest`, before a
+  message is checked or dispatched): token buckets per admitted guest, kept across
+  reconnects, with the clock passed in for the unit tests. Project calls (`CALL_RATE`: burst
+  1000, 200 a second; the hostile-guest test alone sends about 450 in a row; at most
+  `MAX_PENDING_CALLS` run at once anyway), document open / save / sync (`DOC_RATE`: 100, 20 a second) and terminal
+  and run input (`INPUT_RATE`: 500, 100 a second) over their rate get their normal answer
+  (`CallResult` error, `DocError`, `SaveResult` with error, `Denied` once per burst for input)
+  with "Too many requests. Try again in a moment.", and the session log one `Denied` entry per
+  burst (refusals less than `QUIET`, 5 seconds, apart); requests never disconnect. Edits,
+  awareness, presence and document close are never refused, which would break convergence;
+  instead they count against `FLOOD_RATE` (burst 1000, 300 a second, about ten times fast
+  typing with carets), and a guest over it is disconnected (`HostMessage::Ended` "... sent far more messages than anyone can type",
+  session log entry, host notice). `tests/rate_limits.rs`: a guest flooding calls is refused
+  and logged once while another guest is unaffected; a guest flooding edits is disconnected,
+  the host keeps every edit up to the cut-off, the other guest stays. The stress test (both
+  variants) stays below the limits; with `FORGE_CWM_STRESS_ROUNDS` in the thousands, its
+  1 ms pause between edits (several hundred messages a second per guest) would exceed
+  `FLOOD_RATE` after a few seconds.
+- **Desktop test on Linux** (Xvfb, two windows on one machine) found and fixed: guest backend
+  calls on a runtime worker panicked (`call_blocking` now waits with `block_in_place`); guest
+  features sent `cwm://` tab paths to the host (`ipc/projectPath.ts` maps them in `invoke`);
+  the guest re-adopted the host's project on every status event; and one message over the
+  frame limit ended the connection, so the guest reconnected, resynchronized and sent it again
+  every ~1.5 s (`write_or_skip` drops such a message with a warning, and guest calls over the
+  limit fail at once).
+- **Binary size measured** (2026-11-06, Linux x86_64 release): forge-collab and the 62 crates
+  only it pulls in add 5.4 MiB of the binary's 109.9 MiB `.text` (about 5 %); details and the
+  method are in ARCHITECTURE.md.
+- Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
+  checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
+  Linux ran under Xvfb (see its results table).
 
 ## Keeping one large PR reviewable
 

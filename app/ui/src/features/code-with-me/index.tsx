@@ -38,7 +38,7 @@ import { showResolvedMenu } from "@/features/contextMenu/state";
 import type { Participant } from "@/ipc/collab";
 import { activeTab as activeTerminalTab, tabs as terminalTabs } from "@/features/terminal/store";
 import { setTerminalShared, trackTerminalsAndRuns } from "./terminalsRuns";
-import { isReconnecting, trackReconnects } from "./reconnect";
+import { trackReconnects } from "./reconnect";
 import { joinSession } from "./join";
 import "./binding";
 import "./codeWithMe.css";
@@ -64,38 +64,42 @@ async function startSession(level: PermissionLevel, custom?: Permissions): Promi
     applySession(s);
     const copied = s.link ? await copyLink(s.link) : false;
     showBalloon(
-      "Session started",
-      copied ? "The invitation link is copied to the clipboard." : "Use Copy Session Link to invite guests.",
+      t("tools.codeWithMe.sessionStarted"),
+      copied ? t("tools.codeWithMe.invitationLinkCopied") : t("tools.codeWithMe.useCopySessionLink"),
       8000,
       [
-        { label: "Copy Session Link", run: () => void copySessionLink() },
-        { label: "Settings", run: () => openSettings("tools.code-with-me") },
+        { label: t("tools.codeWithMe.copySessionLink"), run: () => void copySessionLink() },
+        { label: t("tools.codeWithMe.settings"), run: () => openSettings("tools.code-with-me") },
       ],
     );
   } catch (e) {
-    showBalloon("Cannot start the session", message(e), 8000);
+    showBalloon(t("tools.codeWithMe.cannotStartSession"), message(e), 8000);
   }
 }
 
 async function copySessionLink(): Promise<void> {
-  if (!isHost()) return void showBalloon("Code With Me", "No session is running.");
+  if (!isHost()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.noSessionRunning"));
   const link = await collabApi.link();
-  showBalloon("Code With Me", (await copyLink(link)) ? "The session link is copied to the clipboard." : link, 6000);
+  showBalloon(t("tools.codeWithMe.title"), (await copyLink(link)) ? t("tools.codeWithMe.sessionLinkCopied") : link, 6000);
 }
 
 async function endSession(): Promise<void> {
-  if (!isHost()) return void showBalloon("Code With Me", "No session is running.");
+  if (!isHost()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.noSessionRunning"));
   if (getSetting<boolean>("codeWithMe.confirmEndSession", true)) {
-    const ok = await askConfirm({ title: "End Session", message: "End the session for all participants?", confirm: "End Session" });
+    const ok = await askConfirm({
+      title: t("tools.codeWithMe.endSession"),
+      message: t("tools.codeWithMe.endSessionQuestion"),
+      confirm: t("tools.codeWithMe.endSession"),
+    });
     if (!ok) return;
   }
-  await collabApi.end().catch((e) => showBalloon("Code With Me", message(e)));
+  await collabApi.end().catch((e) => showBalloon(t("tools.codeWithMe.title"), message(e)));
   await refreshSession();
 }
 
 
 async function leaveSession(): Promise<void> {
-  if (!isGuest()) return void showBalloon("Code With Me", "You are not in a session.");
+  if (!isGuest()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.notInSession"));
   await collabApi.leave().catch(() => undefined);
   await refreshSession();
 }
@@ -113,7 +117,8 @@ registerSettingsPage({
 
 // The path in use (direct or relayed) while a session runs.
 // A guest that is reconnecting sees that in its own status item instead.
-registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: () => inSession() && !isReconnecting(), component: ConnectionStatusItem });
+// Hosts only: a guest's own item (`codeWithMe.guest`) shows the path to the host.
+registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: isHost, component: ConnectionStatusItem });
 
 // PHPStorm binds no shortcuts to Code With Me; the actions are listed under its plugin.
 registerKeymapActions(
@@ -138,22 +143,22 @@ registerKeymapActions(
 
 /** Share With Guests for the active terminal tab (host). */
 function shareActiveTerminal(): void {
-  if (!isHost()) return void showBalloon("Code With Me", "Start a session to share a terminal.");
-  const tab = terminalTabs().find((t) => t.id === activeTerminalTab());
-  if (!tab || tab.source) return void showBalloon("Code With Me", "Open a terminal tab to share it.");
+  if (!isHost()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.startSessionToShareTerminal"));
+  const tab = terminalTabs().find((x) => x.id === activeTerminalTab());
+  if (!tab || tab.source) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.openTerminalTabToShare"));
   void setTerminalShared(tab, !tab.shared);
 }
 
 /** A chooser of the other participants under the toolbar icon (Follow Participant…, Jump To Participant…). */
 function chooseParticipant(title: string, pick: (p: Participant) => void): void {
-  if (!inSession()) return void showBalloon("Code With Me", "No session is running.");
+  if (!inSession()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.noSessionRunning"));
   const others = session().participants.filter((p) => p.id !== session().me);
-  if (!others.length) return void showBalloon("Code With Me", "Nobody else is in the session.");
+  if (!others.length) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.nobodyElseInSession"));
   const anchor = document.querySelector(".cwm-toolbar-btn")?.getBoundingClientRect();
   showResolvedMenu(
     others.map((p) => ({
       kind: "action" as const,
-      label: p.name + (p.role === "host" ? " (host)" : ""),
+      label: p.role === "host" ? t("tools.codeWithMe.participantHost", { name: p.name }) : p.name,
       detail: locationLabel(presence().get(p.id)),
       checkable: true,
       checked: followState().leader === p.id,
@@ -166,7 +171,7 @@ function chooseParticipant(title: string, pick: (p: Participant) => void): void 
 }
 
 function makeEveryoneFollow(): void {
-  if (!isHost()) return void showBalloon("Code With Me", "Only the host can ask everyone to follow.");
+  if (!isHost()) return void showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.onlyHostCanAskToFollow"));
   void setFollowEveryone(!session().followEveryone);
 }
 
@@ -181,8 +186,8 @@ const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.OpenSharedFile", "Open Shared File…", () => void setPopupOpen(true)],
   ["CodeWithMe.LeaveSession", "Leave Session", leaveSession],
   ["CodeWithMe.Settings", "Code With Me Settings…", () => openSettings("tools.code-with-me")],
-  ["CodeWithMe.FollowParticipant", "Follow Participant…", () => chooseParticipant("Follow", (p) => follow(p.id))],
-  ["CodeWithMe.JumpToParticipant", "Jump To Participant…", () => chooseParticipant("Jump To", (p) => void jumpTo(p))],
+  ["CodeWithMe.FollowParticipant", "Follow Participant…", () => chooseParticipant(t("tools.codeWithMe.follow"), (p) => follow(p.id))],
+  ["CodeWithMe.JumpToParticipant", "Jump To Participant…", () => chooseParticipant(t("tools.codeWithMe.jumpTo"), (p) => void jumpTo(p))],
   ["CodeWithMe.StopFollowing", "Stop Following", stopFollowing],
   ["CodeWithMe.MakeEveryoneFollow", "Make Everyone Follow You", makeEveryoneFollow],
   ["CodeWithMe.ShowToolWindow", "Code With Me", () => (inSession() ? showToolWindow("code-with-me") : setPopupOpen(true))],

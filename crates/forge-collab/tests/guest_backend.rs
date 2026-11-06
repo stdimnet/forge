@@ -20,6 +20,7 @@ use forge_collab::host::{
     DevAutoAccept, HostConfig, HostServices, HostSession, LspRequest, DEV_PREVIEW_NOTICE,
 };
 use forge_collab::permissions::{FilesAccess, Permissions, RunAccess, VcsAccess};
+use forge_collab::protocol::{ViewOnly, MAX_VIEW_SIZE};
 use forge_collab::reconnect::ReconnectPolicy;
 use forge_collab::transport::memory::MemoryNetwork;
 use forge_core::search::FindRequest;
@@ -217,6 +218,23 @@ fn names(entries: &[forge_core::FileEntry]) -> Vec<String> {
 const EDIT: Permissions = Permissions::EDIT_FILES;
 const READ: Permissions = Permissions::READ_ONLY;
 const FULL: Permissions = Permissions::FULL_ACCESS;
+
+/// The text of a document as `update` (one Yjs update) holds it.
+fn text_of(update: &[u8]) -> String {
+    use yrs::updates::decoder::Decode;
+    use yrs::{GetString, Transact};
+    let replica = yrs::Doc::with_options(yrs::Options {
+        offset_kind: yrs::OffsetKind::Utf16,
+        ..yrs::Options::default()
+    });
+    let text = replica.get_or_insert_text("content");
+    replica
+        .transact_mut()
+        .apply_update(yrs::Update::decode_v1(update).unwrap())
+        .unwrap();
+    let s = text.get_string(&replica.transact());
+    s
+}
 
 // ---- the project as the guest sees it --------------------------------------------------
 
@@ -1362,9 +1380,11 @@ async fn a_guest_opens_any_visible_file_as_a_shared_document() {
         let r = g.session.open_doc(hidden).await;
         assert!(r.is_err(), "{hidden}: {r:?}");
     }
-    // Too large for sharing (the test host limits files to 64 KB).
+    // Over the co-editing limit (the test host's is 64 KB): read-only for everyone.
     std::fs::write(w.root.join("big.txt"), "x".repeat(100 * 1024)).unwrap();
-    assert!(g.session.open_doc("big.txt").await.is_err());
+    let big = g.session.open_doc("big.txt").await.unwrap();
+    assert!(big.read_only);
+    assert_eq!(big.view, Some(ViewOnly::Large { size: 100 * 1024 }));
     let ro = {
         let mut w2 = World::new(READ);
         let g2 = w2.join("Bea").await;
@@ -1459,4 +1479,105 @@ async fn shared_documents_of_protected_files_are_read_only_without_full_access()
     let composer = g.session.open_doc("composer.json").await.unwrap();
     assert!(!composer.read_only);
     assert!(g.session.save(composer.doc).await.is_ok());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn large_and_binary_files_open_read_only_for_guests() {
+    let mut w = World::new(FULL);
+    let g = w.join("Alex").await;
+
+    // Text over the co-editing limit: the guest reads it, nobody edits or saves it.
+    let big = format!("{}\n", "a".repeat(80 * 1024));
+    std::fs::write(w.root.join("big.log"), &big).unwrap();
+    let o = g.session.open_doc("big.log").await.unwrap();
+    assert!(o.read_only, "read-only even with Full access");
+    assert_eq!(
+        o.view,
+        Some(ViewOnly::Large {
+            size: big.len() as u64
+        })
+    );
+    assert_eq!(text_of(&o.update), big);
+    let err = g.session.save(o.doc).await.unwrap_err();
+    assert!(err.contains("read-only"), "{err}");
+    // The host's own tab of the file stays a normal tab.
+    let host = w.host.open_doc("big.log", None).await.unwrap_err();
+    assert!(host.contains("size limit"), "{host}");
+    // It follows the file on disk.
+    let changed = format!("{}\n", "b".repeat(80 * 1024));
+    std::fs::write(w.root.join("big.log"), &changed).unwrap();
+    w.host
+        .on_fs_changed(&FsChanges {
+            changed: vec!["big.log".into()],
+            ..FsChanges::default()
+        })
+        .await;
+    let other = w.join("Bea").await;
+    let seen = other.session.open_doc("big.log").await.unwrap();
+    assert_eq!(text_of(&seen.update), changed);
+
+    // Binary: the guest learns its size, not its bytes.
+    let png = [0x89u8, b'P', b'N', b'G', 0, 0, 0, 13, 0xff, 0xfe];
+    std::fs::write(w.root.join("logo.png"), png).unwrap();
+    let o = g.session.open_doc("logo.png").await.unwrap();
+    assert!(o.read_only);
+    assert_eq!(o.view, Some(ViewOnly::Binary { size: 10 }));
+    assert_eq!(text_of(&o.update), "");
+    let err = g.session.save(o.doc).await.unwrap_err();
+    assert!(err.contains("binary"), "{err}");
+    let host = w.host.open_doc("logo.png", None).await.unwrap_err();
+    assert!(host.contains("binary"), "{host}");
+    // Not UTF-8 without a NUL byte is binary too.
+    std::fs::write(w.root.join("latin1.txt"), [b'c', b'a', b'f', 0xe9]).unwrap();
+    let o = g.session.open_doc("latin1.txt").await.unwrap();
+    assert_eq!(o.view, Some(ViewOnly::Binary { size: 4 }));
+
+    // Over the viewing limit: refused.
+    let huge = std::fs::File::create(w.root.join("huge.sql")).unwrap();
+    huge.set_len(MAX_VIEW_SIZE as u64 + 1).unwrap();
+    assert!(g.session.open_doc("huge.sql").await.is_err());
+
+    // Small text files are still shared for editing.
+    let o = g.session.open_doc("app/Http/Order.php").await.unwrap();
+    assert!(!o.read_only);
+    assert_eq!(o.view, None);
+}
+
+/// Some app commands call `Backend` methods directly on a runtime worker; the guest's backend
+/// must answer them instead of panicking ("Cannot block the current thread").
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn backend_calls_on_a_runtime_worker_do_not_panic() {
+    let mut w = World::new(READ);
+    let g = w.join("Alex").await;
+    // Directly on the worker, as `inspections_profiles` does.
+    let text = g.backend.read_optional("app/Http/Order.php").unwrap();
+    assert!(text.unwrap().contains("class Order"));
+    // And from a task the runtime spawned.
+    let b = g.backend.clone();
+    let listed = tokio::spawn(async move { b.list_dir("app").map(|e| e.len()) })
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(listed > 0);
+}
+
+/// A call over the host's frame limit (e.g. analysis that sends a multi-megabyte editor text)
+/// fails at once on the guest; the connection and later calls are unaffected.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn an_oversized_call_fails_at_once_and_the_session_goes_on() {
+    let mut w = World::new(FULL);
+    let g = w.join("Alex").await;
+    let started = std::time::Instant::now();
+    let err = g
+        .call(HostCall::WriteFile {
+            path: "big.txt".into(),
+            contents: "x".repeat(5 << 20),
+        })
+        .await
+        .unwrap_err();
+    assert!(err.contains("too large"), "{err}");
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert!(!w.root.join("big.txt").exists());
+    let text = g.on(|b| b.read_file("app/Http/Order.php")).await.unwrap();
+    assert!(text.contains("class Order"));
 }

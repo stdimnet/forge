@@ -7,7 +7,7 @@
   background: var(--bg-active);
 }
 
-.cwm-popup {
+.popup.cwm-popup {
   position: fixed;
   z-index: var(--z-popup);
   width: 360px;
@@ -104,12 +104,7 @@
   padding: 2px 0;
 }
 
-/* Connection paths: participants in the popup, status bar item. */
-.cwm-connections {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+/* Connection paths: participant rows of the popup, status bar item. */
 .cwm-participant {
   display: flex;
   align-items: center;
@@ -416,6 +411,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The connection path and the location below a name in the session popup. */
+.cwm-participant-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 1px;
+}
+.cwm-participant-detail .cwm-path {
+  margin-left: 0;
+  padding: 0 6px;
+}
 .cwm-participant-following {
   flex: none;
   color: var(--accent);
@@ -592,4 +599,13 @@
 .cwm-join-hint {
   max-width: 380px;
   font-size: var(--fs-small);
+}
+
+/* A shared file that is read-only for everyone (too large, or binary). */
+.cwm-view-only-banner {
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
 }

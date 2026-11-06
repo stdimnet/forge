@@ -123,7 +123,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Plugins and packs](guide/developer/plugins-and-packs.md), [Settings](guide/developer/settings.md), [Keymap actions](guide/developer/keymap-actions.md), [Adding a language](guide/developer/adding-a-language.md)
 - [Localization](guide/developer/localization.md): translatable UI text with `t()` / `<T>` from `@/i18n`, ICU MessageFormat catalogs in `crates/forge-i18n/locales`, key naming, Rust-side text, manifest translations, `pnpm i18n:check`, adding a language
 - [Writing accessible UI](guide/developer/accessibility.md): rules for ARIA roles, trees, dialogs and focus, keyboard operation, focus rings, theme contrast test, axe-core audit and the keyboard-only flow
-- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md), [Search benchmark](guide/developer/search-benchmark.md)
+- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md), [Search benchmark](guide/developer/search-benchmark.md), [Code With Me test plan](guide/developer/code-with-me-test-plan.md)
 
 ## Optional
 

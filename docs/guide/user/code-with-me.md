@@ -49,7 +49,10 @@ Files that control what runs on your machine (run configurations, `composer.json
 
 ## During a session
 
-The popup lists the participants with their permission and offers:
+The popup lists the participants with their permission and, below each name, how the
+connection travels (**Direct** or **Relay**, with the round-trip time). Only one popup is open
+at a time: opening the Code With Me popup closes a status bar popup and the other way round, and
+a control's tooltip is hidden while its popup is open. The popup offers:
 
 - **Copy Session Link** copies the invitation link again.
 - **Regenerate Link** creates a new link and copies it. The old link stops working at once;
@@ -72,6 +75,13 @@ participant's menu:
 A new permission counts from the guest's next request. When files become read-only for a
 guest, their open editors turn read-only and they are told so; changes they send afterwards are
 refused by your Forge.
+
+Your Forge also limits how fast each guest may send requests, far above what a person does by
+hand. A guest whose Forge sends too many project requests (search, file tree, language server),
+opens or saves too many files, or types too fast into a terminal gets "Too many requests. Try
+again in a moment." for those requests, and the session log notes it once per burst. Edits and
+carets are never dropped; a guest that sends far more of them than anyone can type is
+disconnected and told why, and the session log records it.
 
 ![A guest's menu in the session popup](../../screenshots/code-with-me-guest-menu.png)
 
@@ -104,6 +114,15 @@ Guests see a balloon that the host is choosing which version to keep; they canno
 until then. Saving it yourself as the host also keeps the memory changes, and the conflict ends
 by itself when the file on disk changes back.
 
+Files larger than **Larger files open read-only (KB)** (5 MB by default) and binary files
+(images, archives, fonts) open read-only for guests, whatever their permission, with a bar
+above the editor that says why. A large file shows the host's file as saved and follows it when
+the host saves; a binary file shows only its size. Files over 16 MB (or over the limit, if you set it higher) cannot be
+opened by guests.
+The host edits these files as usual in an unshared tab.
+
+![A log over the size limit, read-only for a guest](../../screenshots/cwm-guest-view-only.png)
+
 ![The host's File Cache Conflict dialog](../../screenshots/code-with-me-file-cache-conflict.png)
 
 ![Lines changed by Alex, marked in the host's gutter](../../screenshots/code-with-me-guest-lines.png)
@@ -130,8 +149,11 @@ A guest is never told the name of a file it may not see: while the host is in `.
 hidden file, guests see the host without a location and following guests stay where they are.
 
 The **Code With Me** tool window (right, while a session runs) lists the participants with the
-same actions, **Stop Following** and, for the host, **Make Everyone Follow You** and the
-**Session Log** tab.
+same actions and, like the popup, how each connection travels (**Direct** or **Relay**, with the
+round-trip time, or **Connecting…** / **Reconnecting…**) and the relay server's state. The host
+sees the path to every guest; a guest sees the path to the host. Below the list are **Stop
+Following** and, for the host, **Make Everyone Follow You**; the host also has the **Session
+Log** tab.
 
 All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me:
 **Follow Participant…** and **Jump To Participant…** (a chooser of the participants), **Stop
@@ -265,6 +287,10 @@ If you close the balloon without answering, the request stays open until it time
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you, and the window returns to the Welcome screen.
 
+   A guest's window has one Code With Me status bar item: **Code With Me: <host>** with how the
+   connection travels and its round-trip time, e.g. *Direct · 23 ms*. Click it for the host,
+   the project, your permission, the connection and the relay server, if the session uses one.
+
 ![Joining from the Welcome screen](../../screenshots/code-with-me-welcome.png)
 
 The host's project replaces the project the window had open. Everything the window showed of
@@ -326,8 +352,8 @@ available in a guest's window, because they would use the host's accounts and se
 
 Secret files are invisible to guests whatever their level, in the tree, in search, in Git and
 in analysis results: `.env` and `.env.*` (but not `.env.example`), private keys, certificates
-and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Files larger than
-**Larger files open read-only (KB)** open read-only.
+and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Large
+and binary files open read-only (see [Saving and changes on disk](#saving-and-changes-on-disk)).
 
 Files that configure what runs on the host can be changed only by guests with Full access to
 Run (with Edit files they open read-only): **Settings | Tools | Code With Me | Files only Full

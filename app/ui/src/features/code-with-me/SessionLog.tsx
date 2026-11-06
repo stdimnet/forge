@@ -8,6 +8,7 @@ import { Layer } from "@/shell/layers";
 import { TriangleAlert } from "lucide-solid";
 import { suspendKeymap } from "@/keymap";
 import { collabApi, type SessionLogView } from "@/ipc/collab";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 
@@ -33,8 +34,8 @@ export function SessionLogList() {
   onCleanup(() => clearInterval(timer));
   return (
     <>
-      <div class="cwm-log" ref={list} role="log" aria-label="Session log" tabIndex={0}>
-        <For each={log().lines} fallback={<div class="muted">No session has been hosted yet.</div>}>
+      <div class="cwm-log" ref={list} role="log" aria-label={t("tools.codeWithMe.sessionLogLabel")} tabIndex={0}>
+        <For each={log().lines} fallback={<div class="muted">{t("tools.codeWithMe.noSessionHosted")}</div>}>
           {(l) => (
             <div class="cwm-log-line" classList={{ warning: l.warning }}>
               <span class="cwm-log-time muted">{clock(l.time)}</span>
@@ -47,7 +48,7 @@ export function SessionLogList() {
         </For>
       </div>
       <div class="cwm-log-file muted">
-        {log().file ? `Saved to ${log().file}` : "Not saved to a file (Settings | Tools | Code With Me | Keep a session log)."}
+        {log().file ? t("tools.codeWithMe.logSavedTo", { file: log().file }) : t("tools.codeWithMe.logNotSaved")}
       </div>
     </>
   );
@@ -63,7 +64,7 @@ function Dialog() {
         style={{ width: "min(640px, calc(100vw - 32px))" }}
         role="dialog"
         aria-modal="true"
-        aria-label="Session Log"
+        aria-label={t("tools.codeWithMe.sessionLog")}
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}
         onKeyDown={(e) => {
@@ -73,13 +74,13 @@ function Dialog() {
           setOpen(false);
         }}
       >
-        <div class="dialog-title">Session Log</div>
+        <div class="dialog-title">{t("tools.codeWithMe.sessionLog")}</div>
         <div class="dialog-body">
           <SessionLogList />
         </div>
         <div class="dialog-buttons">
           <button class="btn-primary" onClick={() => setOpen(false)}>
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

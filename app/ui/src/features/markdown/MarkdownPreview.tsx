@@ -13,7 +13,7 @@ import { markdownApi, type MdBlock, type MdDocument, type MdInline, type MdListI
 import { viewersApi } from "@/ipc/viewers";
 import { editor, openFile, type EditorTab } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
-import { GUEST_PREFIX } from "@/features/code-with-me/docs";
+import { GUEST_PREFIX, isGuestTabPath, projectPathOf } from "@/ipc/projectPath";
 import { getSetting } from "@/state/settings";
 import { theme } from "@/state/theme";
 import { highlightFence } from "./highlight";
@@ -343,8 +343,8 @@ export function MarkdownPreview(props: { tab: EditorTab; editorView: () => Edito
 
   // A Code With Me guest reads the host's file as `cwm://<path>`: relative links and images
   // are resolved in the host's project. Its images cannot be read from here.
-  const guest = props.tab.path.startsWith(GUEST_PREFIX);
-  const docPath = guest ? props.tab.path.slice(GUEST_PREFIX.length) : props.tab.path;
+  const guest = isGuestTabPath(props.tab.path);
+  const docPath = projectPathOf(props.tab.path);
   const images = new Map<string, Promise<string | null>>();
   const ctx: Ctx = {
     path: props.tab.path,

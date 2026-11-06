@@ -227,6 +227,13 @@ export interface SaveState {
   hash: string;
 }
 
+/** Why a shared file is read-only for every guest: too large to co-edit, or binary. */
+export interface ViewOnly {
+  kind: "large" | "binary";
+  /** Bytes on disk. */
+  size: number;
+}
+
 /** A shared document as `collab_doc_open` returns it. */
 export interface DocOpened {
   docId: number;
@@ -237,6 +244,8 @@ export interface DocOpened {
   readOnly: boolean;
   /** The host is resolving a File Cache Conflict for it (older hosts leave it out). */
   conflict?: boolean;
+  /** Set for files guests only read (older hosts leave it out). */
+  view?: ViewOnly;
 }
 
 /** `collab_doc_sync`'s reply: what the replica missed after a reconnect. */
@@ -306,7 +315,7 @@ export function fromBase64(text: string): Uint8Array {
 
 /** `collab_doc_open`'s raw reply: a big-endian u32 length, a JSON header, the update. */
 export function encodeOpened(o: DocOpened): ArrayBuffer {
-  const header = new TextEncoder().encode(JSON.stringify({ docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly, conflict: !!o.conflict }));
+  const header = new TextEncoder().encode(JSON.stringify({ docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly, conflict: !!o.conflict, view: o.view }));
   const out = new Uint8Array(4 + header.length + o.update.length);
   new DataView(out.buffer).setUint32(0, header.length);
   out.set(header, 4);
@@ -325,7 +334,7 @@ export function decodeOpened(raw: ArrayBuffer | Uint8Array | number[]): DocOpene
 export function encodeSynced(s: DocSynced): ArrayBuffer {
   const { stateVector, ...opened } = s;
   const header = new TextEncoder().encode(
-    JSON.stringify({ docId: opened.docId, path: opened.path, saved: opened.saved, readOnly: opened.readOnly, conflict: !!opened.conflict, stateVector: toBase64(stateVector) }),
+    JSON.stringify({ docId: opened.docId, path: opened.path, saved: opened.saved, readOnly: opened.readOnly, conflict: !!opened.conflict, view: opened.view, stateVector: toBase64(stateVector) }),
   );
   const out = new Uint8Array(4 + header.length + opened.update.length);
   new DataView(out.buffer).setUint32(0, header.length);

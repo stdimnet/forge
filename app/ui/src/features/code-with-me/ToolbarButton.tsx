@@ -6,14 +6,16 @@ import { SessionPopup, type StartHandler } from "./SessionPopup";
 import { CustomPermissionsHost } from "./CustomPermissions";
 import { SessionLogHost } from "./SessionLog";
 import { ToolbarAvatars } from "./Participants";
+import { tooltip } from "@/shell/tooltip";
+import { t } from "@/i18n";
 
 export function ToolbarButton(props: { onStart: StartHandler }) {
   let btn!: HTMLButtonElement;
   const title = () => {
     const s = session();
-    if (s.role === "host") return `Code With Me: sharing with ${s.participants.length - 1} guest(s)`;
-    if (s.role === "guest") return `Code With Me: ${s.hostLabel ?? "host"}`;
-    return "Code With Me";
+    if (s.role === "host") return t("tools.codeWithMe.sharingWith", { count: s.participants.length - 1 });
+    if (s.role === "guest") return t("tools.codeWithMe.titleWith", { value: s.hostLabel ?? t("tools.codeWithMe.hostFallback") });
+    return t("tools.codeWithMe.title");
   };
   return (
     <>
@@ -21,7 +23,7 @@ export function ToolbarButton(props: { onStart: StartHandler }) {
         ref={btn}
         class="icon-btn cwm-toolbar-btn"
         classList={{ active: inSession(), open: popupOpen() }}
-        title={title()}
+        {...tooltip(title, { open: popupOpen })}
         aria-haspopup="dialog"
         aria-expanded={popupOpen()}
         data-action="CodeWithMe.StartSession"

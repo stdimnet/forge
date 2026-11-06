@@ -4372,7 +4372,12 @@ The popup has tabs; `Tab` / `Shift+Tab` switch between them:
   **Include non-project items** (most tabs) or **Include disabled actions** (Actions).
 
 Results from language servers appear once a server for that language runs, so the Symbols
-tab also finds TypeScript, Python, Go or Rust symbols in a polyglot project.
+tab also finds TypeScript, Python, Go or Rust symbols in a polyglot project. A class or symbol
+that both the PHP index and a language server report is listed once, with the index's details.
+Library symbols (`vendor/`, `node_modules/`, and stubs a server bundles, such as php-lsp's PHP
+stubs) only appear with **Include non-project items**. As a Code With Me guest you get the
+host's `vendor/` and `node_modules/` symbols with that option, but never files outside the
+host's project, such as the bundled stubs.
 
 ![Symbols from language servers](docs/screenshots/search-everywhere-lsp-symbols.png)
 
@@ -20929,7 +20934,10 @@ Files that control what runs on your machine (run configurations, `composer.json
 
 ## During a session
 
-The popup lists the participants with their permission and offers:
+The popup lists the participants with their permission and, below each name, how the
+connection travels (**Direct** or **Relay**, with the round-trip time). Only one popup is open
+at a time: opening the Code With Me popup closes a status bar popup and the other way round, and
+a control's tooltip is hidden while its popup is open. The popup offers:
 
 - **Copy Session Link** copies the invitation link again.
 - **Regenerate Link** creates a new link and copies it. The old link stops working at once;
@@ -20952,6 +20960,13 @@ participant's menu:
 A new permission counts from the guest's next request. When files become read-only for a
 guest, their open editors turn read-only and they are told so; changes they send afterwards are
 refused by your Forge.
+
+Your Forge also limits how fast each guest may send requests, far above what a person does by
+hand. A guest whose Forge sends too many project requests (search, file tree, language server),
+opens or saves too many files, or types too fast into a terminal gets "Too many requests. Try
+again in a moment." for those requests, and the session log notes it once per burst. Edits and
+carets are never dropped; a guest that sends far more of them than anyone can type is
+disconnected and told why, and the session log records it.
 
 ![A guest's menu in the session popup](docs/screenshots/code-with-me-guest-menu.png)
 
@@ -20984,6 +20999,15 @@ Guests see a balloon that the host is choosing which version to keep; they canno
 until then. Saving it yourself as the host also keeps the memory changes, and the conflict ends
 by itself when the file on disk changes back.
 
+Files larger than **Larger files open read-only (KB)** (5 MB by default) and binary files
+(images, archives, fonts) open read-only for guests, whatever their permission, with a bar
+above the editor that says why. A large file shows the host's file as saved and follows it when
+the host saves; a binary file shows only its size. Files over 16 MB (or over the limit, if you set it higher) cannot be
+opened by guests.
+The host edits these files as usual in an unshared tab.
+
+![A log over the size limit, read-only for a guest](docs/screenshots/cwm-guest-view-only.png)
+
 ![The host's File Cache Conflict dialog](docs/screenshots/code-with-me-file-cache-conflict.png)
 
 ![Lines changed by Alex, marked in the host's gutter](docs/screenshots/code-with-me-guest-lines.png)
@@ -21010,8 +21034,11 @@ A guest is never told the name of a file it may not see: while the host is in `.
 hidden file, guests see the host without a location and following guests stay where they are.
 
 The **Code With Me** tool window (right, while a session runs) lists the participants with the
-same actions, **Stop Following** and, for the host, **Make Everyone Follow You** and the
-**Session Log** tab.
+same actions and, like the popup, how each connection travels (**Direct** or **Relay**, with the
+round-trip time, or **Connecting…** / **Reconnecting…**) and the relay server's state. The host
+sees the path to every guest; a guest sees the path to the host. Below the list are **Stop
+Following** and, for the host, **Make Everyone Follow You**; the host also has the **Session
+Log** tab.
 
 All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me:
 **Follow Participant…** and **Jump To Participant…** (a chooser of the participants), **Stop
@@ -21145,6 +21172,10 @@ If you close the balloon without answering, the request stays open until it time
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you, and the window returns to the Welcome screen.
 
+   A guest's window has one Code With Me status bar item: **Code With Me: <host>** with how the
+   connection travels and its round-trip time, e.g. *Direct · 23 ms*. Click it for the host,
+   the project, your permission, the connection and the relay server, if the session uses one.
+
 ![Joining from the Welcome screen](docs/screenshots/code-with-me-welcome.png)
 
 The host's project replaces the project the window had open. Everything the window showed of
@@ -21206,8 +21237,8 @@ available in a guest's window, because they would use the host's accounts and se
 
 Secret files are invisible to guests whatever their level, in the tree, in search, in Git and
 in analysis results: `.env` and `.env.*` (but not `.env.example`), private keys, certificates
-and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Files larger than
-**Larger files open read-only (KB)** open read-only.
+and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Large
+and binary files open read-only (see [Saving and changes on disk](#saving-and-changes-on-disk)).
 
 Files that configure what runs on the host can be changed only by guests with Full access to
 Run (with Edit files they open read-only): **Settings | Tools | Code With Me | Files only Full
@@ -21294,11 +21325,13 @@ Notes:
 
 ## Seeing how you are connected
 
-- **Status bar**: *Code With Me: Direct · 12 ms* or *Code With Me: Relay (relay.example.com)* for
-  guests; hosts see *2 guests, direct* or *2 guests, 1 via relay*. The tooltip lists every
-  participant. A warning icon appears when the relay is set but not connected.
-- **Code With Me popup** (toolbar): every participant with a **Direct** or **Relay (host)**
-  badge and the round-trip time, plus the state of the relay server.
+- **Status bar**: guests see *Code With Me: <host>* followed by *Direct · 12 ms* or
+  *Relay (relay.example.com) · 48 ms*; hosts see *2 guests, direct* or *2 guests, 1 via relay*.
+  The host's tooltip lists every participant. A warning icon appears when the relay is set but
+  not connected. A guest's popup shows the connection and the relay state too.
+- **Code With Me popup** (toolbar, or click the status bar item): below each participant's name
+  a **Direct** or **Relay (host)** badge and the round-trip time, plus the state of the relay
+  server below the list.
 
 A relayed connection is normal and fully encrypted, only slower (typically 20 to 100 ms more).
 The badge changes to **Direct** as soon as hole punching succeeds.
@@ -25904,7 +25937,9 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | `forge 'forge://open?file=…&line=…'` | a link (treated like a link from a web page) |
 
 - Relative paths are resolved against the current directory. Arguments that name nothing on
-  disk are skipped with a warning (in the log).
+  disk are skipped with a warning (in the log). Empty or blank arguments (`forge ""`, for
+  example from a launcher with an unset variable) are ignored; use `forge .` to open the
+  current directory.
 - `file:///…` URLs are accepted as the path they name (file managers launching `%U`).
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
@@ -26438,6 +26473,7 @@ skills in [`.claude/skills/`](.claude/skills); the detailed IPC contracts are in
 | --- | --- |
 | [Screenshots and scenarios](docs/guide/developer/screenshots.md) | Playwright scenarios, checking UI changes |
 | [Quality gates](docs/guide/developer/quality-gates.md) | the checks before every commit |
+| [Code With Me test plan](docs/guide/developer/code-with-me-test-plan.md) | the manual desktop checks on Linux, Windows and macOS |
 | [Release builds](docs/guide/developer/release-builds.md) | AppImage, deb/rpm, installers, remote agents |
 | [Search benchmark](docs/guide/developer/search-benchmark.md) | measure the search index and compare a change against the baseline |
 | [Versioning](docs/guide/developer/versioning.md) | Pride Versioning, `pnpm version:bump`, releasing a version |
@@ -29021,10 +29057,10 @@ strings; #140 reached 4,416 of 5,614 keys and 3,382 strings):
 
 | Measure | Value |
 | --- | --- |
-| English catalog keys | 9,160 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
-| German translations | 9,160 (100 %): every hand-written key, all menu labels, action titles and manifest texts of every pack |
-| Keys used in the UI code | 5,647 literal keys plus 9 dynamic `t()` calls |
-| Hard-coded strings left in `.tsx` (heuristic) | 783 (87.8 % of UI strings go through `t()`) |
+| English catalog keys | 9,602 (of which 3,176 generated: 321 menu labels, 375 action titles, 2,480 manifest texts) |
+| German translations | 9,602 (100 %): every hand-written key, all menu labels, action titles and manifest texts of every pack |
+| Keys used in the UI code | 6,004 literal keys plus 12 dynamic `t()` calls |
+| Hard-coded strings left in `.tsx` (heuristic) | 638 (90.4 % of UI strings go through `t()`) |
 
 Translated: the main menu (including the entries UI features contribute), Find Action and the
 keymap, tool window titles and chrome, the status bar, the Settings dialog with all pages and the
@@ -29035,13 +29071,13 @@ tool windows and dialogs of the language packs and other features: .NET (Build, 
 endpoints), C/C++ (CMake, PlatformIO, profiles, sanitizers, embedded), code hosts (merge
 requests, review, issues, pipelines), game engines, Python, PHP interpreters and tool windows,
 web tooling, Java / Kotlin / Gradle / Maven, inspections, remote development, Services,
-deployment, Rust, Jupyter, Go, Ruby / Rails, Symfony, Laravel, Spring and the run configuration
-types the UI registers.
+deployment, Rust, Jupyter, Go, Ruby / Rails, Symfony, Laravel, Spring, Code With Me (session popup,
+Join Session, permissions, participants, Session Log, relay token, balloons and status bar items)
+and the run configuration types the UI registers.
 
 Still English: the action titles passed to `registerCommand` / `registerKeymapActions` in the
 source (by design: they are translated through `action.<id>` in Find Action and the keymap, which
-is most of the 783 strings the check still counts), Code With Me (`features/code-with-me`, 118
-strings, maintained by another developer and left for them), Agent Tasks (37), sentence
+is most of the 638 strings the check still counts), Agent Tasks (37), sentence
 fragments around inline code and links, file templates and New Project generator names, most
 other Rust errors (git and tool output stays as the tools write it), the splash screen.
 
@@ -29404,6 +29440,96 @@ pnpm build       # dist/chrome and dist/firefox
 - No stray files: mocks never write into real projects; caches go to the user cache dir.
 - User-visible changes update the matching page in `docs/guide/`.
 - Small commits with imperative English subjects, no trailers ([Git workflow](docs/guide/developer/git-workflow.md)).
+
+
+---
+
+Source: docs/guide/developer/code-with-me-test-plan.md
+
+# Code With Me: manual desktop test plan
+
+The automated tests (`crates/forge-collab/tests/`, the vitest suites and the browser-mode
+screenshot scenarios) cover the protocol, permissions and UI states. This plan covers what only
+real desktop builds show: windows, deep links, the clipboard, file associations, the network
+and the platform webviews. Run it on **Linux, Windows and macOS** before a release that changes
+Code With Me, with a release build of the same commit on every machine.
+
+Copy the checklist into the pull request or release issue and tick it per platform.
+
+## Setup
+
+- Two machines on one LAN (A = host, B = guest). For the relay part: a VPS with a self-hosted
+  `iroh-relay` (see [the relay guide](docs/guide/user/code-with-me-relay.md)) and a host behind NAT.
+- A test project on A: a git repository with a few PHP files, a `.env`, a `composer.json`,
+  a text file larger than **Larger files open read-only** (default 5 MB, e.g. a generated
+  `storage/logs/laravel.log`), a binary file (an image) and a file over 16 MB.
+- Optional: an SSH remote project on A (Remote Development) to host from.
+
+## Checklist
+
+### Start and join
+
+- [ ] A: Start Session (toolbar icon) with each level: Read-only, Edit files, Full access,
+      Custom. The link is copied; "Copy Session Link" works.
+- [ ] B: paste the link into **Join Session…** on the Welcome screen and from an open project.
+- [ ] B: open the `forge://cwm/join?…` link from a browser or chat app (deep link), with Forge
+      closed and with Forge running. The Join Session dialog opens filled in.
+- [ ] Both sides show the same verification code; A accepts in the balloon. Decline and the
+      110 s timeout are shown on B.
+- [ ] B with unsaved changes in its own project: Join asks Save / Don't Save / Cancel.
+- [ ] B's window title is `<project> — <host> (Code With Me)`; the project tree, Go to File,
+      Search Everywhere and Find in Files show A's project without `.env`.
+
+### Editing
+
+- [ ] Typing on both sides converges; carets and selections show in the participant's color.
+- [ ] Undo on each side reverts only its own edits.
+- [ ] Save on either side writes A's file; both tabs show the same unsaved marker.
+- [ ] A: the gutter marks the lines B changed until the file is saved.
+- [ ] A changes a shared file on disk (`git checkout`, external editor): without unsaved
+      changes everybody takes the new text; with unsaved changes A gets the File Cache
+      Conflict dialog and B a balloon.
+- [ ] B opens the large text file: read-only, with "This file is too large to edit together".
+      A edits and saves it; B follows the new text.
+- [ ] B opens the image: read-only, "Binary file (…)". The file over 16 MB is refused.
+- [ ] Read-only guest: the editor is read-only; Edit files guest: `composer.json` is read-only.
+- [ ] B: PHP hover, completion, Ctrl+B and diagnostics answered by A; git gutter and blame in
+      B's tabs; the Commit window shows A's changes (Full access to version control only).
+
+### Follow, terminal, run
+
+- [ ] Follow the host, Jump To, Make Everyone Follow You; typing stops following.
+- [ ] A shares a terminal: B sees it (Read-only) or types into it (Full access).
+- [ ] A starts a run configuration; B sees the output. B starts a run with Full access and A is
+      asked first.
+
+### Connection
+
+- [ ] Unplug B's network for 30 s: B shows "Reconnecting…", A shows B as reconnecting; after
+      reconnecting B's tabs, carets and unsaved edits are still there.
+- [ ] Stay connected for 10 minutes with a few files open and following on: no reconnects
+      (check A's Session Log tab: no "connection lost" entries).
+- [ ] Via the self-hosted relay with A behind NAT: join works, the status bar says "Relay".
+- [ ] A ends the session: B gets "The host ended the session." and its own window state back.
+- [ ] Permissions changed during the session (session and per guest), Remove Guest and
+      Regenerate Link take effect at once; the Session Log records them.
+
+### Platform specifics
+
+- [ ] **Linux** (AppImage, deb or rpm; WebKitGTK): clipboard for the link, deep link via the
+      `.desktop` `x-scheme-handler/forge`.
+- [ ] **Windows** (NSIS or MSI; WebView2): the `forge://` URL protocol from a browser, the
+      firewall prompt for the first session, a path with spaces and non-ASCII characters.
+- [ ] **macOS** (dmg; WKWebView): `forge://` links via `CFBundleURLTypes`, the local network
+      permission prompt, Cmd+Q and Cmd+W in the guest window.
+
+## Results
+
+| Date | Build | Platform | Result |
+| --- | --- | --- | --- |
+| 2026-11-05/06 | `dev/charming-ritchie-qqs4fk` release build, Xvfb + Openbox, host and guest on one machine | Linux | **Passed:** start and join, the same verification code on both sides, accept, co-editing with gutter marks and unsaved markers, undo, follow (both ways), the large file and the image read-only for the guest, PHP features and git on the guest's shared tabs, no reconnects for several minutes. **Found and fixed on the way:** guest panics from backend calls on a runtime worker; guest features sending `cwm://` tab paths to the host (~1,300 refusals a minute); the guest re-adopting the host's project on every status event; one oversized guest message (a call carrying a 6 MB editor text) ending the connection, which then looped (reconnect every ~1.5 s). End Session with the large file open: the guest is told and returns to the Welcome screen (one earlier run kept the host's project, while the oversized calls above were still failing slowly; not seen again after the fix). **Not run:** deep links and the clipboard across machines, the relay. |
+| | | Windows | not run |
+| | | macOS | not run |
 
 
 ---

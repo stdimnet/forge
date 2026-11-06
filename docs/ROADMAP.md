@@ -151,7 +151,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] AI in the editor: Inline completion (local or hosted models), "Explain / Fix with AI" in Alt+Enter, AI-generated tests and docs
 - [x] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
 - [x] Code review: Review pull/merge requests inside Forge with AI summaries
-- [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — stages S0 to S7 built on `feat/code-with-me` (not the auto-runner's; leave it to its owner), waiting for the manual desktop test plan and the release-build size measurement before it merges; [plan](plans/code-with-me.md), [guide](guide/user/code-with-me.md)
+- [x] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal, run, relay, approval and permissions; stages S0 to S7 done, Linux desktop test passed and binary size measured; the Windows and macOS runs of the [manual test plan](guide/developer/code-with-me-test-plan.md) are still to do; [plan](plans/code-with-me.md), [guide](guide/user/code-with-me.md)
 - [x] MCP: Forge as an MCP server for external agents
 
 ## Milestone 7 — Platform and release

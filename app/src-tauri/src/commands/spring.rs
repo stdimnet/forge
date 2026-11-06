@@ -610,11 +610,11 @@ fn saved_configurations(state: &AppState) -> Vec<RunConfiguration> {
     let Ok(backend) = state.backend() else {
         return Vec::new();
     };
-    let loaded = if backend.info().remote.is_none() {
+    let loaded = if backend.info().is_local() {
         RunConfigurations::load(&backend.info().root)
     } else {
         let shared = backend.read_file(forge_process::config::PROJECT_FILE).ok();
-        let local = backend.read_file(forge_process::config::LOCAL_FILE).ok();
+        let local = crate::commands::run::read_local_file(backend.as_ref());
         RunConfigurations::from_texts(shared.as_deref(), local.as_deref())
     };
     loaded

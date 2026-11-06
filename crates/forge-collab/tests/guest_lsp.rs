@@ -52,6 +52,7 @@ async fn write_msg<W: AsyncWriteExt + Unpin>(w: &mut W, msg: Value) {
 /// The fake server: warns about `TODO`, canned hover, completion and definition answers.
 async fn fake_server(stdin: tokio::io::DuplexStream, mut stdout: tokio::io::DuplexStream) {
     let mut input = BufReader::new(stdin);
+    let mut root_uri = String::new();
     while let Some(msg) = read_msg(&mut input).await {
         let method = msg["method"].as_str().unwrap_or_default().to_string();
         let id = msg.get("id").cloned();
@@ -62,12 +63,29 @@ async fn fake_server(stdin: tokio::io::DuplexStream, mut stdout: tokio::io::Dupl
             .to_string();
         let range = |l: u32, a: u32, b: u32| json!({"start": {"line": l, "character": a}, "end": {"line": l, "character": b}});
         let result = match method.as_str() {
-            "initialize" => json!({"capabilities": {
-                "textDocumentSync": {"openClose": true, "change": 1},
-                "hoverProvider": true,
-                "completionProvider": {"resolveProvider": true},
-                "definitionProvider": true
-            }}),
+            "initialize" => {
+                root_uri = params["rootUri"].as_str().unwrap_or_default().to_string();
+                json!({"capabilities": {
+                    "textDocumentSync": {"openClose": true, "change": 1},
+                    "hoverProvider": true,
+                    "completionProvider": {"resolveProvider": true},
+                    "definitionProvider": true,
+                    "workspaceSymbolProvider": true
+                }})
+            }
+            // 600 bundled stubs outside the project (more than the host's limit of 500),
+            // then a library class in `vendor/` and one class of the project.
+            "workspace/symbol" => {
+                let mut hits: Vec<Value> = (0..600)
+                    .map(|i| json!({"name": format!("UserStub{i}"), "kind": 5,
+                        "location": {"uri": "file:///elsewhere/stubs/Core.php", "range": range(i, 0, 5)}}))
+                    .collect();
+                hits.push(json!({"name": "UserProvider", "kind": 5,
+                    "location": {"uri": format!("{}/vendor/acme/auth/UserProvider.php", root_uri.trim_end_matches('/')), "range": range(0, 6, 18)}}));
+                hits.push(json!({"name": "User", "kind": 5,
+                    "location": {"uri": format!("{}/app/Models/User.php", root_uri.trim_end_matches('/')), "range": range(2, 6, 10)}}));
+                json!(hits)
+            }
             "textDocument/didOpen" | "textDocument/didChange" => {
                 let text = params["textDocument"]["text"]
                     .as_str()
@@ -386,4 +404,44 @@ async fn the_servers_see_the_shared_documents_unsaved_text() {
     let got = s.diagnostics.lock().unwrap();
     let lines: Vec<u32> = got[0].1.iter().map(|d| d.range.start.line).collect();
     assert_eq!(lines, [2, 3], "the buffer, not the file on disk");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_guests_symbol_search_leaves_out_stubs_before_the_limit() {
+    let s = setup().await;
+    s.guest
+        .lsp(LspQuery::Sync {
+            path: "app/Models/User.php".into(),
+        })
+        .await
+        .unwrap();
+    let search = |include_non_project| {
+        let guest = s.guest.clone();
+        async move {
+            let bytes = guest
+                .lsp(LspQuery::WorkspaceSymbols {
+                    query: "User".into(),
+                    include_non_project,
+                })
+                .await
+                .unwrap();
+            serde_json::from_slice::<Vec<Value>>(&bytes).unwrap()
+        }
+    };
+    // The project's class is found although 600 stubs come first.
+    let mut project = Vec::new();
+    for _ in 0..300 {
+        project = search(false).await;
+        if !project.is_empty() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let names: Vec<&str> = project.iter().filter_map(|h| h["name"].as_str()).collect();
+    assert_eq!(names, ["User"], "{project:?}");
+    assert_eq!(project[0]["path"], "app/Models/User.php");
+    // With non-project items `vendor/` comes too; files outside the project never do.
+    let all = search(true).await;
+    let names: Vec<&str> = all.iter().filter_map(|h| h["name"].as_str()).collect();
+    assert_eq!(names, ["UserProvider", "User"], "{all:?}");
 }

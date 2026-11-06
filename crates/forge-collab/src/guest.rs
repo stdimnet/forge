@@ -15,12 +15,12 @@ use crate::link::SessionLink;
 use crate::permissions::Permissions;
 use crate::presence::{Participant, ParticipantId, Presence};
 use crate::protocol::{
-    DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
-    PROTOCOL_VERSION,
+    DocId, GuestMessage, HostMessage, SaveState, SharedFile, ViewOnly, MAX_GUEST_FRAME,
+    MAX_HOST_FRAME, PROTOCOL_VERSION,
 };
 use crate::reconnect::{ConnectionState, ReconnectPolicy, GAVE_UP, RECONNECTING};
 use crate::relay::{ConnectionPath, RelayStatus};
-use crate::transport::{read_msg, write_msg, BoxRead, BoxWrite, PeerKey, Transport};
+use crate::transport::{read_msg, write_msg, write_or_skip, BoxRead, BoxWrite, PeerKey, Transport};
 use crate::verify::{join_proof, verification_code};
 
 // Project calls of the guest's backend (`guest_backend::CollabBackend`).
@@ -71,6 +71,8 @@ pub struct DocSynced {
     pub read_only: bool,
     /// The host is resolving a File Cache Conflict for it.
     pub conflict: bool,
+    /// Read-only for everyone: too large to co-edit, or binary.
+    pub view: Option<ViewOnly>,
 }
 
 /// What the guest's UI needs to know.
@@ -292,7 +294,19 @@ impl GuestSession {
             let mut rx = queue.lock().await;
             while let Some(msg) = rx.recv().await {
                 let last = matches!(msg, GuestMessage::Leave);
-                if write_msg(&mut send, &msg, MAX_GUEST_FRAME).await.is_err() || last {
+                match write_or_skip(&mut send, &msg, MAX_GUEST_FRAME).await {
+                    Ok(true) => {}
+                    Ok(false) => tracing::warn!(
+                        "Code With Me: not sending {} to the host: it is larger than {} bytes",
+                        msg.name(),
+                        MAX_GUEST_FRAME
+                    ),
+                    Err(e) => {
+                        tracing::warn!("Code With Me: writing to the host failed: {e}");
+                        break;
+                    }
+                }
+                if last {
                     break;
                 }
             }
@@ -304,7 +318,11 @@ impl GuestSession {
             match read_msg::<_, HostMessage>(&mut recv, MAX_HOST_FRAME).await {
                 Ok(Some(HostMessage::Ended { reason })) => break Some(reason),
                 Ok(Some(msg)) => self.dispatch(msg, sink),
-                Ok(None) | Err(_) => break None,
+                Ok(None) => break None,
+                Err(e) => {
+                    tracing::warn!("Code With Me: reading from the host failed: {e}");
+                    break None;
+                }
             }
         };
         if ended.is_some() || self.is_ended() {
@@ -514,6 +532,7 @@ impl GuestSession {
                 saved,
                 read_only,
                 conflict,
+                view,
             } => {
                 if let Some(tx) = self.state().opens.remove(&request) {
                     let _ = tx.send(Ok(DocOpened {
@@ -521,8 +540,9 @@ impl GuestSession {
                         path,
                         update: update.into_vec(),
                         saved,
-                        read_only,
+                        read_only: read_only || view.is_some(),
                         conflict,
+                        view,
                     }));
                 }
             }
@@ -543,6 +563,7 @@ impl GuestSession {
                 saved,
                 read_only,
                 conflict,
+                view,
             } => {
                 if let Some(tx) = self.state().syncs.remove(&request) {
                     let _ = tx.send(Ok(DocSynced {
@@ -551,8 +572,9 @@ impl GuestSession {
                         update: update.into_vec(),
                         state_vector: state_vector.into_vec(),
                         saved,
-                        read_only,
+                        read_only: read_only || view.is_some(),
                         conflict,
+                        view,
                     }));
                 }
             }

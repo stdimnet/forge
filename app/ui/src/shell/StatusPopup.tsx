@@ -8,6 +8,7 @@
  * status bar) can cover or clip it.
  */
 import { createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { claimPopup } from "./popupGroup";
 import { Layer } from "./layers";
 
 /** Space between the popup and its widget, and between the popup and the window edges. */
@@ -71,6 +72,7 @@ export function StatusPopup(props: {
     if (!el?.contains(t) && !props.anchor.contains(t)) props.onClose();
   };
   onMount(() => {
+    const release = claimPopup(() => props.onClose());
     update();
     const observer = new ResizeObserver(update);
     if (el) observer.observe(el);
@@ -81,6 +83,7 @@ export function StatusPopup(props: {
       observer.disconnect();
       window.removeEventListener("resize", update);
       document.removeEventListener("mousedown", onDoc);
+      release();
     });
   });
   return (

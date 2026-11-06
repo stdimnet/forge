@@ -70,11 +70,13 @@ Notes:
 
 ## Seeing how you are connected
 
-- **Status bar**: *Code With Me: Direct · 12 ms* or *Code With Me: Relay (relay.example.com)* for
-  guests; hosts see *2 guests, direct* or *2 guests, 1 via relay*. The tooltip lists every
-  participant. A warning icon appears when the relay is set but not connected.
-- **Code With Me popup** (toolbar): every participant with a **Direct** or **Relay (host)**
-  badge and the round-trip time, plus the state of the relay server.
+- **Status bar**: guests see *Code With Me: <host>* followed by *Direct · 12 ms* or
+  *Relay (relay.example.com) · 48 ms*; hosts see *2 guests, direct* or *2 guests, 1 via relay*.
+  The host's tooltip lists every participant. A warning icon appears when the relay is set but
+  not connected. A guest's popup shows the connection and the relay state too.
+- **Code With Me popup** (toolbar, or click the status bar item): below each participant's name
+  a **Direct** or **Relay (host)** badge and the round-trip time, plus the state of the relay
+  server below the list.
 
 A relayed connection is normal and fully encrypted, only slower (typically 20 to 100 ms more).
 The badge changes to **Direct** as soon as hole punching succeeds.

@@ -13,6 +13,7 @@ import { ViewPlugin, type EditorView } from "@codemirror/view";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerToolWindowFilter } from "@/features/registry";
 import { session } from "./store";
+import { t } from "@/i18n";
 
 /** This guest's permissions (`undefined` unless this window is a guest). */
 export const guestPermissions = (): Permissions | undefined => (session().role === "guest" ? session().permissions : undefined);
@@ -25,11 +26,19 @@ export const guestLevel = (): PermissionLevel | undefined => {
   return p ? levelOf(p) : undefined;
 };
 
-export const LEVEL_NAMES: Record<PermissionLevel, string> = {
-  readOnly: "Read-only",
-  editFiles: "Edit files",
-  fullAccess: "Full access",
-  custom: "Custom",
+export const LEVEL_NAMES: Readonly<Record<PermissionLevel, string>> = {
+  get readOnly() {
+    return t("tools.codeWithMe.level.readOnly");
+  },
+  get editFiles() {
+    return t("tools.codeWithMe.level.editFiles");
+  },
+  get fullAccess() {
+    return t("tools.codeWithMe.level.fullAccess");
+  },
+  get custom() {
+    return t("tools.codeWithMe.level.custom");
+  },
 };
 
 /**
@@ -76,7 +85,7 @@ function applyAccess(): void {
 /** The window title: `<project> — <host name> (Code With Me)`. */
 export function guestTitle(): string | undefined {
   const ws = session().workspace;
-  return ws?.collab ? `${ws.name} — ${ws.collab.host} (Code With Me)` : undefined;
+  return ws?.collab ? t("tools.codeWithMe.windowTitle", { project: ws.name, host: ws.collab.host }) : undefined;
 }
 
 let tracking = false;
@@ -105,8 +114,8 @@ export function trackGuestProject(): void {
           // Told only when the host changes it during the session, not on joining.
           if (canEdit === undefined || before === undefined || canEdit === before) return;
           showBalloon(
-            "Code With Me",
-            canEdit ? "The host lets you edit files now." : "The host changed your permission: files are read-only now.",
+            t("tools.codeWithMe.title"),
+            canEdit ? t("tools.codeWithMe.hostLetsYouEdit") : t("tools.codeWithMe.filesReadOnlyNow"),
             5000,
           );
         },
@@ -116,6 +125,6 @@ export function trackGuestProject(): void {
   void collabApi.onEnded(({ reason }) => {
     if (!isCollabGuest()) return;
     closeWorkspace();
-    showBalloon("Code With Me", reason, 6000);
+    showBalloon(t("tools.codeWithMe.title"), reason, 6000);
   });
 }

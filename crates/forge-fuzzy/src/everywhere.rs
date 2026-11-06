@@ -86,6 +86,12 @@ pub struct Candidate {
     /// `include_dimmed`.
     #[serde(default)]
     pub dimmed: bool,
+    /// The declaration the item stands for (e.g. `path#name`), when several providers can
+    /// report the same one (the PHP index and a language server both list a class). Only
+    /// the first provider's item is kept; providers are ordered by tab and `order`, so the
+    /// richer source registers with the lower order.
+    #[serde(default)]
+    pub dedupe_key: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -164,6 +170,8 @@ pub fn rank(req: &RankRequest) -> RankResponse {
         items: Vec<(RankedItem, &'a Candidate)>,
     }
     let mut groups: Vec<Group> = Vec::new();
+    // Dedupe key -> the provider whose item was kept for it.
+    let mut claimed: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
     for s in sources {
         let idx = match groups.iter().position(|g| g.tab == s.tab) {
             Some(i) => i,
@@ -178,6 +186,12 @@ pub fn rank(req: &RankRequest) -> RankResponse {
         };
         for (index, c) in s.items.iter().enumerate() {
             if let Some((score, positions)) = score(&req.query, c, req.exact) {
+                if let Some(key) = c.dedupe_key.as_deref() {
+                    // A provider's own items never collide; a later provider's copy goes.
+                    if *claimed.entry(key).or_insert(&s.provider) != s.provider.as_str() {
+                        continue;
+                    }
+                }
                 let item = RankedItem {
                     provider: s.provider.clone(),
                     index,
@@ -377,6 +391,63 @@ mod tests {
         let res = rank(&req);
         assert_eq!(ids(&req, &res.groups[0]), vec!["User", "handle"]);
         assert_eq!(res.groups[0].items[1].positions, Vec::<usize>::new());
+    }
+
+    #[test]
+    fn keeps_one_item_per_declaration_across_providers() {
+        // The PHP index (order 0) and the language server (order 50) both report
+        // `OrderController`; the index's richer item wins, even with a lower score.
+        let class = |id: &str, score: i32, key: &str| Candidate {
+            dedupe_key: Some(key.into()),
+            ..pre(id, score, "class")
+        };
+        let key = "app/Http/Controllers/OrderController.php#OrderController";
+        let mut php = source("php.classes", "classes", vec![class("php:7", 50, key)]);
+        php.order = 0;
+        let mut lsp = source(
+            "lsp.classes",
+            "classes",
+            vec![
+                class("lsp:7", 90, key),
+                class("lsp:order", 10, "app/Models/Order.php#Order"),
+                // Same name in another file: a different class.
+                class("lsp:other", 5, "src/OrderController.php#OrderController"),
+            ],
+        );
+        lsp.order = 50;
+        // Registered first, the language server still loses to the lower order.
+        let mut req = RankRequest {
+            tab: "classes".into(),
+            query: "x".into(),
+            per_group: 10,
+            sources: vec![lsp, php],
+            ..Default::default()
+        };
+        let expected = vec!["php:7", "lsp:order", "lsp:other"];
+        assert_eq!(ids(&req, &rank(&req).groups[0]), expected);
+        req.tab = "all".into();
+        assert_eq!(ids(&req, &rank(&req).groups[0]), expected);
+    }
+
+    #[test]
+    fn dedupe_keys_also_apply_across_groups_in_all() {
+        let with_key = |id: &str| Candidate {
+            dedupe_key: Some("a.php#Foo".into()),
+            ..pre(id, 1, "class")
+        };
+        let req = RankRequest {
+            tab: "all".into(),
+            query: "x".into(),
+            per_group: 10,
+            sources: vec![
+                source("php.classes", "classes", vec![with_key("c")]),
+                source("lsp.symbols", "symbols", vec![with_key("s")]),
+            ],
+            ..Default::default()
+        };
+        let res = rank(&req);
+        assert_eq!(res.groups.len(), 1);
+        assert_eq!(ids(&req, &res.groups[0]), vec!["c"]);
     }
 
     #[test]

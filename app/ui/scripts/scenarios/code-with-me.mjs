@@ -7,13 +7,16 @@
 /** The visible editor (inactive tabs keep their hidden editors). */
 const ACTIVE = `[...document.querySelectorAll(".cm-content")].find((c) => c.offsetParent !== null)`;
 
-/** The visible editor's text without the remote carets' name labels. */
+/**
+ * The visible editor's text without widgets: remote carets' name labels, inlay hints and the
+ * inline blame hint at the caret line (CodeMirror marks every widget contenteditable=false).
+ */
 const TEXT = `(() => {
   const c = ${ACTIVE};
   if (!c) return "";
   return [...c.querySelectorAll(".cm-line")].map((l) => {
     const k = l.cloneNode(true);
-    k.querySelectorAll(".cm-ySelectionCaret").forEach((e) => e.remove());
+    k.querySelectorAll('.cm-ySelectionCaret, [contenteditable="false"]').forEach((e) => e.remove());
     return k.textContent;
   }).join("\\n");
 })()`;
@@ -328,12 +331,13 @@ const followingLight = async (page) => {
   await followAlex(page);
 };
 
-/** The Code With Me tool window: Alex's file and line, Make Everyone Follow You on. */
+/** The Code With Me tool window: Alex's direct path, file and line, Make Everyone Follow You on. */
 async function toolWindow(page) {
   await sessionWithAlex(page);
   await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.MakeEveryoneFollow"));
   await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.ShowToolWindow"));
   await page.waitForSelector('.cwm-tool-window .cwm-participant:has-text("Alex") .cwm-participant-where');
+  await page.waitForSelector('.cwm-tool-window .cwm-participant:has-text("Alex") .cwm-path[data-path="direct"]');
   await page.waitForTimeout(300);
 }
 const tool = async (page) => toolWindow(page);
