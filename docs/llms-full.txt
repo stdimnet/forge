@@ -25721,7 +25721,9 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | `forge 'forge://open?file=…&line=…'` | a link (treated like a link from a web page) |
 
 - Relative paths are resolved against the current directory. Arguments that name nothing on
-  disk are skipped with a warning (in the log).
+  disk are skipped with a warning (in the log). Empty or blank arguments (`forge ""`, for
+  example from a launcher with an unset variable) are ignored; use `forge .` to open the
+  current directory.
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
   (single instance) and the new process exits.
