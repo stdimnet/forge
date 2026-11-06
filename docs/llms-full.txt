@@ -20969,6 +20969,10 @@ If you close the balloon without answering, the request stays open until it time
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you, and the window returns to the Welcome screen.
 
+   A guest's window has one Code With Me status bar item: **Code With Me: <host>** with how the
+   connection travels and its round-trip time, e.g. *Direct · 23 ms*. Click it for the host,
+   the project, your permission, the connection and the relay server, if the session uses one.
+
 ![Joining from the Welcome screen](docs/screenshots/code-with-me-welcome.png)
 
 The host's project replaces the project the window had open. Everything the window showed of
@@ -21118,9 +21122,10 @@ Notes:
 
 ## Seeing how you are connected
 
-- **Status bar**: *Code With Me: Direct · 12 ms* or *Code With Me: Relay (relay.example.com)* for
-  guests; hosts see *2 guests, direct* or *2 guests, 1 via relay*. The tooltip lists every
-  participant. A warning icon appears when the relay is set but not connected.
+- **Status bar**: guests see *Code With Me: <host>* followed by *Direct · 12 ms* or
+  *Relay (relay.example.com) · 48 ms*; hosts see *2 guests, direct* or *2 guests, 1 via relay*.
+  The host's tooltip lists every participant. A warning icon appears when the relay is set but
+  not connected. A guest's popup shows the connection and the relay state too.
 - **Code With Me popup** (toolbar, or click the status bar item): below each participant's name
   a **Direct** or **Relay (host)** badge and the round-trip time, plus the state of the relay
   server below the list.

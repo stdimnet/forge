@@ -284,6 +284,10 @@ If you close the balloon without answering, the request stays open until it time
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you, and the window returns to the Welcome screen.
 
+   A guest's window has one Code With Me status bar item: **Code With Me: <host>** with how the
+   connection travels and its round-trip time, e.g. *Direct · 23 ms*. Click it for the host,
+   the project, your permission, the connection and the relay server, if the session uses one.
+
 ![Joining from the Welcome screen](../../screenshots/code-with-me-welcome.png)
 
 The host's project replaces the project the window had open. Everything the window showed of
