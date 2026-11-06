@@ -219,11 +219,9 @@ keychain (service `forge-cwm`), not into the settings.
 
 ### Keymap actions
 
-PHPStorm binds no shortcuts to Code With Me actions, so these are actions without default
-shortcuts that show up in Find Action and in Settings | Keymap under "Plugins/Code With Me".
-The ids below are Forge's proposal. Before implementation, read the real ids from PHPStorm
-2026.1 with the Code With Me plugin (Keymap search "Code With Me"); where they differ, keep
-PHPStorm's id as the command id and add Forge's as `ACTION_ALIASES` (`crates/forge-keymap`).
+The actions show up in Find Action and in Settings | Keymap under "Plugins/Code With Me".
+The ids below were Forge's proposal; the real ids of PHPStorm 2026.1 and how Forge maps them are
+in "PHPStorm action ids (as built)" right after the table.
 
 | Action id | Title |
 | --- | --- |
@@ -242,6 +240,62 @@ PHPStorm's id as the command id and add Forge's as `ACTION_ALIASES` (`crates/for
 Registered with `registerKeymapActions` (`app/ui/src/keymap/store.ts`) and implemented with
 `registerCommand`. Undo and Redo keep their PHPStorm actions (`$Undo`, `$Redo`); in a shared
 document they run the participant's own undo manager (see "Undo").
+
+#### PHPStorm action ids (as built)
+
+**Source.** The action descriptors of the Code With Me plugin bundled with PhpStorm 2026.1.5.1
+(build 261.27258.139, the last release line that supports Code With Me), read from
+`plugins/cwm-plugin/lib` of the official Linux archive
+<https://download.jetbrains.com/webide/PhpStorm-2026.1.5.1.tar.gz> (release list:
+<https://data.services.jetbrains.com/products/releases?code=PS&type=release&majorVersion=2026.1>).
+The `<actions>` sections are in three module descriptors: `intellij.cwm.plugin.xml` (host,
+texts in `messages/CodeWithMeBackendBundle.properties`), `intellij.cwm.plugin.common.xml`
+(host and guest, `CodeWithMeCommonBundle`) and `intellij.cwm.frontend.xml` (guest,
+`CodeWithMeFrontendBundle`). The Marketplace entry of the plugin
+(<https://plugins.jetbrains.com/plugin/14896-code-with-me>, `com.jetbrains.codeWithMe`) is only
+an 11 KB "enabler" for 2026.1 (`cwm-enabler-261.22158.291.zip`, no actions); the plugin itself
+ships inside the IDE. The ids are not in the public intellij-community repository, nor in the
+IntelliJ action id lists (<https://github.com/centic9/IntelliJ-Action-IDs> covers only the
+platform jars), and web searches for them found nothing, so the IDE's own files are the source.
+
+The PHPStorm ids are the keymap actions (titles and default shortcuts as in PHPStorm); Forge's
+commands keep their `CodeWithMe.*` ids and are the PHPStorm actions' `ACTION_ALIASES`
+(`crates/forge-keymap/src/catalog.rs`), like `Git.CreateNewTag` → `Git.Tag`. So a keymap
+imported from PHPStorm binds the right command, Find Action lists each action once (under
+PHPStorm's title), and shortcuts users gave to a `CodeWithMe.*` id keep working because the
+commands are unchanged. The Tools | Code With Me menu keeps Forge's ids and labels.
+
+| Forge id (command) | PHPStorm 2026.1 id (action) | PHPStorm title, default shortcut | Descriptor |
+| --- | --- | --- | --- |
+| `CodeWithMe.StartSession` | `GetJoinLinkAction` | Start Code With Me Session | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.CopySessionLink` | `CopyJoinLinkAction` | Copy Session Link | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.EndSession` | `ShutdownCodeWithMe` | End Session | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.Permissions` | `ShowPermissionsAction` | Code With Me: Permissions… | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.ShowToolWindow` | `CWMHostShowPopupAction` (guest: `CWMThinClientShowPopupAction`) | Code With Me, Ctrl+Shift+Y | `intellij.cwm.plugin.xml` / `intellij.cwm.frontend.xml` |
+| `CodeWithMe.Settings` | `CWMHostOpenSettingsAction` (guest: `CWMOpenSettingsAction`, "Settings…") | Open Code With Me Settings | `intellij.cwm.plugin.xml` / `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.LeaveSession` | `ThinClientDisconnect` | Leave Session | `intellij.cwm.frontend.xml` |
+| `CodeWithMe.FollowParticipant` | `SingleUserFollowAction` | Follow single user, Ctrl+Alt+Shift+Y | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.JumpToParticipant` | `SingleJumpToCursorAction` | Jump to cursor | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.StopFollowing` | `CurrentLeadUnfollowAction` (and `EscUnfollowUserAction`, Escape) | Unfollow current lead, Ctrl+Alt+Shift+Y | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.MakeEveryoneFollow` | `ForceOthersToFollowAction` | Make Everyone Follow You, Ctrl+Shift+O | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.JoinSession` | no PHPStorm equivalent | joining is an entry of the Code With Me popup and of the welcome screen (JetBrains Client), not an action | — |
+| `CodeWithMe.OpenSharedFile` | no PHPStorm equivalent | | — |
+| `CodeWithMe.RegenerateLink` | no PHPStorm equivalent | | — |
+| `CodeWithMe.ShowSessionLog` | no PHPStorm equivalent | | — |
+| `CodeWithMe.ShareTerminal` | not confirmed | `messages/SplitBackendBundle.properties` has the text `action.Terminal.Share.text=Share Terminal`, but no descriptor or class of the IDE registers an action `Terminal.Share` | — |
+
+The shortcuts in the macOS keymap are the same keys (`control shift Y`, not Cmd). Forge
+registers the shortcuts of `CWMHostShowPopupAction`, `SingleUserFollowAction` and
+`ForceOthersToFollowAction`. It leaves out the Ctrl+Alt+Shift+Y of `CurrentLeadUnfollowAction`,
+which PHPStorm tells apart from Follow single user by which of the two is enabled (Forge's
+keymap has no enablement), and the Escape of `EscUnfollowUserAction`, which would compete with
+Escape in the editor, popups and tool windows (in Forge, moving the caret or typing stops
+following, `followStop.ts`). The guest-side ids (`CWMThinClientShowPopupAction`,
+`CWMOpenSettingsAction`, `EscUnfollowUserAction`) are not registered: Forge has one action
+per command, and these would list the same command twice. PHPStorm's other Code With Me actions
+(calls and screen sharing such as `JoinCallAction`, `EnableMicrophoneAction`,
+`OpenCallWindowAction`, port forwarding `OpenPortForwardingToolwindowAction`, `LearnMore`,
+log collection and issue reporting) have no Forge feature.
 
 ## Architecture
 
@@ -1365,6 +1419,12 @@ Deviations from the plan above:
 - **Binary size measured** (2026-11-06, Linux x86_64 release): forge-collab and the 62 crates
   only it pulls in add 5.4 MiB of the binary's 109.9 MiB `.text` (about 5 %); details and the
   method are in ARCHITECTURE.md.
+- **PHPStorm action ids confirmed** (2026-11-06): read from the Code With Me plugin bundled with
+  PhpStorm 2026.1.5.1. Eleven Forge actions have a PHPStorm counterpart; those are now
+  registered under PHPStorm's ids, titles and default shortcuts (Ctrl+Shift+Y, Ctrl+Shift+O,
+  Ctrl+Alt+Shift+Y) and reach the unchanged `CodeWithMe.*` commands through `ACTION_ALIASES`;
+  Join Session, Open Shared File, Regenerate Link, Session Log and Share Terminal keep Forge's
+  ids. Mapping, source and what was left out: "Keymap actions", "PHPStorm action ids (as built)".
 - Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
   checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
   Linux ran under Xvfb (see its results table).
@@ -1468,7 +1528,10 @@ Each question has a recommended answer; the plan above assumes the recommendatio
 10. **Guests' own project while joining?** Recommended: **close it** (one project per window,
     as today); a separate guest window is a follow-up together with multi-window support.
 11. **PHPStorm action ids**: confirm the real ids from PHPStorm 2026.1 with the plugin before
-    implementation and use those (Forge ids as aliases).
+    implementation and use those (Forge ids as aliases). **Done**: confirmed from the plugin
+    bundled with PhpStorm 2026.1.5.1; the PHPStorm ids are the keymap actions and the
+    `CodeWithMe.*` commands their aliases (table in "Keymap actions", "PHPStorm action ids (as
+    built)").
 12. **Maximum number of guests?** Recommended: **no hard limit**, a warning above 10.
 
 ## Risks

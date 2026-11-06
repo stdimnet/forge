@@ -155,10 +155,18 @@ sees the path to every guest; a guest sees the path to the host. Below the list 
 Following** and, for the host, **Make Everyone Follow You**; the host also has the **Session
 Log** tab.
 
-All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me:
-**Follow Participant…** and **Jump To Participant…** (a chooser of the participants), **Stop
-Following**, **Make Everyone Follow You** and **Code With Me** (the tool window). PHPStorm binds
-no shortcuts to them; you can add your own.
+All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me, with
+PHPStorm's action names and ids, so a keymap imported from PHPStorm keeps its Code With Me
+shortcuts: **Follow single user** (`SingleUserFollowAction`, Ctrl+Alt+Shift+Y) and **Jump to
+cursor** (`SingleJumpToCursorAction`) open a chooser of the participants, **Unfollow current
+lead** (`CurrentLeadUnfollowAction`) stops following, **Make Everyone Follow You**
+(`ForceOthersToFollowAction`, Ctrl+Shift+O) and **Code With Me** (`CWMHostShowPopupAction`,
+Ctrl+Shift+Y) opens the popup, or the tool window while a session runs. The shortcuts are
+PHPStorm's defaults and the same in the macOS keymap (with Ctrl, not Cmd). The other session
+actions are there too: **Start Code With Me Session**, **Copy Session Link**, **Code With Me:
+Permissions…**, **End Session**, **Leave Session** and **Open Code With Me Settings** under
+PHPStorm's ids, and Forge's own **Join Session…**, **Open Shared File…**, **Regenerate Link**,
+**Session Log…** and **Share Terminal with Guests**.
 
 ![Following Alex](../../screenshots/code-with-me-following.png)
 

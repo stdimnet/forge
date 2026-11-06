@@ -1113,7 +1113,8 @@ The design, threat model and stage notes ("as built") are in
 
 **Contribution points.** `registerToolbarItem` (the toolbar icon and avatars),
 `registerToolWindow` (`codeWithMe`: Participants and Session Log tabs), `registerCommand` /
-`registerKeymapActions` (`CodeWithMe.*`, all through the keymap), `registerSettingsPage`
+`registerKeymapActions` (commands `CodeWithMe.*`; actions under PHPStorm's Code With Me ids
+such as `GetJoinLinkAction`, which reach the commands through `ACTION_ALIASES`), `registerSettingsPage`
 (Tools | Code With Me, schema in `plugins/code-with-me.toml`), `registerStatusItem` (connection
 path; the guest's "Code With Me: <host>" item), `registerEditorExtension` (the shared document
 binding, presence, follow banner, guest read-only), `registerTerminalTabActions` (Share with
