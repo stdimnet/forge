@@ -328,12 +328,13 @@ const followingLight = async (page) => {
   await followAlex(page);
 };
 
-/** The Code With Me tool window: Alex's file and line, Make Everyone Follow You on. */
+/** The Code With Me tool window: Alex's direct path, file and line, Make Everyone Follow You on. */
 async function toolWindow(page) {
   await sessionWithAlex(page);
   await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.MakeEveryoneFollow"));
   await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.ShowToolWindow"));
   await page.waitForSelector('.cwm-tool-window .cwm-participant:has-text("Alex") .cwm-participant-where');
+  await page.waitForSelector('.cwm-tool-window .cwm-participant:has-text("Alex") .cwm-path[data-path="direct"]');
   await page.waitForTimeout(300);
 }
 const tool = async (page) => toolWindow(page);

@@ -82,9 +82,9 @@ function whereText(p: Participant): string {
 }
 
 /**
- * The participant rows. `paths` (the session popup) adds each connection's path (Direct /
- * Relay, Connecting…, Reconnecting…) below the name, so the popup has a single participant
- * list.
+ * The participant rows. `paths` (the session popup and the tool window) adds each
+ * connection's path (Direct / Relay, Connecting…, Reconnecting…) below the name, so there is a
+ * single participant list.
  */
 export function Participants(props: { paths?: boolean }) {
   const s = () => session();

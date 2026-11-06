@@ -1,11 +1,13 @@
 /**
  * The Code With Me tool window (right, only while a session runs): the Participants tab
- * with Follow, Jump To and the host's guest actions, and the host's Session Log tab.
+ * with each connection's path (Direct / Relay, Connecting…, Reconnecting…), the relay state,
+ * Follow, Jump To and the host's guest actions, and the host's Session Log tab.
  */
 import { createSignal, For, Show } from "solid-js";
 import { runCommand } from "@/state/commands";
 import { session } from "./store";
 import { Participants } from "./Participants";
+import { RelayLine } from "./ConnectionStatus";
 import { SessionLogList } from "./SessionLog";
 import { followState } from "./follow";
 import { navKeys } from "./a11y";
@@ -58,7 +60,8 @@ export function CodeWithMeToolWindow() {
         when={tab() === "log" && session().role === "host"}
         fallback={
           <>
-            <Participants />
+            <Participants paths />
+            <RelayLine />
             <div class="cwm-tool-actions">
               <Show when={followState().leader !== null}>
                 <button class="btn-secondary" data-action="CodeWithMe.StopFollowing" onClick={() => void runCommand("CodeWithMe.StopFollowing")}>

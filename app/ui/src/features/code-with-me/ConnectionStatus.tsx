@@ -1,6 +1,6 @@
 /**
  * How the Code With Me connections travel: a badge per connection (Direct / Relay) in the
- * participant rows of the popup, the relay state and the status bar item.
+ * participant rows of the popup and the tool window, the relay state and the status bar item.
  */
 import { Show } from "solid-js";
 import { Network, TriangleAlert, Waypoints } from "lucide-solid";
@@ -25,7 +25,7 @@ export function PathBadge(props: { path: ConnectionPath }) {
 }
 
 /**
- * The connection of a participant row in the session popup: the path badge, "Connecting…" or
+ * The connection of a participant row in the session popup and the tool window: the path badge, "Connecting…" or
  * "Reconnecting…". Hosts see it for every guest, guests for the host (guests are not
  * connected to each other).
  */

@@ -149,6 +149,20 @@ const viewOnly = (theme) => {
   return fn;
 };
 
+/** A Full access guest's Code With Me tool window: the path to the host and its round-trip time. */
+const toolWindow = (theme) => {
+  const fn = async (page) => {
+    await page.waitForSelector("[data-testid=cwm-status]");
+    if (theme === "light") await light(page);
+    await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.ShowToolWindow"));
+    await page.waitForSelector('.cwm-tool-window .cwm-participant[data-participant="0"] .cwm-path[data-path="direct"]');
+    await page.waitForTimeout(300);
+  };
+  fn.query = "?project=cwm-guest&permission=full";
+  fn.waitFor = "[data-testid=cwm-status]";
+  return fn;
+};
+
 const withQuery = (fn, permission) => {
   fn.query = `?project=cwm-guest&permission=${permission}`;
   return fn;
@@ -174,4 +188,6 @@ export default {
   "cwm-guest-status-light": withQuery(status("light"), "readOnly"),
   "cwm-guest-view-only": viewOnly("dark"),
   "cwm-guest-view-only-light": viewOnly("light"),
+  "cwm-guest-tool-window": toolWindow("dark"),
+  "cwm-guest-tool-window-light": toolWindow("light"),
 };
