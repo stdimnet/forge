@@ -7,9 +7,10 @@
   background: var(--bg-active);
 }
 
-.cwm-popup {
+.popup.cwm-popup {
   position: fixed;
-  z-index: 140;
+  /* Above CodeMirror's sticky editor panels (z-index 300), whose border would cross it. */
+  z-index: 345;
   width: 360px;
   padding: 10px 6px 6px;
 }
@@ -104,12 +105,7 @@
   padding: 2px 0;
 }
 
-/* Connection paths: participants in the popup, status bar item. */
-.cwm-connections {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+/* Connection paths: participant rows of the popup, status bar item. */
 .cwm-participant {
   display: flex;
   align-items: center;
@@ -415,6 +411,18 @@
   font-size: var(--fs-small);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* The connection path and the location below a name in the session popup. */
+.cwm-participant-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 1px;
+}
+.cwm-participant-detail .cwm-path {
+  margin-left: 0;
+  padding: 0 6px;
 }
 .cwm-participant-following {
   flex: none;

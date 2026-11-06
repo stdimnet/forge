@@ -39,7 +39,7 @@ async function showSession(page) {
   await page.evaluate((v) => window.__forgeCollabMock.show(v), hostSession(true));
   await page.waitForSelector('[data-status="code-with-me"]');
   await page.click(".cwm-toolbar-btn");
-  await page.waitForSelector('[data-testid="cwm-connections"]');
+  await page.waitForSelector(".cwm-popup .cwm-path");
 }
 
 const light = (page) => page.evaluate(() => (document.documentElement.dataset.theme = "light"));

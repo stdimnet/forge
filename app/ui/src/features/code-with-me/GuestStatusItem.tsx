@@ -12,6 +12,7 @@ import { StatusPopup } from "@/shell/StatusPopup";
 import { guestLevel, LEVEL_NAMES } from "./guest";
 import { session } from "./store";
 import { connectionLabel, isReconnecting } from "./reconnect";
+import { tooltip } from "@/shell/tooltip";
 import { t } from "@/i18n";
 
 /** Latency class: fast / slow / very slow, colored in the widget. */
@@ -50,7 +51,7 @@ export function GuestStatusItem() {
         class="status-item cwm-status"
         data-latency={latencyClass(latency())}
         classList={{ reconnecting: !!reconnecting() }}
-        title={t("tools.codeWithMe.guestOf", { host: workspace()?.collab?.label ?? host() })}
+        {...tooltip(() => t("tools.codeWithMe.guestOf", { host: workspace()?.collab?.label ?? host() }), { open, label: false })}
         aria-haspopup="dialog"
         aria-expanded={open()}
         onClick={() => setOpen((v) => !v)}
