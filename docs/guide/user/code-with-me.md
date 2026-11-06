@@ -328,7 +328,9 @@ register it when they start.
 ### When the connection drops
 
 If the connection to the host drops (Wi-Fi gone, laptop asleep, VPN reconnecting), the session
-is not over:
+is not over. An interruption of a few seconds passes unnoticed: what you and the others typed
+meanwhile arrives once the network is back. After 15 to 20 seconds without an answer, both
+sides count the connection as lost:
 
 - Your window keeps the host's project and your open files. The status bar says **Code With Me:
   Reconnecting…**, and a balloon **Connection to <host> lost** stays until the connection is
