@@ -402,6 +402,18 @@ pub fn workspace_symbols(r: WorkspaceSymbolResponse, server: &str) -> Vec<Editor
     }
 }
 
+/// Drop the hits outside the project's own sources unless `include_non_project` (Search
+/// Everywhere's "Include non-project items"): files outside the project folder (the stubs
+/// and caches of a language server, other absolute paths) and libraries inside it
+/// (`vendor/`, `node_modules/`). `hits` must already carry workspace-relative paths.
+pub fn retain_project_symbols(hits: &mut Vec<EditorWorkspaceSymbol>, include_non_project: bool) {
+    if !include_non_project {
+        hits.retain(|h| {
+            !forge_scopes::is_non_project_path(&h.path) && !forge_scopes::is_library_path(&h.path)
+        });
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorParameter {
@@ -772,6 +784,40 @@ mod tests {
         assert_eq!(hits[0].kind, "function");
         assert_eq!(hits[0].container_name.as_deref(), Some("app"));
         assert!(hits[0].range.is_none());
+    }
+
+    #[test]
+    fn non_project_symbols_only_show_when_asked_for() {
+        let hit = |name: &str, path: &str| EditorWorkspaceSymbol {
+            name: name.into(),
+            kind: "class".into(),
+            container_name: None,
+            path: path.into(),
+            range: None,
+            server: "php-lsp".into(),
+        };
+        let all = vec![
+            hit(
+                "OrderController",
+                "app/Http/Controllers/OrderController.php",
+            ),
+            // php-lsp's bundled stubs live in Forge's cache, outside the project.
+            hit(
+                "DateMalformedIntervalStringException",
+                "/root/.cache/forge/php-lsp/php-lsp-stubs-0.1.0/date/date_c.php",
+            ),
+            hit("C:Stub", "C:/Users/me/AppData/Local/forge/stubs.php"),
+            hit("Collection", "vendor/laravel/framework/src/Collection.php"),
+            hit("Button", "ui/node_modules/lib/Button.ts"),
+        ];
+        let mut hits = all.clone();
+        retain_project_symbols(&mut hits, false);
+        let names: Vec<_> = hits.iter().map(|h| h.name.as_str()).collect();
+        assert_eq!(names, vec!["OrderController"]);
+
+        let mut hits = all.clone();
+        retain_project_symbols(&mut hits, true);
+        assert_eq!(hits, all);
     }
 
     #[test]

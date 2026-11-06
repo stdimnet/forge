@@ -65,6 +65,12 @@ export interface SearchItem {
     /** Keep the item when the label does not match (the source already filtered it). */
     keepUnmatched?: boolean;
   };
+  /**
+   * The declaration the item stands for, when other providers can list it too (the PHP
+   * index and a language server both report a class): only the item of the provider with
+   * the lowest `order` is shown.
+   */
+  dedupeKey?: string;
   /** Shown dimmed (e.g. actions that are not available); hidden while others match. */
   dimmed?: boolean;
   run: () => void | Promise<void>;
@@ -100,7 +106,7 @@ export interface SearchGroup {
 }
 
 function candidate(item: SearchItem): RankCandidate {
-  const base = { id: item.id, kind: item.kind, score: item.score ?? 0, dimmed: item.dimmed };
+  const base = { id: item.id, kind: item.kind, score: item.score ?? 0, dimmed: item.dimmed, dedupeKey: item.dedupeKey };
   if (!item.match) return { ...base, positions: item.matches ?? [] };
   return { ...base, text: item.label, ...item.match };
 }

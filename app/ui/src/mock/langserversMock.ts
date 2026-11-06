@@ -445,15 +445,19 @@ export function demoWorkspaceSymbols(): WorkspaceSymbol[] {
 
 const allSymbols = demoWorkspaceSymbols();
 
-registerMock("lsp_workspace_symbols", ({ query, limit }) => {
+/** Like `forge_lsp::model::retain_project_symbols`: libraries and outside files are non-project. */
+const isProjectPath = (p: string) => !/^\/|^[A-Za-z]:|:\/\/|(^|\/)(vendor|node_modules)\//.test(p);
+
+registerMock("lsp_workspace_symbols", ({ query, limit, includeNonProject }) => {
   const q = String(query ?? "").toLowerCase();
   if (!q) return [];
+  const pool = includeNonProject ? allSymbols : allSymbols.filter((s) => isProjectPath(s.path));
   // Servers match fuzzily themselves; a subsequence match is close enough here.
   const matches = (name: string) => {
     let i = 0;
     for (const ch of name.toLowerCase()) if (ch === q[i]) i++;
     return i === q.length;
   };
-  return allSymbols.filter((s) => matches(s.name)).slice(0, Number(limit ?? 200));
+  return pool.filter((s) => matches(s.name)).slice(0, Number(limit ?? 200));
 });
 

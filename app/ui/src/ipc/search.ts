@@ -55,6 +55,8 @@ export interface RankCandidate {
   /** Pre-computed highlight positions of pre-ranked items. */
   positions?: number[];
   dimmed?: boolean;
+  /** Same declaration as another provider's item (e.g. `path#name`); the first provider's wins. */
+  dedupeKey?: string;
 }
 
 export interface RankRequest {

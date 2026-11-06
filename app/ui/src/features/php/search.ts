@@ -9,6 +9,7 @@ import { workspace } from "@/state/workspace";
 import { registerSearchProvider, type SearchItem, type SearchItemKind } from "@/features/search/providers";
 import { phpApi, type SymbolHit, type SymbolKind } from "./api";
 import { revealSymbol } from "./editorViews";
+import { symbolDedupeKey } from "@/features/langservers/model";
 
 const KINDS: Partial<Record<SymbolKind, SearchItemKind>> = {
   class: "class",
@@ -38,6 +39,8 @@ export function symbolItem(hit: SymbolHit, projectName = workspace()?.name): Sea
     hint: hit.vendor ? "vendor" : projectName,
     kind: KINDS[hit.kind],
     score: hit.score,
+    // Language servers (php-lsp) report the same declarations; this richer item wins.
+    dedupeKey: symbolDedupeKey(hit.path, hit.name),
     run: () => revealSymbol(hit.path, { line: hit.line, name: hit.name }),
   };
 }
