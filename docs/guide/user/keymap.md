@@ -163,6 +163,7 @@ Plugins add their own actions under **Plugins** (and some under Main Menu), for 
 | Database: Execute | `Ctrl+Enter` (macOS `Cmd+Enter`), in a console |
 | Database: Submit / Add Row / Delete Rows / Revert Selected | `Ctrl+Enter` / `Alt+Insert` / `Ctrl+Y` / `Ctrl+Alt+Z` in a data grid |
 | Database: Jump to Query Console… | `Ctrl+Shift+F10` in the Database tool window |
+| Code With Me: Code With Me (popup) / Make Everyone Follow You / Follow single user | `Ctrl+Shift+Y` / `Ctrl+Shift+O` / `Ctrl+Alt+Shift+Y` (the same keys on macOS), with PHPStorm's action ids (see [Code With Me](code-with-me.md)) |
 | Symfony: Run Console Command…, Symfony Routes | none |
 | Doctrine Entities, npm tool window, Reload npm Scripts | none |
 

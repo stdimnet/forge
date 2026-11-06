@@ -1113,7 +1113,8 @@ The design, threat model and stage notes ("as built") are in
 
 **Contribution points.** `registerToolbarItem` (the toolbar icon and avatars),
 `registerToolWindow` (`codeWithMe`: Participants and Session Log tabs), `registerCommand` /
-`registerKeymapActions` (`CodeWithMe.*`, all through the keymap), `registerSettingsPage`
+`registerKeymapActions` (commands `CodeWithMe.*`; actions under PHPStorm's Code With Me ids
+such as `GetJoinLinkAction`, which reach the commands through `ACTION_ALIASES`), `registerSettingsPage`
 (Tools | Code With Me, schema in `plugins/code-with-me.toml`), `registerStatusItem` (connection
 path; the guest's "Code With Me: <host>" item), `registerEditorExtension` (the shared document
 binding, presence, follow banner, guest read-only), `registerTerminalTabActions` (Share with
@@ -1182,7 +1183,9 @@ with `GuestMessage::Resume` and keeps its place, color, documents, terminals and
 `reconnect::HOST_GRACE` (2 minutes). Documents resynchronize with Yjs sync (`DocSync` /
 `DocSynced`, `collab_doc_sync`), terminals and runs get only the missed output. The guest
 retries with `ReconnectPolicy` and gives up after `GUEST_GIVE_UP`, before the host frees the
-place. Relay and NAT traversal are iroh's; Forge contacts no third-party host unless the user
+place. Over QUIC a dead connection is noticed after `transport::net::IDLE_TIMEOUT` (15 s
+without a packet; iroh sends keep-alives every 5 s); shorter outages pass without a reconnect.
+Relay and NAT traversal are iroh's; Forge contacts no third-party host unless the user
 configured a relay or opted in to public relays (`relay::RelayOptions`).
 
 **IPC.** Commands: `collab_status`, `collab_start`, `collab_end`, `collab_link`,
@@ -1205,14 +1208,35 @@ base64. The typed client is `ipc/collab.ts`; every command has a browser mock.
 network: edits, saves, disk changes and conflicts, renames, permissions, reconnects),
 `convergence.rs` (proptest: random interleavings converge), `stress.rs` (10 participants
 editing, following and sharing a terminal; asserts convergence and bounded queues; a heavier
-variant is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`),
-`decoding.rs` (proptest: links, frames and host calls from peers fail cleanly and round-trip),
+variant is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`;
+it also measures the host session's CPU, which runs on its own `cwm-host` runtime),
+`perf.rs` (the plan's performance targets, `#[ignore]`d timing tests:
+`cargo test -p forge-collab --release --test perf -- --ignored --nocapture --test-threads=1`;
+the host's memory per document always runs), `decoding.rs` (proptest: links, frames and host calls from peers fail cleanly and round-trip),
 `rate_limits.rs` (flooding guests are refused or disconnected, the others are not affected),
 `guest_backend.rs`, `guest_lsp.rs`, `terminals_runs.rs`, `approval.rs`, `relay.rs` (an
-in-process `iroh-relay`), `quic_loopback.rs`. Fuzz targets (cargo-fuzz, own workspace, not run
+in-process `iroh-relay`), `quic_loopback.rs`, `quic_outage.rs` (a real QUIC outage: both
+`NetTransport` endpoints sit on iroh's in-memory test transport, put there with
+`NetTransport::listen_with_hook` / `dialer_with_hook`, behind a cable that drops every datagram
+while unplugged; a short outage passes without a reconnect, a longer one is noticed after
+`transport::net::IDLE_TIMEOUT` (15 s) and the guest resumes its place with merged edits and the
+missed terminal output, one longer than the host's grace ends with "no longer keeps your
+place"; a UDP proxy on loopback cannot cut the connection, iroh's hole punching goes around it). Fuzz targets (cargo-fuzz, own workspace, not run
 by `cargo test`) are in `crates/forge-collab/fuzz`: `link_parse`, `frame_decode`,
 `host_call_decode`; run one with `cd crates/forge-collab/fuzz && cargo +nightly fuzz run
-link_parse`.
+link_parse`. The UI side of "one update on a 100 000-line file" is
+`node app/ui/scripts/cwm-yjs-bench.mjs` (Yjs and CodeMirror in Node).
+
+Measured on 2026-11-06 (4 vCPU Linux container, release build, results with each target in
+[the plan](plans/code-with-me.md#performance-targets)): every target is met on the host and
+over the network (guest to guest over QUIC on loopback p50 0.41 ms / p99 0.58 ms; with a
+simulated 80 ms relay RTT 2.7 ms on top of it; joining with 20 open files and opening them
+6 ms; a 1 MB file 11 ms; one update on 100 000 lines p99 0.04 ms on the host; host CPU under
+the 10-participant load 1.0 % of one core; idle 0.03 % CPU and 0.4 KB/s per guest) except one
+in the UI: Yjs' `YTextEvent.delta`, which y-codemirror.next reads for every remote update,
+walks all items of the text, so on a 100 000-line file it takes 0.8 ms (p50) / 1.8 ms (p99)
+after 20 000 characters of typing and 7 ms / 11 ms when every character went to another
+place, against `Y.applyUpdate`'s 0.01 to 0.03 ms.
 
 **Binary size.** forge-collab is the only path to 62 crates of the app's 822 (normal
 dependencies, `cargo tree -p forge-app -e normal --prefix none` compared with the same command

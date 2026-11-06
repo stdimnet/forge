@@ -219,11 +219,9 @@ keychain (service `forge-cwm`), not into the settings.
 
 ### Keymap actions
 
-PHPStorm binds no shortcuts to Code With Me actions, so these are actions without default
-shortcuts that show up in Find Action and in Settings | Keymap under "Plugins/Code With Me".
-The ids below are Forge's proposal. Before implementation, read the real ids from PHPStorm
-2026.1 with the Code With Me plugin (Keymap search "Code With Me"); where they differ, keep
-PHPStorm's id as the command id and add Forge's as `ACTION_ALIASES` (`crates/forge-keymap`).
+The actions show up in Find Action and in Settings | Keymap under "Plugins/Code With Me".
+The ids below were Forge's proposal; the real ids of PHPStorm 2026.1 and how Forge maps them are
+in "PHPStorm action ids (as built)" right after the table.
 
 | Action id | Title |
 | --- | --- |
@@ -242,6 +240,62 @@ PHPStorm's id as the command id and add Forge's as `ACTION_ALIASES` (`crates/for
 Registered with `registerKeymapActions` (`app/ui/src/keymap/store.ts`) and implemented with
 `registerCommand`. Undo and Redo keep their PHPStorm actions (`$Undo`, `$Redo`); in a shared
 document they run the participant's own undo manager (see "Undo").
+
+#### PHPStorm action ids (as built)
+
+**Source.** The action descriptors of the Code With Me plugin bundled with PhpStorm 2026.1.5.1
+(build 261.27258.139, the last release line that supports Code With Me), read from
+`plugins/cwm-plugin/lib` of the official Linux archive
+<https://download.jetbrains.com/webide/PhpStorm-2026.1.5.1.tar.gz> (release list:
+<https://data.services.jetbrains.com/products/releases?code=PS&type=release&majorVersion=2026.1>).
+The `<actions>` sections are in three module descriptors: `intellij.cwm.plugin.xml` (host,
+texts in `messages/CodeWithMeBackendBundle.properties`), `intellij.cwm.plugin.common.xml`
+(host and guest, `CodeWithMeCommonBundle`) and `intellij.cwm.frontend.xml` (guest,
+`CodeWithMeFrontendBundle`). The Marketplace entry of the plugin
+(<https://plugins.jetbrains.com/plugin/14896-code-with-me>, `com.jetbrains.codeWithMe`) is only
+an 11 KB "enabler" for 2026.1 (`cwm-enabler-261.22158.291.zip`, no actions); the plugin itself
+ships inside the IDE. The ids are not in the public intellij-community repository, nor in the
+IntelliJ action id lists (<https://github.com/centic9/IntelliJ-Action-IDs> covers only the
+platform jars), and web searches for them found nothing, so the IDE's own files are the source.
+
+The PHPStorm ids are the keymap actions (titles and default shortcuts as in PHPStorm); Forge's
+commands keep their `CodeWithMe.*` ids and are the PHPStorm actions' `ACTION_ALIASES`
+(`crates/forge-keymap/src/catalog.rs`), like `Git.CreateNewTag` → `Git.Tag`. So a keymap
+imported from PHPStorm binds the right command, Find Action lists each action once (under
+PHPStorm's title), and shortcuts users gave to a `CodeWithMe.*` id keep working because the
+commands are unchanged. The Tools | Code With Me menu keeps Forge's ids and labels.
+
+| Forge id (command) | PHPStorm 2026.1 id (action) | PHPStorm title, default shortcut | Descriptor |
+| --- | --- | --- | --- |
+| `CodeWithMe.StartSession` | `GetJoinLinkAction` | Start Code With Me Session | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.CopySessionLink` | `CopyJoinLinkAction` | Copy Session Link | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.EndSession` | `ShutdownCodeWithMe` | End Session | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.Permissions` | `ShowPermissionsAction` | Code With Me: Permissions… | `intellij.cwm.plugin.xml` |
+| `CodeWithMe.ShowToolWindow` | `CWMHostShowPopupAction` (guest: `CWMThinClientShowPopupAction`) | Code With Me, Ctrl+Shift+Y | `intellij.cwm.plugin.xml` / `intellij.cwm.frontend.xml` |
+| `CodeWithMe.Settings` | `CWMHostOpenSettingsAction` (guest: `CWMOpenSettingsAction`, "Settings…") | Open Code With Me Settings | `intellij.cwm.plugin.xml` / `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.LeaveSession` | `ThinClientDisconnect` | Leave Session | `intellij.cwm.frontend.xml` |
+| `CodeWithMe.FollowParticipant` | `SingleUserFollowAction` | Follow single user, Ctrl+Alt+Shift+Y | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.JumpToParticipant` | `SingleJumpToCursorAction` | Jump to cursor | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.StopFollowing` | `CurrentLeadUnfollowAction` (and `EscUnfollowUserAction`, Escape) | Unfollow current lead, Ctrl+Alt+Shift+Y | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.MakeEveryoneFollow` | `ForceOthersToFollowAction` | Make Everyone Follow You, Ctrl+Shift+O | `intellij.cwm.plugin.common.xml` |
+| `CodeWithMe.JoinSession` | no PHPStorm equivalent | joining is an entry of the Code With Me popup and of the welcome screen (JetBrains Client), not an action | — |
+| `CodeWithMe.OpenSharedFile` | no PHPStorm equivalent | | — |
+| `CodeWithMe.RegenerateLink` | no PHPStorm equivalent | | — |
+| `CodeWithMe.ShowSessionLog` | no PHPStorm equivalent | | — |
+| `CodeWithMe.ShareTerminal` | not confirmed | `messages/SplitBackendBundle.properties` has the text `action.Terminal.Share.text=Share Terminal`, but no descriptor or class of the IDE registers an action `Terminal.Share` | — |
+
+The shortcuts in the macOS keymap are the same keys (`control shift Y`, not Cmd). Forge
+registers the shortcuts of `CWMHostShowPopupAction`, `SingleUserFollowAction` and
+`ForceOthersToFollowAction`. It leaves out the Ctrl+Alt+Shift+Y of `CurrentLeadUnfollowAction`,
+which PHPStorm tells apart from Follow single user by which of the two is enabled (Forge's
+keymap has no enablement), and the Escape of `EscUnfollowUserAction`, which would compete with
+Escape in the editor, popups and tool windows (in Forge, moving the caret or typing stops
+following, `followStop.ts`). The guest-side ids (`CWMThinClientShowPopupAction`,
+`CWMOpenSettingsAction`, `EscUnfollowUserAction`) are not registered: Forge has one action
+per command, and these would list the same command twice. PHPStorm's other Code With Me actions
+(calls and screen sharing such as `JoinCallAction`, `EnableMicrophoneAction`,
+`OpenCallWindowAction`, port forwarding `OpenPortForwardingToolwindowAction`, `LearnMore`,
+log collection and issue reporting) have no Forge feature.
 
 ## Architecture
 
@@ -828,23 +882,44 @@ No test touches the network, a relay, installed language servers or real account
 
 ## Performance targets
 
-| Metric | Target |
-| --- | --- |
-| Local keystroke | No added latency (applied locally first) |
-| Remote edit visible, LAN | p50 < 30 ms, p99 < 100 ms |
-| Remote edit visible, via relay | RTT + 30 ms |
-| Caret and selection updates | ≤ 20 Hz per participant, visible within RTT + 50 ms |
-| Join with 20 open files, LAN | Workbench usable < 2 s after Accept |
-| Open a 1 MB file as a guest, LAN | < 300 ms |
-| Shared file size | Up to 5 MB editable (setting); larger read-only |
-| Applying one update, 100 000-line file | < 1 ms in the UI, < 1 ms on the host |
-| Host memory per shared document | < 3 × the text size |
-| Participants | 1 host + 9 guests, each typing 5 characters/s, no growing backlog; host CPU < 10 % of one core |
-| Idle session | < 1 % CPU, < 1 KB/s per guest |
-| Find in Files for a guest | Host's search time + one RTT |
+| Metric | Target | Measured (2026-11-06) |
+| --- | --- | --- |
+| Local keystroke | No added latency (applied locally first) | Met by design: the editor applies the edit, then sends the Yjs update (not timed) |
+| Remote edit visible, LAN | p50 < 30 ms, p99 < 100 ms | **Met.** QUIC on loopback, guest → host → guest: p50 0.41 ms, p99 0.58 ms; host → guest: p50 0.26 ms, p99 0.44 ms. In-memory network with 1 ms per link: p50 4.3 ms, p99 4.5 ms (the timer's 1 ms granularity doubles each delay) |
+| Remote edit visible, via relay | RTT + 30 ms | **Met.** In-memory network with 40 ms per link (80 ms RTT), guest → host → guest: p50 82.7 ms, p99 83.1 ms, so RTT + 2.7 ms |
+| Caret and selection updates | ≤ 20 Hz per participant, visible within RTT + 50 ms | **Met.** Visible: QUIC loopback p50 0.39 ms, p99 0.56 ms; 80 ms RTT: p50 82.6 ms (RTT + 2.6 ms). Rate: carets (awareness) were sent on every selection change; now at most every 50 ms (`AWARENESS_INTERVAL` in `features/code-with-me/docs.ts`); presence is sent at 10 Hz |
+| Join with 20 open files, LAN | Workbench usable < 2 s after Accept | **Met.** QUIC loopback: join 2.0 ms (p50); join and open all 20 files (451 KB) into replicas: p50 6.2 ms, max 6.6 ms |
+| Open a 1 MB file as a guest, LAN | < 300 ms | **Met.** QUIC loopback, first open (the host reads the file and builds the document), replica applied and text built: p50 11.3 ms, max 13.2 ms |
+| Shared file size | Up to 5 MB editable (setting); larger read-only | Met (feature): `codeWithMe.maxSharedFileSize`, larger files view-only up to 16 MiB (`quic_loopback.rs`) |
+| Applying one update, 100 000-line file | < 1 ms in the UI, < 1 ms on the host | **Host met:** `SharedDoc::apply_update` p50 0.01 ms, p99 0.21 ms fresh, p99 0.04 ms after 20 000 edits; the whole `HostSession::host_update` with 9 guests p50 0.03 ms, p99 0.22 ms. **UI not met after many edits:** `Y.applyUpdate` alone p99 0.03 to 0.09 ms, but with y-codemirror.next's observer and the CodeMirror transaction: fresh p50 0.17 ms, p99 0.45 ms; after 20 000 characters typed in runs p50 0.81 ms, p99 1.79 ms; after 20 000 more at random places p50 6.7 ms, p99 10.8 ms (see below) |
+| Host memory per shared document | < 3 × the text size | **Met for normal editing:** 2.00 × fresh (the saved text plus the CRDT), 2.02 × to 2.20 × after 10 000 characters typed in runs (1 MB and 4 MB files). Worst case, 10 000 single characters at random places: 6.2 × for 1 MB, 3.0 × for 4 MB (about 400 bytes per item) |
+| Participants | 1 host + 9 guests, each typing 5 characters/s, no growing backlog; host CPU < 10 % of one core | **Met.** Stress test, heavy variant (300 rounds, 200 ms apart, 5 ms latency, 60 s): host session 1.0 % of one core; the whole process (host, 9 guests, their editors) 4.3 % of one core, 1.1 % per core; backlog peaks 13 (host) and 1 (guest), drained |
+| Idle session | < 1 % CPU, < 1 KB/s per guest | **Met.** Host and 2 guests over QUIC on loopback, 10 s idle: 0.026 % of one core for the whole process; 439 B/s per guest on the loopback interface (iroh's QUIC keep-alive, one a second); the session itself sends nothing (0 B/s) |
+| Find in Files for a guest | Host's search time + one RTT | **Met.** 2 000 files over QUIC on loopback: host's own search p50 26.6 ms, the guest's p50 26.9 ms (+ 0.35 ms; the loopback round trip is 0.32 ms) |
 
-Measured with the simulation tests (latency injected) and a bench target in `forge-collab`;
-the 10-participant target is a stress test that runs on demand.
+How these were measured: `crates/forge-collab/tests/perf.rs` (timing tests `#[ignore]`d:
+`cargo test -p forge-collab --release --test perf -- --ignored --nocapture --test-threads=1`)
+and `tests/stress.rs` (`cargo test -p forge-collab --release --test stress -- --ignored
+--nocapture`; the host session runs on its own runtime, its threads' CPU time comes from
+`/proc/self/task/*/schedstat`), and for the UI `node app/ui/scripts/cwm-yjs-bench.mjs` (Yjs
+13.6 and `@codemirror/state` in Node 22, no browser; layout and painting not included).
+Machine: a 4 vCPU Linux x86_64 container, nothing else running; release build with
+`CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16` (faster to build,
+slightly less optimized than the shipped profile). Loopback has a far smaller RTT than a LAN
+(0.3 ms), so the QUIC numbers are the software's share; the in-memory network adds the
+network's delay. Not measured: a real LAN or relay between two machines, painting in the
+webview.
+
+**The UI miss.** `Y.applyUpdate` itself stays far below 1 ms. y-codemirror.next turns every
+remote update into CodeMirror changes with `YTextEvent.delta`, and Yjs computes the delta by
+walking every item of the text from its start. A fresh file is one item; each place someone
+types at adds items (a run of typing is one, a single character between others splits one
+into three). So the cost grows with the edit history, not with the file's length: a
+10 000-line file gives the same numbers (p50 0.94 ms, p99 1.9 ms after 20 000 characters
+typed in runs; each phase also includes the benchmark's own 2 500 single keystrokes at random
+places). A fix needs a binding that computes the changed positions without the delta (for
+example from the transaction's inserted and deleted items and the text's search markers) or
+a change in Yjs; it is not part of S7.
 
 ## Stages (one PR)
 
@@ -1264,9 +1339,8 @@ Deviations from the plan above:
   resume with unsent edits on both sides converging, place and color kept, presence resent;
   grace expiry; giving up; removed while away; another endpoint or a wrong token cannot take
   a place; documents deleted while away; an attached terminal gets the missed output exactly
-  once. Not covered: a real QUIC outage (iroh's idle timeout decides how fast a dead
-  connection is noticed) and a host that restarts (its new session has a new key; guests give
-  up).
+  once. Not covered: a host that restarts (its new session has a new key; guests give up). A
+  real QUIC outage was added in S7 (see "Reconnect after a real QUIC outage" below).
 
 ### S7 — Polish, docs, screenshots, stress tests (5 d)
 
@@ -1310,7 +1384,14 @@ Deviations from the plan above:
   cut-off (`GUEST_QUEUE` = 4096; measured 21 and 2 at 200 rounds) and drain to zero. About two
   seconds in `cargo test`; the plan's target load (5 characters per second each, 5 ms latency,
   300 rounds) is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`
-  (`FORGE_CWM_STRESS_ROUNDS` sets the rounds). CPU per core is not measured.
+  (`FORGE_CWM_STRESS_ROUNDS` sets the rounds). The host session runs on its own runtime, and
+the test measures its CPU (heavy variant: 1.0 % of one core, asserted below 10 %).
+- **Performance targets checked** (`tests/perf.rs`, `app/ui/scripts/cwm-yjs-bench.mjs`): every
+  target is met on the host and over the network; the numbers are in the
+  [Performance targets](#performance-targets) table. One is missed in the UI: one update on a
+  100 000-line file takes more than 1 ms in y-codemirror.next's observer once the file has a
+  long edit history (Yjs' `YTextEvent.delta` walks every item). Shared carets were sent on
+  every selection change; they are now throttled to 20 Hz.
 - **Fuzzing**: cargo-fuzz targets in `crates/forge-collab/fuzz` (own workspace, `Cargo.lock`
   ignored): `link_parse` (parse, then the URL and text forms round-trip), `frame_decode`
   (guest and host frames from arbitrary chunks), `host_call_decode` (decode, then round-trip).
@@ -1365,6 +1446,40 @@ Deviations from the plan above:
 - **Binary size measured** (2026-11-06, Linux x86_64 release): forge-collab and the 62 crates
   only it pulls in add 5.4 MiB of the binary's 109.9 MiB `.text` (about 5 %); details and the
   method are in ARCHITECTURE.md.
+- **PHPStorm action ids confirmed** (2026-11-06): read from the Code With Me plugin bundled with
+  PhpStorm 2026.1.5.1. Eleven Forge actions have a PHPStorm counterpart; those are now
+  registered under PHPStorm's ids, titles and default shortcuts (Ctrl+Shift+Y, Ctrl+Shift+O,
+  Ctrl+Alt+Shift+Y) and reach the unchanged `CodeWithMe.*` commands through `ACTION_ALIASES`;
+  Join Session, Open Shared File, Regenerate Link, Session Log and Share Terminal keep Forge's
+  ids. Mapping, source and what was left out: "Keymap actions", "PHPStorm action ids (as built)".
+- **Reconnect after a real QUIC outage** (`tests/quic_outage.rs`): host and guest are real
+  `NetTransport` endpoints (iroh/QUIC with Forge's settings) with the whole session code on
+  top; only the medium is simulated. Both are bound to iroh's in-memory test transport
+  (`iroh::test_utils::test_transport`, feature `unstable-custom-transports`, dev-dependency
+  only) through the new `NetTransport::listen_with_hook` / `dialer_with_hook`, behind a
+  "cable" that drops every datagram both ways while unplugged. QUIC then times the connection
+  out itself, unlike `MemoryNetwork::set_offline`, which closes the stream. A UDP proxy on
+  loopback was tried first and does not work: iroh's hole punching tells each end the other's
+  own socket address, every address is reachable on one machine, so the connection (and the
+  guest's next one, which reuses the learned address) went around the proxy.
+- **Finding: dead connections were noticed after 30 s.** iroh's default idle timeout is 30 s,
+  so a guest whose network went away kept showing "Connected" for half a minute (measured with
+  the defaults: guest and host both after 30.0 s). `transport::net::IDLE_TIMEOUT` sets it to
+  15 s (three missed keep-alives at iroh's 5 s heartbeat; the shorter value of both ends
+  applies, so it also holds against older Forge peers). Measured now: both ends notice 15.0 s
+  after the cut when something was sent at the cut (typing), 15 to 20 s on a quiet connection
+  (QUIC's idle timer restarts with the first keep-alive sent into the outage). With the cable
+  back, the guest is in again after about 1.25 s (its 250 ms retries in the test; an attempt
+  that started during the outage waits for QUIC's handshake retransmission), and an outage
+  longer than the grace is reported to the guest about 0.25-0.3 s after the network is back.
+- Tests: a 4 s outage passes without a reconnect and both sides' edits arrive 1-3 s after the
+  network is back (QUIC retransmission backoff); a longer outage keeps the place
+  (participant, color, permissions), the guest stays disconnected while the cable is out,
+  merges the edits both sides made meanwhile after `Resumed` and the Yjs resync, and an
+  attached terminal gets the output it missed exactly once; an outage longer than the host's
+  grace (shortened with `set_reconnect_grace`) frees the place with the host's notice, and the
+  guest is told "The host no longer keeps your place" once the network is back. About 21-24 s
+  for the file (the three tests run in parallel).
 - Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
   checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
   Linux ran under Xvfb (see its results table).
@@ -1468,7 +1583,10 @@ Each question has a recommended answer; the plan above assumes the recommendatio
 10. **Guests' own project while joining?** Recommended: **close it** (one project per window,
     as today); a separate guest window is a follow-up together with multi-window support.
 11. **PHPStorm action ids**: confirm the real ids from PHPStorm 2026.1 with the plugin before
-    implementation and use those (Forge ids as aliases).
+    implementation and use those (Forge ids as aliases). **Done**: confirmed from the plugin
+    bundled with PhpStorm 2026.1.5.1; the PHPStorm ids are the keymap actions and the
+    `CodeWithMe.*` commands their aliases (table in "Keymap actions", "PHPStorm action ids (as
+    built)").
 12. **Maximum number of guests?** Recommended: **no hard limit**, a warning above 10.
 
 ## Risks
