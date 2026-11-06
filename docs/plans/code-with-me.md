@@ -1264,9 +1264,8 @@ Deviations from the plan above:
   resume with unsent edits on both sides converging, place and color kept, presence resent;
   grace expiry; giving up; removed while away; another endpoint or a wrong token cannot take
   a place; documents deleted while away; an attached terminal gets the missed output exactly
-  once. Not covered: a real QUIC outage (iroh's idle timeout decides how fast a dead
-  connection is noticed) and a host that restarts (its new session has a new key; guests give
-  up).
+  once. Not covered: a host that restarts (its new session has a new key; guests give up). A
+  real QUIC outage was added in S7 (see "Reconnect after a real QUIC outage" below).
 
 ### S7 — Polish, docs, screenshots, stress tests (5 d)
 
@@ -1365,6 +1364,34 @@ Deviations from the plan above:
 - **Binary size measured** (2026-11-06, Linux x86_64 release): forge-collab and the 62 crates
   only it pulls in add 5.4 MiB of the binary's 109.9 MiB `.text` (about 5 %); details and the
   method are in ARCHITECTURE.md.
+- **Reconnect after a real QUIC outage** (`tests/quic_outage.rs`): host and guest are real
+  `NetTransport` endpoints (iroh/QUIC with Forge's settings) with the whole session code on
+  top; only the medium is simulated. Both are bound to iroh's in-memory test transport
+  (`iroh::test_utils::test_transport`, feature `unstable-custom-transports`, dev-dependency
+  only) through the new `NetTransport::listen_with_hook` / `dialer_with_hook`, behind a
+  "cable" that drops every datagram both ways while unplugged. QUIC then times the connection
+  out itself, unlike `MemoryNetwork::set_offline`, which closes the stream. A UDP proxy on
+  loopback was tried first and does not work: iroh's hole punching tells each end the other's
+  own socket address, every address is reachable on one machine, so the connection (and the
+  guest's next one, which reuses the learned address) went around the proxy.
+- **Finding: dead connections were noticed after 30 s.** iroh's default idle timeout is 30 s,
+  so a guest whose network went away kept showing "Connected" for half a minute (measured with
+  the defaults: guest and host both after 30.0 s). `transport::net::IDLE_TIMEOUT` sets it to
+  15 s (three missed keep-alives at iroh's 5 s heartbeat; the shorter value of both ends
+  applies, so it also holds against older Forge peers). Measured now: both ends notice 15.0 s
+  after the cut when something was sent at the cut (typing), 15 to 20 s on a quiet connection
+  (QUIC's idle timer restarts with the first keep-alive sent into the outage). With the cable
+  back, the guest is in again after about 1.25 s (its 250 ms retries in the test; an attempt
+  that started during the outage waits for QUIC's handshake retransmission), and an outage
+  longer than the grace is reported to the guest about 0.25-0.3 s after the network is back.
+- Tests: a 4 s outage passes without a reconnect and both sides' edits arrive 1-3 s after the
+  network is back (QUIC retransmission backoff); a longer outage keeps the place
+  (participant, color, permissions), the guest stays disconnected while the cable is out,
+  merges the edits both sides made meanwhile after `Resumed` and the Yjs resync, and an
+  attached terminal gets the output it missed exactly once; an outage longer than the host's
+  grace (shortened with `set_reconnect_grace`) frees the place with the host's notice, and the
+  guest is told "The host no longer keeps your place" once the network is back. About 21-24 s
+  for the file (the three tests run in parallel).
 - Not done in S7: the manual desktop test plan on Windows and macOS. The plan with its
   checklist and results is [the Code With Me test plan](../guide/developer/code-with-me-test-plan.md);
   Linux ran under Xvfb (see its results table).
