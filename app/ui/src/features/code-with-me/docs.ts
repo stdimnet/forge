@@ -18,6 +18,13 @@ import { GUEST_PREFIX } from "@/ipc/projectPath";
 
 export { GUEST_PREFIX };
 
+/**
+ * Least time between two caret and selection updates this window sends for a document
+ * (the plan's "≤ 20 Hz per participant"); y-codemirror.next changes the awareness on every
+ * selection change.
+ */
+export const AWARENESS_INTERVAL = 50;
+
 /** Origin of updates that came from the session (other participants, the disk). */
 export const REMOTE = Symbol("collab-remote");
 
@@ -95,10 +102,21 @@ export function adoptDoc(tabPath: string, opened: DocOpened, me: Participant | u
   const onUpdate = (update: Uint8Array, origin: unknown) => {
     if (origin !== REMOTE) void collabApi.docUpdate(docId, update).catch((e) => console.warn("shared edit not sent", e));
   };
+  // Carets and selections go out at most every AWARENESS_INTERVAL: the first change at once,
+  // later ones as the latest state when the interval ends.
+  let lastSent = -Infinity;
+  let pending: ReturnType<typeof setTimeout> | null = null;
+  const sendAwareness = () => {
+    pending = null;
+    lastSent = Date.now();
+    void collabApi.awareness(docId, encodeAwarenessUpdate(awareness, [ydoc.clientID])).catch(() => undefined);
+  };
   const onAwareness = ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }, origin: unknown) => {
-    if (origin === REMOTE) return;
-    const mine = [...added, ...updated, ...removed].filter((c) => c === ydoc.clientID);
-    if (mine.length) void collabApi.awareness(docId, encodeAwarenessUpdate(awareness, mine)).catch(() => undefined);
+    if (origin === REMOTE || pending) return;
+    if (![...added, ...updated, ...removed].includes(ydoc.clientID)) return;
+    const wait = lastSent + AWARENESS_INTERVAL - Date.now();
+    if (wait <= 0) sendAwareness();
+    else pending = setTimeout(sendAwareness, wait);
   };
   ydoc.on("update", onUpdate);
   awareness.on("update", onAwareness);
@@ -114,6 +132,11 @@ export function adoptDoc(tabPath: string, opened: DocOpened, me: Participant | u
     view: opened.view,
     dispose: () => {
       removeAwarenessStates(awareness, [ydoc.clientID], "local");
+      // The others drop this caret now, not when the interval ends.
+      if (pending) {
+        clearTimeout(pending);
+        sendAwareness();
+      }
       ydoc.off("update", onUpdate);
       awareness.off("update", onAwareness);
       awareness.destroy();
