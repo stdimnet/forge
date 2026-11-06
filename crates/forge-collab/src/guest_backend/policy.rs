@@ -500,7 +500,10 @@ mod tests {
                 line: 0,
                 character: 0,
             }),
-            HostCall::Lsp(LspQuery::WorkspaceSymbols { query: "u".into() }),
+            HostCall::Lsp(LspQuery::WorkspaceSymbols {
+                query: "u".into(),
+                include_non_project: false,
+            }),
         ];
         for p in [
             Permissions::READ_ONLY,

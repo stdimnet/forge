@@ -483,7 +483,10 @@ pub async fn lsp_workspace_symbols(
     if let Some(guest) = crate::commands::collab::guest_session(&app) {
         let mut hits: Vec<EditorWorkspaceSymbol> = crate::commands::collab::guest_lsp(
             &guest,
-            forge_collab::guest_backend::LspQuery::WorkspaceSymbols { query },
+            forge_collab::guest_backend::LspQuery::WorkspaceSymbols {
+                query,
+                include_non_project,
+            },
         )
         .await?;
         retain_project_symbols(&mut hits, include_non_project);
