@@ -12,6 +12,9 @@
  *
  * `&reconnecting` shows the window while the connection to the host is being restored;
  * `&reconnecting=resume` restores it after three seconds (`collab://resumed`).
+ *
+ * The host is participant 0, as with the real backend. The connection to it is direct
+ * (`192.168.1.20:41641`, 23 ms like `collab_ping`); `&relay` routes it through a relay server.
  */
 import * as Y from "yjs";
 // The host mock registers the same commands: load it first, so this window's guest handlers
@@ -19,7 +22,20 @@ import * as Y from "yjs";
 // reaches `collabMock`.
 import "./collabMock";
 import { emitMock, invoke, registerMock } from "@/ipc";
-import { encodeOpened, encodeSynced, PRESETS, sharedRunId, type ConnectionState, type Permissions, type Presence, type SessionView, type SharedRun, type SharedTerminal } from "@/ipc/collab";
+import {
+  encodeOpened,
+  encodeSynced,
+  PRESETS,
+  sharedRunId,
+  type ConnectionState,
+  type ParticipantConnection,
+  type Permissions,
+  type Presence,
+  type RelayStatus,
+  type SessionView,
+  type SharedRun,
+  type SharedTerminal,
+} from "@/ipc/collab";
 import type { RunConfigurations } from "@/ipc/run";
 import { contentHash } from "@/state/editor";
 import type { WorkspaceInfo } from "@/ipc/workspace";
@@ -67,8 +83,8 @@ const permissions = (): Permissions => {
 
 /** The host's terminal and runs with `&share`. */
 const sharing = () => params().has("share");
-const terminals: SharedTerminal[] = [{ id: 1, title: "Local", owner: 1, cols: 110, rows: 24, running: true }];
-const runs: SharedRun[] = [{ id: 1, title: "UserTest", kind: "phpunit", startedBy: 1, running: true }];
+const terminals: SharedTerminal[] = [{ id: 1, title: "Local", owner: 0, cols: 110, rows: 24, running: true }];
+const runs: SharedRun[] = [{ id: 1, title: "UserTest", kind: "phpunit", startedBy: 0, running: true }];
 
 /** What the host's terminal showed before the guest joined. */
 const TRANSCRIPT = [
@@ -99,6 +115,20 @@ let connection: ConnectionState = params().has("reconnecting")
   : { state: "connected" };
 let shownTerminals = terminals;
 
+/** The round trip to the demo host (`collab_ping`). */
+const RTT_MS = 23;
+const RELAY = "https://relay.example.com/";
+
+/** The path to the host while connected (the backend reports none while reconnecting). */
+function hostConnections(): ParticipantConnection[] {
+  if (connection.state !== "connected") return [];
+  return params().has("relay")
+    ? [{ participant: 0, kind: "relay", remote: RELAY, rttMs: RTT_MS }]
+    : [{ participant: 0, kind: "direct", remote: "192.168.1.20:41641", rttMs: RTT_MS }];
+}
+
+const relayStatus = (): RelayStatus | undefined => (params().has("relay") ? { url: RELAY, connected: true } : undefined);
+
 function view(): SessionView {
   const p = permissions();
   return {
@@ -106,7 +136,7 @@ function view(): SessionView {
     canHost: false,
     me: 2,
     participants: [
-      { id: 1, name: HOST, role: "host", color: 1, permissions: PRESETS.fullAccess },
+      { id: 0, name: HOST, role: "host", color: 1, permissions: PRESETS.fullAccess },
       { id: 2, name: "Alex", role: "guest", color: 2, permissions: p },
     ],
     files: [],
@@ -114,11 +144,13 @@ function view(): SessionView {
     hostLabel: HOST_LABEL,
     workspace: collabGuestWorkspace(),
     // `&log`: the host is in its log, which is over the co-editing limit (read-only for guests).
-    presence: params().has("follow") ? [{ participant: 1, ...(params().has("log") ? LOG_PRESENCE : HOST_PRESENCE) }] : [],
+    presence: params().has("follow") ? [{ participant: 0, ...(params().has("log") ? LOG_PRESENCE : HOST_PRESENCE) }] : [],
     followEveryone: params().get("follow") === "all",
     terminals: sharing() && p.terminal !== "none" ? shownTerminals : [],
     runs: sharing() && p.run !== "none" ? runs : [],
     connection,
+    connections: hostConnections(),
+    relay: relayStatus(),
   };
 }
 
@@ -133,7 +165,7 @@ if (isCollabGuestDemo() || isCollabJoinDemo()) {
     emitMock("collab://status", view());
     return view();
   });
-  registerMock("collab_ping", () => 23);
+  registerMock("collab_ping", () => RTT_MS);
   if (!params().has("follow")) setSetting("codeWithMe.followHostOnJoin", false, "user");
   // The host's files as shared documents (following the host opens them), read-only here.
   let nextDoc = 1;
