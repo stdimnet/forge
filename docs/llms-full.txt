@@ -20731,7 +20731,10 @@ Files that control what runs on your machine (run configurations, `composer.json
 
 ## During a session
 
-The popup lists the participants with their permission and offers:
+The popup lists the participants with their permission and, below each name, how the
+connection travels (**Direct** or **Relay**, with the round-trip time). Only one popup is open
+at a time: opening the Code With Me popup closes a status bar popup and the other way round, and
+a control's tooltip is hidden while its popup is open. The popup offers:
 
 - **Copy Session Link** copies the invitation link again.
 - **Regenerate Link** creates a new link and copies it. The old link stops working at once;
@@ -21115,8 +21118,9 @@ Notes:
 - **Status bar**: *Code With Me: Direct · 12 ms* or *Code With Me: Relay (relay.example.com)* for
   guests; hosts see *2 guests, direct* or *2 guests, 1 via relay*. The tooltip lists every
   participant. A warning icon appears when the relay is set but not connected.
-- **Code With Me popup** (toolbar): every participant with a **Direct** or **Relay (host)**
-  badge and the round-trip time, plus the state of the relay server.
+- **Code With Me popup** (toolbar, or click the status bar item): below each participant's name
+  a **Direct** or **Relay (host)** badge and the round-trip time, plus the state of the relay
+  server below the list.
 
 A relayed connection is normal and fully encrypted, only slower (typically 20 to 100 ms more).
 The badge changes to **Direct** as soon as hole punching succeeds.
