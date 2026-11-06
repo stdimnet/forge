@@ -162,11 +162,19 @@ pub async fn answer(manager: &LspManager, req: LspRequest) -> Result<Vec<u8>, St
                 .await
                 .map_err(err)?,
         ),
-        Q::WorkspaceSymbols { query } => {
+        Q::WorkspaceSymbols {
+            query,
+            include_non_project,
+        } => {
             let mut hits = manager.workspace_symbols(&query).await;
+            // Files outside the project (php-lsp's bundled stubs, global libraries) are never
+            // sent to guests; `vendor/` and `node_modules/` only with `include_non_project`.
+            // Both before the limit, so those hits do not take the project's places.
+            hits.retain(|h| Path::new(&h.path).starts_with(&root));
             for h in &mut hits {
                 h.path = relative(&root, Path::new(&h.path));
             }
+            forge_lsp::model::retain_project_symbols(&mut hits, include_non_project);
             hits.truncate(500);
             json(&hits)
         }

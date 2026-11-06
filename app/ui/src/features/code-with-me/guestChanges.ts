@@ -11,6 +11,7 @@
  */
 import { EditorState, RangeSet, StateEffect, StateField, type Extension, type Text } from "@codemirror/state";
 import { EditorView, gutter, GutterMarker } from "@codemirror/view";
+import { t } from "@/i18n";
 
 export interface Author {
   /** The participant's color index (1-8, `--collab-<n>`). */
@@ -44,8 +45,8 @@ class GuestLine extends GutterMarker {
   toDOM(): Node {
     const el = document.createElement("div");
     el.className = `cm-cwm-guest-line cm-cwm-guest-${this.color}`;
-    el.title = `Changed by ${this.name}`;
-    el.setAttribute("aria-label", `Changed by ${this.name}`);
+    el.title = t("tools.codeWithMe.changedBy", { name: this.name });
+    el.setAttribute("aria-label", t("tools.codeWithMe.changedBy", { name: this.name }));
     return el;
   }
 }

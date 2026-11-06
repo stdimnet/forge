@@ -45,6 +45,7 @@ skills in [`.claude/skills/`](../../../.claude/skills/); the detailed IPC contra
 | --- | --- |
 | [Screenshots and scenarios](screenshots.md) | Playwright scenarios, checking UI changes |
 | [Quality gates](quality-gates.md) | the checks before every commit |
+| [Code With Me test plan](code-with-me-test-plan.md) | the manual desktop checks on Linux, Windows and macOS |
 | [Release builds](release-builds.md) | AppImage, deb/rpm, installers, remote agents |
 | [Search benchmark](search-benchmark.md) | measure the search index and compare a change against the baseline |
 | [Versioning](versioning.md) | Pride Versioning, `pnpm version:bump`, releasing a version |

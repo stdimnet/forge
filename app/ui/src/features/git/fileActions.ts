@@ -12,6 +12,7 @@ import { openFileHistory, openSelectionHistory } from "./history";
 import { openBranchChanges } from "./BranchChanges";
 import { activeView } from "@/features/navigation/editorCommands";
 import { activeTab } from "@/state/editor";
+import { projectPathOf } from "@/ipc/projectPath";
 import { logDate } from "./format";
 import { notify, runGit, status } from "./store";
 import { setChooserDialog, toggleAnnotate } from "./overlays";
@@ -113,7 +114,7 @@ export function showTargetHistory(): void {
 export function showSelectionHistory(): void {
   const tab = activeTab();
   const view = activeView();
-  if (!tab || !view || tab.view || tab.path.includes("://")) return;
+  if (!tab || !view || tab.view || projectPathOf(tab.path).includes("://")) return;
   if (!stateOf([{ path: tab.path, dir: false }]).fileTracked) return notify("info", tr("git.fileActions.theFileIsNotUnder"));
   const sel = view.state.selection.main;
   const first = view.state.doc.lineAt(sel.from).number;

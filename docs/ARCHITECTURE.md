@@ -1129,7 +1129,12 @@ S7), and the host refuses other versions in the knock. `GuestMessage` holds only
 host's policy can check; project calls travel as the closed `HostCall` enum inside
 `GuestMessage::Call`. Frames are limited (`MAX_GUEST_FRAME` 4 MB, `MAX_HOST_FRAME` 32 MB);
 per-guest queues are bounded (`GUEST_QUEUE`, a guest that does not keep up is cut off;
-`HostSession::backlog` reports the deepest queue). Documents use Yjs v1 updates and
+`HostSession::backlog` reports the deepest queue). Each guest also has rate limits
+(`rate::GuestLimits`, token buckets checked in `run_guest` before anything else): project calls,
+document open / save / sync and terminal / run input over their rate are answered "Too many
+requests. Try again in a moment." and logged once per burst; edits and carets are never dropped
+(that would break convergence), but a guest sending far more messages than anyone types
+(`FLOOD_RATE`) is disconnected. Documents use Yjs v1 updates and
 `y-protocols/awareness`; the host stamps every awareness entry with the sender's name and
 color, so carets cannot be spoofed.
 
@@ -1155,6 +1160,22 @@ when the host saves (memory wins), when the disk changes back to the saved text,
 document is edited into the disk's text. Updates from guests reach the host's UI with `from`
 (the participant), and the host's editor marks the lines guests changed until the next save
 (`guestChanges.ts`, a gutter in the guest's color).
+
+**View-only documents.** `host::read_shared` reads a file as bytes and classifies it
+(`host::shareable`): text up to `codeWithMe.maxSharedFileSize` is shared for editing; text
+over it, and binary files (a NUL byte in the first 8 KiB, or not UTF-8), become documents with
+`SharedDoc::view` set (`protocol::ViewOnly::{Large, Binary} { size }`; binary ones hold no
+text); files over `protocol::MAX_VIEW_SIZE` (16 MiB, or the setting if higher) are refused. `DocOpened` / `DocSynced`
+carry `view` (`#[serde(default)]`, so older peers interoperate) and `read_only: true` for
+everyone; updates and saves of such a document are refused like any other denied write
+(`document_write_denied`), language servers skip them, and the host's own tab of the file stays
+a normal, unshared tab (`open_doc` refuses it). They still follow the file on disk. The guest's
+editor shows a banner above the file (`binding.ts`, `viewOnlyText`).
+
+**Frame limits.** Guests send at most `MAX_GUEST_FRAME` (4 MiB) per message, the host
+`MAX_HOST_FRAME` (32 MiB). A message over the limit is not sent (`transport::write_or_skip`,
+logged) instead of ending the connection; a guest call over it fails at once with "The request
+is too large to send to the host." (e.g. analysis that sends a multi-megabyte editor text).
 
 **Reconnect.** `Welcome` carries a resume token; a guest whose connection dropped dials again
 with `GuestMessage::Resume` and keeps its place, color, documents, terminals and runs for
@@ -1186,21 +1207,23 @@ network: edits, saves, disk changes and conflicts, renames, permissions, reconne
 editing, following and sharing a terminal; asserts convergence and bounded queues; a heavier
 variant is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`),
 `decoding.rs` (proptest: links, frames and host calls from peers fail cleanly and round-trip),
+`rate_limits.rs` (flooding guests are refused or disconnected, the others are not affected),
 `guest_backend.rs`, `guest_lsp.rs`, `terminals_runs.rs`, `approval.rs`, `relay.rs` (an
 in-process `iroh-relay`), `quic_loopback.rs`. Fuzz targets (cargo-fuzz, own workspace, not run
 by `cargo test`) are in `crates/forge-collab/fuzz`: `link_parse`, `frame_decode`,
 `host_call_decode`; run one with `cd crates/forge-collab/fuzz && cargo +nightly fuzz run
 link_parse`.
 
-**Binary size.** forge-collab is the only path to 72 crates of the app's 871 (normal
+**Binary size.** forge-collab is the only path to 62 crates of the app's 822 (normal
 dependencies, `cargo tree -p forge-app -e normal --prefix none` compared with the same command
 with `--prune forge-collab`): iroh with its relay client, DNS and mDNS lookup, the QUIC stack
 (`noq`), `netwatch` / `netdev` / `netlink-*`, `yrs`, `blake3`, AES-GCM and `postcard`. TLS
-(`rustls` / `ring`) and tokio are shared with the rest of the app. The size in bytes is
-measured on a release build: `cargo bloat --release -p forge-app --crates -n 60` (cargo-bloat)
-lists the `.text` size per crate; the sum over the crates above is forge-collab's share. It
-was not measured on the development machine (a release build of the app needs more disk and
-time than it has); do it on the release machine before merging the Code With Me PR.
+(`rustls` / `ring`) and tokio are shared with the rest of the app. Measured on 2026-11-06 with
+`CARGO_PROFILE_RELEASE_STRIP=false cargo bloat --release -p forge-app --bin forge --crates -n 0`
+(Linux x86_64, release profile): those crates plus forge-collab add **5.4 MiB of 109.9 MiB
+`.text`** (about 5 %); the largest are forge-collab (1.3 MiB), `netlink-packet-route`
+(1.0 MiB), iroh (0.8 MiB), `noq-proto` (0.7 MiB) and yrs (0.3 MiB). The stripped release binary
+is 145 MiB.
 
 ## Dev Containers and WSL (`forge-devenv`)
 

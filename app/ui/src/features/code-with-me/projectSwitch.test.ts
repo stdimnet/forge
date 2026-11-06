@@ -3,7 +3,9 @@
  * and Inspection Results windows and the Safe Mode banner showed of that project is dropped.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { adoptWorkspace, closeWorkspace, onProjectSwitch } from "@/state/workspace";
+import { createEffect, createRoot } from "solid-js";
+import { adoptWorkspace, closeWorkspace, onProjectSwitch, workspace } from "@/state/workspace";
+import { projectPathOf } from "@/ipc/projectPath";
 import { projectTree, revealPath } from "@/features/project/ProjectView";
 import { diagnostics, publishDiagnostics } from "@/features/lsp/store";
 import { findTabs, showSearchTab, searchTabOpen } from "@/features/codeintel/usages";
@@ -44,6 +46,23 @@ describe("joining a session from a window with a project", () => {
     closeWorkspace(); // leaving the session
     expect(reset).toHaveBeenCalledTimes(2);
     stop();
+  });
+
+  it("does not set the host's project again with every session status", () => {
+    const seen: unknown[] = [];
+    const dispose = createRoot((d) => {
+      createEffect(() => seen.push(workspace()));
+      return d;
+    });
+    adoptWorkspace(guest);
+    adoptWorkspace({ ...guest, collab: { ...guest.collab } }); // the next status update
+    expect(seen).toEqual([null, guest]);
+    // The guest's root is not one of its `cwm://` tabs.
+    expect(projectPathOf(guest.root)).toBe(guest.root);
+    expect(projectPathOf("cwm://app/Models/Order.php")).toBe("app/Models/Order.php");
+    closeWorkspace();
+    expect(projectPathOf(guest.root)).toBe("Robert/shop");
+    dispose();
   });
 
   it("starts the Project tree of the host's project collapsed and unselected", () => {

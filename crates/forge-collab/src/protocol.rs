@@ -29,6 +29,19 @@ pub const ALPN: &[u8] = b"forge/cwm/1";
 pub const MAX_HOST_FRAME: usize = 32 * 1024 * 1024;
 /// Largest frame the host accepts from a guest (one edit, e.g. a large paste).
 pub const MAX_GUEST_FRAME: usize = 4 * 1024 * 1024;
+/// Largest file guests can open at all. Files over the co-editing limit (`max_file_size`) and
+/// binary files up to this size open read-only for everyone ([`ViewOnly`]).
+pub const MAX_VIEW_SIZE: usize = 16 * 1024 * 1024;
+
+/// Why a shared file is read-only for every guest, whatever their permissions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ViewOnly {
+    /// Larger than the co-editing limit: guests read the file as it is on disk.
+    Large { size: u64 },
+    /// Not text: guests see that the file exists, not its bytes.
+    Binary { size: u64 },
+}
 
 /// A shared document, numbered by the host. Documents are keyed by id, not by path, so a
 /// rename keeps everyone's tab.
@@ -219,6 +232,9 @@ pub enum HostMessage {
         /// document ([`HostMessage::DocConflict`]).
         #[serde(default)]
         conflict: bool,
+        /// The file is too large to co-edit, or binary (older hosts leave it out).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        view: Option<ViewOnly>,
     },
     DocError {
         request: u64,
@@ -237,6 +253,8 @@ pub enum HostMessage {
         read_only: bool,
         #[serde(default)]
         conflict: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        view: Option<ViewOnly>,
     },
     DocUpdate {
         doc: DocId,

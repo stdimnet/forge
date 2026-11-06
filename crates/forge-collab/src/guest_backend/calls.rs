@@ -250,8 +250,13 @@ pub enum LspQuery {
         tab_size: u32,
         insert_spaces: bool,
     },
-    /// -> `Vec<EditorWorkspaceSymbol>`
-    WorkspaceSymbols { query: String },
+    /// -> `Vec<EditorWorkspaceSymbol>`; library and other non-project hits (e.g. php-lsp's
+    /// bundled stubs) only with `include_non_project`, filtered on the host before the limit.
+    WorkspaceSymbols {
+        query: String,
+        #[serde(default)]
+        include_non_project: bool,
+    },
 }
 
 impl HostCall {

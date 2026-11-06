@@ -19,7 +19,9 @@ pub enum LaunchTarget {
 }
 
 /// Interpret launcher arguments (without the program name). Relative paths are resolved
-/// against `cwd`; arguments that name nothing on disk are skipped with a warning.
+/// against `cwd`; arguments that name nothing on disk are skipped with a warning. Empty and
+/// whitespace-only arguments (launchers and scripts that pass an unset variable) are
+/// ignored: only an explicit `.` means the current directory.
 pub fn parse_launch_args<I, S>(args: I, cwd: &Path) -> Vec<LaunchTarget>
 where
     I: IntoIterator<Item = S>,
@@ -31,6 +33,10 @@ where
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         let arg = arg.as_ref();
+        if arg.trim().is_empty() {
+            // `cwd.join("")` is `cwd` itself, which would open it as a project.
+            continue;
+        }
         match arg {
             "--line" | "-l" => {
                 line = args.next().and_then(|v| v.as_ref().parse().ok());
@@ -184,5 +190,53 @@ mod tests {
             [LaunchTarget::Link(LinkAction::Open(r))] if r.file == "/x/y.php" && r.line == Some(3)
         ));
         assert!(parse_launch_args(["forge://nope"], Path::new("/")).is_empty());
+    }
+
+    #[test]
+    fn empty_arguments_open_nothing() {
+        let (_d, base) = fixture();
+        assert!(parse_launch_args(["", " ", "\t", " \n "], &base).is_empty());
+        // An empty argument between a file and its line number does not swallow the number.
+        let targets = parse_launch_args(["app/src/App.tsx", "", "14"], &base);
+        assert_eq!(
+            targets,
+            vec![file(&base.join("app/src/App.tsx"), Some(14), None)]
+        );
+        // Neither does an empty value of a JetBrains flag.
+        let targets = parse_launch_args(["--line", "", "app"], &base);
+        assert_eq!(targets, vec![LaunchTarget::Project(base.join("app"))]);
+    }
+
+    #[test]
+    fn dot_relative_and_absolute_directories() {
+        let (_d, base) = fixture();
+        let targets = parse_launch_args([".", "app/src", base.to_str().unwrap()], &base);
+        assert_eq!(
+            targets,
+            vec![
+                LaunchTarget::Project(base.join(".")),
+                LaunchTarget::Project(base.join("app/src")),
+                LaunchTarget::Project(base.clone()),
+            ]
+        );
+    }
+
+    #[test]
+    fn empty_links_open_nothing() {
+        let links = [
+            "forge://open",
+            "forge://open?file=",
+            "forge://open?file=%20%20",
+            "forge://open?path=",
+            "forge://open?url=file://",
+            "forge://open-symbol?name=",
+            "forge:",
+        ];
+        for link in links {
+            assert!(
+                parse_launch_args([link], Path::new("/")).is_empty(),
+                "{link} opened something"
+            );
+        }
     }
 }

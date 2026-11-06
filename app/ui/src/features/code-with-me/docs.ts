@@ -9,11 +9,14 @@
  */
 import * as Y from "yjs";
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, modifyAwarenessUpdate, removeAwarenessStates } from "y-protocols/awareness";
-import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant } from "@/ipc/collab";
+import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant, type ViewOnly } from "@/ipc/collab";
 import { withAuthor, type Author } from "./guestChanges";
 import { session } from "./store";
+import { t } from "@/i18n";
 
-export const GUEST_PREFIX = "cwm://";
+import { GUEST_PREFIX } from "@/ipc/projectPath";
+
+export { GUEST_PREFIX };
 
 /** Origin of updates that came from the session (other participants, the disk). */
 export const REMOTE = Symbol("collab-remote");
@@ -28,6 +31,8 @@ export interface SharedDoc {
   undo: Y.UndoManager;
   savedHash: string;
   readOnly: boolean;
+  /** Read-only for everyone: too large to co-edit, or binary (`ViewOnly`). */
+  view?: ViewOnly;
   dispose: () => void;
 }
 
@@ -68,7 +73,7 @@ export function sanitizeState(state: unknown): unknown {
   const s = state as { user?: { name?: unknown; colorIndex?: unknown } };
   if (!s.user) return state;
   const colorIndex = Math.min(8, Math.max(1, Math.floor(Number(s.user.colorIndex)) || 1));
-  return { ...s, user: { name: String(s.user.name ?? "Guest").slice(0, 64), colorIndex, ...userStyle(colorIndex) } };
+  return { ...s, user: { name: String(s.user.name ?? t("tools.codeWithMe.guestName")).slice(0, 64), colorIndex, ...userStyle(colorIndex) } };
 }
 
 /** Create the local replica of a document the session opened for us. */
@@ -106,6 +111,7 @@ export function adoptDoc(tabPath: string, opened: DocOpened, me: Participant | u
     undo,
     savedHash: opened.saved.hash,
     readOnly: opened.readOnly,
+    view: opened.view,
     dispose: () => {
       removeAwarenessStates(awareness, [ydoc.clientID], "local");
       ydoc.off("update", onUpdate);
@@ -149,7 +155,7 @@ export function releaseAll(): void {
 function authorOf(from: number | undefined): Author | null {
   if (from === undefined) return null;
   const p = session().participants.find((x) => x.id === from);
-  return { color: p?.color ?? 1, name: p?.name ?? "A guest" };
+  return { color: p?.color ?? 1, name: p?.name ?? t("tools.codeWithMe.aGuest") };
 }
 
 function applyEvent(doc: SharedDoc, e: DocEvent): void {
@@ -190,6 +196,7 @@ export async function resyncDoc(doc: SharedDoc, api: ResyncApi = collabApi): Pro
   // An empty update is two zero bytes (no structs, no deletes).
   if (missing.length > 2) await api.docUpdate(doc.docId, missing);
   doc.readOnly = synced.readOnly;
+  doc.view = synced.view;
   const renamed = doc.tabPath.startsWith(GUEST_PREFIX) && synced.path && GUEST_PREFIX + synced.path !== doc.tabPath;
   // A conflict may have opened or ended while the connection was down.
   handleDocEvent({ docId: doc.docId, saved: synced.saved, conflict: { open: !!synced.conflict, path: "" }, ...(renamed ? { renamed: synced.path } : {}) });

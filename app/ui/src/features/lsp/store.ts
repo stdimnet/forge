@@ -5,6 +5,8 @@
 import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { lspApi, type EditorDiagnostic, type ServerStatus, type Severity } from "@/ipc/lsp";
+import { GUEST_PREFIX } from "@/ipc/projectPath";
+import { editor } from "@/state/editor";
 import { onProject } from "@/state/projectLifecycle";
 
 const [diagnostics, setDiagnostics] = createStore<Record<string, EditorDiagnostic[]>>({});
@@ -136,13 +138,22 @@ export function filesWithProblems(all: Record<string, EditorDiagnostic[]>): stri
     });
 }
 
+/**
+ * Where the server's diagnostics for a project file go: a Code With Me guest's `cwm://` tab
+ * of that file when one is open (the host's servers name the project file), else the file.
+ */
+export function diagnosticsTab(path: string): string {
+  const shared = GUEST_PREFIX + path;
+  return !path.includes("://") && editor.tabs.some((t) => t.path === shared) ? shared : path;
+}
+
 let started = false;
 
 /** Subscribe to backend events once. */
 export function startLspListeners(): void {
   if (started) return;
   started = true;
-  void lspApi.onDiagnostics((e) => publishDiagnostics(e.path, e.diagnostics));
+  void lspApi.onDiagnostics((e) => publishDiagnostics(diagnosticsTab(e.path), e.diagnostics));
   void lspApi.onStatus((s) => setServerStatuses(s));
   lspApi
     .status()

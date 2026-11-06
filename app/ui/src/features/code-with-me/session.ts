@@ -24,6 +24,7 @@ import {
   unshareTab,
 } from "@/state/editor";
 import { workspace } from "@/state/workspace";
+import { projectPathOf } from "@/ipc/projectPath";
 import {
   adoptDoc,
   GUEST_PREFIX,
@@ -43,6 +44,7 @@ import { askChoice } from "@/features/contextMenu/dialogs";
 import { setDiffRequest } from "@/features/git/overlays";
 import { dismissBalloon } from "@/keymap/dispatch";
 import { conflictHandler, fileName } from "./conflict";
+import { t } from "@/i18n";
 
 /** Project files (not scratches, consoles or other pseudo paths). */
 const isProjectFile = (path: string) => !path.includes("://") && !path.startsWith("forge:");
@@ -68,8 +70,8 @@ export const conflicts = conflictHandler({
     const disk = normalizeEol(await workspaceApi.readFile(path)).text;
     setDiffRequest({
       path,
-      left: { title: "File system content (Read-only)", content: disk },
-      right: { title: "Memory content (Read-only)", content: memory },
+      left: { title: t("tools.codeWithMe.fileSystemContent"), content: disk },
+      right: { title: t("tools.codeWithMe.memoryContent"), content: memory },
       editable: false,
     });
   },
@@ -77,8 +79,8 @@ export const conflicts = conflictHandler({
     const doc = sharedDocById(docId);
     return doc ? fileName(doc.tabPath) : undefined;
   },
-  hostName: () => session().participants.find((p) => p.role === "host")?.name ?? "The host",
-  error: (text) => showBalloon("Code With Me", text),
+  hostName: () => session().participants.find((p) => p.role === "host")?.name ?? t("tools.codeWithMe.theHostCapitalized"),
+  error: (text) => showBalloon(t("tools.codeWithMe.title"), text),
 });
 
 setConflictListener(conflicts.handle);
@@ -94,8 +96,8 @@ setSharedTabSource({
   open: async (path) => {
     const s = session();
     if (path.startsWith(GUEST_PREFIX)) {
-      if (s.role !== "guest") throw new Error("The Code With Me session has ended.");
-      const doc = sharedDoc(path) ?? adoptOpened(path, await collabApi.docOpen(path.slice(GUEST_PREFIX.length)), myself(s));
+      if (s.role !== "guest") throw new Error(t("tools.codeWithMe.sessionHasEnded"));
+      const doc = sharedDoc(path) ?? adoptOpened(path, await collabApi.docOpen(projectPathOf(path)), myself(s));
       return { content: doc.ytext.toString(), savedHash: doc.savedHash };
     }
     if (s.role !== "host" || !isProjectFile(path)) return undefined;
@@ -112,7 +114,7 @@ setSharedTabSource({
     try {
       await collabApi.docSave(doc.docId);
     } catch (e) {
-      showBalloon("Cannot save", String((e as Error)?.message ?? e));
+      showBalloon(t("tools.codeWithMe.cannotSave"), String((e as Error)?.message ?? e));
     }
   },
 });
@@ -120,9 +122,9 @@ setSharedTabSource({
 // Guests' tabs: breadcrumbs under "Code With Me"; reading and writing go through the session.
 registerFileSystem({
   prefix: GUEST_PREFIX,
-  read: () => Promise.reject(new Error("Shared files open through the Code With Me session.")),
+  read: () => Promise.reject(new Error(t("tools.codeWithMe.sharedFilesOpenThroughSession"))),
   write: () => Promise.resolve(),
-  breadcrumbs: (path) => ["Code With Me", ...path.slice(GUEST_PREFIX.length).split("/")],
+  breadcrumbs: (path) => [t("tools.codeWithMe.title"), ...path.slice(GUEST_PREFIX.length).split("/")],
 });
 
 onTabClosed((tab) => releaseDoc(tab.path));
@@ -143,7 +145,7 @@ onSharedDocEvent((doc, e) => {
     const path = doc.tabPath;
     releaseDoc(path, false);
     if (path.startsWith(GUEST_PREFIX)) {
-      showBalloon("Code With Me", e.closed);
+      showBalloon(t("tools.codeWithMe.title"), e.closed);
       closeTab(path);
     } else {
       unshareTab(path, "");
@@ -168,7 +170,7 @@ async function shareOpenTabs(s: SessionView): Promise<void> {
 
 /** The session ended on the host: shared tabs become normal tabs with their text kept. */
 async function unshareTabs(): Promise<void> {
-  for (const tab of editor.tabs.filter((t) => t.shared && !t.path.startsWith(GUEST_PREFIX))) {
+  for (const tab of editor.tabs.filter((x) => x.shared && !x.path.startsWith(GUEST_PREFIX))) {
     releaseDoc(tab.path, false);
     const disk = await workspaceApi
       .readFile(tab.path)
@@ -180,7 +182,7 @@ async function unshareTabs(): Promise<void> {
 }
 
 function closeGuestTabs(): void {
-  for (const tab of editor.tabs.filter((t) => t.path.startsWith(GUEST_PREFIX))) {
+  for (const tab of editor.tabs.filter((x) => x.path.startsWith(GUEST_PREFIX))) {
     releaseDoc(tab.path, false);
     closeTab(tab.path);
   }
@@ -189,8 +191,8 @@ function closeGuestTabs(): void {
 /** Follow the session: share on start, open the host's files on join, clean up on end. */
 export function trackEditorSharing(): void {
   void collabApi.onDoc(handleDocEvent);
-  void collabApi.onNotice((e) => showBalloon("Code With Me", e.text));
-  void collabApi.onEnded((e) => showBalloon("Code With Me", e.reason, 6000));
+  void collabApi.onNotice((e) => showBalloon(t("tools.codeWithMe.title"), e.text));
+  void collabApi.onEnded((e) => showBalloon(t("tools.codeWithMe.title"), e.reason, 6000));
   createRoot(() => {
     // A memo: status events arrive all the time and must not rerun this for the same role.
     const role = createMemo(() => session().role);

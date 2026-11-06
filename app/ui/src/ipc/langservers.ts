@@ -122,7 +122,9 @@ export const langserversApi = {
   /** Update a Forge-installed npm package to its latest version. */
   update: (pkg: string) => invoke<InstallOutcome>("langservers_update", { package: pkg }),
   onInstallProgress: (cb: (p: InstallProgress) => void) => listen<InstallProgress>("langservers://install-progress", cb),
-  workspaceSymbols: (query: string, limit = 200) => invoke<WorkspaceSymbol[]>("lsp_workspace_symbols", { query, limit }),
+  /** Library and other non-project hits (e.g. php-lsp's PHP stubs) only with `includeNonProject`. */
+  workspaceSymbols: (query: string, includeNonProject = false, limit = 200) =>
+    invoke<WorkspaceSymbol[]>("lsp_workspace_symbols", { query, limit, includeNonProject }),
   onInstallOutput: (cb: (l: InstallLine) => void) => listen<InstallLine>("langservers://install-output", cb),
   onChanged: (cb: () => void) => listen<unknown>("langservers://changed", () => cb()),
 };

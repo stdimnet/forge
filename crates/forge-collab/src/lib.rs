@@ -22,6 +22,7 @@
 //! - [`audit`]: the host's session log (JSON Lines in the user data directory).
 //! - [`approval`]: host approval, the admission that asks the host before a guest joins.
 //! - [`host`]: the host's session: admission, shared documents, saving, disk changes.
+//! - [`rate`]: per-guest rate limits (token buckets) the host applies to guest messages.
 //! - [`guest`]: a guest's session, forwarding between its editor and the host.
 //! - [`guest_backend`]: the host's project as a guest's project backend (tree, search, git,
 //!   language servers, PHP), with the host's enforcement.
@@ -50,6 +51,8 @@ pub mod guest;
 pub mod guest_backend;
 #[cfg(feature = "runtime")]
 pub mod host;
+#[cfg(feature = "runtime")]
+pub mod rate;
 #[cfg(feature = "runtime")]
 pub mod transport;
 

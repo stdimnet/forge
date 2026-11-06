@@ -6,19 +6,25 @@
 import { langserversApi, type WorkspaceSymbol } from "@/ipc/langservers";
 import { registerSearchProvider, type SearchItem } from "@/features/search/providers";
 import { revealLocation } from "@/features/lsp/navigation";
-import { CLASS_KINDS, searchKind, uniqueSymbols } from "./model";
+import { CLASS_KINDS, searchKind, symbolDedupeKey, uniqueSymbols } from "./model";
 
 /** One backend request serves both tabs of the same query (the "All" tab asks both). */
-let last: { query: string; at: number; result: Promise<WorkspaceSymbol[]> } | null = null;
+let last: { query: string; includeNonProject: boolean; at: number; result: Promise<WorkspaceSymbol[]> } | null = null;
 
-export function querySymbols(query: string): Promise<WorkspaceSymbol[]> {
+/**
+ * `workspace/symbol` over all running servers. Library hits (`vendor/`, a server's bundled
+ * stubs) only come with `includeNonProject`, PHPStorm's "Include non-project items".
+ */
+export function querySymbols(query: string, includeNonProject = false): Promise<WorkspaceSymbol[]> {
   const now = Date.now();
-  if (last && last.query === query && now - last.at < 1500) return last.result;
+  if (last && last.query === query && last.includeNonProject === includeNonProject && now - last.at < 1500) {
+    return last.result;
+  }
   const result = langserversApi
-    .workspaceSymbols(query)
+    .workspaceSymbols(query, includeNonProject)
     .then(uniqueSymbols)
     .catch(() => [] as WorkspaceSymbol[]);
-  last = { query, at: now, result };
+  last = { query, includeNonProject, at: now, result };
   return result;
 }
 
@@ -32,6 +38,8 @@ export function symbolItem(s: WorkspaceSymbol): SearchItem {
     // Servers already filtered (and ranked) their hits: keep the ones that do not match
     // fuzzily; equal scores keep the server's order.
     match: { keepUnmatched: true },
+    // The PHP index lists the same classes and members with more detail; its item wins.
+    dedupeKey: symbolDedupeKey(s.path, s.name),
     detail: s.containerName ? `${s.containerName} · ${dir || "/"}` : dir,
     hint: line ? `${file}:${line}` : file,
     kind: searchKind(s.kind),
@@ -49,9 +57,9 @@ export function registerSymbolProviders(): void {
     tab: "symbols",
     title: "Symbols",
     order: 50,
-    async search(query) {
+    async search(query, opts) {
       if (query.trim().length < 2) return [];
-      return (await querySymbols(query.trim())).map(symbolItem);
+      return (await querySymbols(query.trim(), opts.includeNonProject)).map(symbolItem);
     },
   });
   registerSearchProvider({
@@ -59,9 +67,9 @@ export function registerSymbolProviders(): void {
     tab: "classes",
     title: "Classes",
     order: 50,
-    async search(query) {
+    async search(query, opts) {
       if (query.trim().length < 2) return [];
-      return (await querySymbols(query.trim())).filter((s) => CLASS_KINDS.has(s.kind)).map(symbolItem);
+      return (await querySymbols(query.trim(), opts.includeNonProject)).filter((s) => CLASS_KINDS.has(s.kind)).map(symbolItem);
     },
   });
 }

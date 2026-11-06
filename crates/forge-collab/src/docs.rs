@@ -17,7 +17,7 @@ use yrs::{
 };
 
 use crate::presence::{caret_color, selection_color, Participant, ParticipantId};
-use crate::protocol::{DocId, SaveState};
+use crate::protocol::{DocId, SaveState, ViewOnly};
 use crate::textdiff;
 
 /// Name of the shared text in every document (`ydoc.getText("content")` in the UI).
@@ -88,6 +88,9 @@ pub struct SharedDoc {
     clients: HashMap<u64, (ParticipantId, u32)>,
     /// The file's text on disk (`\n` line endings) while a File Cache Conflict is open.
     conflict: Option<(String, Eol)>,
+    /// Read-only for everyone: too large to co-edit, or binary. Nobody edits or saves it; it
+    /// follows the file on disk.
+    pub view: Option<ViewOnly>,
 }
 
 impl SharedDoc {
@@ -116,7 +119,14 @@ impl SharedDoc {
             open_by: BTreeSet::new(),
             clients: HashMap::new(),
             conflict: None,
+            view: None,
         }
+    }
+
+    /// The document shown read-only to everyone (see [`SharedDoc::view`]).
+    pub fn with_view(mut self, view: Option<ViewOnly>) -> Self {
+        self.view = view;
+        self
     }
 
     /// The whole document as one update (for participants opening it).

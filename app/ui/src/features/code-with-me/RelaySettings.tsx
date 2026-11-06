@@ -8,6 +8,7 @@ import { Eye, EyeOff, X } from "lucide-solid";
 import { collabApi, type RelayStatus, type RelayTokenStatus } from "@/ipc/collab";
 import { draftValue } from "@/features/settings/dialogState";
 import { relayHost } from "./connection";
+import { t } from "@/i18n";
 
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);
 
@@ -31,19 +32,16 @@ function TokenDialog(props: { current: RelayTokenStatus | null; onClose: (s?: Re
   return (
     <Layer kind="modal">
       <div class="cwm-overlay" onMouseDown={(e) => e.target === e.currentTarget && props.onClose()}>
-        <div class="cwm-dialog" role="dialog" aria-label="Relay Token" onKeyDown={(e) => e.key === "Escape" && props.onClose()}>
+        <div class="cwm-dialog" role="dialog" aria-label={t("tools.codeWithMe.relayToken")} onKeyDown={(e) => e.key === "Escape" && props.onClose()}>
           <header class="cwm-dialog-title">
-            <span>Relay Token</span>
-            <button class="icon-btn" title="Close" onClick={() => props.onClose()}>
+            <span>{t("tools.codeWithMe.relayToken")}</span>
+            <button class="icon-btn" title={t("common.close")} onClick={() => props.onClose()}>
               <X size={15} />
             </button>
           </header>
           <div class="cwm-dialog-body">
-            <p class="cwm-dialog-text">
-              Relay servers started with token access control only accept connections that present the token. Guests who use the
-              same relay server enter the same token.
-            </p>
-            <label for="cwm-relay-token">Token:</label>
+            <p class="cwm-dialog-text">{t("tools.codeWithMe.relayTokenText")}</p>
+            <label for="cwm-relay-token">{t("tools.codeWithMe.tokenLabel")}</label>
             <div class="cwm-secret">
               <input
                 id="cwm-relay-token"
@@ -52,32 +50,32 @@ function TokenDialog(props: { current: RelayTokenStatus | null; onClose: (s?: Re
                 type={reveal() ? "text" : "password"}
                 autocomplete="off"
                 spellcheck={false}
-                placeholder={props.current?.set ? "Replace the stored token" : "Paste the token"}
+                placeholder={props.current?.set ? t("tools.codeWithMe.replaceStoredToken") : t("tools.codeWithMe.pasteToken")}
                 value={token()}
                 onInput={(e) => setToken(e.currentTarget.value)}
                 onKeyDown={(e) => e.key === "Enter" && token().trim() && void save(token())}
               />
-              <button class="icon-btn" title={reveal() ? "Hide" : "Show"} onClick={() => setReveal((v) => !v)}>
+              <button class="icon-btn" title={reveal() ? t("tools.codeWithMe.hide") : t("tools.codeWithMe.show")} onClick={() => setReveal((v) => !v)}>
                 {reveal() ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <Show when={error()}>
               <div class="cwm-error">{error()}</div>
             </Show>
-            <p class="cwm-hint">Stored in the system keychain, never in settings files or session links.</p>
+            <p class="cwm-hint">{t("tools.codeWithMe.tokenStorageHint")}</p>
           </div>
           <footer class="cwm-dialog-footer">
             <Show when={props.current?.set}>
               <button class="btn-secondary cwm-remove" disabled={busy()} onClick={() => void save(null)}>
-                Remove Token
+                {t("tools.codeWithMe.removeToken")}
               </button>
             </Show>
             <span class="cwm-spacer" />
             <button class="btn-secondary" onClick={() => props.onClose()}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button class="btn-primary" disabled={busy() || !token().trim()} onClick={() => void save(token())}>
-              Save
+              {t("common.save")}
             </button>
           </footer>
         </div>
@@ -100,7 +98,7 @@ export function RelayServerTools() {
     setResult(null);
     try {
       const r: RelayStatus = await collabApi.testRelay(url(), publicRelays());
-      setResult({ ok: r.connected, text: `Connected to ${relayHost(r.url)}.` });
+      setResult({ ok: r.connected, text: t("tools.codeWithMe.connectedTo", { host: relayHost(r.url) }) });
     } catch (e) {
       setResult({ ok: false, text: errorText(e) });
     } finally {
@@ -110,19 +108,19 @@ export function RelayServerTools() {
   return (
     <div class="cwm-relay-tools" data-testid="cwm-relay-tools">
       <div class="cwm-relay-row">
-        <span class="cwm-relay-label">Relay token:</span>
+        <span class="cwm-relay-label">{t("tools.codeWithMe.relayTokenLabel")}</span>
         <span class="cwm-relay-token" classList={{ set: !!status()?.set }} data-token={status()?.set ? "set" : "none"}>
-          {status()?.set ? "Stored in the keychain" : "None"}
+          {status()?.set ? t("tools.codeWithMe.storedInKeychain") : t("tools.codeWithMe.none")}
         </span>
         <button class="btn-secondary cwm-small-btn" disabled={!url()} onClick={() => setDialog(true)}>
-          {status()?.set ? "Change Token…" : "Set Token…"}
+          {status()?.set ? t("tools.codeWithMe.changeToken") : t("tools.codeWithMe.setToken")}
         </button>
         <button class="btn-secondary cwm-small-btn" disabled={testing() || (!url() && !publicRelays())} onClick={() => void test()}>
-          {testing() ? "Testing…" : "Test Connection"}
+          {testing() ? t("tools.codeWithMe.testing") : t("tools.codeWithMe.testConnection")}
         </button>
       </div>
       <Show when={status()?.error}>
-        <div class="cwm-error">Keychain: {status()?.error}</div>
+        <div class="cwm-error">{t("tools.codeWithMe.keychainError", { error: status()?.error })}</div>
       </Show>
       <Show when={result()}>
         {(r) => (

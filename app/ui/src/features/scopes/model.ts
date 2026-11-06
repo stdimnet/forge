@@ -10,7 +10,7 @@ import { forgeWasm, type ForgeWasm } from "@/wasm";
 import { getSetting } from "@/state/settings";
 import { editor, isCustomTab } from "@/state/editor";
 import { workspace } from "@/state/workspace";
-import { GUEST_PREFIX } from "@/features/code-with-me/docs";
+import { projectPathOf } from "@/ipc/projectPath";
 import { status } from "@/features/git/store";
 import {
   scopesApi,
@@ -197,7 +197,7 @@ export const tabColor = (path: string): string | undefined => {
     if (c) return c;
   }
   // A Code With Me guest's tab of the host's file (`cwm://<path>`) is coloured like the host's tab.
-  const projectFile = path.startsWith(GUEST_PREFIX) ? path.slice(GUEST_PREFIX.length) : path;
+  const projectFile = projectPathOf(path);
   return getSetting<boolean>("fileColors.useInEditorTabs", true) !== false ? colorValue(fileColor(projectFile)) : undefined;
 };
 

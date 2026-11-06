@@ -4,7 +4,7 @@
  * selections, the participant's own undo) and the editor's own history is switched off.
  */
 import { Compartment, EditorState, Prec, Transaction } from "@codemirror/state";
-import { EditorView, keymap, ViewPlugin } from "@codemirror/view";
+import { EditorView, keymap, showPanel, ViewPlugin } from "@codemirror/view";
 import { history } from "@codemirror/commands";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { registerEditorExtension } from "@/editor/extensions";
@@ -12,6 +12,9 @@ import { historyCompartment, registerHistory } from "@/editor/reload";
 import { GUEST_PREFIX, sharedDoc, type SharedDoc } from "./docs";
 import { remoteCarets } from "./remoteCarets";
 import { clearGuestLines, guestChanges } from "./guestChanges";
+import { t } from "@/i18n";
+import { formatSize } from "@/features/images/zoom";
+import type { ViewOnly } from "@/ipc/collab";
 
 const collab = new Compartment();
 const views = new Map<string, EditorView>();
@@ -35,6 +38,23 @@ const collabTheme = EditorView.theme({
   },
 });
 
+/** The banner text of a file guests only read (large or binary). */
+export function viewOnlyText(v: ViewOnly): string {
+  const size = formatSize(v.size);
+  return v.kind === "binary" ? t("tools.codeWithMe.viewOnly.binary", { size }) : t("tools.codeWithMe.viewOnly.large", { size });
+}
+
+/** PHPStorm's editor notification bar above a file that is read-only in the session. */
+function viewOnlyBanner(v: ViewOnly) {
+  return showPanel.of(() => {
+    const dom = document.createElement("div");
+    dom.className = "cwm-view-only-banner";
+    dom.setAttribute("role", "status");
+    dom.textContent = viewOnlyText(v);
+    return { dom, top: true };
+  });
+}
+
 function bind(view: EditorView, doc: SharedDoc): void {
   const text = doc.ytext.toString();
   if (view.state.doc.toString() !== text) {
@@ -51,6 +71,7 @@ function bind(view: EditorView, doc: SharedDoc): void {
         yCollab(doc.ytext, doc.awareness, { undoManager: doc.undo }),
         // Only `true`: the guest's own permission (`guest.ts`) decides otherwise.
         doc.readOnly ? EditorState.readOnly.of(true) : [],
+        doc.view ? viewOnlyBanner(doc.view) : [],
         collabTheme,
         remoteCarets(doc.awareness, doc.ytext),
         // The host sees which lines guests changed until the next save.

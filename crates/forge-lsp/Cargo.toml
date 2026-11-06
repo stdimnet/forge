@@ -9,6 +9,7 @@ license.workspace = true
 forge-core.workspace = true
 forge-hostspawn.workspace = true
 forge-codeintel.workspace = true
+forge-scopes.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

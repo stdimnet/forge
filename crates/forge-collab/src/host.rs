@@ -17,7 +17,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use forge_backend::Backend;
 use forge_core::FsChanges;
@@ -31,13 +31,15 @@ use crate::link::{SessionLink, JOIN_SECRET_LEN, SESSION_ID_LEN};
 use crate::permissions::{Permissions, Policy};
 use crate::presence::{clean_name, ColorAssigner, Participant, ParticipantId, Presence, Role};
 use crate::protocol::{
-    DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
-    PROTOCOL_VERSION,
+    DocId, GuestMessage, HostMessage, SaveState, SharedFile, ViewOnly, MAX_GUEST_FRAME,
+    MAX_HOST_FRAME, MAX_VIEW_SIZE, PROTOCOL_VERSION,
 };
+use crate::rate::{GuestLimits, Verdict};
 use crate::reconnect::{same_token, HOST_GRACE};
 use crate::relay::{ConnectionPath, RelayStatus};
 use crate::transport::{
-    read_msg, write_msg, BoxFuture, BoxRead, BoxWrite, Connection, PeerKey, Transport,
+    read_msg, write_msg, write_or_skip, BoxFuture, BoxRead, BoxWrite, Connection, PeerKey,
+    Transport,
 };
 use crate::verify::{check_proof, verification_code};
 
@@ -68,6 +70,8 @@ enum Leaving {
     Removed,
     /// Its connection dropped and it did not come back within the grace period.
     Lost,
+    /// It sent far more edits and carets than anyone types ([`crate::rate::FLOOD_RATE`]).
+    Flooded,
 }
 
 /// How a guest's connection ended.
@@ -188,6 +192,8 @@ pub struct DocOpened {
     pub read_only: bool,
     /// A File Cache Conflict is open.
     pub conflict: bool,
+    /// Read-only for everyone: too large to co-edit, or binary.
+    pub view: Option<ViewOnly>,
 }
 
 struct Guest {
@@ -202,6 +208,8 @@ struct Guest {
     /// Counts the guest's connections; a dropped connection only counts while it is the
     /// newest.
     epoch: u64,
+    /// Its rate limits; kept across reconnects.
+    limits: GuestLimits,
 }
 
 /// A queue that takes nothing: what a guest gets while it is away.
@@ -624,6 +632,16 @@ impl HostSession {
     /// Share a file the host opens (or has open: `buffer` is its editor text). Excluded files,
     /// `.git/` and files over the size limit are refused and stay unshared.
     pub async fn open_doc(&self, path: &str, buffer: Option<String>) -> Result<DocOpened, String> {
+        // A file guests view read-only stays a normal tab for the host, who edits it on disk.
+        let viewed = {
+            let st = self.state();
+            st.by_path
+                .get(path)
+                .and_then(|id| st.docs[id].view.map(|v| (st.docs[id].path.clone(), v)))
+        };
+        if let Some((path, view)) = viewed {
+            return Err(not_shared(&path, view));
+        }
         if let Some(opened) = self.join_doc(ParticipantId::HOST, path) {
             return Ok(opened);
         }
@@ -633,9 +651,13 @@ impl HostSession {
         let backend = self.backend.clone();
         let rel = path.to_string();
         let limit = self.max_file_size;
-        let disk = tokio::task::spawn_blocking(move || read_shared(&*backend, &rel, limit))
+        let shareable = tokio::task::spawn_blocking(move || read_shared(&*backend, &rel, limit))
             .await
             .map_err(|e| e.to_string())??;
+        if let Some(view) = shareable.view {
+            return Err(not_shared(path, view));
+        }
+        let disk = shareable.text;
         let mut out = Outbox::default();
         let opened = {
             let mut st = self.state();
@@ -881,9 +903,14 @@ impl HostSession {
         self.end_shares();
         let guests = std::mem::take(&mut self.state().guests);
         for g in guests.values() {
-            let _ = g.tx.try_send(HostMessage::Ended {
+            if let Err(e) = g.tx.try_send(HostMessage::Ended {
                 reason: reason.to_string(),
-            });
+            }) {
+                tracing::warn!(
+                    "Code With Me: cannot tell {} that the session ended: {e}",
+                    g.participant.name
+                );
+            }
         }
         drop(guests);
         // Let the writers flush the goodbye before the connections close.
@@ -1046,6 +1073,7 @@ impl HostSession {
                     tx,
                     resume,
                     epoch: 1,
+                    limits: GuestLimits::new(Instant::now()),
                 },
             );
             participants_changed(&self.host, &st, &mut out);
@@ -1153,7 +1181,18 @@ impl HostSession {
             let _keepalive = keepalive;
             while let Some(msg) = rx.recv().await {
                 let last = matches!(msg, HostMessage::Ended { .. });
-                if write_msg(&mut send, &msg, MAX_HOST_FRAME).await.is_err() || last {
+                match write_or_skip(&mut send, &msg, MAX_HOST_FRAME).await {
+                    Ok(true) => {}
+                    Ok(false) => tracing::warn!(
+                        "Code With Me: not sending a message to a guest: it is larger than {} bytes",
+                        MAX_HOST_FRAME
+                    ),
+                    Err(e) => {
+                        tracing::warn!("Code With Me: writing to a guest failed: {e}");
+                        break;
+                    }
+                }
+                if last {
                     break;
                 }
             }
@@ -1164,7 +1203,12 @@ impl HostSession {
         let end = loop {
             match read_msg::<_, GuestMessage>(&mut recv, MAX_GUEST_FRAME).await {
                 Ok(Some(GuestMessage::Leave)) => break ConnectionEnd::Left,
-                Ok(None) | Err(_) => break ConnectionEnd::Lost,
+                Ok(None) => break ConnectionEnd::Lost,
+                Err(e) => {
+                    tracing::warn!("Code With Me: reading from a guest failed: {e}");
+                    break ConnectionEnd::Lost;
+                }
+                Ok(Some(msg)) if !self.within_rate(id, &msg) => {}
                 Ok(Some(GuestMessage::Call { id: call, payload })) => {
                     self.spawn_call(id, call, payload)
                 }
@@ -1302,6 +1346,7 @@ impl HostSession {
                                 saved: o.saved,
                                 read_only: o.read_only,
                                 conflict: o.conflict,
+                                view: o.view,
                             },
                             None => HostMessage::DocError {
                                 request,
@@ -1376,8 +1421,10 @@ impl HostSession {
                                 update: ByteBuf::from(update),
                                 state_vector: ByteBuf::from(sv),
                                 saved: d.save_state(),
-                                read_only: policy.check_write_path(&d.path).is_err(),
+                                read_only: policy.check_write_path(&d.path).is_err()
+                                    || d.view.is_some(),
                                 conflict: d.has_conflict(),
+                                view: d.view,
                             },
                         },
                     }
@@ -1521,7 +1568,7 @@ impl HostSession {
             guest.participant.name
         };
         if !self.is_ended() {
-            self.audit(if why == Leaving::Removed {
+            self.audit(if matches!(why, Leaving::Removed | Leaving::Flooded) {
                 AuditEvent::Removed {
                     participant: id,
                     name: name.clone(),
@@ -1536,6 +1583,9 @@ impl HostSession {
                 Leaving::Removed => format!("{name} was removed from the session."),
                 Leaving::Left => format!("{name} left the session."),
                 Leaving::Lost => format!("{name} lost the connection and did not come back."),
+                Leaving::Flooded => {
+                    format!("{name} was disconnected for sending too many messages.")
+                }
             };
             out.events.push(HostEvent::Notice(text));
         }
@@ -1543,6 +1593,71 @@ impl HostSession {
         if !self.is_ended() {
             self.guest_gone(id);
         }
+    }
+}
+
+impl HostSession {
+    /// Count a guest's message against its rate limits ([`crate::rate`]). `false`: the
+    /// message was refused (and answered) or the guest was disconnected for flooding.
+    fn within_rate(&self, from: ParticipantId, msg: &GuestMessage) -> bool {
+        let verdict = {
+            let mut st = self.state();
+            let Some(g) = st.guests.get_mut(&from) else {
+                return false;
+            };
+            g.limits.check(msg, Instant::now())
+        };
+        let report = match verdict {
+            Verdict::Allow => return true,
+            Verdict::Refuse { report } => report,
+            Verdict::Flood => {
+                self.audit(AuditEvent::Denied {
+                    participant: from,
+                    name: self.guest_name(from),
+                    request: msg.name().to_string(),
+                    reason: crate::rate::FLOODED_LOG.into(),
+                });
+                let tx = self.state().guests.get(&from).map(|g| g.tx.clone());
+                if let Some(tx) = tx {
+                    let _ = tx.try_send(HostMessage::Ended {
+                        reason: crate::rate::FLOODED.into(),
+                    });
+                }
+                self.remove_guest(from, Leaving::Flooded);
+                return false;
+            }
+        };
+        if report {
+            self.audit(AuditEvent::Denied {
+                participant: from,
+                name: self.guest_name(from),
+                request: msg.name().to_string(),
+                reason: crate::rate::TOO_MANY.into(),
+            });
+        }
+        let error = crate::rate::TOO_MANY.to_string();
+        let answer = match msg {
+            GuestMessage::Call { id, .. } => Some(HostMessage::CallResult {
+                id: *id,
+                result: Err(error),
+            }),
+            GuestMessage::DocOpen { request, .. } | GuestMessage::DocSync { request, .. } => {
+                Some(HostMessage::DocError {
+                    request: *request,
+                    error,
+                })
+            }
+            GuestMessage::DocSave { request, .. } => Some(HostMessage::SaveResult {
+                request: *request,
+                error: Some(error),
+            }),
+            // Input has no answer of its own: tell the guest once per burst.
+            _ => report.then_some(HostMessage::Denied { reason: error }),
+        };
+        if let Some(answer) = answer {
+            self.reply(from, answer);
+        }
+        false
     }
 }
 
@@ -1562,10 +1677,24 @@ async fn refuse(send: &mut BoxWrite, reason: &str) {
     .await;
 }
 
-/// Read a file for sharing: inside the project (also after resolving symlinks), not too
-/// large, and text.
-fn read_shared(backend: &dyn Backend, rel: &str, limit: usize) -> Result<String, String> {
+/// A file as guests get it.
+pub(crate) struct Shareable {
+    /// The text (empty for binary files).
+    pub text: String,
+    /// Set when the file is read-only for everyone.
+    pub view: Option<ViewOnly>,
+}
+
+/// Read a file for sharing: inside the project (also after resolving symlinks) and at most
+/// [`MAX_VIEW_SIZE`] (or `limit`, if that is higher). Text files over `limit` and binary files
+/// are view-only.
+pub(crate) fn read_shared(
+    backend: &dyn Backend,
+    rel: &str,
+    limit: usize,
+) -> Result<Shareable, String> {
     let abs = backend.resolve(rel).map_err(|e| e.to_string())?;
+    let max = limit.max(MAX_VIEW_SIZE);
     if backend.info().remote.is_none() {
         let root = backend
             .info()
@@ -1577,17 +1706,37 @@ fn read_shared(backend: &dyn Backend, rel: &str, limit: usize) -> Result<String,
             return Err("The file is outside the project and cannot be shared.".into());
         }
         if std::fs::metadata(&real)
-            .map(|m| m.len() as usize > limit)
+            .map(|m| m.len() as usize > max)
             .unwrap_or(false)
         {
             return Err(too_large(&real));
         }
     }
-    let text = backend.read_file(rel).map_err(|e| e.to_string())?;
-    if text.len() > limit {
+    let bytes = backend.read_bytes(rel).map_err(|e| e.to_string())?;
+    if bytes.len() > max {
         return Err(too_large(&abs));
     }
-    Ok(text)
+    Ok(shareable(bytes, limit))
+}
+
+/// Classify a file's bytes: binary (a NUL byte near the start, or not UTF-8), text too large
+/// to co-edit, or text.
+pub(crate) fn shareable(bytes: Vec<u8>, limit: usize) -> Shareable {
+    let size = bytes.len() as u64;
+    let binary = Shareable {
+        text: String::new(),
+        view: Some(ViewOnly::Binary { size }),
+    };
+    if bytes.iter().take(8192).any(|b| *b == 0) {
+        return binary;
+    }
+    match String::from_utf8(bytes) {
+        Err(_) => binary,
+        Ok(text) => {
+            let view = (text.len() > limit).then_some(ViewOnly::Large { size });
+            Shareable { text, view }
+        }
+    }
 }
 
 fn too_large(path: &Path) -> String {
@@ -1596,6 +1745,28 @@ fn too_large(path: &Path) -> String {
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
     format!("{name} is larger than the shared file size limit and is not shared.")
+}
+
+/// Why the host's own tab of a view-only file is not shared.
+fn not_shared(path: &str, view: ViewOnly) -> String {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    match view {
+        ViewOnly::Large { .. } => {
+            format!("{name} is larger than the shared file size limit and is not shared.")
+        }
+        ViewOnly::Binary { .. } => format!("{name} is a binary file and is not shared."),
+    }
+}
+
+/// Why nobody may change a view-only file.
+pub(crate) fn view_only_reason(path: &str, view: ViewOnly) -> String {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    match view {
+        ViewOnly::Large { .. } => format!(
+            "{name} is larger than the shared file size limit and is read-only in this session."
+        ),
+        ViewOnly::Binary { .. } => format!("{name} is a binary file and is read-only."),
+    }
 }
 
 fn participants(host: &Participant, st: &State) -> Vec<Participant> {
@@ -1746,8 +1917,9 @@ fn open_in(st: &mut State, who: ParticipantId, path: &str, read_only: bool) -> O
         path: d.path.clone(),
         update: d.full_update(),
         saved: d.save_state(),
-        read_only,
+        read_only: read_only || d.view.is_some(),
         conflict: d.has_conflict(),
+        view: d.view,
     })
 }
 

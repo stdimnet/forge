@@ -70,6 +70,9 @@ impl GuestCalls {
 }
 
 const NO_ANSWER: &str = "The host did not answer.";
+const TOO_LARGE: &str = "The request is too large to send to the host.";
+/// Room for the `Call` envelope around a payload in a frame.
+const CALL_OVERHEAD: usize = 64;
 
 impl GuestSession {
     /// Handle the messages of the project backend; `true` if `msg` was one of them.
@@ -108,6 +111,16 @@ impl GuestSession {
     ) -> Result<oneshot::Receiver<Result<Vec<u8>, String>>, String> {
         self.check_usable()?;
         let payload = call.encode().map_err(|e| e.to_string())?;
+        // The host refuses frames over its limit; fail now instead of waiting for the timeout
+        // (e.g. analysis of a multi-megabyte file that sends the editor's text).
+        if payload.len() + CALL_OVERHEAD > crate::protocol::MAX_GUEST_FRAME {
+            tracing::debug!(
+                "Code With Me: {} of {} bytes is too large for the host",
+                call.name(),
+                payload.len()
+            );
+            return Err(TOO_LARGE.into());
+        }
         let id = self.calls.next.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
         self.calls
@@ -137,11 +150,20 @@ impl GuestSession {
         }
     }
 
-    /// [`call`](Self::call) for threads that may block (the `Backend` methods). Must not be
-    /// used from the async runtime's worker threads.
+    /// [`call`](Self::call) for threads that may block (the `Backend` methods). Async code
+    /// should use `spawn_blocking`, but some commands call `Backend` methods on a worker of
+    /// the multi-threaded runtime (the app's): the wait then moves off the worker
+    /// (`block_in_place`, which just runs it on other threads) instead of panicking.
     pub fn call_blocking(&self, call: &HostCall, timeout: Duration) -> Result<Vec<u8>, String> {
+        let multi_thread = Handle::try_current()
+            .is_ok_and(|h| h.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread);
         let rx = self.start_call(call, timeout)?;
-        match rx.blocking_recv() {
+        let received = if multi_thread {
+            tokio::task::block_in_place(|| rx.blocking_recv())
+        } else {
+            rx.blocking_recv()
+        };
+        match received {
             Ok(result) => result,
             Err(_) => Err(NO_ANSWER.into()),
         }

@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setLocale } from "@/i18n";
 import type { SessionView } from "@/ipc/collab";
 import { pathLabel, pathTitle, relayHost, relayProblem, relaySummary, statusBarText, statusBarTitle } from "./connection";
+
+afterEach(() => setLocale("en"));
 
 const perms = { files: "edit", terminal: "none", run: "none", vcs: "readOnly" } as const;
 const person = (id: number, name: string, role: "host" | "guest") => ({ id, name, role, color: id + 1, permissions: perms });
@@ -71,5 +74,15 @@ describe("connection paths", () => {
     expect(relayProblem(bad)).toBe(true);
     expect(relayProblem(host())).toBe(false);
     expect(statusBarText({ ...bad, participants: [person(0, "Robert", "host")] })).toBe("Relay not connected");
+  });
+
+  it("follows the IDE language", () => {
+    setLocale("de");
+    const relayed = host({
+      participants: [person(0, "Robert", "host"), person(1, "Alex", "guest")],
+      connections: [{ participant: 1, kind: "relay", remote: "https://r.example.com" }],
+    });
+    expect(statusBarText(relayed)).toBe("1 Gast, über Relay");
+    expect(pathLabel({ kind: "direct", remote: "10.0.0.2:1" })).toBe("Direkt");
   });
 });

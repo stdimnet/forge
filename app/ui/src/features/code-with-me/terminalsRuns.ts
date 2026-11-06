@@ -23,6 +23,7 @@ import { endSharedSession } from "@/features/terminal/sessions";
 import { findConfiguration } from "@/features/run/configStore";
 import { endSharedRuns, runConfiguration, setRemoteRuns, showSharedRun } from "@/features/run/runStore";
 import { applySession, isGuest, isHost, session } from "./store";
+import { t } from "@/i18n";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
@@ -36,8 +37,8 @@ export function terminalBlockedReason(p: Permissions | undefined): string | null
   if (!p) return null;
   if (p.terminal === "full") return null;
   return p.terminal === "readOnly"
-    ? "Your permission lets you watch the terminals the host shares, not open new ones."
-    : "The host does not share terminals with you.";
+    ? t("tools.codeWithMe.terminalWatchOnly")
+    : t("tools.codeWithMe.terminalNotShared");
 }
 
 // ---- host --------------------------------------------------------------------------------
@@ -47,18 +48,18 @@ export async function setTerminalShared(tab: TerminalTab, shared: boolean): Prom
   try {
     applySession(await collabApi.shareTerminal(tab.id, tab.title, shared));
   } catch (e) {
-    showBalloon("Code With Me", message(e), 5000);
+    showBalloon(t("tools.codeWithMe.title"), message(e), 5000);
   }
 }
 
 /** A guest asks to run a configuration: start it as if the host clicked Run. */
 async function answerRunRequest(request: number, name: string, guest: string): Promise<void> {
   const cfg = findConfiguration(name);
-  if (!cfg) return void collabApi.runAnswer(request, `There is no run configuration named '${name}'.`);
+  if (!cfg) return void collabApi.runAnswer(request, t("tools.codeWithMe.noRunConfiguration", { name }));
   try {
     await runConfiguration(cfg);
     await collabApi.runAnswer(request);
-    showBalloon("Code With Me", `${guest} ran '${name}'.`, 4000);
+    showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.guestRan", { guest, name }), 4000);
   } catch (e) {
     await collabApi.runAnswer(request, message(e));
   }
@@ -66,14 +67,14 @@ async function answerRunRequest(request: number, name: string, guest: string): P
 
 registerTerminalTabActions((tab) =>
   isHost() && tab.source?.kind !== "existing"
-    ? [{ label: "Share with Guests", checked: !!tab.shared, run: () => void setTerminalShared(tab, !tab.shared) }]
+    ? [{ label: t("tools.codeWithMe.shareWithGuests"), checked: !!tab.shared, run: () => void setTerminalShared(tab, !tab.shared) }]
     : [],
 );
 
 // ---- guest -------------------------------------------------------------------------------
 
 /** What a guest's tab says when the host stopped sharing its terminal. */
-export const UNSHARED = "The host stopped sharing this terminal";
+export const unsharedText = () => t("tools.codeWithMe.terminalUnshared");
 
 /**
  * Show the host's terminals as tabs and keep their size and access current. A terminal the
@@ -82,21 +83,21 @@ export const UNSHARED = "The host stopped sharing this terminal";
  */
 export function syncGuestTerminals(list: SharedTerminal[], me: number | undefined, readOnly: boolean): void {
   const shown = new Set<string>();
-  for (const t of list) {
-    if (t.owner === me) continue;
-    const id = sharedTerminalTab(t.id);
+  for (const term of list) {
+    if (term.owner === me) continue;
+    const id = sharedTerminalTab(term.id);
     shown.add(id);
     const stale = tabs().find((x) => x.id === id);
     if (stale?.source?.kind === "collab" && stale.source.ended) closeTerminalTab(id);
     const tab = tabs().find((x) => x.id === id);
-    const source = { kind: "collab" as const, terminal: t.id, readOnly, cols: t.cols, rows: t.rows };
+    const source = { kind: "collab" as const, terminal: term.id, readOnly, cols: term.cols, rows: term.rows };
     if (!tab) {
-      addSourceTab(id, t.title, source);
+      addSourceTab(id, term.title, source);
       const host = session().participants.find((p) => p.role === "host");
-      if (t.owner === host?.id && t.running) {
-        showBalloon("Code With Me", `${host.name} shared the terminal ${t.title}.`, 6000, [
+      if (term.owner === host?.id && term.running) {
+        showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.hostSharedTerminal", { host: host.name, title: term.title }), 6000, [
           {
-            label: "Show",
+            label: t("tools.codeWithMe.show"),
             run: () => {
               showToolWindow("terminal");
               setActiveTab(id);
@@ -104,14 +105,14 @@ export function syncGuestTerminals(list: SharedTerminal[], me: number | undefine
           },
         ]);
       }
-    } else if (tab.source?.kind === "collab" && (tab.source.cols !== t.cols || tab.source.rows !== t.rows || tab.source.readOnly !== readOnly)) {
+    } else if (tab.source?.kind === "collab" && (tab.source.cols !== term.cols || tab.source.rows !== term.rows || tab.source.readOnly !== readOnly)) {
       updateTab(id, { source });
     }
   }
   for (const tab of tabs()) {
     if (tab.source?.kind !== "collab" || shown.has(tab.id) || tab.source.ended) continue;
-    updateTab(tab.id, { source: { ...tab.source, ended: UNSHARED } });
-    endSharedSession(tab.id, UNSHARED);
+    updateTab(tab.id, { source: { ...tab.source, ended: unsharedText() } });
+    endSharedSession(tab.id, unsharedText());
   }
 }
 
@@ -124,14 +125,14 @@ function enterGuest(): void {
   setNewTabGuard(() => terminalBlockedReason(myPermissions()));
   setRemoteRuns({
     start: async (cfg) => {
-      if (myPermissions()?.run !== "full") throw new Error("Your permission does not allow running code on the host.");
+      if (myPermissions()?.run !== "full") throw new Error(t("tools.codeWithMe.runNotAllowed"));
       await collabApi.runStart(cfg.name);
     },
     stop: (run) => collabApi.runStop(run),
     input: (run, text) => collabApi.runInput(run, text),
     attach: (run) => collabApi.runAttach(run),
     detach: (run) => void collabApi.runDetach(run).catch(() => undefined),
-    unavailable: "Debugging and coverage are not available in Code With Me sessions.",
+    unavailable: t("tools.codeWithMe.debugUnavailable"),
   });
 }
 
@@ -156,9 +157,9 @@ export function trackTerminalsAndRuns(): void {
   void collabApi.onTerminalOpened(({ id, title }) => {
     if (!isHost()) return;
     addSourceTab(id, title, { kind: "existing" });
-    showBalloon("Code With Me", `${title.replace(/: Local$/, "")} opened a terminal on your machine.`, 6000, [
+    showBalloon(t("tools.codeWithMe.title"), t("tools.codeWithMe.guestOpenedTerminal", { guest: title.replace(/: Local$/, "") }), 6000, [
       {
-        label: "Show",
+        label: t("tools.codeWithMe.show"),
         run: () => {
           showToolWindow("terminal");
           setActiveTab(id);
@@ -175,7 +176,7 @@ export function trackTerminalsAndRuns(): void {
     });
     createEffect(
       on(
-        () => (isHost() ? tabs().map((t) => t.id) : null),
+        () => (isHost() ? tabs().map((tab) => tab.id) : null),
         (ids) => {
           if (!ids) return void (known = null);
           if (known && getSetting<boolean>("codeWithMe.shareNewTerminals", false)) {

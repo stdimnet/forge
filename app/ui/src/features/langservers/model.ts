@@ -106,6 +106,14 @@ export function searchKind(kind: string): SearchItemKind | undefined {
 /** Kinds shown in the Classes tab. */
 export const CLASS_KINDS = new Set(["class", "interface", "struct", "enum"]);
 
+/**
+ * Identity of a declaration across Search Everywhere providers (PHP index, language
+ * servers): the file and the name, without PHP's `$` of properties.
+ */
+export function symbolDedupeKey(path: string, name: string): string {
+  return `${path}#${name.replace(/^\$/, "")}`;
+}
+
 /** De-duplicate symbols reported by several servers for the same place. */
 export function uniqueSymbols(symbols: WorkspaceSymbol[]): WorkspaceSymbol[] {
   const seen = new Set<string>();

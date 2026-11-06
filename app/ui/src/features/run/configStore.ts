@@ -3,7 +3,7 @@
  * configurations created from gutter icons or "Run Context Configuration" (kept in memory,
  * at most five, like PHPStorm).
  */
-import { createEffect, createRoot, createSignal, on } from "solid-js";
+import { createEffect, createMemo, createRoot, createSignal, on } from "solid-js";
 import { runApi, type RunConfiguration } from "@/ipc/run";
 import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
@@ -128,5 +128,9 @@ export async function saveTemporary(name: string): Promise<void> {
 }
 
 if (typeof window !== "undefined") {
-  createRoot(() => createEffect(on(() => workspace()?.root, () => void loadConfigurations())));
+  // Once per project: not again when something else about the workspace changes.
+  createRoot(() => {
+    const root = createMemo(() => workspace()?.root);
+    createEffect(on(root, () => void loadConfigurations()));
+  });
 }
