@@ -162,6 +162,7 @@
   "toolbar.searchEverywhere": "Überall suchen ({shortcut})",
   "toolbar.settings": "Einstellungen ({shortcut})",
   "toolbar.toggleTheme": "Design umschalten",
+  "toolbar.versionControl": "Versionskontrolle",
   "toolwindow.android-devices.title": "Geräte-Manager",
   "toolwindow.bookmarks.title": "Lesezeichen",
   "toolwindow.cargo.title": "Cargo",

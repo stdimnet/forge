@@ -174,7 +174,7 @@
 
 .coverage-line-popup {
   position: fixed;
-  z-index: 60;
+  z-index: var(--z-popup);
   max-width: 520px;
   min-width: 260px;
   padding: 6px 0;

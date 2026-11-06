@@ -82,6 +82,7 @@ import "./webforge";
 import "./clipboard";
 import "./contextMenu";
 import "./windows";
+import "./lightEdit";
 import "./editing";
 import "./notifications";
 import "./actionsOnSave";

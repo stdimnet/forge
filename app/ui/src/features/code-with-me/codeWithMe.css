@@ -9,8 +9,7 @@
 
 .popup.cwm-popup {
   position: fixed;
-  /* Above CodeMirror's sticky editor panels (z-index 300), whose border would cross it. */
-  z-index: 345;
+  z-index: var(--z-popup);
   width: 360px;
   padding: 10px 6px 6px;
 }
@@ -256,7 +255,7 @@
 .cwm-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

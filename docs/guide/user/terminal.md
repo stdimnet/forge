@@ -40,6 +40,35 @@ shell in that distribution, in the project folder (see
 [Dev Containers and WSL](dev-containers-and-wsl.md#terminal--wsl)). In projects opened in a dev
 container or a WSL distribution, every tab is a shell there.
 
+## Terminals belong to the project
+
+Terminal tabs are part of the project, as in PHPStorm. When the window switches to another
+project (**This Window**, Close Project, joining a Code With Me session), the project's
+terminals close and the new project's come back:
+
+- **A command is still running** (a `sleep 100`, a dev server, `vim`): Forge asks first,
+  "A process is still running in the terminal: sleep (Local). Terminate it?" **Terminate**
+  ends it and switches, **Cancel** keeps the project open with its terminals running.
+  Forge sees running commands of local shells on Linux and macOS (the terminal's foreground
+  process); remote, SSH and Windows sessions are not asked about.
+
+  ![Terminate the running process before switching](../../screenshots/terminal-terminate-on-switch.png)
+
+- **The layout comes back**: when the project opens again, its tabs return with their
+  names (renamed ones too), the directory each shell was in (reported by shell integration)
+  and the shell profile they were opened with (`WSL: Ubuntu`). A project without saved tabs
+  starts with a fresh one. The layout is workspace state in Forge's state directory, never in
+  the project and never in browser storage.
+- **History**: with **Restore terminal history** (`terminal.restoreScrollback`, on by
+  default) each tab also shows what it showed before, up to 256 KB per tab, followed by
+  "Session restored" and a new prompt. The history is kept in the user cache directory
+  (`<cache dir>/forge/terminal-scrollback/`), never in the project.
+
+  ![Restored terminal tabs](../../screenshots/terminal-restored-tabs.png)
+
+SSH sessions, `docker exec` terminals from Services and Code With Me terminals are not
+restored: they only make sense while they run. The Terminal has no split panes yet.
+
 ## Program progress
 
 Programs such as Claude Code, winget or systemd report their progress with the OSC 9;4
@@ -124,6 +153,7 @@ hang-up signal is killed after 1.5 seconds.
 | Shell integration | `terminal.shellIntegration` | on | user |
 | Show application title | `terminal.showApplicationTitle` | on | user |
 | Show progress in the status bar | `terminal.showProgressInStatusBar` | on | user |
+| Restore terminal history (with the tabs, see [Terminals belong to the project](#terminals-belong-to-the-project)) | `terminal.restoreScrollback` | on | user |
 | Use Option as Meta key (macOS) | `terminal.optionAsMeta` | on | user |
 | Cursor shape | `terminal.cursorShape` | Block | user |
 | Blinking cursor | `terminal.cursorBlink` | on | user |

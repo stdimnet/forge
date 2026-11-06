@@ -21,4 +21,4 @@ const items: Omit<ToolWindow, "component">[] = [
   { id: "database", title: "Database", icon: Database, anchor: "right", order: 10 },
 ];
 
-for (const item of items) registerToolWindow({ ...item, component: placeholder(`${item.title} is coming soon.`) });
+for (const item of items) registerToolWindow({ ...item, placeholder: true, component: placeholder(`${item.title} is coming soon.`) });

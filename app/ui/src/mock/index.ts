@@ -125,12 +125,15 @@ import "./webToolingMock";
 import "./saveActionsMock";
 import "./windowMock";
 import "./projectWindowsMock";
+import "./lightEditMock";
 import "./updatesMock";
 import "./templatesMock";
 // Wraps workspace_open and the run mocks (Safe Mode).
 import "./trustMock";
 // Wraps the file mocks above, so it comes last.
 import "./localHistoryMock";
+// Wraps workspace_open last: the project lifecycle events of every open.
+import "./lifecycleMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

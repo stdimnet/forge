@@ -9,7 +9,8 @@ import { ShieldAlert } from "lucide-solid";
 import { trustApi } from "@/ipc/trust";
 import { showBalloon } from "@/keymap";
 import { registerCommand } from "@/state/commands";
-import { setTrustPrompt, type TrustDecision } from "@/state/workspace";
+import { closeWorkspace, setTrustPrompt, type TrustDecision } from "@/state/workspace";
+import { windowApi } from "@/ipc/window";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { askTrust } from "./TrustDialog";
 import { canTrustProject, refreshTrust, safeMode, trustStatus } from "./store";
@@ -45,6 +46,22 @@ setTrustPrompt({
     return decision;
   },
 });
+
+/**
+ * "Trust and Open Project?" for the project a launch opened in this window (the command
+ * line, "Open Folder in Forge", Open Project › New Window). Rust opened it in Safe Mode; the
+ * question comes here, in the window it opened in, once the window is on screen. Don't Open
+ * closes a window that was opened for the project, else it shows the Welcome screen.
+ */
+export async function askLaunchTrust(): Promise<void> {
+  const prompt = await trustApi.launchPrompt().catch(() => null);
+  if (!prompt) return;
+  const decision = await decide(prompt.status);
+  await refreshTrust();
+  if (decision !== "cancel") return;
+  if (prompt.closeWindowOnCancel) await windowApi.exit().catch(() => closeWorkspace());
+  else closeWorkspace();
+}
 
 /** "Trust Project…" in the banner: trust the open project (and maybe its folder). */
 export async function trustOpenProject(): Promise<void> {

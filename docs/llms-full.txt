@@ -865,6 +865,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md) | several project windows, Presentation / Distraction-Free / Zen / Full Screen, Zoom IDE, tool window view modes (Float, Undock, Window), editor tabs in their own window, Window \| Layouts |
+| [Forge as the system's text editor](docs/guide/user/open-from-the-os.md) | Open With → Forge (the LightEdit window), Open Folder in Forge, file associations on Linux, Windows and macOS |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
@@ -1504,14 +1505,29 @@ repository, a new project or a Git worktree) asks where to open it, as in PHPSto
 ![Open Project: New Window or This Window](docs/screenshots/open-project-new-window.png)
 
 - **New Window** opens the project in a window of its own; the current project stays open.
-- **This Window** closes the current project and opens the new one in its place.
+- **This Window** closes the current project and opens the new one in its place. Everything
+  that belonged to the old project goes with it: its editor tabs, search and inspection
+  results, problems, the branch and file colors of its repository, its language servers and
+  file watcher. The branch widgets show the new project's branch at once ("Version Control"
+  for a folder without git).
+  Terminals with a running command ask "Terminate …?" first (Cancel keeps the current
+  project), and the project's terminal tabs come back when it opens again (see
+  [Terminal](docs/guide/user/terminal.md#terminals-belong-to-the-project)).
+
+  ![The branch widget after switching to another project](docs/screenshots/project-switch-branch.png)
 - **Remember, don't ask again** stores the answer in Settings | Appearance & Behavior |
   System Settings | Project | **Open project in** (`system.openProjectIn`: `newWindow`,
   `thisWindow` or `ask`). Change it there to be asked again.
 
 A project that is already open in another window is not opened twice: that window comes to
-the front. An untrusted folder asks "Trust and Open Project?" first, and the new window opens
-it trusted or in Safe Mode as you decide (see [Project trust and Safe Mode](docs/guide/user/project-trust.md)). The Welcome screen always opens the project in its own window.
+the front. For an untrusted folder, "Trust and Open Project?" is asked by the window the project
+opens in: this window before it opens the folder, or the new window once it is on screen (it
+shows the project in Safe Mode until you answer; Don't Open closes it again). See
+[Project trust and Safe Mode](docs/guide/user/project-trust.md). The Welcome screen always opens the project in its own window.
+
+Folders opened from the file manager ("Open Folder in Forge") ask the same question, and files
+opened from there go into the lightweight LightEdit window: see
+[Forge as the system's text editor](docs/guide/user/open-from-the-os.md).
 
 Every project window keeps its own project state: settings, language servers, terminals,
 run configurations, the file watcher and the search index. Technically each project window is
@@ -1637,6 +1653,154 @@ Window | Layouts keeps tool window arrangements under a name, like PHPStorm:
 Names are compared without case and may be up to 64 characters long. Layouts are a user
 setting (`workbench.layouts`, in `settings.toml`), so they are available in every project;
 editor tabs are not part of a layout.
+
+
+---
+
+Source: docs/guide/user/open-from-the-os.md
+
+# Forge as the system's text editor
+
+The Forge installers register Forge as a text editor for common text and source files, so it
+shows up under **Open With** in the file manager and can be made the default editor for a
+file type. Folders get **Open Folder in Forge**.
+
+- Opening a **file** this way opens it in the **LightEdit** window: just the editor with tabs
+  and the basic actions, without a project, tool windows or indexing (PHPStorm's LightEdit
+  mode). Every further file goes into the same window as a new tab, also when Forge is
+  already running. A file that is open already becomes the active tab again.
+- Opening a **folder** opens it as a project. While a project window is open, Forge asks
+  **This Window / New Window** (or does what Settings | Appearance & Behavior | System Settings
+  | Project | *Open project in* says).
+- A file that belongs to the project open in the project window opens there, not in LightEdit.
+
+## The LightEdit window
+
+![LightEdit window with three files](docs/screenshots/light-edit-window.png)
+
+| Part | What it does |
+| --- | --- |
+| **Open File…** | add files with the system file dialog |
+| **Save All** | save the changed files (also Ctrl+S, the PHPStorm keymap applies) |
+| **Open Project…** | open a folder as a project in the project window; when Forge runs with the LightEdit window only, the project window opens first |
+| tabs | close with the × or Ctrl+F4; the window stays open without tabs |
+| status line | *LightEdit mode* and the path of the active file |
+
+- Files keep their encoding, byte order mark and line separator when they are saved.
+- Closing the window saves its changed files first.
+- When Forge was started for files only, it shows the LightEdit window alone: no splash
+  continues into a project window and the last project is not reopened. Closing the project
+  window while LightEdit is open keeps the LightEdit window (the project closes).
+- The window has no project and no project lifecycle: it sends no `opened` / `closing`
+  (`project://lifecycle`), and project switches in the project window do not touch its tabs.
+- There is no project, so project features (code insight from the project index, run
+  configurations, VCS, tool windows) are not available; syntax highlighting, editing, Find and
+  Replace and the editor actions are.
+
+![LightEdit window without files](docs/screenshots/light-edit-empty.png)
+
+## Opening a folder
+
+**Open Folder in Forge** (Explorer, Dolphin), Open With → Forge on a folder (Finder, GNOME
+Files), a folder on the command line (`forge ~/Projects/shop`) and a
+`forge://open?file=/path/to/folder` link all open the folder as a project:
+
+- Without an open project it opens in the project window right away.
+- With an open project Forge asks where:
+
+  ![This Window / New Window](docs/screenshots/open-folder-window-prompt.png)
+
+- A `forge://` link can come from any web page, so Forge first asks whether to open the
+  folder at all:
+
+  ![A forge:// link wants to open a folder](docs/screenshots/open-folder-from-link.png)
+
+### The trust question opens in the target window
+
+"Trust and Open Project?" ([Project trust](docs/guide/user/project-trust.md)) is asked **only in the window
+the project opens in**:
+
+- **This Window**: the current window asks before it opens the folder.
+- **New Window**: the new window opens the folder in Safe Mode and asks as soon as it is on
+  screen. *Trust Project* leaves Safe Mode, *Preview in Safe Mode* keeps it, *Don't Open*
+  closes the new window again.
+- A folder from the command line or the file manager when Forge was not running: the first
+  window asks the same way (*Don't Open* shows the Welcome screen).
+
+The window you started from never asks on behalf of a window that does not exist yet.
+
+## How a launch is routed
+
+Every way in ends in one handler in Rust (`companion::handle_launch_args`, sorted by
+`forge_open::launch`), so they all behave the same:
+
+| Argument | Goes to |
+| --- | --- |
+| a folder | a project (first folder at startup: this window; later: the window question) |
+| a file of the open project (or of the folder opened in the same launch) | the project window |
+| any other file | the LightEdit window |
+| `-e FILE` / `--edit FILE` | the LightEdit window, also for project files |
+| `file:///…` URLs (some file managers pass URLs) | as the path they name |
+| `forge://open?file=/folder` | a project, after the link question |
+| other `forge://` links | as before ([CLI arguments and forge:// links](docs/guide/reference/cli-and-links.md)) |
+
+## Linux
+
+The deb and rpm packages install:
+
+| File | Purpose |
+| --- | --- |
+| `/usr/share/applications/forge.desktop` | `Exec=forge %F`, `MimeType=` for text and source types (`text/plain`, `text/markdown`, `application/json`, `application/x-php`, `text/x-lua`, …) and `inode/directory` |
+| `/usr/share/applications/forge-url-handler.desktop` | the `forge://` scheme (`x-scheme-handler/forge`, `Exec=forge %u`, hidden from menus) |
+| `/usr/share/kio/servicemenus/forge-open-folder.desktop` | Dolphin's **Open Folder in Forge** on folders |
+
+- GNOME Files and other file managers list Forge under *Open With Other Application* for
+  folders and text files; *Set as default* makes it the default editor for a type.
+- The arguments reach a running Forge through the single-instance hand-over.
+- **AppImage:** the image carries the same desktop entry. AppImage integration tools
+  (AppImageLauncher, Gear Lever) install it; without them the AppImage registers only the
+  `forge://` scheme at runtime.
+- **Flatpak:** `dev.forge.ide.desktop` declares the same MIME types and `inode/directory`.
+- Uninstalling the package removes every file above.
+
+## Windows
+
+The NSIS (`.exe`) and MSI installers register:
+
+| Entry | Purpose |
+| --- | --- |
+| file associations (`bundle.fileAssociations`) | `.txt`, `.md`, `.php`, `.js`, `.ts`, `.lua`, `.json`, `.yaml`, … with the verb **Open with Forge**, under `HKCU\Software\Classes` (per-user install) or `HKLM` (per-machine) |
+| `Directory\shell\Forge` | **Open Folder in Forge** on folders |
+| `Directory\Background\shell\Forge` | **Open Folder in Forge** on the background of an open folder |
+| `*\shell\Forge` | **Edit with Forge** on every file, also files without an extension |
+
+- Windows asks once which app opens a type; choose Forge there or under *Settings › Apps ›
+  Default apps*.
+- The arguments reach a running Forge through the single-instance hand-over.
+- Uninstalling removes all associations and context-menu entries (NSIS installer hook, MSI
+  component); the NSIS uninstaller also restores the previous handler of an extension.
+
+## macOS
+
+`Forge.app` declares document types in its `Info.plist` (`CFBundleDocumentTypes`, role
+**Editor**) for plain text, source code, scripts, JSON, XML and YAML, and `public.folder`
+with rank *Alternate* (Forge is offered for folders, never made their default):
+
+- Finder: *Open With → Forge*, or *Get Info › Open with › Change All…* to make it the default
+  editor of a type.
+- Drop files or folders on the Dock icon.
+- macOS hands these to the app as an open-file event (`RunEvent::Opened`), not as
+  command-line arguments; Forge routes them into the same handler, also while it runs.
+- Removing `Forge.app` removes the document types.
+
+## Troubleshooting
+
+- **Forge is missing from Open With (Linux):** run `update-desktop-database
+  ~/.local/share/applications` (or reinstall the package) and log out and in.
+- **A file opens in the project window instead of LightEdit:** it belongs to the open
+  project. Use `forge -e FILE` to force LightEdit.
+- **Nothing happens on macOS when a file is dropped on the Dock icon while Forge starts:** the
+  file opens once the startup reaches "Opening project"; look in the LightEdit window.
 
 
 ---
@@ -16545,7 +16709,8 @@ The caret line also shows an inline blame hint at its end: "Marlon, 2 days ago �
 ## Branches
 
 Click the branch widget in the toolbar (or **Branches…** in Find Action) to open **Git
-Branches**:
+Branches**. The widget always shows the open project's branch; in a folder without a git
+repository it reads **Version Control** and the status bar shows no branch.
 
 ![Branches](docs/screenshots/vcs-branches.png)
 
@@ -17375,8 +17540,11 @@ VCS, the Browser Companion), Forge asks first:
 Projects Forge creates itself (File | **New Project…**) are trusted automatically. Reopening
 the open project (Repair IDE) does not ask again.
 
-A project passed on the command line while Forge starts (`forge path`) opens right away; when it
-is not trusted it opens in Safe Mode and shows the banner.
+The question is always asked by the window the project opens in. A project passed on the
+command line while Forge starts (`forge path`, Open Folder in Forge), and a project opened with
+Open Project › **New Window**, opens in Safe Mode first; its window asks as soon as it is on
+screen. **Don't Open** there closes the new window (or shows the Welcome screen in the first
+one). See [Forge as the system's text editor](docs/guide/user/open-from-the-os.md#the-trust-question-opens-in-the-target-window).
 
 ## Safe Mode
 
@@ -18995,6 +19163,35 @@ shell in that distribution, in the project folder (see
 [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md#terminal--wsl)). In projects opened in a dev
 container or a WSL distribution, every tab is a shell there.
 
+## Terminals belong to the project
+
+Terminal tabs are part of the project, as in PHPStorm. When the window switches to another
+project (**This Window**, Close Project, joining a Code With Me session), the project's
+terminals close and the new project's come back:
+
+- **A command is still running** (a `sleep 100`, a dev server, `vim`): Forge asks first,
+  "A process is still running in the terminal: sleep (Local). Terminate it?" **Terminate**
+  ends it and switches, **Cancel** keeps the project open with its terminals running.
+  Forge sees running commands of local shells on Linux and macOS (the terminal's foreground
+  process); remote, SSH and Windows sessions are not asked about.
+
+  ![Terminate the running process before switching](docs/screenshots/terminal-terminate-on-switch.png)
+
+- **The layout comes back**: when the project opens again, its tabs return with their
+  names (renamed ones too), the directory each shell was in (reported by shell integration)
+  and the shell profile they were opened with (`WSL: Ubuntu`). A project without saved tabs
+  starts with a fresh one. The layout is workspace state in Forge's state directory, never in
+  the project and never in browser storage.
+- **History**: with **Restore terminal history** (`terminal.restoreScrollback`, on by
+  default) each tab also shows what it showed before, up to 256 KB per tab, followed by
+  "Session restored" and a new prompt. The history is kept in the user cache directory
+  (`<cache dir>/forge/terminal-scrollback/`), never in the project.
+
+  ![Restored terminal tabs](docs/screenshots/terminal-restored-tabs.png)
+
+SSH sessions, `docker exec` terminals from Services and Code With Me terminals are not
+restored: they only make sense while they run. The Terminal has no split panes yet.
+
 ## Program progress
 
 Programs such as Claude Code, winget or systemd report their progress with the OSC 9;4
@@ -19079,6 +19276,7 @@ hang-up signal is killed after 1.5 seconds.
 | Shell integration | `terminal.shellIntegration` | on | user |
 | Show application title | `terminal.showApplicationTitle` | on | user |
 | Show progress in the status bar | `terminal.showProgressInStatusBar` | on | user |
+| Restore terminal history (with the tabs, see [Terminals belong to the project](#terminals-belong-to-the-project)) | `terminal.restoreScrollback` | on | user |
 | Use Option as Meta key (macOS) | `terminal.optionAsMeta` | on | user |
 | Cursor shape | `terminal.cursorShape` | Block | user |
 | Blinking cursor | `terminal.cursorBlink` | on | user |
@@ -25730,8 +25928,9 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | Form | Meaning |
 | --- | --- |
 | `forge` | start with the Welcome screen |
-| `forge ~/Projects/shop` | open a directory as the project |
-| `forge src/App.tsx` | open a file (in the project it belongs to) |
+| `forge ~/Projects/shop` | open a directory as the project (with the This Window / New Window question when Forge runs with a project) |
+| `forge src/App.tsx` | open a file: in the project window when it belongs to the open project (or to a folder of the same launch), else in the [LightEdit window](docs/guide/user/open-from-the-os.md) |
+| `forge -e notes.txt` / `forge --edit notes.txt` | open a file in the LightEdit window, also a project file |
 | `forge src/App.tsx:12` / `forge src/App.tsx:12:3` | at line 12 (column 3) |
 | `forge --line 12 --column 3 src/App.tsx` | JetBrains style; short `-l`, `-c` |
 | `forge src/App.tsx 12 3` | `launch-editor` style: numbers after a file are its line and column |
@@ -25741,6 +25940,7 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   disk are skipped with a warning (in the log). Empty or blank arguments (`forge ""`, for
   example from a launcher with an unset variable) are ignored; use `forge .` to open the
   current directory.
+- `file:///…` URLs are accepted as the path they name (file managers launching `%U`).
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
   (single instance) and the new process exits.
@@ -25887,7 +26087,9 @@ forge://open?file=/home/me/shop/app/Models/User.php&line=42&column=5
 | `symbol` | | symbol to locate when no line is given |
 
 `forge:open?…` (without `//`) works too. Values are percent-decoded. Absurd line/column numbers
-and over-long paths are rejected.
+and over-long paths are rejected. When `file` is the absolute path of a **folder**, Forge asks
+whether to open it as a project (a link can come from any web page), then opens it like
+File | Open (with the This Window / New Window question).
 
 ### `forge://open-symbol`
 
@@ -26866,9 +27068,11 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
+| `<Layer kind>` / `createLayer` | `shell/layers.tsx` | a popup, menu, dialog or notification on the shared overlay stack (see [Layers](#layers)) |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
 | `claimFrameworkStatus` | `features/project-type` | hide the generic framework status widget |
 | `registerMock` | `ipc/index.ts` | a browser-mode handler for an IPC command |
+| `onProject(phase, handler)` | `state/projectLifecycle.ts` | follow the window's project: `beforeClose` (veto), `closing`, `opened`, `ready` |
 
 ## Tool windows
 
@@ -27242,6 +27446,65 @@ In the desktop app the dialog opens as a native window owned by the caller (geom
 in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends with
 `closeDialog(id, result)`. Small popups stay in-page.
 
+## Layers
+
+Everything that floats over the IDE stacks in one order. The scale is a set of CSS variables
+in `theme/theme.css`, lowest first:
+
+| Variable | Value | For |
+| --- | --- | --- |
+| `--z-editor-overlay` | 300 | CodeMirror's sticky panels (Find/Replace bar, breadcrumbs) and editor tooltips |
+| `--z-floating-tool-window` | 400 | undocked and floating tool windows, windows that are not modal |
+| `--z-popup` | 500 | popups and dropdowns: Search Everywhere, Find in Files, completion lists, status bar popups |
+| `--z-modal` | 600 | modal dialogs and their backdrops |
+| `--z-notification` | 700 | balloons, approval cards |
+| `--z-context-menu` | 800 | context menus and the main menu |
+| `--z-tooltip` | 900 | hover cards (blame) |
+| `--z-drag-ghost` | 1000 | what follows the pointer while dragging |
+| `--z-system` | 1100 | the Presentation Assistant, the window's resize edges |
+
+Rules:
+
+- **No raw z-index above 10.** Use a `--z-*` variable, or `calc(var(--z-modal) + 1)` for a
+  fixed step inside a category. `pnpm zindex:check` fails on anything else (it skips
+  `theme.css`, which defines the scale).
+- **Render popups and dialogs in a layer.** `<Layer kind="popup">…</Layer>` from
+  `@/shell/layers` registers a layer when it mounts, renders its content through a `<Portal>`
+  into the overlay host (`#forge-overlays` at the end of `<body>`) and releases the layer when
+  it unmounts. Its z-index is the parent layer plus an offset: the parent is the `<Layer>`
+  around it or, when there is none, the layer of the element that had focus when it opened.
+  So a menu or a completion popup opened from a dialog is above that dialog, a sub-dialog of
+  Settings is above Settings, and the most recently opened layer is above every earlier one of
+  the same or a lower kind. Notifications therefore stay above dialogs, and nothing but the
+  system layer goes above `--z-system`.
+
+  ```tsx
+  <Show when={open()}>
+    <Layer kind="popup">
+      <div class="my-popup" style={{ left: `${x}px`, top: `${y}px` }}>…</div>
+    </Layer>
+  </Show>
+  ```
+
+  `createLayer(kind)` registers a layer for an element that stays where it is (the floating
+  tool windows): put `layerStyle(layer)` and `data-layer-id` on its root.
+- **Overlays without `<Layer>` are adopted.** The dialog accessibility manager
+  (`features/accessibility/dialogs.ts`) puts every fixed backdrop (`*-backdrop`,
+  `.popup-backdrop`), `role="dialog"`, `role="menu"`, `role="listbox"` and `.popup` that
+  appears on the stack, above the layer of the element that opened it, and releases it when it
+  goes away. Their CSS still uses the category variable, which is the fallback.
+- **Local layers stay local.** Inside a component, values from 1 to 10 are fine for local
+  overlap (a sticky header over a list, a resize handle). Give the component root
+  `isolation: isolate` so they cannot leak out.
+
+The focus trap follows the same order: Tab stays in the modal dialog painted on top.
+
+![A sub-dialog of Settings above Settings](docs/screenshots/layers-nested-dialogs-light.png)
+
+The screenshot scenarios in `app/ui/scripts/scenarios/layers.mjs` (`layers-*`, dark and light)
+cover a context menu and a completion list inside a modal dialog, a balloon while a dialog is
+open, a menu from a floating tool window and nested dialogs.
+
 ## Editor tabs that are not files
 
 - `openCustomTab({ id: "forge:mr/41", title: "#41 …", icon, component })` — feature views such as
@@ -27281,6 +27544,40 @@ showBalloon("Database found in .env", "MySQL · shop@localhost", 0, [{ label: "A
 
 `type` is `info` (default), `warning` or `error`; `log: false` is for transient hints
 ("Path copied") that do not belong in the history.
+
+## Project lifecycle
+
+Everything a feature keeps about the open project (results, selections, branches, sessions)
+follows the window's project through `onProject(phase, handler, { order?, name? })` from
+`state/projectLifecycle.ts`. It returns a function that unsubscribes.
+
+| Phase | Handler gets | Use it to |
+| --- | --- | --- |
+| `beforeClose` | the old project, `{ objections, claim(kind) }` | ask before the project closes; return `false` to keep it (one "Cancel" stops the switch) |
+| `closing` | the old project (`workspace()` is still it) | drop and save per-project state, stop timers |
+| `opened` | the new project (`root`, `vcsRoot`, `trusted`, `remote`, …) | load and start; return a cleanup that runs when it closes |
+| `ready` | the new project | work that needs the index |
+
+```ts
+import { onProject } from "@/state/projectLifecycle";
+
+onProject("closing", () => setResults([]), { name: "my-feature" });
+onProject("opened", (project) => {
+  const timer = setInterval(() => void poll(project.root), 5000);
+  return () => clearInterval(timer);
+});
+onProject("beforeClose", async (project, ctx) => {
+  const running = ctx.claim("terminal.running"); // objections of a Rust subscriber
+  return running.length === 0 || (await askTerminate(running));
+});
+```
+
+Handlers run in a fixed order (lower `order` first, then registration order) with error
+isolation: one that throws or rejects is logged and the others still run. A handler that
+returns a promise is awaited before the next one runs. The phases come from Rust
+(`project://lifecycle`, see [Architecture](docs/guide/developer/architecture.md)), whose own services subscribe
+with the `ProjectLifecycle` trait of `forge-core`. Views that only render the project can keep
+deriving from `workspace()?.root`; anything with module state uses `onProject`.
 
 ## Project awareness
 
@@ -28154,7 +28451,17 @@ notification group.
 
 ### `forge.workspace`
 
-`root()`: the open project's folder, or `null`.
+`root()`: the open project's folder, or `null`. `onDidChangeProject(callback)` follows the
+window's project lifecycle: the callback gets `{ phase, name, root }` with `phase` `"closing"`
+(the project closes: forget what you cached about it), `"opened"` (another project opened in
+this window) or `"ready"` (its index is built). Sandboxed plugins are told about a close;
+they cannot stop it.
+
+```js
+forge.workspace.onDidChangeProject(({ phase, root }) => {
+  if (phase === "opened") refresh(root);
+});
+```
 
 ### `forge.fs`, `forge.http`, `forge.process`
 
@@ -28821,7 +29128,9 @@ is described in [Accessibility](docs/guide/user/accessibility.md).
    modal. `features/accessibility/dialogs.ts` finds every dialog in the window: it names it
    after its title, sets `aria-modal`, connects `<label>` elements to the control after them,
    keeps Tab inside the topmost modal dialog and returns focus to the opener when it closes.
-   Focus the first field when the dialog opens, and close it with `Escape`.
+   Focus the first field when the dialog opens, and close it with `Escape`. The same manager
+   puts dialogs, menus and popups on the overlay stack ([Layers](docs/guide/developer/contribution-points.md#layers)),
+   so "topmost" means the dialog painted on top.
 5. **Shortcuts only through the keymap** ([Keymap actions](docs/guide/developer/keymap-actions.md)). Keys inside a
    widget (arrows in a tree, `Enter` in a list, `Escape` in a dialog) belong to the widget's
    own `onKeyDown`; anything that is a command gets an action id. Never trap Tab: a widget may
@@ -28847,7 +29156,7 @@ is described in [Accessibility](docs/guide/user/accessibility.md).
 | Module | What it does |
 | --- | --- |
 | `features/accessibility/announce.ts` | live regions, `announce`, `announceForScreenReader`, `screenReaderMode` |
-| `features/accessibility/dialogs.ts` | dialog names, `aria-modal`, label association, focus trap and return, `tabbables()` |
+| `features/accessibility/dialogs.ts` | dialog names, `aria-modal`, label association, focus trap and return, `tabbables()`, adopting overlays into the overlay stack (`shell/layers.tsx`) |
 | `features/accessibility/areas.ts` | **Focus Next / Previous Area**, **Focus Editor**, `focusToolWindowContent` (used by `Alt+<n>`) |
 | `features/accessibility/presentation.ts` | the Presentation Assistant, fed by `onCommandInvoked` in `state/commands.ts` |
 | `features/accessibility/ide.ts` | the editor's accessible name, **Announce Caret Position**, problem announcements |
@@ -29094,6 +29403,7 @@ pnpm test        # vitest
 pnpm build
 pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
 pnpm workflows:check # release.yml runs only on pushed `v*` tags, ci.yml only manually
+pnpm zindex:check    # every z-index above 10 uses a --z-* layer variable (theme.css)
 ```
 
 ## Accessibility (`app/ui`, with `pnpm dev` running, for UI changes)
@@ -29261,7 +29571,8 @@ Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
    release `Forge <version>` with generated notes (a pre-release for the beta channel); a
    re-run of the same tag reuses that draft,
 2. builds the static remote agents on Linux,
-3. builds the bundles on Ubuntu (AppImage, deb, rpm), Windows (NSIS, MSI) and macOS (Apple
+3. builds the bundles on Ubuntu (AppImage, deb, rpm; no rpm for pre-releases such as
+   `-beta.1`, because RPM versions cannot contain `-`), Windows (NSIS, MSI) and macOS (Apple
    Silicon and Intel) with `pnpm tauri build --config src-tauri/tauri.agents.conf.json`,
    [signing](#code-signing) them when the certificates are configured,
 4. signs the updater artifacts and uploads everything plus `latest.json` to the draft,
@@ -31032,6 +31343,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | --- | --- |
 | `error.rs` | `ForgeError`: English `Display` for logs, serialized to the UI in the IDE language (`errors.*` keys of forge-i18n); `ForgeError::no_project()`. |
 | `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
+| `lifecycle.rs` | The window's project lifecycle: `ProjectLifecycleBus` runs `ProjectLifecycle` subscribers (`beforeClose` objections, `closing`, `opened`, `ready`) in a fixed order with error and panic isolation, tracks the open project and its generation (a late `ready` of an earlier project is dropped) and defines the `project://lifecycle` event payload (`LifecycleEvent`, `ProjectRef`, `Objection`). See ARCHITECTURE.md, "Project lifecycle". |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
@@ -31044,6 +31356,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 
 ```rust
 pub use error::{ForgeError, Result};
+pub use lifecycle::{LifecycleEvent, Objection, PhaseReport, ProjectLifecycle, ProjectLifecycleBus, ProjectPhase, ProjectRef};
 pub use project_files::{LocalFiles, MemoryFiles, ProjectFiles, SharedFiles};
 pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
 pub use settings::{Settings, SettingsChange, SettingsScope};
@@ -33684,6 +33997,9 @@ Opening files in Forge from the outside world:
 
 - `request`: open requests and `forge://open?file=…&line=…` links,
 - `cli`: the `forge path/to/file:12` launcher,
+- `launch`: where a launch opens: folders as projects, files of the open project in the
+  project window, other files in the LightEdit window, `forge://` links to folders as
+  projects after a confirmation, and the paths of the macOS open-file event,
 - `resolve`: which project a file belongs to (open, recent, or none),
 - `symbols`: find a component/class declaration by name,
 - `server` + `pairing`: the Browser Companion's local HTTP API,
@@ -33694,6 +34010,7 @@ Opening files in Forge from the outside world:
 | Module | Summary |
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
+| `launch.rs` | Where a launch goes (`plan_launch` → `LaunchPlan`: projects, link projects, project files, LightEdit files, links), `wants_light_edit` (`-e` / `--edit`), `link_folder` and `opened_urls_to_args` for `RunEvent::Opened` on macOS. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
 | `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
@@ -33715,6 +34032,7 @@ pub fn open_event(
 
 ## Used by
 
+- Launches: `companion::handle_launch_args` and `companion::handle_opened_urls` (`app/src-tauri/src/companion.rs`), see [Forge as the system's text editor](docs/guide/user/open-from-the-os.md)
 - IPC: `companion_status`, `companion_start_pairing`, `companion_cancel_pairing`, `companion_revoke_client`, `companion_ui_ready`, `companion_open_link`, `companion_project_profile`, `companion_set_env_var` (`app/src-tauri/src/commands/companion.rs`)
 - UI: `app/ui/src/features/browserCompanion`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
@@ -33864,6 +34182,7 @@ only on this crate, never on app internals.
 | Module | Summary |
 | --- | --- |
 | `contributions.rs` | Contribution types: everything a plugin can add to the IDE. |
+| `lifecycle` | Re-exports the project lifecycle of `forge_core::lifecycle` (`ProjectLifecycle`, `ProjectLifecycleBus`, `Objection`, …) for packs whose Rust services follow the window's project; the desktop app subscribes them (`app/src-tauri/src/lifecycle.rs`). |
 | `registry.rs` | The plugin registry: which plugins are installed, which are enabled, and lookups over the contributions of the enabled ones. |
 | `settings_model.rs` | The model behind the Settings dialog (Ctrl+Alt+S): the page tree built from registered pages, search over pages, settings and plugins, and highlighting of search hits. The UI sends what it shows and renders the answer; this module decides what matches. |
 
@@ -34040,7 +34359,8 @@ Forge processes: everything the IDE starts on behalf of the user.
 | --- | --- |
 | `args` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"); re-exported from `forge-runtools`. |
 | `config.rs` | Run/Debug configurations. |
-| `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
+| `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. `foreground_process()` names the program running instead of the shell (the terminal's foreground process group on Unix), which the project lifecycle asks about before a project closes. |
+| `terminal_layout.rs` | The Terminal tool window of each project: `TerminalLayout` (tabs with id, title, renamed, working directory, shell profile; the selected tab), sanitized and stored as workspace state in `<state dir>/forge/terminal-layouts/<project key>.json`, and the optional scrollback per tab, capped at 256 KB, in `<cache dir>/forge/terminal-scrollback/<project key>/`. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |
 | `shell.rs` | Picking the user's default shell. |
 | `test_history.rs` | The Test History of the Run tool window: `TestRunRecord` (configuration, start time, summary, counts and the stored tree), saved as compact JSON in `<data dir>/forge/test-history/<project key>/<id>.json`, listed newest first and pruned to the last `MAX_RUNS` (10) per project. |
@@ -34062,7 +34382,7 @@ pub use utf8::Utf8Decoder;
 
 ## Used by
 
-- IPC: `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`, `run_configurations_load`, `run_configurations_save`, `run_command_line`, `run_start`, `run_stop`, `run_write`, `run_dispose`, `test_history_list`, `test_history_open`
+- IPC: `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`, `terminal_running`, `terminal_layout_load`, `terminal_layout_save`, `run_configurations_load`, `run_configurations_save`, `run_command_line`, `run_start`, `run_stop`, `run_write`, `run_dispose`, `test_history_list`, `test_history_open`
 - UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -35521,6 +35841,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `light_edit`: the tabs of the LightEdit window (files opened without a project): a file
+  opened again reuses its tab, closing activates the neighbour, ids `light-edit:<path>`, and
+  case-insensitive paths on Windows and macOS.
 - `projects`: the registry of running project windows (one Forge instance each, oldest
   first), Next / Previous Project Window with wrap-around, pruning of instances that no longer
   answer, and the `forge-window <token> info|focus` control lines between instances.
@@ -35539,6 +35862,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `light_edit.rs` | The LightEdit window's tab model (`LightEditTabs`, `LightEditSnapshot`). |
 | `projects.rs` | The project window registry and the control protocol between Forge instances. |
 | `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
@@ -35548,6 +35872,7 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use light_edit::{LightEditFile, LightEditSnapshot, LightEditTabs, LIGHT_EDIT_ID};
 pub use projects::{control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo, ProjectWindows};
 pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
@@ -35556,9 +35881,9 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ## Used by
 
-- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`); `project_windows_list`, `project_window_focus`, `project_window_cycle`, `project_window_open` (`app/src-tauri/src/commands/project_windows.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`); `project_windows_list`, `project_window_focus`, `project_window_cycle`, `project_window_open` (`app/src-tauri/src/commands/project_windows.rs`); `light_edit_state`, `light_edit_open`, `light_edit_close`, `light_edit_activate`, `light_edit_read`, `light_edit_write`, `light_edit_open_project` (`app/src-tauri/src/commands/light_edit.rs`)
 - UI: `app/ui/src/shell/window`
-- Browser mode: built into `forge-wasm`
+- Browser mode: built into `forge-wasm` (`light_edit_apply` for the LightEdit mock)
 
 ## Dependencies
 

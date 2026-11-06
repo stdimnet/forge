@@ -2257,6 +2257,8 @@
   "setting.terminal.renderer.option.dom": "DOM",
   "setting.terminal.renderer.option.webgl": "WebGL",
   "setting.terminal.renderer.title": "Renderer",
+  "setting.terminal.restoreScrollback.description": "Terminal tabs come back when a project opens again; with this option also what they showed (up to 256 KB per tab, kept in the user cache directory, never in the project).",
+  "setting.terminal.restoreScrollback.title": "Restore terminal history",
   "setting.terminal.scrollback.description": "Number of lines kept above the visible area.",
   "setting.terminal.scrollback.title": "Scrollback buffer",
   "setting.terminal.shellIntegration.description": "bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions.",

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Forge's MSI shell verbs (bundle.windows.wix.fragmentPaths / componentRefs in tauri.conf.json).
+  The file associations come from bundle.fileAssociations; this fragment adds the Explorer
+  verbs Tauri has no setting for. HKMU is HKLM for a per-machine install and HKCU for a
+  per-user one. Windows Installer removes the keys again on uninstall.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Id="ForgeShellVerbs" Guid="{F212400D-4BA3-50D1-A76A-4E46A5994984}">
+        <RegistryKey Root="HKMU" Key="Software\Classes\Directory\shell\Forge">
+          <RegistryValue Type="string" Value="Open Folder in Forge" KeyPath="yes" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]forge.exe&quot;,0" />
+          <RegistryKey Key="command">
+            <RegistryValue Type="string" Value="&quot;[INSTALLDIR]forge.exe&quot; &quot;%1&quot;" />
+          </RegistryKey>
+        </RegistryKey>
+        <RegistryKey Root="HKMU" Key="Software\Classes\Directory\Background\shell\Forge">
+          <RegistryValue Type="string" Value="Open Folder in Forge" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]forge.exe&quot;,0" />
+          <RegistryKey Key="command">
+            <RegistryValue Type="string" Value="&quot;[INSTALLDIR]forge.exe&quot; &quot;%V&quot;" />
+          </RegistryKey>
+        </RegistryKey>
+        <RegistryKey Root="HKMU" Key="Software\Classes\*\shell\Forge">
+          <RegistryValue Type="string" Value="Edit with Forge" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]forge.exe&quot;,0" />
+          <RegistryKey Key="command">
+            <RegistryValue Type="string" Value="&quot;[INSTALLDIR]forge.exe&quot; &quot;%1&quot;" />
+          </RegistryKey>
+        </RegistryKey>
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>

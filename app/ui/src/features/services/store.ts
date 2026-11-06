@@ -3,6 +3,7 @@
  * the Docker connection for the status bar and the consoles (Log tabs) fed by
  * `services://event`.
  */
+import { onProject } from "@/state/projectLifecycle";
 import { createEffect, createRoot, createSignal, on, type Accessor, type Setter } from "solid-js";
 import { balloonsFor } from "@/keymap";
 import { setInputDialog } from "@/features/git/overlays";
@@ -40,6 +41,19 @@ const [forwardDialog, setForwardDialog] = createSignal<ServiceDetails | null>(nu
 const [kubeSelection, setKubeSelection] = createSignal<KubeSelection | null>(null);
 
 export { nodes, expanded, selected, tab, setTab, version, status, loading, forwardDialog, setForwardDialog, kubeSelection };
+
+// The old project's selection and open nodes do not carry over; Rust reconfigures the
+// services for the new project and sends its tree.
+onProject(
+  "closing",
+  () => {
+    setSelected(null);
+    setExpanded(new Set<string>());
+    setContainers({});
+    setForwardDialog(null);
+  },
+  { name: "services" },
+);
 
 let selectionSeq = 0;
 function reloadKubeSelection(): void {

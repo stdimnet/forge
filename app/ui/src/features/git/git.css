@@ -194,7 +194,7 @@
   position: absolute;
   right: 8px;
   bottom: calc(100% + 6px);
-  z-index: 40;
+  z-index: var(--z-popup);
   /* Wide enough for German labels, never wider than the Commit tool window. */
   width: 330px;
   max-width: calc(100% - 16px);
@@ -243,12 +243,11 @@
 }
 
 /* ---------- Modal + diff viewer ---------- */
-/* Above CodeMirror's sticky editor panels (z-index 300: banners, breadcrumbs), which are not
-   inside a stacking context of their own. */
+/* The modal layer, above CodeMirror's sticky editor panels (banners, breadcrumbs). */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 350;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
@@ -612,7 +611,7 @@
 /* ---------- Popups (branches) ---------- */
 .popup {
   position: fixed;
-  z-index: 90;
+  z-index: var(--z-popup);
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -721,7 +720,7 @@
 /* ---------- Blame hover card ---------- */
 .blame-card {
   position: fixed;
-  z-index: 95;
+  z-index: var(--z-tooltip);
   max-width: 420px;
   padding: 10px 12px;
   display: grid;
@@ -842,59 +841,10 @@
   text-align: center;
 }
 
-/* ---------- Balloons ---------- */
-.balloons {
-  position: fixed;
-  right: 16px;
-  bottom: calc(var(--statusbar-h) + 12px);
-  /* Above CodeMirror's sticky editor panels (z-index 300), like navigation.css's balloons. */
-  z-index: 340;
-  display: grid;
-  gap: 8px;
-  width: 340px;
-}
-.balloon {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 10px 6px 10px 12px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-.balloon-icon {
-  margin-top: 1px;
-  display: inline-flex;
-}
-.balloon-success .balloon-icon {
-  color: var(--success);
-}
-.balloon-error .balloon-icon {
-  color: var(--danger);
-}
-.balloon-info .balloon-icon {
-  color: var(--info);
-}
-.balloon-text {
-  flex: 1;
-  min-width: 0;
-}
-.balloon-title {
-  font-weight: 600;
-  color: var(--fg-strong);
-}
-.balloon-body {
-  margin-top: 3px;
-  color: var(--fg-muted);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 /* ---------- Gutter popups ---------- */
 .git-change-popup {
   position: fixed;
-  z-index: 95;
+  z-index: var(--z-popup);
   display: flex;
   flex-wrap: wrap;
   gap: 2px;

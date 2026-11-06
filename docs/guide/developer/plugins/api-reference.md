@@ -123,7 +123,17 @@ notification group.
 
 ### `forge.workspace`
 
-`root()`: the open project's folder, or `null`.
+`root()`: the open project's folder, or `null`. `onDidChangeProject(callback)` follows the
+window's project lifecycle: the callback gets `{ phase, name, root }` with `phase` `"closing"`
+(the project closes: forget what you cached about it), `"opened"` (another project opened in
+this window) or `"ready"` (its index is built). Sandboxed plugins are told about a close;
+they cannot stop it.
+
+```js
+forge.workspace.onDidChangeProject(({ phase, root }) => {
+  if (phase === "opened") refresh(root);
+});
+```
 
 ### `forge.fs`, `forge.http`, `forge.process`
 

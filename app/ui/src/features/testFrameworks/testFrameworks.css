@@ -37,7 +37,7 @@
   position: absolute;
   top: 30px;
   left: 4px;
-  z-index: 20;
+  z-index: var(--z-popup);
   min-width: 240px;
   max-height: 280px;
   overflow: auto;

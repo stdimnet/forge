@@ -25,7 +25,7 @@
 .undocked-tool-window,
 .floating-tool-window {
   position: absolute;
-  z-index: 30;
+  z-index: var(--z-floating-tool-window);
   display: flex;
   background: var(--bg-panel);
   border: 1px solid var(--border-strong);
@@ -207,7 +207,7 @@
 }
 .stripe-drag-ghost {
   position: fixed;
-  z-index: 450;
+  z-index: var(--z-drag-ghost);
   display: grid;
   place-items: center;
   width: 30px;
@@ -622,11 +622,10 @@ button.status-item:hover {
   color: var(--fg);
 }
 /* A status bar widget's popup (StatusPopup.tsx), placed in script and kept inside the window.
-   Above CodeMirror's sticky editor panels (z-index 300, e.g. the breadcrumbs) and the balloons
-   (340), below modal dialogs (350). */
+   It renders in a popup layer (shell/layers.tsx), above CodeMirror's sticky editor panels. */
 .status-popup-anchored {
   position: fixed;
-  z-index: 345;
+  z-index: var(--z-popup);
   overflow-y: auto;
   box-sizing: border-box;
 }
@@ -635,4 +634,22 @@ button.status-item:hover {
 .tree-row.drop-target {
   background: var(--accent-soft);
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* ---------- Overlay stack (shell/layers.tsx) ---------- */
+/* One layer of the overlay stack: covers the window without taking clicks, and carries the
+   layer's z-index (set in script) so its content stacks as one unit. */
+.forge-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+:where(.forge-layer) > * {
+  pointer-events: auto;
+}
+/* CodeMirror's tooltips (completion, hover, lint) live in the editor overlay band with its
+   sticky panels (300), not above popups and dialogs (CodeMirror's own default is 500). An
+   editor inside a dialog or a floating tool window keeps them inside that layer. */
+:root .cm-editor .cm-tooltip {
+  z-index: calc(var(--z-editor-overlay) + 10);
 }

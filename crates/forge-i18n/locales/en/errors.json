@@ -48,5 +48,6 @@
   "errors.safeMode.action.starting-the-rails-console": "Starting the Rails console",
   "errors.safeMode.action.terminal-commands-from-mcp-clients": "Terminal commands from MCP clients",
   "errors.safeMode.action.the-debugger": "The debugger",
-  "errors.safeMode.refused": "{what} is not available in Safe Mode: the project is not trusted. Trust the project (Trust Project… in the Safe Mode banner) to run its code."
+  "errors.safeMode.refused": "{what} is not available in Safe Mode: the project is not trusted. Trust the project (Trust Project… in the Safe Mode banner) to run its code.",
+  "errors.terminal.running": "{count, plural, one {A command is still running in the terminal.} other {# commands are still running in the terminal.}}"
 }

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Service
+Name=Open Folder in Forge
+MimeType=inode/directory;
+Actions=openFolderInForge;
+X-KDE-Priority=TopLevel
+
+[Desktop Action openFolderInForge]
+Name=Open Folder in Forge
+Icon=forge
+Exec=forge %f

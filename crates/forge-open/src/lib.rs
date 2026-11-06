@@ -2,6 +2,7 @@
 //!
 //! - [`request`]: open requests and `forge://open?file=…&line=…` links,
 //! - [`cli`]: the `forge path/to/file:12` launcher,
+//! - [`launch`]: where a launch opens (project window, LightEdit window, a folder as project),
 //! - [`resolve`]: which project a file belongs to (open, recent, or none),
 //! - [`symbols`]: find a component/class declaration by name,
 //! - [`server`] + [`pairing`]: the Browser Companion's local HTTP API,
@@ -10,6 +11,7 @@
 
 pub mod cli;
 pub mod http;
+pub mod launch;
 pub mod live_edit;
 pub mod pairing;
 pub mod project;

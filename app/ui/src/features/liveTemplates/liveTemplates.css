@@ -1,7 +1,7 @@
 /* ---------- Caret popups (Insert Live Template, Surround With, Unwrap/Remove) ---------- */
 .lt-popup {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-popup);
   min-width: 240px;
   max-width: 520px;
   padding: 4px;

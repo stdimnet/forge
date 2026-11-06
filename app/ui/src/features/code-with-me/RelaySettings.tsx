@@ -3,7 +3,7 @@
  * never in a settings file) and Test Connection, below the "Relay server" settings.
  */
 import { createSignal, onMount, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Eye, EyeOff, X } from "lucide-solid";
 import { collabApi, type RelayStatus, type RelayTokenStatus } from "@/ipc/collab";
 import { draftValue } from "@/features/settings/dialogState";
@@ -30,7 +30,7 @@ function TokenDialog(props: { current: RelayTokenStatus | null; onClose: (s?: Re
     }
   };
   return (
-    <Portal>
+    <Layer kind="modal">
       <div class="cwm-overlay" onMouseDown={(e) => e.target === e.currentTarget && props.onClose()}>
         <div class="cwm-dialog" role="dialog" aria-label={t("tools.codeWithMe.relayToken")} onKeyDown={(e) => e.key === "Escape" && props.onClose()}>
           <header class="cwm-dialog-title">
@@ -80,7 +80,7 @@ function TokenDialog(props: { current: RelayTokenStatus | null; onClose: (s?: Re
           </footer>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }
 

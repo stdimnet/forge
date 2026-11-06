@@ -9,7 +9,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerCommand } from "@/state/commands";
 import { balloons, dismissBalloon, registerKeymapActions } from "@/keymap";
-import { onProjectSwitch } from "@/state/workspace";
+import { onProject } from "@/state/projectLifecycle";
 import { clearNotifications, markAllRead } from "@/state/notifications";
 import { NotificationsActions, NotificationsIcon, NotificationsView } from "./NotificationsView";
 import "./notifications.css";
@@ -27,9 +27,9 @@ registerToolWindow({
 
 // Balloons belong to the project that showed them ("Database found in .env", actions on its
 // files): another project in this window closes them. The Notifications log keeps them.
-onProjectSwitch(() => {
+onProject("closing", () => {
   for (const b of balloons()) dismissBalloon(b.id);
-});
+}, { name: "notifications" });
 
 registerKeymapActions([
   { id: "MarkNotificationsAsRead", title: "Mark All Notifications as Read", group: "Notifications" },

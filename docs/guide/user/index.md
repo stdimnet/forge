@@ -17,6 +17,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Windows, modes and layouts](windows-and-layouts.md) | several project windows, Presentation / Distraction-Free / Zen / Full Screen, Zoom IDE, tool window view modes (Float, Undock, Window), editor tabs in their own window, Window \| Layouts |
+| [Forge as the system's text editor](open-from-the-os.md) | Open With → Forge (the LightEdit window), Open Folder in Forge, file associations on Linux, Windows and macOS |
 | [Editor](editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |

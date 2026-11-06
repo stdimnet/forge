@@ -442,8 +442,32 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string, comma
   term.onData((data) => {
     if (session.opened && !session.exited && !session.readOnly) void terminalApi.write(id, data).catch(() => undefined);
   });
+  const history = restoredHistory.get(id);
+  if (history !== undefined) {
+    // What the tab showed when its project closed (setting `terminal.restoreScrollback`).
+    restoredHistory.delete(id);
+    term.write(history);
+    term.write(`\r\n\x1b[2m${tr("tools.terminal.historyRestored")}\x1b[0m\r\n`);
+  }
   if (source) void attachExisting(id, session, source);
   else void start(id, session, cwd, command, ssh);
+}
+
+/** Saved output of restored tabs, written before their new shell starts. */
+const restoredHistory = new Map<string, string>();
+
+/** Show `text` in the tab `id` before its shell starts (a restored project's tab). */
+export function setRestoredHistory(id: string, text: string): void {
+  restoredHistory.set(id, text);
+}
+
+/**
+ * The project closes: destroy every xterm instance. Rust ends the shells with the project
+ * (`TerminalLifecycle`) without reporting their exit, so the tabs stay for the layout.
+ */
+export function disposeAllSessions(): void {
+  restoredHistory.clear();
+  for (const id of [...sessions.keys()]) disposeSession(id);
 }
 
 let sshHostKeys: (target: SshTarget) => Promise<boolean> = async () => false;

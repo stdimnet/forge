@@ -4,7 +4,9 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::request::{parse_forge_url, split_position_suffix, LinkAction, OpenRequest};
+use crate::request::{
+    parse_forge_url, split_position_suffix, strip_file_url, LinkAction, OpenRequest,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LaunchTarget {
@@ -67,6 +69,17 @@ where
             }
             continue;
         }
+        // File managers launching `Exec=forge %U` (and some `%F` ones) pass `file://` URLs.
+        let decoded;
+        let arg = if arg
+            .get(..7)
+            .is_some_and(|p| p.eq_ignore_ascii_case("file://"))
+        {
+            decoded = strip_file_url(&format!("file://{}", &arg[7..]));
+            decoded.as_str()
+        } else {
+            arg
+        };
         let abs = |p: &str| {
             let p = Path::new(p);
             if p.is_absolute() {

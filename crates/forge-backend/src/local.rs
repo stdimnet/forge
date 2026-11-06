@@ -140,6 +140,9 @@ impl Terminal for LocalTerminal {
     fn kill(&self) -> Result<()> {
         self.session.kill()
     }
+    fn foreground_process(&self) -> Option<String> {
+        self.session.foreground_process()
+    }
 }
 
 impl Process for RunningProcess {

@@ -19,6 +19,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | --- | --- |
 | `error.rs` | `ForgeError`: English `Display` for logs, serialized to the UI in the IDE language (`errors.*` keys of forge-i18n); `ForgeError::no_project()`. |
 | `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
+| `lifecycle.rs` | The window's project lifecycle: `ProjectLifecycleBus` runs `ProjectLifecycle` subscribers (`beforeClose` objections, `closing`, `opened`, `ready`) in a fixed order with error and panic isolation, tracks the open project and its generation (a late `ready` of an earlier project is dropped) and defines the `project://lifecycle` event payload (`LifecycleEvent`, `ProjectRef`, `Objection`). See ARCHITECTURE.md, "Project lifecycle". |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
@@ -31,6 +32,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 
 ```rust
 pub use error::{ForgeError, Result};
+pub use lifecycle::{LifecycleEvent, Objection, PhaseReport, ProjectLifecycle, ProjectLifecycleBus, ProjectPhase, ProjectRef};
 pub use project_files::{LocalFiles, MemoryFiles, ProjectFiles, SharedFiles};
 pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
 pub use settings::{Settings, SettingsChange, SettingsScope};

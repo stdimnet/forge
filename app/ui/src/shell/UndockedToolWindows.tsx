@@ -8,6 +8,7 @@ import { findToolWindow } from "@/features/registry";
 import { layout, moveFloatingToolWindow, undockedWindows, viewModeOf } from "@/state/layout";
 import { anchorOf, clampFloating, defaultFloatingBounds, placementOf, type FloatingBounds, type ToolWindowSlot } from "@/state/toolWindowLayout";
 import { ToolWindowPanel } from "./ToolWindowPanel";
+import { createLayer, layerStyle } from "./layers";
 import { t } from "@/i18n";
 
 /** Elements in the header that keep their own mouse handling. */
@@ -21,6 +22,9 @@ function areaOf(el: HTMLElement | undefined): { width: number; height: number } 
 
 function FloatingPanel(props: { id: string; slot: ToolWindowSlot }) {
   let el: HTMLDivElement | undefined;
+  // Its own layer: the most recently opened floating window is on top, and popups opened from
+  // it (the layer of the focused element) open above it.
+  const layer = createLayer("floating-tool-window");
   const [live, setLive] = createSignal<FloatingBounds | null>(null);
   const stored = () => {
     const tw = findToolWindow(props.id);
@@ -59,7 +63,10 @@ function FloatingPanel(props: { id: string; slot: ToolWindowSlot }) {
       ref={el}
       class="floating-tool-window"
       data-floating-tool-window={props.id}
+      data-layer-id={layer.id}
+      data-layer-kind={layer.kind}
       style={{
+        ...layerStyle(layer),
         left: `${bounds().x}px`,
         top: `${bounds().y}px`,
         width: `${bounds().width}px`,

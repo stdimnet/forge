@@ -28,7 +28,8 @@ Forge processes: everything the IDE starts on behalf of the user.
 | --- | --- |
 | `args` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"); re-exported from `forge-runtools`. |
 | `config.rs` | Run/Debug configurations. |
-| `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
+| `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. `foreground_process()` names the program running instead of the shell (the terminal's foreground process group on Unix), which the project lifecycle asks about before a project closes. |
+| `terminal_layout.rs` | The Terminal tool window of each project: `TerminalLayout` (tabs with id, title, renamed, working directory, shell profile; the selected tab), sanitized and stored as workspace state in `<state dir>/forge/terminal-layouts/<project key>.json`, and the optional scrollback per tab, capped at 256 KB, in `<cache dir>/forge/terminal-scrollback/<project key>/`. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |
 | `shell.rs` | Picking the user's default shell. |
 | `test_history.rs` | The Test History of the Run tool window: `TestRunRecord` (configuration, start time, summary, counts and the stored tree), saved as compact JSON in `<data dir>/forge/test-history/<project key>/<id>.json`, listed newest first and pruned to the last `MAX_RUNS` (10) per project. |
@@ -50,7 +51,7 @@ pub use utf8::Utf8Decoder;
 
 ## Used by
 
-- IPC: `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`, `run_configurations_load`, `run_configurations_save`, `run_command_line`, `run_start`, `run_stop`, `run_write`, `run_dispose`, `test_history_list`, `test_history_open`
+- IPC: `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`, `terminal_running`, `terminal_layout_load`, `terminal_layout_save`, `run_configurations_load`, `run_configurations_save`, `run_command_line`, `run_start`, `run_stop`, `run_write`, `run_dispose`, `test_history_list`, `test_history_open`
 - UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

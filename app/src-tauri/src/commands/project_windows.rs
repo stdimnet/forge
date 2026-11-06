@@ -215,6 +215,13 @@ pub fn stop() {
     }
 }
 
+/// Register this instance again (its project window opened again from the LightEdit window).
+pub fn resume() {
+    if let Some(me) = ME.get() {
+        update_registry(|r| r.register(me.clone()));
+    }
+}
+
 /// Send a request to another instance; its answer line, or `None` when it does not answer.
 fn request(entry: &ProjectWindowEntry, req: ControlRequest) -> Option<String> {
     let addr = SocketAddr::from(([127, 0, 0, 1], entry.port));
@@ -272,12 +279,23 @@ fn live_windows(app: &AppHandle) -> Vec<ProjectWindowInfo> {
 const QUIT_GRACE: Duration = Duration::from_secs(5);
 
 /// Ask this instance's main window to save and exit (`app://quit`, answered with `app_exit`);
-/// without an answer the instance exits after [`QUIT_GRACE`].
+/// without an answer the instance exits after [`QUIT_GRACE`]. The LightEdit window saves its
+/// files too, and exits the instance itself when there is no main window.
 fn quit_this(app: &AppHandle) {
-    if app
-        .emit_to(crate::startup::MAIN_LABEL, "app://quit", ())
-        .is_err()
-    {
+    let has_main = app.get_webview_window(crate::startup::MAIN_LABEL).is_some();
+    let light_edit = super::light_edit::is_open(app)
+        && app
+            .emit_to(
+                super::light_edit::label().as_str(),
+                "app://quit",
+                serde_json::json!({ "exit": !has_main }),
+            )
+            .is_ok();
+    let asked = has_main
+        && app
+            .emit_to(crate::startup::MAIN_LABEL, "app://quit", ())
+            .is_ok();
+    if !asked && !light_edit {
         app.exit(0);
         return;
     }

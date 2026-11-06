@@ -454,6 +454,7 @@ async fn open_project(
     let devenv = app.state::<DevEnvState>();
     let source: Arc<dyn Connection> = conn.clone();
     let backend = Arc::new(blocking(move || RemoteBackend::open(source, host, &path)).await?);
+    crate::lifecycle::closing(app);
     crate::commands::remote::close_project_connection(app);
     close_project(app);
     let id = format!(

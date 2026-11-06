@@ -5,18 +5,19 @@
 .popup-backdrop {
   position: fixed;
   inset: 0;
-  /* Above CodeMirror's sticky editor panels (z-index 300: the per-file Find/Replace bar,
-     banners, breadcrumbs), which are not inside a stacking context of their own, and below
-     modal dialogs (350). */
-  z-index: 345;
+  /* The popup layer: above CodeMirror's sticky editor panels (the per-file Find/Replace bar,
+     banners, breadcrumbs) and below modal dialogs. Opened from a dialog, the overlay stack
+     puts it above that dialog. */
+  z-index: var(--z-popup);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding-top: 11vh;
 }
 .popup-backdrop.modal {
-  /* Confirmations also open over the git modals (diff and merge windows). */
-  z-index: 360;
+  /* Confirmations open over the dialog they were opened from (e.g. the git diff and merge
+     windows): the overlay stack gives the most recent one the higher layer. */
+  z-index: var(--z-modal);
   align-items: center;
   padding-top: 0;
   background: rgba(0, 0, 0, 0.28);
@@ -324,23 +325,23 @@ mark.hl {
 }
 
 /* ---------- Balloons ---------- */
+/* Every balloon of the window (PopupHost.tsx), in the notification layer. */
 .balloons {
   position: fixed;
   right: 16px;
   bottom: calc(var(--statusbar-h) + 12px);
-  /* Above CodeMirror's sticky editor panels (z-index 300: breadcrumbs, banners) and the tool
-     windows, below modal dialogs (350). The same layer as the Git balloons (git.css). */
-  z-index: 340;
-  display: flex;
-  flex-direction: column;
+  z-index: var(--z-notification);
+  display: grid;
   gap: 8px;
+  width: 340px;
   pointer-events: none;
 }
 .balloon {
   display: flex;
   gap: 10px;
+  align-items: flex-start;
   max-width: 360px;
-  padding: 10px 14px;
+  padding: 10px 6px 10px 12px;
   border-radius: 8px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
@@ -348,6 +349,7 @@ mark.hl {
   animation: balloon-in 0.16s ease-out;
 }
 .balloon-icon {
+  display: inline-flex;
   color: var(--info);
   flex-shrink: 0;
   margin-top: 1px;
@@ -370,6 +372,9 @@ mark.hl {
 .balloon-body {
   flex: 1;
   min-width: 0;
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .balloon-actions {
   display: flex;
@@ -602,35 +607,6 @@ mark.hl {
   color: var(--fg-faint);
 }
 
-/* Context menu */
-.context-menu {
-  position: fixed;
-  z-index: 150;
-  min-width: 220px;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-}
-.context-item {
-  text-align: left;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: var(--radius-sm);
-}
-.context-item:hover:not(:disabled) {
-  background: var(--bg-selection);
-}
-.context-item:disabled {
-  color: var(--fg-faint);
-  cursor: default;
-}
-.context-sep {
-  height: 1px;
-  margin: 4px 6px;
-  background: var(--border);
-}
-
 /* ---------- Settings dialog (fallback) ---------- */
 .settings-dialog {
   width: min(980px, calc(100vw - 48px));
@@ -749,7 +725,7 @@ mark.hl {
   position: absolute;
   right: 0;
   top: 32px;
-  z-index: 20;
+  z-index: var(--z-popup);
   width: 280px;
   padding: 10px;
   display: grid;
@@ -829,7 +805,7 @@ mark.hl {
 /* ---------- Choose Declaration (several Go to Declaration targets) ---------- */
 .decl-chooser {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-popup);
   display: flex;
   flex-direction: column;
   min-width: 360px;

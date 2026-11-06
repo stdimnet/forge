@@ -74,6 +74,7 @@ fn store_changed(app: &AppHandle) {
             crate::commands::project::emit_detection(app);
         }
     }
+    crate::lifecycle::trust_changed(app);
     if let Err(e) = app.emit(TRUST_CHANGED_EVENT, status(&state)) {
         tracing::warn!("cannot emit {TRUST_CHANGED_EVENT}: {e}");
     }
@@ -147,6 +148,38 @@ pub fn trust_project(
     state.save_trust_store(&store)?;
     store_changed(&app);
     Ok(store.check(&key))
+}
+
+/// "Trust and Open Project?" for the project a launch opened in this window (the command
+/// line, "Open Folder in Forge", Open Project › New Window).
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchTrustPrompt {
+    pub status: TrustStatus,
+    /// This window was opened for the project (New Window): Don't Open closes it.
+    pub close_window_on_cancel: bool,
+}
+
+/// Whether the window asks about the project the launch opened: it is still the open project
+/// and nothing trusts it. Guests of a Code With Me session never ask.
+fn launch_prompt_needed(launched: Option<&str>, open_root: &str, status: &TrustStatus) -> bool {
+    launched == Some(open_root) && !status.check.trusted && !status.guest
+}
+
+/// The question about the project a launch opened at startup, asked once by the window it
+/// opened in (after its first render), never by the window that asked for it. The project
+/// is in Safe Mode until the user answers.
+#[tauri::command]
+pub fn trust_launch_prompt(state: State<'_, AppState>) -> Option<LaunchTrustPrompt> {
+    let launched = crate::companion::take_launch_trust();
+    let info = state.project_info()?;
+    let status = status(&state)?;
+    launch_prompt_needed(launched.as_deref(), &info.display_root(), &status).then(|| {
+        LaunchTrustPrompt {
+            status,
+            close_window_on_cancel: crate::commands::project_windows::is_secondary(),
+        }
+    })
 }
 
 /// Mark a project Forge created as trusted (New Project).
@@ -249,5 +282,37 @@ mod tests {
         store.remove_location(&dir.path().to_string_lossy());
         state.save_trust_store(&store).unwrap();
         assert!(!state.refresh_safe_mode(), "created projects stay trusted");
+    }
+    fn launch_status(trusted: bool, guest: bool) -> TrustStatus {
+        TrustStatus {
+            check: TrustCheck {
+                project: "/p/shop".into(),
+                display: "/p/shop".into(),
+                trusted,
+                reason: None,
+                parent: None,
+                parent_display: None,
+            },
+            safe_mode: !trusted,
+            remote: false,
+            guest,
+        }
+    }
+
+    #[test]
+    fn the_launched_untrusted_project_asks_in_its_window() {
+        let untrusted = launch_status(false, false);
+        assert!(launch_prompt_needed(Some("/p/shop"), "/p/shop", &untrusted));
+        // Trusted, another project by now, no launch or a Code With Me guest: no question.
+        let trusted = launch_status(true, false);
+        assert!(!launch_prompt_needed(Some("/p/shop"), "/p/shop", &trusted));
+        assert!(!launch_prompt_needed(
+            Some("/p/shop"),
+            "/p/blog",
+            &untrusted
+        ));
+        assert!(!launch_prompt_needed(None, "/p/shop", &untrusted));
+        let guest = launch_status(false, true);
+        assert!(!launch_prompt_needed(Some("/p/shop"), "/p/shop", &guest));
     }
 }

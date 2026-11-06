@@ -8,7 +8,7 @@
  */
 import { createResource, createSignal, For, Match, onCleanup, Show, Switch, type JSX } from "solid-js";
 import { createStore } from "solid-js/store";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { Box, Container, Monitor, Server, Terminal } from "lucide-solid";
 import { pythonApi, type DetectedPython, type EnvKind, type PythonInterpreter } from "@/ipc/python";
 import { remoteApi } from "@/ipc/remote";
@@ -191,7 +191,7 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
   const detectedLabel = (d: DetectedPython) => `${labelOf(d)}  ${d.path}`;
 
   return (
-    <Portal>
+    <Layer kind="modal">
       <div class="popup-backdrop modal" onMouseDown={(e) => e.target === e.currentTarget && !busy() && props.onClose()}>
         <div
           class="dialog py-dialog"
@@ -363,6 +363,6 @@ export function AddInterpreterDialog(props: { onDone: (r: AddResult) => void; on
           </div>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }

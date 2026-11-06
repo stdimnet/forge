@@ -7,7 +7,7 @@ import { createStore, reconcile } from "solid-js/store";
 import { lspApi, type EditorDiagnostic, type ServerStatus, type Severity } from "@/ipc/lsp";
 import { GUEST_PREFIX } from "@/ipc/projectPath";
 import { editor } from "@/state/editor";
-import { onProjectSwitch } from "@/state/workspace";
+import { onProject } from "@/state/projectLifecycle";
 
 const [diagnostics, setDiagnostics] = createStore<Record<string, EditorDiagnostic[]>>({});
 const [servers, setServers] = createSignal<ServerStatus[]>([]);
@@ -95,7 +95,7 @@ export function clearDiagnostics(): void {
   for (const path of paths) listeners.forEach((l) => l(path, []));
 }
 
-onProjectSwitch(clearDiagnostics);
+onProject("closing", () => clearDiagnostics(), { name: "lsp diagnostics" });
 
 export function setServerStatuses(s: ServerStatus[]): void {
   setServers(s);

@@ -252,7 +252,7 @@
   position: fixed;
   right: 16px;
   bottom: calc(var(--statusbar-h) + 12px);
-  z-index: 342;
+  z-index: var(--z-notification);
   display: flex;
   flex-direction: column;
   gap: 8px;

@@ -9,7 +9,7 @@
 import { projectWindowsApi } from "@/ipc/projectWindows";
 import { registerCommand } from "@/state/commands";
 import { getSetting, saveSetting } from "@/state/settings";
-import { openWorkspace, setProjectOpener, trustBeforeOpen, workspace } from "@/state/workspace";
+import { openWorkspace, setProjectOpener, workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { askChoiceWithCheckbox } from "@/features/contextMenu/dialogs";
 import { action, registerMainMenuDynamic, registerMainMenuEntries } from "@/features/mainMenu/model";
@@ -41,7 +41,10 @@ async function chooseWindow(path: string, what: string): Promise<"newWindow" | "
 
 /**
  * Open a local project folder. Without an open project it opens in this window; otherwise
- * in a new window or in this one, as the setting or the user decides.
+ * in a new window or in this one, as the setting or the user decides. "Trust and Open
+ * Project?" is asked by the window the project opens in: here for This Window
+ * (`openWorkspace`), in the new window for New Window (it asks once it is on screen, see
+ * `askLaunchTrust`), never here on behalf of a window that does not exist yet.
  */
 export async function openProject(path: string, what = "the project"): Promise<void> {
   const current = workspace();
@@ -50,8 +53,6 @@ export async function openProject(path: string, what = "the project"): Promise<v
   const where = await chooseWindow(path, what);
   if (where === "thisWindow") return void (await openWorkspace(path));
   if (where === "newWindow") {
-    // The new window opens the folder trusted or in Safe Mode, as decided here.
-    if ((await trustBeforeOpen(path)) === "cancel") return;
     try {
       await projectWindowsApi.open(path);
     } catch (e) {

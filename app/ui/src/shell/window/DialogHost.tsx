@@ -12,6 +12,7 @@ import type { DialogBoot } from "./mode";
 import { windowLabel } from "./mode";
 import { trackMaximized } from "./chrome";
 import { WindowFrame } from "./WindowFrame";
+import { Layer } from "../layers";
 
 async function prepare(id: string, props: unknown): Promise<true> {
   try {
@@ -28,23 +29,25 @@ function InPage(props: { dialog: InPageDialog }) {
   const [ready] = createResource(() => prepare(id, props.dialog.props));
   const close = () => requestCloseDialog(id);
   return (
-    <div
-      class={props.dialog.modeless ? "wf-modeless" : "wf-backdrop"}
-      data-dialog={id}
-      onMouseDown={(e) => !props.dialog.modeless && e.target === e.currentTarget && close()}
-    >
-      <Show when={ready()}>
-        <WindowFrame
-          inPage
-          title={dialogTitle(def, props.dialog.props)}
-          width={def.width}
-          height={def.height}
-          onRequestClose={close}
-        >
-          <Dynamic component={def.component} props={props.dialog.props} />
-        </WindowFrame>
-      </Show>
-    </div>
+    <Layer kind={props.dialog.modeless ? "floating-tool-window" : "modal"}>
+      <div
+        class={props.dialog.modeless ? "wf-modeless" : "wf-backdrop"}
+        data-dialog={id}
+        onMouseDown={(e) => !props.dialog.modeless && e.target === e.currentTarget && close()}
+      >
+        <Show when={ready()}>
+          <WindowFrame
+            inPage
+            title={dialogTitle(def, props.dialog.props)}
+            width={def.width}
+            height={def.height}
+            onRequestClose={close}
+          >
+            <Dynamic component={def.component} props={props.dialog.props} />
+          </WindowFrame>
+        </Show>
+      </div>
+    </Layer>
   );
 }
 
@@ -60,6 +63,8 @@ export function DialogWindowApp(props: { boot: DialogBoot }) {
   const dialogProps = props.boot.props ?? {};
   const [ready] = createResource(async () => {
     // The project the IDE window has open (project-scoped settings, run configurations).
+    // A standalone window (LightEdit) has no project.
+    if (def?.standalone) return prepare(id, dialogProps);
     if (isTauri()) await restoreWorkspace().catch(() => undefined);
     else await openWorkspace("demo").catch(() => undefined);
     return prepare(id, dialogProps);

@@ -48,5 +48,6 @@
   "errors.safeMode.action.starting-the-rails-console": "Das Starten der Rails-Konsole",
   "errors.safeMode.action.terminal-commands-from-mcp-clients": "Terminalbefehle von MCP-Clients",
   "errors.safeMode.action.the-debugger": "Der Debugger",
-  "errors.safeMode.refused": "{what} ist im abgesicherten Modus nicht verfügbar: Das Projekt ist nicht vertrauenswürdig. Vertrauen Sie dem Projekt („Projekt vertrauen…“ im Banner des abgesicherten Modus), um seinen Code auszuführen."
+  "errors.safeMode.refused": "{what} ist im abgesicherten Modus nicht verfügbar: Das Projekt ist nicht vertrauenswürdig. Vertrauen Sie dem Projekt („Projekt vertrauen…“ im Banner des abgesicherten Modus), um seinen Code auszuführen.",
+  "errors.terminal.running": "{count, plural, one {Im Terminal läuft noch ein Befehl.} other {Im Terminal laufen noch # Befehle.}}"
 }

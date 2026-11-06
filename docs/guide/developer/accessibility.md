@@ -31,7 +31,9 @@ is described in [Accessibility](../user/accessibility.md).
    modal. `features/accessibility/dialogs.ts` finds every dialog in the window: it names it
    after its title, sets `aria-modal`, connects `<label>` elements to the control after them,
    keeps Tab inside the topmost modal dialog and returns focus to the opener when it closes.
-   Focus the first field when the dialog opens, and close it with `Escape`.
+   Focus the first field when the dialog opens, and close it with `Escape`. The same manager
+   puts dialogs, menus and popups on the overlay stack ([Layers](contribution-points.md#layers)),
+   so "topmost" means the dialog painted on top.
 5. **Shortcuts only through the keymap** ([Keymap actions](keymap-actions.md)). Keys inside a
    widget (arrows in a tree, `Enter` in a list, `Escape` in a dialog) belong to the widget's
    own `onKeyDown`; anything that is a command gets an action id. Never trap Tab: a widget may
@@ -57,7 +59,7 @@ is described in [Accessibility](../user/accessibility.md).
 | Module | What it does |
 | --- | --- |
 | `features/accessibility/announce.ts` | live regions, `announce`, `announceForScreenReader`, `screenReaderMode` |
-| `features/accessibility/dialogs.ts` | dialog names, `aria-modal`, label association, focus trap and return, `tabbables()` |
+| `features/accessibility/dialogs.ts` | dialog names, `aria-modal`, label association, focus trap and return, `tabbables()`, adopting overlays into the overlay stack (`shell/layers.tsx`) |
 | `features/accessibility/areas.ts` | **Focus Next / Previous Area**, **Focus Editor**, `focusToolWindowContent` (used by `Alt+<n>`) |
 | `features/accessibility/presentation.ts` | the Presentation Assistant, fed by `onCommandInvoked` in `state/commands.ts` |
 | `features/accessibility/ide.ts` | the editor's accessible name, **Announce Caret Position**, problem announcements |

@@ -16,8 +16,9 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | Form | Meaning |
 | --- | --- |
 | `forge` | start with the Welcome screen |
-| `forge ~/Projects/shop` | open a directory as the project |
-| `forge src/App.tsx` | open a file (in the project it belongs to) |
+| `forge ~/Projects/shop` | open a directory as the project (with the This Window / New Window question when Forge runs with a project) |
+| `forge src/App.tsx` | open a file: in the project window when it belongs to the open project (or to a folder of the same launch), else in the [LightEdit window](../user/open-from-the-os.md) |
+| `forge -e notes.txt` / `forge --edit notes.txt` | open a file in the LightEdit window, also a project file |
 | `forge src/App.tsx:12` / `forge src/App.tsx:12:3` | at line 12 (column 3) |
 | `forge --line 12 --column 3 src/App.tsx` | JetBrains style; short `-l`, `-c` |
 | `forge src/App.tsx 12 3` | `launch-editor` style: numbers after a file are its line and column |
@@ -27,6 +28,7 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   disk are skipped with a warning (in the log). Empty or blank arguments (`forge ""`, for
   example from a launcher with an unset variable) are ignored; use `forge .` to open the
   current directory.
+- `file:///…` URLs are accepted as the path they name (file managers launching `%U`).
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
   (single instance) and the new process exits.
@@ -173,7 +175,9 @@ forge://open?file=/home/me/shop/app/Models/User.php&line=42&column=5
 | `symbol` | | symbol to locate when no line is given |
 
 `forge:open?…` (without `//`) works too. Values are percent-decoded. Absurd line/column numbers
-and over-long paths are rejected.
+and over-long paths are rejected. When `file` is the absolute path of a **folder**, Forge asks
+whether to open it as a project (a link can come from any web page), then opens it like
+File | Open (with the This Window / New Window question).
 
 ### `forge://open-symbol`
 

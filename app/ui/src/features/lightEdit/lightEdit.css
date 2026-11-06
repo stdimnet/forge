@@ -1,0 +1,82 @@
+/* The LightEdit window: a toolbar with the basic actions, the editor, a status line. */
+.light-edit {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-editor);
+}
+.light-edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 6px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.light-edit-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.light-edit-action:hover {
+  background: var(--bg-hover);
+}
+.light-edit-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.light-edit-action svg {
+  color: var(--fg-muted);
+}
+.light-edit-editor {
+  flex: 1;
+  min-height: 0;
+}
+.light-edit-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--fg-muted);
+}
+.light-edit-empty-title {
+  color: var(--fg);
+  font-size: var(--fs-ui);
+}
+.light-edit-empty-hint {
+  font-size: var(--fs-small);
+}
+.light-edit-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--statusbar-h);
+  padding: 0 8px;
+  background: var(--bg-toolbar);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+.light-edit-mode {
+  color: var(--accent);
+}
+.light-edit-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -20,14 +20,29 @@ repository, a new project or a Git worktree) asks where to open it, as in PHPSto
 ![Open Project: New Window or This Window](../../screenshots/open-project-new-window.png)
 
 - **New Window** opens the project in a window of its own; the current project stays open.
-- **This Window** closes the current project and opens the new one in its place.
+- **This Window** closes the current project and opens the new one in its place. Everything
+  that belonged to the old project goes with it: its editor tabs, search and inspection
+  results, problems, the branch and file colors of its repository, its language servers and
+  file watcher. The branch widgets show the new project's branch at once ("Version Control"
+  for a folder without git).
+  Terminals with a running command ask "Terminate …?" first (Cancel keeps the current
+  project), and the project's terminal tabs come back when it opens again (see
+  [Terminal](terminal.md#terminals-belong-to-the-project)).
+
+  ![The branch widget after switching to another project](../../screenshots/project-switch-branch.png)
 - **Remember, don't ask again** stores the answer in Settings | Appearance & Behavior |
   System Settings | Project | **Open project in** (`system.openProjectIn`: `newWindow`,
   `thisWindow` or `ask`). Change it there to be asked again.
 
 A project that is already open in another window is not opened twice: that window comes to
-the front. An untrusted folder asks "Trust and Open Project?" first, and the new window opens
-it trusted or in Safe Mode as you decide (see [Project trust and Safe Mode](project-trust.md)). The Welcome screen always opens the project in its own window.
+the front. For an untrusted folder, "Trust and Open Project?" is asked by the window the project
+opens in: this window before it opens the folder, or the new window once it is on screen (it
+shows the project in Safe Mode until you answer; Don't Open closes it again). See
+[Project trust and Safe Mode](project-trust.md). The Welcome screen always opens the project in its own window.
+
+Folders opened from the file manager ("Open Folder in Forge") ask the same question, and files
+opened from there go into the lightweight LightEdit window: see
+[Forge as the system's text editor](open-from-the-os.md).
 
 Every project window keeps its own project state: settings, language servers, terminals,
 run configurations, the file watcher and the search index. Technically each project window is

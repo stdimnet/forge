@@ -29,6 +29,7 @@ import { editor } from "@/state/editor";
 import { activeView } from "@/editor/views";
 import { languageIdFor } from "@/editor/languages";
 import { workspace } from "@/state/workspace";
+import { onProject } from "@/state/projectLifecycle";
 import { workspaceApi } from "@/ipc/workspace";
 import { pluginDocument, VIEW_CSP } from "./sandbox";
 import { registerIconTheme } from "@/features/iconThemes/state";
@@ -410,6 +411,18 @@ registerEditorExtension(() =>
     if (u.docChanged && instances.size) notifyEditorChanged();
   }),
 );
+
+// The project lifecycle (`closing`, `opened`, `ready`) for `forge.workspace.onDidChangeProject`.
+// Sandboxed plugins are told, they cannot veto a close.
+for (const phase of ["closing", "opened", "ready"] as const) {
+  onProject(
+    phase,
+    (project) => {
+      for (const inst of instances.values()) post(inst, { kind: "event", name: "project.lifecycle", payload: { phase, name: project.name, root: project.root } });
+    },
+    { name: "plugins", order: 100 },
+  );
+}
 
 void listen<SettingsChange>(SETTINGS_CHANGED_EVENT, (c) => {
   const owner = ownerOf(c.key);

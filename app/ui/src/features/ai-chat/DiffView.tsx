@@ -1,5 +1,5 @@
 import { createMemo, For, onCleanup, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Layer } from "@/shell/layers";
 import { ExternalLink, X } from "lucide-solid";
 import { openFile } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
@@ -61,7 +61,7 @@ export function DiffDialog(props: { path: string; diff: EditDiff; onClose: () =>
   document.addEventListener("keydown", onKey);
   onCleanup(() => document.removeEventListener("keydown", onKey));
   return (
-    <Portal>
+    <Layer kind="modal">
       <div class="chat-dialog-backdrop" onClick={props.onClose}>
         <div class="chat-dialog" role="dialog" aria-label={t("tools.aiChat.diffOf", { path: props.path })} onClick={(e) => e.stopPropagation()}>
           <header class="chat-dialog-header">
@@ -87,6 +87,6 @@ export function DiffDialog(props: { path: string; diff: EditDiff; onClose: () =>
           </div>
         </div>
       </div>
-    </Portal>
+    </Layer>
   );
 }

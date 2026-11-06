@@ -59,6 +59,7 @@ pub mod kotlin;
 pub mod langservers;
 pub mod laravel;
 pub mod library;
+pub mod light_edit;
 pub mod live_templates;
 pub mod local_history;
 pub mod lsp;

@@ -37,6 +37,38 @@ export interface TerminalOpened {
   cwd: string;
 }
 
+/** A shell profile of the "+" menu a restored tab was opened with. */
+export interface TerminalProfileState {
+  label: string;
+  program: string;
+  args: string[];
+  env?: [string, string][];
+}
+
+/** A tab of a project's terminal layout (`forge_process::terminal_layout`). */
+export interface TerminalTabState {
+  id: string;
+  title: string;
+  renamed?: boolean;
+  /** Relative to the project root, or absolute. */
+  cwd?: string;
+  profile?: TerminalProfileState;
+  /** The tab's saved output (setting `terminal.restoreScrollback`); only in loaded layouts. */
+  scrollback?: string;
+}
+
+/** The Terminal tool window of a project, restored when it opens again. */
+export interface TerminalLayout {
+  tabs: TerminalTabState[];
+  active?: string;
+}
+
+/** A session running a program instead of waiting at its prompt. */
+export interface RunningCommand {
+  id: string;
+  process: string;
+}
+
 export type TerminalEvent = { type: "output"; data: string } | { type: "exited"; code: number | null };
 
 export const terminalEvent = (id: string) => `terminal://${id}`;
@@ -49,4 +81,9 @@ export const terminalApi = {
   /** A session that already runs (a Code With Me guest opened it on this machine): what it showed so far. */
   attach: (id: string) => invoke<{ scrollback: string; cols: number; rows: number }>("terminal_attach", { id }),
   onEvent: (id: string, cb: (e: TerminalEvent) => void) => listen<TerminalEvent>(terminalEvent(id), cb),
+  /** Sessions running a program in the foreground (`sleep 100`); Rust asks the PTY. */
+  running: () => invoke<RunningCommand[]>("terminal_running"),
+  /** The terminal layout of the project at `root`, with the saved output when that option is on. */
+  loadLayout: (root: string) => invoke<TerminalLayout | null>("terminal_layout_load", { root }),
+  saveLayout: (root: string, layout: TerminalLayout) => invoke<void>("terminal_layout_save", { root, layout }),
 };

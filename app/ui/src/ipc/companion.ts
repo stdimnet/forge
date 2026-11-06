@@ -52,7 +52,8 @@ export interface OpenEvent {
 
 export type PendingEvent =
   | ({ type: "open" } & OpenEvent)
-  | { type: "openProject"; root: string }
+  /** A folder to open as a project; `confirm`: it came from a forge:// link, so ask first. */
+  | { type: "openProject"; root: string; confirm: boolean }
   /** A checked Code With Me session link for the Join Session dialog. */
   | { type: "joinSession"; link: string };
 
@@ -63,6 +64,12 @@ export interface ProjectProfile {
   env: Record<string, Record<string, string>>;
   /** Probed files that exist. */
   files: string[];
+}
+
+export interface OpenProjectRequest {
+  root: string;
+  /** From a forge:// link (any web page can send one): ask before opening. */
+  confirm: boolean;
 }
 
 export const COMPANION_OPEN_EVENT = "companion://open";
@@ -83,7 +90,8 @@ export const companionApi = {
   setEnvVar: (file: ".env" | ".env.local", key: string, value: string) =>
     invoke<void>("companion_set_env_var", { file, key, value }),
   onOpen: (cb: (e: OpenEvent) => void) => listen<OpenEvent>(COMPANION_OPEN_EVENT, cb),
-  onOpenProject: (cb: (root: string) => void) => listen<string>(COMPANION_OPEN_PROJECT_EVENT, cb),
+  /** A folder from "Open Folder in Forge", the command line or a forge:// link. */
+  onOpenProject: (cb: (e: OpenProjectRequest) => void) => listen<OpenProjectRequest>(COMPANION_OPEN_PROJECT_EVENT, cb),
   /** A clicked forge://cwm/join?… link, checked by the backend. */
   onJoinSession: (cb: (link: string) => void) => listen<string>(COMPANION_JOIN_SESSION_EVENT, cb),
   onStatus: (cb: (s: ServerStatus) => void) => listen<ServerStatus>(COMPANION_STATUS_EVENT, cb),

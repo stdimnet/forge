@@ -16,6 +16,7 @@ import {
   newTabBlocked,
   newTabHere,
   renameTab,
+  restoringTabs,
   renaming,
   setActiveTab,
   setRenaming,
@@ -165,7 +166,7 @@ export function TerminalTabs() {
             y: r.bottom + 4,
             items: [
               { label: t("tools.terminal.newTab"), shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
-              ...shellProfiles().map((p) => ({ label: p.label, disabled: !!newTabBlocked(), run: () => void newTab(p.cwd, p.command) })),
+              ...shellProfiles().map((p) => ({ label: p.label, disabled: !!newTabBlocked(), run: () => void newTab(p.cwd, p.command, p.label) })),
               { label: t("tools.terminal.newTabInCurrentDirectory"), disabled: !id || !!newTabBlocked(), run: () => newTabHere() },
               { label: t("tools.terminal.sshSessionEllipsis"), run: () => void chooseSshSession() },
               { separator: true },
@@ -245,7 +246,7 @@ function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgr
 export function TerminalView() {
   // Opening the tool window without a session starts one, like PHPStorm.
   createEffect(() => {
-    if (isToolWindowVisible("terminal") && tabs().length === 0 && !newTabBlocked()) newTab();
+    if (isToolWindowVisible("terminal") && tabs().length === 0 && !newTabBlocked() && !restoringTabs()) newTab();
   });
   createEffect(on(theme, () => requestAnimationFrame(applyThemeToAll), { defer: true }));
   return (
