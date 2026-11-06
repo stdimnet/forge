@@ -10,9 +10,10 @@ import { levelOf, PRESETS, type PermissionLevel, type Permissions } from "@/ipc/
 import { getSetting } from "@/state/settings";
 import { runCommand } from "@/state/commands";
 import { FileIcon } from "@/shell/FileIcon";
-import { inSession, session, setPopupOpen } from "./store";
+import { claimPopup } from "@/shell/popupGroup";
+import { session, setPopupOpen } from "./store";
 import { openSharedFile } from "./session";
-import { SessionConnections } from "./ConnectionStatus";
+import { RelayLine } from "./ConnectionStatus";
 import { askCustomPermissions } from "./CustomPermissions";
 import { LEVEL_TITLES, sessionPermissions, showSessionPermissionsMenu } from "./hostActions";
 import { describePermissions } from "./permissionText";
@@ -143,7 +144,8 @@ function HostView() {
         <div class="cwm-popup-warning cwm-notice">{session().notice}</div>
       </Show>
       <div class="cwm-popup-label muted">{t("tools.codeWithMe.participants")}</div>
-      <Participants />
+      <Participants paths />
+      <RelayLine />
       <Show when={session().participants.length < 2}>
         <div class="cwm-popup-note muted">{t("tools.codeWithMe.inviteNote")}</div>
       </Show>
@@ -207,7 +209,8 @@ function GuestView() {
       <Show when={session().notice}>
         <div class="cwm-popup-warning cwm-notice">{session().notice}</div>
       </Show>
-      <Participants />
+      <Participants paths />
+      <RelayLine />
       <div class="cwm-popup-label muted">{t("tools.codeWithMe.sharedFiles")}</div>
       <div class="cwm-files" role="list" aria-label={t("tools.codeWithMe.sharedFiles")}>
         <For each={session().files} fallback={<div class="cwm-popup-note muted">{t("tools.codeWithMe.hostHasNoFilesOpen")}</div>}>
@@ -249,14 +252,21 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler
   const rect = props.anchor.getBoundingClientRect();
   const onDoc = (e: MouseEvent) => {
     const target = e.target as Element;
-    // The participant and permission menus, and the Custom Permissions dialog, belong to the popup.
-    if (!target.closest(".cwm-popup") && !target.closest(".cwm-toolbar-btn") && !target.closest(".context-menu") && !target.closest(".cwm-custom-dialog")) setPopupOpen(false);
+    // The participant and permission menus, and the Custom Permissions dialog, belong to the
+    // popup; the toolbar icon and the status bar item toggle it themselves.
+    const own = [".cwm-popup", ".cwm-toolbar-btn", '[data-status="code-with-me"]', ".context-menu", ".cwm-custom-dialog"];
+    if (!own.some((s) => target.closest(s))) setPopupOpen(false);
   };
+  let release = () => {};
   onMount(() => {
+    release = claimPopup(() => setPopupOpen(false));
     document.addEventListener("mousedown", onDoc, true);
     el.focus();
   });
-  onCleanup(() => document.removeEventListener("mousedown", onDoc, true));
+  onCleanup(() => {
+    document.removeEventListener("mousedown", onDoc, true);
+    release();
+  });
   return (
     <Portal>
       <div
@@ -273,10 +283,6 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler
           } else navKeys(e);
         }}
       >
-        <Show when={inSession()}>
-          <SessionConnections />
-          <div class="cwm-sep" />
-        </Show>
         <Show when={session().role === "host"}>
           <HostView />
         </Show>

@@ -1,12 +1,13 @@
 /**
- * How the Code With Me connections travel: a badge per connection (Direct / Relay), the
- * participants block of the popup and the status bar item.
+ * How the Code With Me connections travel: a badge per connection (Direct / Relay) in the
+ * participant rows of the popup, the relay state and the status bar item.
  */
-import { For, Show } from "solid-js";
+import { Show } from "solid-js";
 import { Network, TriangleAlert, Waypoints } from "lucide-solid";
-import type { ConnectionPath } from "@/ipc/collab";
+import type { ConnectionPath, Participant } from "@/ipc/collab";
 import { connectionOf, pathLabel, pathTitle, relayProblem, relaySummary, statusBarText, statusBarTitle } from "./connection";
-import { session, setPopupOpen } from "./store";
+import { popupOpen, session, setPopupOpen } from "./store";
+import { tooltip } from "@/shell/tooltip";
 import { isReconnecting } from "./reconnect";
 import { t } from "@/i18n";
 
@@ -23,47 +24,48 @@ export function PathBadge(props: { path: ConnectionPath }) {
   );
 }
 
-/** The participants of the session with the path of each connection, and the relay state. */
-export function SessionConnections() {
-  const peers = () => session().participants.filter((p) => p.id !== session().me);
+/**
+ * The connection of a participant row in the session popup: the path badge, "Connecting…" or
+ * "Reconnecting…". Hosts see it for every guest, guests for the host (guests are not
+ * connected to each other).
+ */
+export function ParticipantPath(props: { participant: Participant }) {
+  const p = () => props.participant;
+  const shown = () => p().id !== session().me && (session().role === "host" || p().role === "host");
+  const reconnecting = () => !!p().reconnecting || (p().role === "host" && isReconnecting());
   return (
-    <div class="cwm-connections" data-testid="cwm-connections">
-      <div class="cwm-popup-label muted">{t("tools.codeWithMe.participants")}</div>
-      <For each={peers()}>
-        {(p) => (
-          <div class="cwm-participant" data-participant={p.id}>
-            <span class="cwm-dot" style={{ background: `var(--collab-${p.color})` }} />
-            <span class="cwm-participant-name">{p.name}</span>
-            <span class="cwm-participant-role muted">{p.role === "host" ? t("tools.codeWithMe.role.host") : t("tools.codeWithMe.role.guest")}</span>
-            <Show
-              when={!p.reconnecting && !(p.role === "host" && isReconnecting()) && connectionOf(session(), p.id)}
-              fallback={
-                p.reconnecting || (p.role === "host" && isReconnecting()) ? (
-                  <span class="cwm-path pending cwm-participant-reconnecting">{t("tools.codeWithMe.reconnecting")}</span>
-                ) : (
-                  <span class="cwm-path pending muted">{t("tools.codeWithMe.connecting")}</span>
-                )
-              }
-            >
-              {(path) => <PathBadge path={path()} />}
-            </Show>
-          </div>
-        )}
-      </For>
-      <Show when={peers().length === 0}>
-        <div class="cwm-popup-note muted">{t("tools.codeWithMe.noGuestsYet")}</div>
+    <Show when={shown()}>
+      <Show
+        when={!reconnecting() && connectionOf(session(), p().id)}
+        fallback={
+          reconnecting() ? (
+            <span class="cwm-path pending cwm-participant-reconnecting" title={t("tools.codeWithMe.connectionDropped")}>
+              {t("tools.codeWithMe.reconnecting")}
+            </span>
+          ) : (
+            <span class="cwm-path pending muted">{t("tools.codeWithMe.connecting")}</span>
+          )
+        }
+      >
+        {(path) => <PathBadge path={path()} />}
       </Show>
-      <Show when={relaySummary(session())}>
-        {(text) => (
-          <div class="cwm-relay-line" classList={{ problem: relayProblem(session()) }} data-testid="cwm-relay-status">
-            <Show when={relayProblem(session())} fallback={<Waypoints size={12} />}>
-              <TriangleAlert size={12} />
-            </Show>
-            {text()}
-          </div>
-        )}
-      </Show>
-    </div>
+    </Show>
+  );
+}
+
+/** The state of the relay server below the participants, when a relay is set. */
+export function RelayLine() {
+  return (
+    <Show when={relaySummary(session())}>
+      {(text) => (
+        <div class="cwm-relay-line" classList={{ problem: relayProblem(session()) }} data-testid="cwm-relay-status">
+          <Show when={relayProblem(session())} fallback={<Waypoints size={12} />}>
+            <TriangleAlert size={12} />
+          </Show>
+          {text()}
+        </div>
+      )}
+    </Show>
   );
 }
 
@@ -75,8 +77,10 @@ export function ConnectionStatusItem() {
       class="status-item cwm-status"
       classList={{ relay: first()?.kind === "relay", problem: relayProblem(session()) }}
       data-status="code-with-me"
-      title={statusBarTitle(session())}
-      onClick={() => setPopupOpen(true)}
+      {...tooltip(() => statusBarTitle(session()), { open: popupOpen, label: false })}
+      aria-haspopup="dialog"
+      aria-expanded={popupOpen()}
+      onClick={() => setPopupOpen((o) => !o)}
     >
       <Show when={relayProblem(session())} fallback={first()?.kind === "relay" ? <Waypoints size={12} /> : <Network size={12} />}>
         <TriangleAlert size={12} />

@@ -49,7 +49,10 @@ Files that control what runs on your machine (run configurations, `composer.json
 
 ## During a session
 
-The popup lists the participants with their permission and offers:
+The popup lists the participants with their permission and, below each name, how the
+connection travels (**Direct** or **Relay**, with the round-trip time). Only one popup is open
+at a time: opening the Code With Me popup closes a status bar popup and the other way round, and
+a control's tooltip is hidden while its popup is open. The popup offers:
 
 - **Copy Session Link** copies the invitation link again.
 - **Regenerate Link** creates a new link and copies it. The old link stops working at once;
