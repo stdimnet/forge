@@ -22,6 +22,7 @@ import { showBalloon } from "@/keymap";
 import { h } from "@/features/lsp/util";
 import { t } from "@/i18n";
 import { bannerText, followTarget, nextFollow, NOT_FOLLOWING, type FollowEvent, type FollowState } from "./followState";
+import { stopOnLocalActions } from "./followStop";
 import { onPresence, presenceOf, schedulePresence, setFollowingSource } from "./presence";
 import { applySession, session } from "./store";
 
@@ -118,8 +119,6 @@ export async function setFollowEveryone(on: boolean): Promise<void> {
 
 // ---- the editor --------------------------------------------------------------------------
 
-const STOPPING_EVENTS = ["input", "delete", "move", "select", "undo", "redo"];
-
 /** The banner above the editor while following: "Following Alex" with Stop. */
 function followBanner(): Panel {
   const dom = h("div", "cwm-follow-banner");
@@ -145,16 +144,7 @@ function followBanner(): Panel {
 
 registerEditorExtension(() => [
   showPanel.of(followBanner),
-  EditorView.updateListener.of((u) => {
-    if (state().leader === null) return;
-    if (u.transactions.some((tr) => STOPPING_EVENTS.some((ev) => tr.isUserEvent(ev)))) localAction();
-  }),
-  EditorView.domEventHandlers({
-    mousedown: () => {
-      localAction();
-      return false;
-    },
-  }),
+  stopOnLocalActions(() => state().leader !== null, localAction),
 ]);
 
 // ---- the session -------------------------------------------------------------------------

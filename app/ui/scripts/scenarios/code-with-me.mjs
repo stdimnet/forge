@@ -7,13 +7,16 @@
 /** The visible editor (inactive tabs keep their hidden editors). */
 const ACTIVE = `[...document.querySelectorAll(".cm-content")].find((c) => c.offsetParent !== null)`;
 
-/** The visible editor's text without the remote carets' name labels. */
+/**
+ * The visible editor's text without widgets: remote carets' name labels, inlay hints and the
+ * inline blame hint at the caret line (CodeMirror marks every widget contenteditable=false).
+ */
 const TEXT = `(() => {
   const c = ${ACTIVE};
   if (!c) return "";
   return [...c.querySelectorAll(".cm-line")].map((l) => {
     const k = l.cloneNode(true);
-    k.querySelectorAll(".cm-ySelectionCaret").forEach((e) => e.remove());
+    k.querySelectorAll('.cm-ySelectionCaret, [contenteditable="false"]').forEach((e) => e.remove());
     return k.textContent;
   }).join("\\n");
 })()`;
