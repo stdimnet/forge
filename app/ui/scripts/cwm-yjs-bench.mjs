@@ -1,6 +1,7 @@
 /**
  * `node scripts/cwm-yjs-bench.mjs`: the UI side of the Code With Me target "applying one
- * update to a 100 000-line file < 1 ms" (docs/plans/code-with-me.md, "Performance targets").
+ * update to a 100 000-line file < 1 ms" (docs/plans/code-with-me.md, "Performance targets";
+ * `CWM_LINES=10000` measures another size).
  * Runs in Node without a browser, with the UI's own `yjs` and `@codemirror/state`.
  *
  * A guest's editor holds a Y.Text of 100 000 lines bound to CodeMirror. For each remote
@@ -18,7 +19,7 @@
 import * as Y from "yjs";
 import { EditorState } from "@codemirror/state";
 
-const LINES = 100_000;
+const LINES = Number(process.env.CWM_LINES) || 100_000;
 const SAMPLES = 2_000;
 
 let seed = 7;
