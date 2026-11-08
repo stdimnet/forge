@@ -54,6 +54,7 @@ import {
 import { openMenu } from "./PopupMenu";
 import { RunOnRow } from "./RunOn";
 import { t as tr } from "@/i18n";
+import { listboxKeyDown, optionTabIndex } from "@/features/project/treeNavigation";
 
 interface Item {
   uid: number;
@@ -579,13 +580,27 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
               <ArrowDown size={14} />
             </button>
           </div>
-          <div class="rc-bl-list">
+          <div
+            class="rc-bl-list"
+            role="listbox"
+            aria-label={tr("run.config.beforeLaunch")}
+            onKeyDown={(e) => listboxKeyDown(e, tasks().map((_, n) => String(n)), sel() === null ? null : String(sel()), (id) => setSel(Number(id)))}
+          >
             {/* Index keeps rows (and the focused input) while values change. */}
             <Index each={tasks()} fallback={<div class="rc-bl-empty muted">{tr("run.config.noTasks")}</div>}>
               {(t, i) => {
                 const kind = () => TASK_KINDS[t().type];
                 return (
-                  <div class="rc-bl-item" classList={{ selected: sel() === i }} onClick={() => setSel(i)}>
+                  <div
+                    class="rc-bl-item"
+                    classList={{ selected: sel() === i }}
+                    role="option"
+                    aria-selected={sel() === i}
+                    tabIndex={optionTabIndex(String(i), sel() === null ? null : String(sel()), "0")}
+                    data-option-id={String(i)}
+                    onClick={() => setSel(i)}
+                    onFocusIn={() => setSel(i)}
+                  >
                     <Dynamic
                       component={t().type === "runConfiguration" ? (findType(findConfigType(t().value))?.icon ?? Settings2) : (kind()?.icon ?? Wrench)}
                       size={13}

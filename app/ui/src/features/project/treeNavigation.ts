@@ -63,3 +63,26 @@ export function navigateList(ids: readonly string[], selected: string | null, ke
   );
   return action.type === "select" ? action.path : null;
 }
+
+/**
+ * Keyboard handler for a `role="listbox"` whose options carry `data-option-id` and a roving
+ * `tabIndex`: Up/Down/Home/End select and focus the next option. Keys typed into a control
+ * inside an option (an input in an editable row) are left alone.
+ */
+export function listboxKeyDown(
+  e: KeyboardEvent & { currentTarget: HTMLElement },
+  ids: readonly string[],
+  selected: string | null,
+  select: (id: string) => void,
+): void {
+  if (!(e.target instanceof Element) || e.target.getAttribute("role") !== "option") return;
+  const next = navigateList(ids, selected, e.key);
+  if (!next) return;
+  e.preventDefault();
+  select(next);
+  e.currentTarget.querySelector<HTMLElement>(`[data-option-id="${CSS.escape(next)}"]`)?.focus();
+}
+
+/** Roving tabIndex of a list option: 0 on the selected one (or the first without selection). */
+export const optionTabIndex = (id: string, selected: string | null, first: string | undefined): 0 | -1 =>
+  id === selected || (selected === null && id === first) ? 0 : -1;

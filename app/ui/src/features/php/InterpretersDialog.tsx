@@ -28,7 +28,7 @@ import {
   type PhpInterpreter,
 } from "./interpreters";
 import { t } from "@/i18n";
-import { navigateList } from "@/features/project/treeNavigation";
+import { listboxKeyDown, optionTabIndex } from "@/features/project/treeNavigation";
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -223,13 +223,7 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
               class="php-interp-items"
               role="listbox"
               aria-label={t("langs.php.cliInterpreters")}
-              onKeyDown={(e) => {
-                const next = navigateList(list.map((x) => x.id), current(), e.key);
-                if (!next) return;
-                e.preventDefault();
-                setCurrent(next);
-                e.currentTarget.querySelector<HTMLElement>(`[data-id="${CSS.escape(next)}"]`)?.focus();
-              }}
+              onKeyDown={(e) => listboxKeyDown(e, list.map((x) => x.id), current(), setCurrent)}
             >
               <For each={list} fallback={<div class="php-hint php-interp-empty">{t("langs.php.noInterpretersConfiguredClickTo")}</div>}>
                 {(i) => (
@@ -238,9 +232,9 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
                     classList={{ selected: i.id === current() }}
                     role="option"
                     aria-selected={i.id === current()}
-                    tabIndex={i.id === current() || (!current() && i === list[0]) ? 0 : -1}
+                    tabIndex={optionTabIndex(i.id, current(), list[0]?.id)}
                     data-interpreter={i.name}
-                    data-id={i.id}
+                    data-option-id={i.id}
                     onClick={() => setCurrent(i.id)}
                     onFocus={() => setCurrent(i.id)}
                   >

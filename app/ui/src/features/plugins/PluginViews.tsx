@@ -8,7 +8,7 @@ import { AlertTriangle, Download, Puzzle, RefreshCw, Search, ShieldCheck } from 
 import { pluginsApi, type MarketplaceEntry, type PermissionLine } from "@/ipc/plugins";
 import { busy, closePrompt, acceptPrompt, installFromMarketplace, installed, prompt } from "./store";
 import { t as tr } from "@/i18n";
-import { navigateList } from "@/features/project/treeNavigation";
+import { listboxKeyDown } from "@/features/project/treeNavigation";
 import "./plugins.css";
 
 export function PermissionList(props: { lines: PermissionLine[]; added?: string[] }) {
@@ -125,13 +125,7 @@ export function MarketplaceTab(props: { onSettings?: () => void; reload?: () => 
           data-testid="marketplace-list"
           role="listbox"
           aria-label={tr("tools.plugins.marketplace")}
-          onKeyDown={(e) => {
-            const next = navigateList(entries().map((x) => x.id), selected()?.id ?? null, e.key);
-            if (!next) return;
-            e.preventDefault();
-            setSelectedId(next);
-            e.currentTarget.querySelector<HTMLElement>(`[data-plugin="${CSS.escape(next)}"]`)?.focus();
-          }}
+          onKeyDown={(e) => listboxKeyDown(e, entries().map((x) => x.id), selected()?.id ?? null, setSelectedId)}
         >
           <Show when={!view.loading} fallback={<div class="set-empty">{tr("common.loadingEllipsis")}</div>}>
             <Show
@@ -165,6 +159,7 @@ export function MarketplaceTab(props: { onSettings?: () => void; reload?: () => 
                     aria-selected={selected()?.id === e.id}
                     tabIndex={selected()?.id === e.id ? 0 : -1}
                     data-plugin={e.id}
+                    data-option-id={e.id}
                     onClick={() => setSelectedId(e.id)}
                     onFocus={() => setSelectedId(e.id)}
                   >
