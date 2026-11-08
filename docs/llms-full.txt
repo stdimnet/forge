@@ -16681,6 +16681,10 @@ commit messages there. See [AI](docs/guide/user/ai.md#providers).
 | Jump to Source | `F4` |
 | Close | `Escape` |
 
+Next / Previous Difference are the keymap actions of the same name, so a shortcut you change in
+Settings | Keymap works here too. `Escape` closes the viewer only while it has the focus, not a
+dialog opened above it.
+
 The toolbar also has viewer, whitespace and highlighting options and **Collapse Unchanged
 Fragments**. Each changed block has a "Revert" arrow that replaces your side with the left
 side.
@@ -17912,7 +17916,8 @@ on the machine that hosts the project (remote projects included).
 The **Run** tool window (`Alt+4`) has one tab per run. Tabs can be pinned and closed (`Ctrl+Shift+F4`).
 
 - Output is shown with ANSI colors; `\r` progress lines update in place.
-- File references (`app/User.php:42`, stack traces) and URLs are clickable.
+- File references (`app/User.php:42`, stack traces) and URLs are links: click them, or reach
+  them with `Tab` and press `Enter`. Files open in the editor, URLs in your browser.
 - Toolbar: **Rerun**, **Stop**, **Soft-Wrap**, **Scroll to the End**, **Clear All**.
 - Typing sends input to the process (stdin).
 - Stop sends SIGTERM to the process group, then SIGKILL after 2 seconds (`taskkill /T` on
@@ -29134,7 +29139,11 @@ is described in [Accessibility](docs/guide/user/accessibility.md).
    active row with `aria-activedescendant` (Project, Structure, Commit, Search Everywhere), or
    the rows use a roving `tabIndex` (0 on the selected row, -1 on the others: Settings tree,
    editor tabs). Arrow keys, `Home`, `End` and `Enter` come from
-   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same.
+   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same. Flat
+   selection lists use `listboxKeyDown` and `optionTabIndex` from the same file: options carry
+   `data-option-id`, and keys typed into a control inside an option (an editable row) stay
+   with that control. Twisty icons in a tree row are `aria-hidden`; the tree's own keys open
+   and close the row.
 4. **Dialogs are `role="dialog"` with a name.** Inside a backdrop (`*-backdrop`) they are
    modal. `features/accessibility/dialogs.ts` finds every dialog in the window: it names it
    after its title, sets `aria-modal`, connects `<label>` elements to the control after them,
@@ -29226,6 +29235,11 @@ Source: docs/guide/developer/keymap-actions.md
 Recipe: [`add-keymap-action`](.claude/skills/add-keymap-action/SKILL.md). Every
 shortcut goes through the keymap engine. **Never** add a `keydown` listener for a shortcut: it
 breaks user overrides, focus contexts and conflict detection, and causes double toggles.
+The same goes for CodeMirror `keymap.of([...])` bindings of a keymap action (`Mod-p`, `F2`):
+when the user rebinds the action, the old key keeps firing in the editor. Register a command
+with the action id instead; keep `keymap.of` for keys that belong to the widget itself, such
+as `Escape` closing its own popup. A window with its own Next/Previous actions (the diff
+viewer) marks itself `data-focus-context="diff"` and lets the action's command find it.
 
 ## The engine
 

@@ -26,7 +26,11 @@ is described in [Accessibility](../user/accessibility.md).
    active row with `aria-activedescendant` (Project, Structure, Commit, Search Everywhere), or
    the rows use a roving `tabIndex` (0 on the selected row, -1 on the others: Settings tree,
    editor tabs). Arrow keys, `Home`, `End` and `Enter` come from
-   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same.
+   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same. Flat
+   selection lists use `listboxKeyDown` and `optionTabIndex` from the same file: options carry
+   `data-option-id`, and keys typed into a control inside an option (an editable row) stay
+   with that control. Twisty icons in a tree row are `aria-hidden`; the tree's own keys open
+   and close the row.
 4. **Dialogs are `role="dialog"` with a name.** Inside a backdrop (`*-backdrop`) they are
    modal. `features/accessibility/dialogs.ts` finds every dialog in the window: it names it
    after its title, sets `aria-modal`, connects `<label>` elements to the control after them,

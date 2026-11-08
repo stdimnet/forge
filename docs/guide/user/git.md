@@ -219,6 +219,10 @@ commit messages there. See [AI](ai.md#providers).
 | Jump to Source | `F4` |
 | Close | `Escape` |
 
+Next / Previous Difference are the keymap actions of the same name, so a shortcut you change in
+Settings | Keymap works here too. `Escape` closes the viewer only while it has the focus, not a
+dialog opened above it.
+
 The toolbar also has viewer, whitespace and highlighting options and **Collapse Unchanged
 Fragments**. Each changed block has a "Revert" arrow that replaces your side with the left
 side.
