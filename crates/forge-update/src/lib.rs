@@ -52,6 +52,11 @@ pub enum UpdateError {
     Version(String),
     #[error("the update has no download for this system ({0})")]
     NoPlatform(String),
+    /// The feed is not read over https (plain http only for this machine).
+    #[error("the update feed must use https: {0}")]
+    Insecure(String),
+    #[error("the update feed is larger than {0} bytes")]
+    TooLarge(usize),
 }
 
 impl UpdateError {
@@ -63,6 +68,8 @@ impl UpdateError {
             Self::Status(code) => format!("The update server answered with error {code}."),
             Self::Feed(_) | Self::Version(_) => "The update information is invalid.".into(),
             Self::NoPlatform(_) => "This update has no download for your system.".into(),
+            Self::Insecure(_) => "The update server address must start with https://.".into(),
+            Self::TooLarge(_) => "The update information is invalid.".into(),
         }
     }
 }

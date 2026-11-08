@@ -58,11 +58,7 @@ impl AppState {
             }
         }
         let mut settings = Settings::new();
-        settings.set_defaults(
-            registry
-                .all_settings()
-                .map(|s| (s.key.clone(), s.default.clone())),
-        );
+        forge_plugin_api::apply_setting_specs(&mut settings, registry.all_settings());
         if let Some(path) = Settings::default_user_path() {
             if let Err(e) = settings.load_user(path) {
                 tracing::warn!("user settings not loaded: {e}");

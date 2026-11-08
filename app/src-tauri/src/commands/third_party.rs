@@ -147,13 +147,9 @@ fn register(state: &AppState, plugin: &InstalledPlugin) -> Result<()> {
         registry.set_enabled(&plugin.manifest.id, false)?;
     }
     drop(registry);
-    state.write_settings().set_defaults(
-        plugin
-            .manifest
-            .contributes
-            .settings
-            .iter()
-            .map(|s| (s.key.clone(), s.default.clone())),
+    forge_plugin_api::apply_setting_specs(
+        &mut state.write_settings(),
+        &plugin.manifest.contributes.settings,
     );
     Ok(())
 }

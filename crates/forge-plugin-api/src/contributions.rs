@@ -273,6 +273,8 @@ pub struct SettingSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub section: Option<String>,
     /// Stored per project (`.forge/settings.toml`) rather than per user when a project is open.
+    /// Settings without it are IDE settings: a project's `.forge/settings.toml` never decides
+    /// them (see [`apply_setting_specs`]).
     #[serde(default)]
     pub project: bool,
     /// Not shown as a row of its page: a dialog of the page edits it (e.g. the signing key
@@ -281,6 +283,18 @@ pub struct SettingSpec {
     pub hidden: bool,
     #[serde(default)]
     pub order: i32,
+}
+
+/// Register `specs` with `settings`: their defaults, and every setting that is not
+/// `project = true` as user-only, so the project layer never decides it (a cloned
+/// repository must not choose the Git executable, the npm registry or the update feed).
+pub fn apply_setting_specs<'a>(
+    settings: &mut forge_core::Settings,
+    specs: impl IntoIterator<Item = &'a SettingSpec>,
+) {
+    let specs: Vec<&SettingSpec> = specs.into_iter().collect();
+    settings.set_defaults(specs.iter().map(|s| (s.key.clone(), s.default.clone())));
+    settings.set_user_only(specs.iter().filter(|s| !s.project).map(|s| s.key.clone()));
 }
 
 /// How to start a language server for some file types.

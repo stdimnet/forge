@@ -86,6 +86,11 @@ databases, the HTTP client and [Deployment](deployment.md) actions you start you
 download, compare and sync only copy files), and the [Remote Host](remote-host-and-ssh.md)
 tool window with Edit Remote File.
 
+IDE settings never come from the project, trusted or not: its `.forge/settings.toml` cannot
+choose the Git executable, the npm registry or Node.js mirror for language server installs,
+the update feed or channel, or the Android and Groovy SDKs (see
+[User and project settings](settings-and-themes.md#user-and-project-settings)).
+
 The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
 settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your
 user settings are used.

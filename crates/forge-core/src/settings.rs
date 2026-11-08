@@ -7,6 +7,12 @@
 //! to every project that has no value of its own. Values are JSON values so they cross the IPC boundary
 //! unchanged; typed accessors deserialize on read. Writing a value persists its layer and
 //! notifies subscribers with the new effective value.
+//!
+//! **User-only settings** ([`Settings::set_user_only`]: every setting whose schema does not
+//! say `project = true`) are IDE settings. A project's `.forge/settings.toml` comes with the
+//! project's files, so it never decides them: its values for these keys are ignored on read
+//! and refused on write. Otherwise any cloned repository could choose the programs and
+//! servers Forge uses for the user (the Git executable, the npm registry, the update feed).
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -207,6 +213,8 @@ pub struct Settings {
     user: Layer,
     new_projects: Layer,
     project: Layer,
+    /// Keys the project layer never decides (see the module docs).
+    user_only: std::collections::BTreeSet<String>,
     listeners: Vec<Listener>,
 }
 
@@ -234,6 +242,18 @@ impl Settings {
     /// Register built-in defaults (typically from the plugin settings schema).
     pub fn set_defaults(&mut self, defaults: impl IntoIterator<Item = (String, Value)>) {
         self.defaults.extend(defaults);
+    }
+
+    /// Mark `keys` as user-only: IDE settings that a project's `.forge/settings.toml` never
+    /// decides. Their project values are ignored and writing one is refused. The app marks
+    /// every schema setting that is not `project = true`.
+    pub fn set_user_only(&mut self, keys: impl IntoIterator<Item = String>) {
+        self.user_only.extend(keys);
+    }
+
+    /// Whether the project layer never decides `key` (see [`Settings::set_user_only`]).
+    pub fn is_user_only(&self, key: &str) -> bool {
+        self.user_only.contains(key)
     }
 
     /// Load (or create on first write) the user settings file.
@@ -335,14 +355,17 @@ impl Settings {
         }
     }
 
-    /// The effective value of `key` and the layer it comes from.
+    /// The effective value of `key` and the layer it comes from. The project layer is
+    /// skipped for user-only keys.
     pub fn resolve(&self, key: &str) -> Option<(&Value, SettingsScope)> {
+        let user_only = self.is_user_only(key);
         [
             SettingsScope::Project,
             SettingsScope::NewProjects,
             SettingsScope::User,
         ]
         .into_iter()
+        .filter(|s| !(user_only && *s == SettingsScope::Project))
         .find_map(|s| self.layer(s)?.values.get(key).map(|v| (v, s)))
         .or_else(|| self.defaults.get(key).map(|v| (v, SettingsScope::Default)))
     }
@@ -392,7 +415,13 @@ impl Settings {
         let mut out = self.defaults.clone();
         out.extend(self.user.values.clone());
         out.extend(self.new_projects.values.clone());
-        out.extend(self.project.values.clone());
+        out.extend(
+            self.project
+                .values
+                .iter()
+                .filter(|(k, _)| !self.is_user_only(k))
+                .map(|(k, v)| (k.clone(), v.clone())),
+        );
         out
     }
 
@@ -423,6 +452,12 @@ impl Settings {
                 }
                 SettingsScope::Project if !self.has_project() => {
                     return Err(ForgeError::Other("no project is open".into()))
+                }
+                // Removing a stray value is fine; storing one would have no effect.
+                SettingsScope::Project if self.is_user_only(key) && !value.is_null() => {
+                    return Err(ForgeError::Other(format!(
+                        "`{key}` is an IDE setting and cannot be stored in the project"
+                    )))
                 }
                 _ => {}
             }
@@ -546,6 +581,47 @@ mod tests {
         ]);
         s.load_user(dir.join("user/settings.toml")).unwrap();
         s
+    }
+
+    #[test]
+    fn projects_never_decide_user_only_settings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        s.set_defaults([
+            ("updates.endpoint".to_string(), json!("")),
+            ("vcs.git.path".to_string(), json!("")),
+        ]);
+        s.set_user_only(["updates.endpoint".to_string(), "vcs.git.path".to_string()]);
+        // A cloned repository ships its own `.forge/settings.toml`.
+        let project = tmp.path().join("project");
+        fs::create_dir_all(project.join(".forge")).unwrap();
+        fs::write(
+            project.join(".forge/settings.toml"),
+            "[updates]\nendpoint = \"https://evil.example/latest.json\"\n\
+             [vcs.git]\npath = \"./.forge/x.sh\"\n\
+             [editor.font]\nsize = 20\n",
+        )
+        .unwrap();
+        s.load_project(&project).unwrap();
+        assert_eq!(s.get_str("updates.endpoint"), Some(""));
+        assert_eq!(s.get_as::<String>("vcs.git.path").as_deref(), Some(""));
+        assert_eq!(s.resolve("vcs.git.path").unwrap().1, SettingsScope::Default);
+        assert!(!s.effective().values().any(|v| v == &json!("./.forge/x.sh")));
+        // Keys without the mark still follow the project.
+        assert_eq!(s.get_i64("editor.font.size"), Some(20));
+        // The user's own value applies.
+        s.set("vcs.git.path", json!("/usr/bin/git"), SettingsScope::User)
+            .unwrap();
+        assert_eq!(s.get_str("vcs.git.path"), Some("/usr/bin/git"));
+        // Storing one in the project is refused; removing the stray value works.
+        assert!(s
+            .set("vcs.git.path", json!("./x"), SettingsScope::Project)
+            .is_err());
+        s.set("vcs.git.path", Value::Null, SettingsScope::Project)
+            .unwrap();
+        assert!(!s
+            .layer_values(SettingsScope::Project)
+            .contains_key("vcs.git.path"));
     }
 
     #[test]

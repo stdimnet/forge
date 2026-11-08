@@ -399,3 +399,75 @@ async fn beta_checks_read_both_feeds_and_remember_the_source() {
         CheckOutcome::UpToDate
     );
 }
+
+#[test]
+fn feeds_are_read_over_https_only() {
+    assert!(check_endpoint(
+        "https://github.com/Reeperk/Forge/releases/latest/download/latest.json"
+    )
+    .is_ok());
+    assert!(check_endpoint("http://127.0.0.1:8080/latest.json").is_ok());
+    assert!(check_endpoint("http://localhost/latest.json").is_ok());
+    assert!(check_endpoint("http://[::1]:9/latest.json").is_ok());
+    for bad in [
+        "http://evil.example/latest.json",
+        "http://127.0.0.1.evil.example/latest.json",
+        "file:///etc/passwd",
+        "ftp://evil.example/latest.json",
+        "not a url",
+    ] {
+        assert!(
+            matches!(check_endpoint(bad), Err(UpdateError::Insecure(_))),
+            "{bad}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn plain_http_feeds_are_not_fetched() {
+    // Refused before any request: no server needed.
+    let feed = fetch_feed(&client(), "http://evil.example/latest.json").await;
+    assert!(matches!(feed, Err(UpdateError::Insecure(_))));
+}
+
+#[tokio::test]
+async fn oversized_feeds_are_refused() {
+    let huge = format!(
+        "{{\"version\": \"0.2.0\", \"notes\": \"{}\"}}",
+        "x".repeat(MAX_FEED_BYTES)
+    );
+    let declared = serve(|_| {
+        let mut r = Routes::new();
+        route(&mut r, "GET /latest.json", 200, huge.clone());
+        r
+    })
+    .await;
+    assert!(matches!(
+        fetch_feed(&client(), &format!("{declared}/latest.json")).await,
+        Err(UpdateError::TooLarge(_))
+    ));
+    // Without a Content-Length the body is cut off while it is read.
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        if let Ok((mut socket, _)) = listener.accept().await {
+            let mut head = [0u8; 1024];
+            let _ = socket.read(&mut head).await;
+            let _ = socket
+                .write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
+                .await;
+            let block = vec![b'x'; 64 * 1024];
+            // Far more than the limit: the reader stops early.
+            for _ in 0..64 {
+                if socket.write_all(&block).await.is_err() {
+                    return;
+                }
+            }
+            let _ = socket.shutdown().await;
+        }
+    });
+    assert!(matches!(
+        fetch_feed(&client(), &format!("http://{addr}/latest.json")).await,
+        Err(UpdateError::TooLarge(_))
+    ));
+}
