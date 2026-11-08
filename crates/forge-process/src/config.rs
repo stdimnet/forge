@@ -347,14 +347,6 @@ fn required<'a>(cfg: &'a RunConfiguration, key: &str, label: &str) -> Result<&'a
     }
 }
 
-fn platform_program(name: &str) -> String {
-    if cfg!(windows) {
-        format!("{name}.cmd")
-    } else {
-        name.into()
-    }
-}
-
 /// `php [interpreter options] <file> [arguments]`.
 struct PhpScript;
 impl RunConfigurationKind for PhpScript {
@@ -511,7 +503,9 @@ impl RunConfigurationKind for Artisan {
 /// `php.composer.executable`, empty = `composer`), or `php <path>` for a composer.phar.
 pub fn composer_program(executable: &str, php: &str) -> (String, Vec<String>) {
     match executable.trim() {
-        "" | "composer" => (platform_program("composer"), Vec::new()),
+        // On Windows `composer` is `composer.bat` (Composer-Setup) or `composer.cmd`: the
+        // spawn looks it up through `PATHEXT` (`forge_hostspawn::win`).
+        "" | "composer" => ("composer".to_string(), Vec::new()),
         p if p.to_ascii_lowercase().ends_with(".phar") => {
             let php = match php.trim() {
                 "" => "php",
@@ -618,7 +612,8 @@ impl RunConfigurationKind for NpmScript {
             "" => "npm",
             m => m,
         };
-        let mut cmd = CommandLine::new(platform_program(manager)).arg(command);
+        // `npm.cmd`, `pnpm.cmd`/`pnpm.exe`, `bun.exe`: found through `PATHEXT` on Windows.
+        let mut cmd = CommandLine::new(manager).arg(command);
         if command == "run" {
             cmd = cmd.arg(required(cfg, "script", "Script")?);
         }
@@ -973,6 +968,19 @@ mod tests {
             .unwrap();
         assert!(cmd.args.contains(&"scripts/deploy.sh".to_string()));
         assert_eq!(cmd.cwd, PathBuf::from("/proj/scripts"));
+    }
+
+    #[test]
+    fn package_managers_and_composer_keep_their_bare_names() {
+        // No `.cmd` is guessed (#210): Composer-Setup installs `composer.bat`, Bun ships
+        // `bun.exe`. The spawn finds them through `PATHEXT` on Windows.
+        let r = KindRegistry::builtin();
+        assert_eq!(composer_program("", "php").0, "composer");
+        assert_eq!(composer_program("composer", "php").0, "composer");
+        for manager in ["npm", "pnpm", "yarn", "bun"] {
+            let c = cfg("npm", &[("script", "dev"), ("packageManager", manager)]);
+            assert_eq!(r.build(&c, &ctx()).unwrap().program, manager);
+        }
     }
 
     #[test]

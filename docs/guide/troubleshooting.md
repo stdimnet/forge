@@ -108,6 +108,20 @@ status bar. Earlier versions could run Intelephense or Phpactor instead; that ch
 
 ## Windows
 
+### Tools and console windows on Windows
+
+Forge finds tools the way `cmd.exe` does: a name without extension is looked up in every
+folder of `PATH` with every extension of `PATHEXT`, so `composer` finds `composer.bat`
+(Composer-Setup), `npm` finds `npm.cmd`, `bun` finds `bun.exe` and `gradle` finds
+`gradle.bat`. If a tool still is not found, check that its folder is on `PATH` for Forge
+(restart Forge after changing `PATH`) or set its full path in the run configuration.
+
+Shell Script configurations, Run Anything and the AI terminal tool run command lines through
+`cmd.exe /D /S /C "<line>"` and pass the line on unchanged, so quotes work as in a Command
+Prompt (`git commit -m "fix bug"`). Programs Forge builds command lines for itself (Kotlin
+compile and run, Android Run) are quoted for `cmd.exe`: paths with spaces work and `%VAR%` in
+an argument is passed on, not expanded. No tool Forge starts opens a console window.
+
 ### Language servers on Windows
 
 Release builds of Forge for Windows run without a console, so nothing Forge or a language
