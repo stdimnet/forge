@@ -116,20 +116,103 @@ pub fn literal(d: Dialect, kind: ValueKind, v: Option<&str>, empty_as_null: bool
         }
         ValueKind::Date if d == Dialect::Oracle => format!("DATE {}", d.quote_str(v.trim())),
         ValueKind::DateTime if d == Dialect::Oracle => {
+            // Oracle TIMESTAMP literals carry no zone: values with one are converted to UTC.
             let t = v.trim().replacen('T', " ", 1);
-            let t = t.trim_end_matches('Z');
-            // Oracle TIMESTAMP literals carry no zone.
-            let t = match t.rfind(['+']) {
-                Some(i) if i > 10 => &t[..i],
-                _ => t,
-            };
-            format!("TIMESTAMP {}", d.quote_str(t))
+            let t = to_utc(&t).unwrap_or(t);
+            format!("TIMESTAMP {}", d.quote_str(&t))
         }
         ValueKind::DateTime if d == Dialect::MySql => {
             d.quote_str(v.trim().replacen('T', " ", 1).trim_end_matches('Z'))
         }
         _ => d.quote_str(v),
     }
+}
+
+/// `2024-01-02 10:00:00+02:00` (also `Z`, `+0200`, `-05`) as UTC without a zone:
+/// `2024-01-02 08:00:00`. `None` for a value without a zone or one that does not parse.
+fn to_utc(t: &str) -> Option<String> {
+    let (local, offset_min) = if let Some(local) = t.strip_suffix(['Z', 'z']) {
+        (local, 0i64)
+    } else {
+        let at = t.rfind(['+', '-']).filter(|&i| i > 10)?;
+        let zone = &t[at + 1..];
+        let digits: String = zone.chars().filter(|c| *c != ':').collect();
+        if !(digits.len() == 2 || digits.len() == 4) || !digits.bytes().all(|c| c.is_ascii_digit())
+        {
+            return None;
+        }
+        let h: i64 = digits[..2].parse().ok()?;
+        let m: i64 = if digits.len() == 4 {
+            digits[2..].parse().ok()?
+        } else {
+            0
+        };
+        let sign = if t.as_bytes()[at] == b'-' { -1 } else { 1 };
+        (&t[..at], sign * (h * 60 + m))
+    };
+    let local = local.trim_end();
+    // `YYYY-MM-DD HH:MM[:SS[.fff]]`
+    let (date, time) = local.split_once(' ')?;
+    let mut dp = date.split('-');
+    let (y, mo, da): (i64, i64, i64) = (
+        dp.next()?.parse().ok()?,
+        dp.next()?.parse().ok()?,
+        dp.next()?.parse().ok()?,
+    );
+    let (hms, frac) = match time.split_once('.') {
+        Some((hms, frac)) if frac.bytes().all(|c| c.is_ascii_digit()) => (hms, Some(frac)),
+        Some(_) => return None,
+        None => (time, None),
+    };
+    let mut tp = hms.split(':');
+    let (hh, mm): (i64, i64) = (tp.next()?.parse().ok()?, tp.next()?.parse().ok()?);
+    let ss: i64 = tp.next().map(str::parse).transpose().ok()?.unwrap_or(0);
+    if dp.next().is_some()
+        || tp.next().is_some()
+        || !(1..=12).contains(&mo)
+        || !(1..=31).contains(&da)
+        || hh > 23
+        || mm > 59
+        || ss > 60
+    {
+        return None;
+    }
+    let minutes = days_from_civil(y, mo, da) * 1440 + hh * 60 + mm - offset_min;
+    let (days, rest) = (minutes.div_euclid(1440), minutes.rem_euclid(1440));
+    let (y, mo, da) = civil_from_days(days);
+    let mut out = format!(
+        "{y:04}-{mo:02}-{da:02} {:02}:{:02}:{ss:02}",
+        rest / 60,
+        rest % 60
+    );
+    if let Some(f) = frac {
+        out.push('.');
+        out.push_str(f);
+    }
+    Some(out)
+}
+
+/// Days since 1970-01-01 of a proleptic Gregorian date (Howard Hinnant's algorithm).
+fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146_097 + doe - 719_468
+}
+
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    (yoe + era * 400 + i64::from(m <= 2), m, d)
 }
 
 /// Rows per statement: the plan's batch size within the dialect's limit.
@@ -307,8 +390,23 @@ mod tests {
                 Some("2024-01-02T10:00:00+02:00"),
                 true
             ),
+            "TIMESTAMP '2024-01-02 08:00:00'"
+        );
+        let oracle = |v: &str| literal(Dialect::Oracle, ValueKind::DateTime, Some(v), true);
+        // Negative offsets convert too, across the day and year boundary.
+        assert_eq!(
+            oracle("2023-12-31T22:30:00-05:00"),
+            "TIMESTAMP '2024-01-01 03:30:00'"
+        );
+        assert_eq!(
+            oracle("2024-03-01 00:15:00.250+0100"),
+            "TIMESTAMP '2024-02-29 23:15:00.250'"
+        );
+        assert_eq!(
+            oracle("2024-01-02T10:00:00Z"),
             "TIMESTAMP '2024-01-02 10:00:00'"
         );
+        assert_eq!(oracle("2024-01-02 10:00"), "TIMESTAMP '2024-01-02 10:00'");
         assert_eq!(
             literal(
                 Dialect::MySql,
