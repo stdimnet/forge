@@ -341,6 +341,75 @@ const MONGO_READS: &[&str] = &[
     "version",
 ];
 
+/// Database commands that only read, for `db.runCommand(…)`.
+const MONGO_READ_COMMANDS: &[&str] = &[
+    "ping",
+    "buildInfo",
+    "buildinfo",
+    "hello",
+    "isMaster",
+    "ismaster",
+    "hostInfo",
+    "serverStatus",
+    "dbStats",
+    "collStats",
+    "dataSize",
+    "listCollections",
+    "listDatabases",
+    "listIndexes",
+    "listCommands",
+    "connectionStatus",
+    "getCmdLineOpts",
+    "getParameter",
+    "getLog",
+    "whatsmyuri",
+    "usersInfo",
+    "rolesInfo",
+    "replSetGetStatus",
+    "count",
+    "distinct",
+    "find",
+];
+
+/// Whether the command document of `db.runCommand(…)` only reads: its command name (the
+/// first key, or a string argument: `runCommand("ping")`) is a known read. Anything that
+/// does not parse as such counts as a write.
+fn mongo_read_command(args: &str) -> bool {
+    let a = args.trim();
+    let name = if let Some(body) = a.strip_prefix('{') {
+        let body = body.trim_start();
+        let (key, rest) = match body.chars().next() {
+            Some(q @ ('"' | '\'')) => match body[1..].find(q) {
+                Some(end) => (&body[1..1 + end], &body[end + 2..]),
+                None => return false,
+            },
+            _ => {
+                let end = body
+                    .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '$'))
+                    .unwrap_or(body.len());
+                (&body[..end], &body[end..])
+            }
+        };
+        if !rest.trim_start().starts_with(':') {
+            return false;
+        }
+        key
+    } else if let Some(q @ ('"' | '\'')) = a.chars().next() {
+        match a[1..].find(q) {
+            Some(end) if a[end + 2..].trim().is_empty() => &a[1..1 + end],
+            _ => return false,
+        }
+    } else {
+        return false;
+    };
+    is_mongo_read_command(name)
+}
+
+/// Whether a MongoDB database command (the first key of its document) only reads.
+pub fn is_mongo_read_command(name: &str) -> bool {
+    MONGO_READ_COMMANDS.contains(&name)
+}
+
 /// Whether a MongoDB console line may change data.
 pub fn mongo_is_write(text: &str) -> bool {
     let t = text.trim();
@@ -351,7 +420,7 @@ pub fn mongo_is_write(text: &str) -> bool {
         Some(call) if call.method == "aggregate" => {
             call.args.contains("$out") || call.args.contains("$merge")
         }
-        Some(call) if call.method == "runCommand" => !call.args.contains("ping"),
+        Some(call) if call.method == "runCommand" => !mongo_read_command(call.args),
         Some(call) => !MONGO_READS.contains(&call.method),
         None => true,
     }
@@ -570,6 +639,27 @@ mod tests {
         assert!(mongo_is_write("db.users.aggregate([{ $out: 'x' }])"));
         assert!(mongo_is_write("db.users.insertOne({a: 1})"));
         assert!(!mongo_is_write("show collections"));
+        // `runCommand` reads only when the command itself is a known read.
+        assert!(mongo_is_write(
+            r#"db.runCommand({drop: "users", comment: "ping"})"#
+        ));
+        assert!(mongo_is_write(
+            r#"db.runCommand({"dropDatabase": 1, "x": "ping"})"#
+        ));
+        assert!(mongo_is_write(
+            "db.runCommand({ /* ping */ drop: 'users' })"
+        ));
+        assert!(mongo_is_write("db.runCommand({ pingx: 1 })"));
+        assert!(mongo_is_write("db.runCommand('drop')"));
+        assert!(mongo_is_write("db.runCommand({ ['ping']: 1 })"));
+        assert!(!mongo_is_write("db.runCommand({ ping: 1 })"));
+        assert!(!mongo_is_write(
+            r#"db.runCommand({"listCollections": 1, filter: {}})"#
+        ));
+        assert!(!mongo_is_write("db.runCommand('ping')"));
+        assert!(!mongo_is_write(
+            "db.runCommand({ dbStats: 1, scale: 1024 })"
+        ));
         assert!(guard("db.users.deleteMany({})", Dialect::Mongo, &prod())
             .confirm
             .unwrap()
