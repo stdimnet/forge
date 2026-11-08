@@ -1,4 +1,8 @@
-/** A focusable field that records one keystroke (keymap is suspended while focused). */
+/**
+ * A focusable field that records one keystroke (keymap is suspended while focused). Tab and
+ * Shift+Tab still move the focus, and Escape keeps its dialog meaning, so the field never
+ * traps the keyboard.
+ */
 import { Show, onCleanup } from "solid-js";
 import { X } from "lucide-solid";
 import { formatForKeymap, strokeOfEvent, suspendKeymap } from "@/keymap";
@@ -8,6 +12,8 @@ export function ShortcutField(props: {
   value: string;
   onChange: (stroke: string) => void;
   placeholder?: string;
+  /** Accessible name (defaults to "Shortcut"). */
+  label?: string;
   autofocus?: boolean;
   disabled?: boolean;
   ref?: (el: HTMLDivElement) => void;
@@ -23,6 +29,9 @@ export function ShortcutField(props: {
     <div
       class="shortcut-field"
       classList={{ disabled: props.disabled, empty: !props.value }}
+      role="textbox"
+      aria-label={props.label ?? t("tools.keymapSettings.shortcutField")}
+      aria-disabled={props.disabled ? "true" : undefined}
       tabIndex={props.disabled ? -1 : 0}
       ref={(el) => {
         props.ref?.(el);
@@ -34,8 +43,9 @@ export function ShortcutField(props: {
       }}
       onBlur={release}
       onKeyDown={(e) => {
-        // Escape/Tab keep their dialog meaning when the field is empty.
-        if ((e.key === "Escape" || e.key === "Tab") && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) return;
+        // Escape closes the dialog and Tab / Shift+Tab move the focus: never record them.
+        const plain = !e.ctrlKey && !e.altKey && !e.metaKey;
+        if ((e.key === "Escape" && plain && !e.shiftKey) || (e.key === "Tab" && plain)) return;
         e.preventDefault();
         e.stopPropagation();
         const stroke = strokeOfEvent(e);

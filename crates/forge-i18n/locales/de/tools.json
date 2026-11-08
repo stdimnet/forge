@@ -1175,6 +1175,7 @@
   "tools.keymapSettings.clearShortcutFilter": "Tastenkürzelfilter löschen",
   "tools.keymapSettings.shortcutsAreSavedAsYou": "Tastenkürzel werden beim Ändern gespeichert. Doppelklicken Sie auf eine Aktion oder drücken Sie Enter, um sie zu bearbeiten; Rechtsklick fügt ein Mauskürzel hinzu.",
   "tools.keymapSettings.pressKeysEllipsis": "Tasten drücken…",
+  "tools.keymapSettings.shortcutField": "Tastenkombination",
   "tools.langservers.install": "{name} installieren",
   "tools.langservers.supportNeeds": "Unterstützung für {languages} benötigt",
   "tools.langservers.chooseHowToInstallItLabel": ". Wählen Sie, wie es installiert werden soll:",

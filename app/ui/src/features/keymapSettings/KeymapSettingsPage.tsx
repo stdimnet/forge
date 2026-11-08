@@ -192,14 +192,14 @@ function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
     <ShortcutDialogFrame title={tr("tools.keymapSettings.keyboardShortcut")} action={props.action} text={text()} hint={tr("tools.keymapSettings.pressTheKeysToUse")} onClose={props.onClose}>
       <div class="form-row">
         <span class="form-label">{tr("tools.keymapSettings.firstStrokeLabel")}</span>
-        <ShortcutField value={first()} onChange={setFirst} autofocus />
+        <ShortcutField value={first()} onChange={setFirst} label={tr("tools.keymapSettings.firstStrokeLabel")} autofocus />
       </div>
       <div class="form-row">
         <label class="form-label check">
           <input type="checkbox" checked={useSecond()} onChange={(e) => setUseSecond(e.currentTarget.checked)} />
           {tr("tools.keymapSettings.secondStrokeLabel")}
         </label>
-        <ShortcutField value={second()} onChange={setSecond} disabled={!useSecond()} />
+        <ShortcutField value={second()} onChange={setSecond} label={tr("tools.keymapSettings.secondStrokeLabel")} disabled={!useSecond()} />
       </div>
     </ShortcutDialogFrame>
   );
@@ -509,6 +509,7 @@ export function KeymapSettingsPage() {
                 value={shortcutFilter()}
                 onChange={(s) => setShortcutFilter(s)}
                 placeholder={tr("tools.keymapSettings.pressAShortcutEllipsis")}
+                label={tr("tools.keymapSettings.findActionsByShortcut")}
                 autofocus
               />
               <div class="km-find-hint muted">{tr("tools.keymapSettings.theListShowsActionsBound")}</div>
