@@ -50,3 +50,16 @@ export function navigate(rows: VisibleRow[], selected: string | null, key: strin
       return { type: "none" };
   }
 }
+
+/**
+ * Arrow keys, Home and End in a flat list (`role="listbox"` with roving `tabIndex` options):
+ * the id to select next, or null when the key does nothing.
+ */
+export function navigateList(ids: readonly string[], selected: string | null, key: string): string | null {
+  const action = navigate(
+    ids.map((path) => ({ path, isDir: false, expanded: false, depth: 0 })),
+    selected,
+    key,
+  );
+  return action.type === "select" ? action.path : null;
+}

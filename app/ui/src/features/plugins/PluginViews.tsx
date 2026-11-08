@@ -8,6 +8,7 @@ import { AlertTriangle, Download, Puzzle, RefreshCw, Search, ShieldCheck } from 
 import { pluginsApi, type MarketplaceEntry, type PermissionLine } from "@/ipc/plugins";
 import { busy, closePrompt, acceptPrompt, installFromMarketplace, installed, prompt } from "./store";
 import { t as tr } from "@/i18n";
+import { navigateList } from "@/features/project/treeNavigation";
 import "./plugins.css";
 
 export function PermissionList(props: { lines: PermissionLine[]; added?: string[] }) {
@@ -119,7 +120,19 @@ export function MarketplaceTab(props: { onSettings?: () => void; reload?: () => 
             {tr("tools.plugins.importedSettingsListPluginThatLabel", { count: view()!.ok!.wanted.length, value: view()!.ok!.wanted.length > 1 ? "s" : "", value2: view()!.ok!.wanted.length > 1 ? "are" : "is" })} {view()!.ok!.wanted.map((w) => w.name || w.id).join(", ")}.
           </div>
         </Show>
-        <div class="plugins-list" data-testid="marketplace-list">
+        <div
+          class="plugins-list"
+          data-testid="marketplace-list"
+          role="listbox"
+          aria-label={tr("tools.plugins.marketplace")}
+          onKeyDown={(e) => {
+            const next = navigateList(entries().map((x) => x.id), selected()?.id ?? null, e.key);
+            if (!next) return;
+            e.preventDefault();
+            setSelectedId(next);
+            e.currentTarget.querySelector<HTMLElement>(`[data-plugin="${CSS.escape(next)}"]`)?.focus();
+          }}
+        >
           <Show when={!view.loading} fallback={<div class="set-empty">{tr("common.loadingEllipsis")}</div>}>
             <Show
               when={!view()?.error}
@@ -145,7 +158,16 @@ export function MarketplaceTab(props: { onSettings?: () => void; reload?: () => 
             >
               <For each={entries()} fallback={<div class="set-empty">{tr("common.nothingFound")}</div>}>
                 {(e) => (
-                  <div class="plugin-item" classList={{ selected: selected()?.id === e.id }} data-plugin={e.id} onClick={() => setSelectedId(e.id)}>
+                  <div
+                    class="plugin-item"
+                    classList={{ selected: selected()?.id === e.id }}
+                    role="option"
+                    aria-selected={selected()?.id === e.id}
+                    tabIndex={selected()?.id === e.id ? 0 : -1}
+                    data-plugin={e.id}
+                    onClick={() => setSelectedId(e.id)}
+                    onFocus={() => setSelectedId(e.id)}
+                  >
                     <span class="plugin-icon pack-thirdParty">
                       <Puzzle size={16} stroke-width={1.75} />
                     </span>
