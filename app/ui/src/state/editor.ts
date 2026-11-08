@@ -664,6 +664,22 @@ export function setTabFormat(path: string, format: FileFormat): void {
   setEditor("tabs", (t) => t.path === path, "format", format);
 }
 
+type NavigateListener = (target: { path: string; line?: number | null }) => void;
+const navigateListeners = new Set<NavigateListener>();
+
+/**
+ * Notified right before a jump to a position (`openFileAt`: Go to Declaration, search
+ * results, …) while the caret is still at the old place; the navigation history records it.
+ */
+export function onBeforeNavigate(cb: NavigateListener): () => void {
+  navigateListeners.add(cb);
+  return () => navigateListeners.delete(cb);
+}
+
+export function notifyBeforeNavigate(target: { path: string; line?: number | null }): void {
+  for (const cb of navigateListeners) cb(target);
+}
+
 const resetListeners = new Set<() => void>();
 
 /** Notified after `closeAllTabs`, i.e. when another project took the window (per-project state resets). */

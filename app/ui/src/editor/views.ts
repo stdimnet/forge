@@ -10,7 +10,7 @@
 import type { Text } from "@codemirror/state";
 import { isolateHistory } from "@codemirror/commands";
 import { EditorView } from "@codemirror/view";
-import { editor, groupActive, openFile, setEditorBridge } from "@/state/editor";
+import { editor, groupActive, notifyBeforeNavigate, openFile, setEditorBridge } from "@/state/editor";
 import { flashLineAt } from "./flash";
 
 interface Entry {
@@ -99,6 +99,31 @@ export function offsetAt(doc: Text, line: number, column = 1): number {
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
+const instantScrolls = new WeakMap<EditorView, number>();
+/** The latest jump per view: a new jump ends the re-centering of the one before. */
+const jumps = new WeakMap<EditorView, number>();
+
+function newJump(view: EditorView): () => boolean {
+  const id = (jumps.get(view) ?? 0) + 1;
+  jumps.set(view, id);
+  return () => jumps.get(view) === id;
+}
+
+/**
+ * Turn off Smooth scrolling for a jump until the returned function is called: a jump lands
+ * at once, like in PHPStorm, and re-centering does not restart an animation each frame.
+ */
+function instantScroll(view: EditorView): () => void {
+  instantScrolls.set(view, (instantScrolls.get(view) ?? 0) + 1);
+  view.scrollDOM.style.scrollBehavior = "auto";
+  return () => {
+    // The last running jump hands scrolling back to the setting.
+    const left = (instantScrolls.get(view) ?? 1) - 1;
+    instantScrolls.set(view, left);
+    if (!left) view.scrollDOM.style.scrollBehavior = "";
+  };
+}
+
 /**
  * Scroll `pos` to the middle of the editor and keep it there while the layout settles:
  * block widgets far from the old position (rendered doc comments in Reader mode) are only
@@ -106,11 +131,16 @@ const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()
  * after half a second or as soon as the selection moves away from `pos`.
  */
 export function centerOnPos(view: EditorView, pos: number): void {
+  const current = newJump(view);
+  const release = instantScroll(view);
   view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
   let frames = 0;
-  const recenter = () => {
+  const done = () => {
     const sel = view.state.selection.main;
-    if (++frames > 30 || !view.dom.isConnected || pos < sel.from || pos > sel.to) return;
+    return !current() || !view.dom.isConnected || pos < sel.from || pos > sel.to;
+  };
+  const recenter = () => {
+    if (++frames > 30 || done()) return release();
     view.requestMeasure({
       read: (v) => {
         const at = v.coordsAtPos(pos);
@@ -122,7 +152,7 @@ export function centerOnPos(view: EditorView, pos: number): void {
       // Dispatching is not allowed while measuring: scroll in the next frame.
       write: (off) =>
         requestAnimationFrame(() => {
-          if (off && view.dom.isConnected) view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+          if (off && !done()) view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
           recenter();
         }),
     });
@@ -140,23 +170,47 @@ export async function visibleView(path: string): Promise<EditorView | undefined>
   return viewFor(path);
 }
 
+/** A scroll position of an editor, to restore later (Back / Forward). */
+export interface ScrollState {
+  effect: ReturnType<EditorView["scrollSnapshot"]>;
+  /** Length of the document when it was taken: after an edit the snapshot is not used. */
+  length: number;
+}
+
+/** The scroll position of a visible view (hidden views report no scroll offset). */
+export function scrollStateOf(view: EditorView | undefined): ScrollState | undefined {
+  if (!view?.dom.isConnected || view.dom.offsetParent === null) return undefined;
+  return { effect: view.scrollSnapshot(), length: view.state.doc.length };
+}
+
 /**
  * Open a workspace-relative file, put the caret at the 1-based `line`/`column`, scroll it
  * to the middle and (by default) flash the line, like PHPStorm does for navigation from
- * outside the IDE.
+ * outside the IDE. With `scroll` the editor gets that scroll position back instead (Back /
+ * Forward), in one step.
  */
 export async function openFileAt(
   path: string,
   line?: number | null,
   column?: number | null,
-  opts: { flash?: boolean; focus?: boolean } = {},
+  opts: { flash?: boolean; focus?: boolean; scroll?: ScrollState } = {},
 ): Promise<boolean> {
+  notifyBeforeNavigate({ path, line });
   await openFile(path);
   const view = await visibleView(path);
   if (!view) return false;
   const pos = line ? offsetAt(view.state.doc, line, column ?? 1) : view.state.selection.main.head;
-  view.dispatch({ selection: { anchor: pos } });
-  centerOnPos(view, pos);
+  const restore = opts.scroll?.length === view.state.doc.length ? opts.scroll.effect : undefined;
+  if (restore) {
+    // The snapshot is applied in the next measure; Smooth scrolling stays off until then.
+    newJump(view);
+    const release = instantScroll(view);
+    view.dispatch({ selection: { anchor: pos }, effects: restore });
+    view.requestMeasure({ read: () => {}, write: () => requestAnimationFrame(release) });
+  } else {
+    view.dispatch({ selection: { anchor: pos } });
+    centerOnPos(view, pos);
+  }
   if (opts.focus !== false) view.focus();
   if (line && opts.flash !== false) flashLineAt(view, pos);
   return true;

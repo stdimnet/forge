@@ -222,8 +222,8 @@ Declarations outside the project (PHP's own classes in the PHP stubs, files a la
 points to outside the project) open in a **read-only** tab with a "Read-only library file"
 banner and breadcrumbs such as `PHP Runtime › Core › Core_c.php › Throwable`.
 
-**Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) return
-to where you were.
+**Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`, or the
+mouse's side buttons) return to where you were, also when the declaration is in the same file.
 
 ### Implementation, Type Declaration, Super Method
 
