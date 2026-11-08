@@ -2337,6 +2337,11 @@ Click the fold markers in the gutter, or use:
 | Expand / Collapse Recursively | `Ctrl+Alt+=` / `Ctrl+Alt+-` | `Cmd+Alt+=` / `Cmd+Alt+-` |
 | Expand All / Collapse All | `Ctrl+Shift+=` / `Ctrl+Shift+-` | `Cmd+Shift+=` / `Cmd+Shift+-` |
 
+**Collapse** folds the innermost region around the caret, wherever the caret is inside it: in a
+method body, on the method's signature line or on its opening brace. Press it again to fold the
+next region out (the class). **Expand** unfolds the fold at the caret. The **Recursively**
+variants also fold or unfold every region inside that region.
+
 Custom folding regions (`// region Name` … `// endregion`, `#region`, `<!-- region -->`,
 `// <editor-fold desc="…">`) fold too and show their name. Sticky lines, breadcrumbs, rendered
 doc comments and Reader mode are described in
@@ -7107,7 +7112,8 @@ More: [Editor](docs/guide/user/editor.md#folding)
 
 **Shortcut:** `Ctrl+-`, `Ctrl+NumPad-` · macOS `Cmd+-`, `Cmd+NumPad-` · action id `CollapseRegion`
 
-Folds the region at the caret.
+Folds the innermost region around the caret, from anywhere inside it (also from a method's
+signature line). Pressed again, it folds the next region out.
 
 **Menu:** Code | Folding | Collapse
 
@@ -7117,7 +7123,7 @@ More: [Editor](docs/guide/user/editor.md#folding)
 
 **Shortcut:** `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` · macOS `Cmd+Alt+=`, `Cmd+Alt+NumPad+` · action id `ExpandRegionRecursively`
 
-Unfolds the region at the caret.
+Unfolds the region at the caret and every fold inside it.
 
 **Menu:** Code | Folding | Expand Recursively
 
@@ -7127,7 +7133,7 @@ More: [Editor](docs/guide/user/editor.md#folding)
 
 **Shortcut:** `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` · macOS `Cmd+Alt+-`, `Cmd+Alt+NumPad-` · action id `CollapseRegionRecursively`
 
-Folds the region at the caret.
+Folds the innermost region around the caret and every region inside it.
 
 **Menu:** Code | Folding | Collapse Recursively
 
@@ -23646,9 +23652,9 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes | Lists the statements around the caret to unwrap (keep the body) or remove (`else`, `catch`, …). [More](docs/guide/user/live-templates.md#unwrapremove) ([screenshot](docs/screenshots/unwrap-remove.png)) |
 | **Folding** | | | | submenu |
 | Folding › Expand | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | yes | Unfolds the folded region at the caret. [More](docs/guide/user/editor.md#folding) |
-| Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the region at the caret. [More](docs/guide/user/editor.md#folding) |
-| Folding › Expand Recursively | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes | Unfolds the region at the caret. [More](docs/guide/user/editor.md#folding) |
-| Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the region at the caret. [More](docs/guide/user/editor.md#folding) |
+| Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the innermost region around the caret, from anywhere inside it. [More](docs/guide/user/editor.md#folding) |
+| Folding › Expand Recursively | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes | Unfolds the region at the caret and every fold inside it. [More](docs/guide/user/editor.md#folding) |
+| Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the innermost region around the caret and every region inside it. [More](docs/guide/user/editor.md#folding) |
 | Folding › Expand All | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes | Unfolds every region of the file. [More](docs/guide/user/editor.md#folding) |
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](docs/guide/user/editor.md#folding) ([screenshot](docs/screenshots/docs-folding.png)) |
 | Folding › Collapse Doc Comments | — | — | yes | Folds every documentation comment of the file. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) |

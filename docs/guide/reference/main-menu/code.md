@@ -28,9 +28,9 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes | Lists the statements around the caret to unwrap (keep the body) or remove (`else`, `catch`, …). [More](../../user/live-templates.md#unwrapremove) ([screenshot](../../../screenshots/unwrap-remove.png)) |
 | **Folding** | | | | submenu |
 | Folding › Expand | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | yes | Unfolds the folded region at the caret. [More](../../user/editor.md#folding) |
-| Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the region at the caret. [More](../../user/editor.md#folding) |
-| Folding › Expand Recursively | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes | Unfolds the region at the caret. [More](../../user/editor.md#folding) |
-| Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the region at the caret. [More](../../user/editor.md#folding) |
+| Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the innermost region around the caret, from anywhere inside it. [More](../../user/editor.md#folding) |
+| Folding › Expand Recursively | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes | Unfolds the region at the caret and every fold inside it. [More](../../user/editor.md#folding) |
+| Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the innermost region around the caret and every region inside it. [More](../../user/editor.md#folding) |
 | Folding › Expand All | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes | Unfolds every region of the file. [More](../../user/editor.md#folding) |
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](../../user/editor.md#folding) ([screenshot](../../../screenshots/docs-folding.png)) |
 | Folding › Collapse Doc Comments | — | — | yes | Folds every documentation comment of the file. [More](../../user/code-structure.md#rendered-documentation-comments) |

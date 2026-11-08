@@ -670,7 +670,8 @@ More: [Editor](../../user/editor.md#folding)
 
 **Shortcut:** `Ctrl+-`, `Ctrl+NumPad-` · macOS `Cmd+-`, `Cmd+NumPad-` · action id `CollapseRegion`
 
-Folds the region at the caret.
+Folds the innermost region around the caret, from anywhere inside it (also from a method's
+signature line). Pressed again, it folds the next region out.
 
 **Menu:** Code | Folding | Collapse
 
@@ -680,7 +681,7 @@ More: [Editor](../../user/editor.md#folding)
 
 **Shortcut:** `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` · macOS `Cmd+Alt+=`, `Cmd+Alt+NumPad+` · action id `ExpandRegionRecursively`
 
-Unfolds the region at the caret.
+Unfolds the region at the caret and every fold inside it.
 
 **Menu:** Code | Folding | Expand Recursively
 
@@ -690,7 +691,7 @@ More: [Editor](../../user/editor.md#folding)
 
 **Shortcut:** `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` · macOS `Cmd+Alt+-`, `Cmd+Alt+NumPad-` · action id `CollapseRegionRecursively`
 
-Folds the region at the caret.
+Folds the innermost region around the caret and every region inside it.
 
 **Menu:** Code | Folding | Collapse Recursively
 
