@@ -39,14 +39,13 @@ pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<Statement> {
             }
         }
         match b[i] {
-            b'\'' | b'"' | b'`' => i = skip_quoted(b, i, mysql),
-            b'[' if dialect == Dialect::SqlServer => {
-                i = b[i..]
-                    .iter()
-                    .position(|&c| c == b']')
-                    .map(|p| i + p + 1)
-                    .unwrap_or(b.len())
+            // PostgreSQL `E'…'` strings know backslash escapes.
+            b'\'' if dialect == Dialect::Postgres && is_e_prefix(b, i) => {
+                i = skip_quoted(b, i, true)
             }
+            b'\'' | b'"' | b'`' => i = skip_quoted(b, i, mysql),
+            // `]]` is an escaped `]`.
+            b'[' if dialect == Dialect::SqlServer => i = skip_bracket(b, i),
             b'-' if b.get(i + 1) == Some(&b'-') => i = skip_line(b, i),
             b'#' if mysql => i = skip_line(b, i),
             b'/' if b.get(i + 1) == Some(&b'*') => {
@@ -90,7 +89,16 @@ fn separator_line(sql: &str, i: usize, dialect: Dialect) -> Option<usize> {
     let end = sql[i..].find('\n').map(|p| i + p).unwrap_or(sql.len());
     let line = sql[i..end].trim();
     let hit = match dialect {
-        Dialect::SqlServer => line.eq_ignore_ascii_case("go"),
+        // `GO`, `GO 5`, `GO -- end of batch`.
+        Dialect::SqlServer => {
+            let code = line.split_once("--").map_or(line, |(code, _)| code);
+            let mut words = code.split_whitespace();
+            words.next().is_some_and(|w| w.eq_ignore_ascii_case("go"))
+                && words
+                    .next()
+                    .map_or(true, |n| n.bytes().all(|c| c.is_ascii_digit()))
+                && words.next().is_none()
+        }
         Dialect::Oracle => line == "/",
         _ => false,
     };
@@ -249,12 +257,38 @@ fn split_mongo(text: &str) -> Vec<Statement> {
     out
 }
 
+/// Whether the quote at `i` follows a lone `E`/`e` (not the end of a longer word).
+fn is_e_prefix(b: &[u8], i: usize) -> bool {
+    i >= 1
+        && matches!(b[i - 1], b'e' | b'E')
+        && (i < 2
+            || !(b[i - 2].is_ascii_alphanumeric()
+                || b[i - 2] == b'_'
+                || b[i - 2] == b'$'
+                || b[i - 2] >= 0x80))
+}
+
 fn skip_line(b: &[u8], i: usize) -> usize {
     b[i..]
         .iter()
         .position(|&c| c == b'\n')
         .map(|p| i + p + 1)
         .unwrap_or(b.len())
+}
+
+fn skip_bracket(b: &[u8], i: usize) -> usize {
+    let mut j = i + 1;
+    while j < b.len() {
+        if b[j] == b']' {
+            if b.get(j + 1) == Some(&b']') {
+                j += 2;
+                continue;
+            }
+            return j + 1;
+        }
+        j += 1;
+    }
+    b.len()
 }
 
 fn skip_quoted(b: &[u8], i: usize, backslash: bool) -> usize {
@@ -465,6 +499,11 @@ mod tests {
             vec!["create function f() returns int as $$ begin; return 1; end $$ language plpgsql", "select $1"]
         );
         assert_eq!(texts("select $tag$a;b$tag$;"), vec!["select $tag$a;b$tag$"]);
+        let pg: Vec<_> = split_statements(r"select E'a\';b'; select 'c\'", Dialect::Postgres)
+            .into_iter()
+            .map(|s| s.text)
+            .collect();
+        assert_eq!(pg, vec![r"select E'a\';b'", r"select 'c\'"]);
         let pg: Vec<_> = split_statements(r"select 'C:\'; select 2", Dialect::Postgres)
             .into_iter()
             .map(|s| s.text)
@@ -516,10 +555,15 @@ mod tests {
     fn splits_sql_server_batches_and_brackets() {
         assert_eq!(
             texts_in(
-                "select [a;b] from t\nGO\nselect 2;select 3",
+                "select [a;b], [c]];d] from t\nGO\nselect 2;select 3\ngo 2 -- twice\nselect 4",
                 Dialect::SqlServer
             ),
-            vec!["select [a;b] from t", "select 2", "select 3"]
+            vec![
+                "select [a;b], [c]];d] from t",
+                "select 2",
+                "select 3",
+                "select 4"
+            ]
         );
     }
 
