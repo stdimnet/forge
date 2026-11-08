@@ -80,7 +80,8 @@ export function listboxKeyDown(
   if (!next) return;
   e.preventDefault();
   select(next);
-  e.currentTarget.querySelector<HTMLElement>(`[data-option-id="${CSS.escape(next)}"]`)?.focus();
+  // Compare ids as data, not through a selector (ids may contain any character).
+  [...e.currentTarget.querySelectorAll<HTMLElement>("[data-option-id]")].find((el) => el.dataset.optionId === next)?.focus();
 }
 
 /** Roving tabIndex of a list option: 0 on the selected one (or the first without selection). */
