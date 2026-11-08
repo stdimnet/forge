@@ -573,16 +573,23 @@ impl RunConfigurationKind for ShellScript {
             i => i.to_string(),
         };
         let mut cmd = CommandLine::new(&interpreter).args(split_args(&cfg.interpreter_options));
-        let is_cmd = interpreter.to_ascii_lowercase().ends_with("cmd.exe");
+        // `cmd`, `cmd.exe`, `C:\Windows\System32\CMD.EXE`: never `-c`, which would start an
+        // interactive session that does not end.
+        let is_cmd = forge_hostspawn::win::is_cmd(&interpreter);
         if cfg.option("mode") == "text" {
             let text = required(cfg, "scriptText", "Script text")?;
             cmd = cmd.args([if is_cmd { "/C" } else { "-c" }, text]);
         } else {
             let path = required(cfg, "scriptPath", "Script path")?;
             if is_cmd {
-                cmd = cmd.arg("/C");
+                // Everything after `/C` is one command line for `cmd.exe` (passed verbatim by
+                // the spawn): quote the script path and its arguments for it.
+                let mut argv = vec![path.to_string()];
+                argv.extend(split_args(&cfg.arguments));
+                cmd = cmd.args(["/C".to_string(), forge_hostspawn::win::cmd_line(&argv)]);
+            } else {
+                cmd = cmd.arg(path).args(split_args(&cfg.arguments));
             }
-            cmd = cmd.arg(path).args(split_args(&cfg.arguments));
         }
         let script_dir = Path::new(cfg.option("scriptPath"))
             .parent()
@@ -981,6 +988,28 @@ mod tests {
             let c = cfg("npm", &[("script", "dev"), ("packageManager", manager)]);
             assert_eq!(r.build(&c, &ctx()).unwrap().program, manager);
         }
+    }
+
+    #[test]
+    fn cmd_scripts_get_one_command_line() {
+        let r = KindRegistry::builtin();
+        // An interpreter of `cmd` (not only `…cmd.exe`) gets `/C`, never `-c` (#215).
+        for interpreter in ["cmd", "CMD.EXE", r"C:\Windows\System32\cmd.exe"] {
+            let mut c = cfg("shell", &[("mode", "text"), ("scriptText", "echo hi")]);
+            c.interpreter = interpreter.into();
+            assert_eq!(r.build(&c, &ctx()).unwrap().args, ["/C", "echo hi"]);
+        }
+        // A script file with spaces and arguments becomes one quoted line (#208).
+        let mut c = cfg("shell", &[("scriptPath", r"C:\My Scripts\build.bat")]);
+        c.interpreter = "cmd".into();
+        c.arguments = r#"--name "Jane Doe" 50%"#.into();
+        assert_eq!(
+            r.build(&c, &ctx()).unwrap().args,
+            [
+                "/C",
+                r#""C:\My Scripts\build.bat" --name "Jane Doe" "50%%cd:~,%""#
+            ]
+        );
     }
 
     #[test]
