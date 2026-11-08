@@ -9,6 +9,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use forge_sql::lex::{self, Tok};
 use forge_sql::value::sql_literal;
 use forge_sql::{guard, Dialect, GuardPolicy, Refused};
 
@@ -232,80 +233,38 @@ const WRITES: &[&str] = &[
 ];
 
 /// Check quotes, comments, brackets and `;` of a condition; its words outside quotes and
-/// comments, upper-cased.
+/// comments, upper-cased. The condition is read the way the dialect reads it (`E'…'` and
+/// `$$…$$` in PostgreSQL, backslash escapes in MySQL, `[…]` in SQL Server, nested and
+/// executable comments), in every plausible reading of the server settings.
 fn scan(t: &str, d: Dialect) -> Result<Vec<String>, Refused> {
     let mut words = Vec::new();
-    let b = t.as_bytes();
-    let mysql = matches!(d, Dialect::MySql | Dialect::ClickHouse);
-    let mut depth = 0i32;
-    let mut i = 0;
-    while i < b.len() {
-        match b[i] {
-            q @ (b'\'' | b'"' | b'`') => {
-                let mut j = i + 1;
-                loop {
-                    if j >= b.len() {
-                        return Err(Refused("The filter has an unclosed quote".into()));
-                    }
-                    if b[j] == b'\\' && mysql {
-                        j += 2;
-                        continue;
-                    }
-                    if b[j] == q {
-                        // Doubled quote: an escaped one.
-                        if b.get(j + 1) == Some(&q) {
-                            j += 2;
-                            continue;
-                        }
-                        break;
-                    }
-                    j += 1;
-                }
-                i = j + 1;
-            }
-            b'[' if d == Dialect::SqlServer => {
-                i = match t[i..].find(']') {
-                    Some(p) => i + p + 1,
-                    None => return Err(Refused("The filter has an unclosed [".into())),
-                };
-            }
-            b'-' if b.get(i + 1) == Some(&b'-') => {
-                i = t[i..].find('\n').map(|p| i + p).unwrap_or(b.len());
-            }
-            b'#' if mysql => {
-                i = t[i..].find('\n').map(|p| i + p).unwrap_or(b.len());
-            }
-            b'/' if b.get(i + 1) == Some(&b'*') => {
-                i = match t[i + 2..].find("*/") {
-                    Some(p) => i + 2 + p + 2,
-                    None => return Err(Refused("The filter has an unclosed comment".into())),
-                };
-            }
-            b'(' => {
-                depth += 1;
-                i += 1;
-            }
-            b')' => {
-                depth -= 1;
-                if depth < 0 {
-                    return Err(Refused("The filter has an unmatched )".into()));
-                }
-                i += 1;
-            }
-            b';' => return Err(Refused("The filter must be one condition without ;".into())),
-            c if c.is_ascii_alphabetic() || c == b'_' => {
-                let start = i;
-                while i < b.len() && (b[i].is_ascii_alphanumeric() || b[i] == b'_' || b[i] == b'$')
-                {
-                    i += 1;
-                }
-                words.push(t[start..i].to_ascii_uppercase());
-            }
-            _ => i += 1,
+    for &o in lex::variants(d) {
+        let lexed = lex::tokenize(t, d, o);
+        if lexed.unterminated {
+            return Err(Refused(
+                "The filter has an unclosed quote, identifier or comment".into(),
+            ));
         }
-    }
-    if depth != 0 {
-        return Err(Refused("The filter has an unclosed (".into()));
+        let mut depth = 0i32;
+        for tok in &lexed.tokens {
+            match tok.tok {
+                Tok::Semi => {
+                    return Err(Refused("The filter must be one condition without ;".into()))
+                }
+                Tok::Punct('(') => depth += 1,
+                Tok::Punct(')') => {
+                    depth -= 1;
+                    if depth < 0 {
+                        return Err(Refused("The filter has an unmatched )".into()));
+                    }
+                }
+                Tok::Word(w) => words.push(w.to_ascii_uppercase()),
+                _ => {}
+            }
+        }
+        if depth != 0 {
+            return Err(Refused("The filter has an unclosed (".into()));
+        }
     }
     Ok(words)
 }
@@ -427,6 +386,29 @@ mod tests {
         assert!(check_where("a = 1 /* open", d).is_err());
         assert!(check_where("id IN (DELETE FROM t RETURNING id)", Dialect::Postgres).is_err());
         assert!(check_where("exists (select 1 into x)", d).is_err());
+        // PostgreSQL `E''` strings: `\'` is an escaped quote, so the `;` is code.
+        let pg = Dialect::Postgres;
+        assert!(check_where(
+            r"name = E'\'' ; WITH d AS (DELETE FROM users RETURNING 1) SELECT * FROM d --'",
+            pg
+        )
+        .is_err());
+        assert!(check_where(r"name = E'\'' OR 1 = 1 --'", pg).is_ok());
+        assert!(check_where("name = $$ ' $$ ; DELETE FROM users --'", pg).is_err());
+        assert!(check_where("a = 1 /* /* */ ' */ ; DELETE FROM users -- '", pg).is_err());
+        assert!(check_where(r"name = 'a\' ; DELETE FROM users --'", pg).is_err());
+        assert_eq!(
+            check_where(r"name = E'it\'s'", pg).unwrap(),
+            r"name = E'it\'s'"
+        );
+        // MySQL: executable comments are code; `NO_BACKSLASH_ESCAPES` changes strings.
+        assert!(check_where("a = 1 /*! ; DROP TABLE users */", d).is_err());
+        assert!(check_where(r"a = 'x\' ; DROP TABLE users -- '", d).is_err());
+        // SQL Server needs no `;` between statements.
+        let ms = Dialect::SqlServer;
+        assert!(check_where("a = 1 DROP TABLE users", ms).is_err());
+        assert!(check_where("a = 1 SET ROLE x", ms).is_err());
+        assert!(check_where("[a]]b] = 1", ms).is_ok());
         // Quoted identifiers are not keywords.
         assert!(check_where("\"update\" = 1", Dialect::Postgres).is_ok());
         assert_eq!(check_where("  ", d).unwrap(), "");
