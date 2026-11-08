@@ -7,6 +7,7 @@ import { devcontainerApi, wslApi, type BuildLogLine } from "@/ipc/devenv";
 import type { RecentProject } from "@/ipc/workspace";
 import { adoptRemoteWorkspace, workspace } from "@/state/workspace";
 import { chooseRemoteFolder, setConnecting } from "@/features/remote/store";
+import { t } from "@/i18n";
 
 // ---- the Create Dev Container dialog --------------------------------------------------------
 
@@ -45,7 +46,7 @@ export function listenToBuildLog(): void {
 
 /** Start the agent in a dev container and open its workspace folder. */
 export async function openDevContainer(containerId: string, label: string): Promise<void> {
-  setConnecting({ label, message: `Connecting to ${label}…` });
+  setConnecting({ label, message: t("tools.devenv.connectingTo", { label }) });
   try {
     const info = await devcontainerApi.open(containerId);
     setConnecting(null);
@@ -57,7 +58,7 @@ export async function openDevContainer(containerId: string, label: string): Prom
 
 /** Open a WSL distribution's folder: connect, choose the folder (unless given), open. */
 export async function openWslProject(distro: string, path?: string): Promise<boolean> {
-  setConnecting({ label: `WSL: ${distro}`, message: `Connecting to WSL: ${distro}…` });
+  setConnecting({ label: `WSL: ${distro}`, message: t("tools.devenv.connectingTo", { label: `WSL: ${distro}` }) });
   let connected: Awaited<ReturnType<typeof wslApi.connect>>;
   try {
     connected = await wslApi.connect(distro);

@@ -108,14 +108,14 @@ function DebugStatusItem() {
     if (s?.status === "running") return t("debug.main.running");
     const via = listeningVia();
     // Remote project: the host's port, forwarded over SSH (see the tooltip).
-    return via ? `Xdebug: ${via.replace(/:\d+$/, "")}:${port()}` : t("debug.main.xdebugListeningOnPort", { port: port() });
+    return via ? t("debug.main.xdebugVia", { host: via.replace(/:\d+$/, ""), port: String(port()) }) : t("debug.main.xdebugListeningOnPort", { port: String(port()) });
   };
   const title = () => {
-    if (!listening()) return "Debug session";
+    if (!listening()) return t("debug.main.debugSession");
     const via = listeningVia();
     return via
-      ? t("debug.main.listeningForPhpDebugConnections", { port: port(), via })
-      : "Listening for PHP debug connections. Click to stop.";
+      ? t("debug.main.listeningForPhpDebugConnections", { port: String(port()), via })
+      : t("debug.main.listeningForPhpDebugConnectionsClickToStop");
   };
   return (
     <Show when={listening() || activeSession()}>

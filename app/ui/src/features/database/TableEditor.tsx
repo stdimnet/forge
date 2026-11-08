@@ -126,7 +126,7 @@ export function TableEditor(props: { tab: EditorTab }) {
     setLoading(true);
     setError(null);
     try {
-      if (!(await connect(loc.id))) throw new Error(`Cannot connect to ${ds()?.name ?? loc.id}`);
+      if (!(await connect(loc.id))) throw new Error(tr("database.tableEditor.cannotConnectTo", { name: ds()?.name ?? loc.id }));
       if (!info()) setInfo(tableInfo(loc.id, loc.schema, loc.table) ?? (await dbApi.tableInfo(loc.id, loc.schema, loc.table)));
       const res = await dbApi.tableData(loc.id, {
         schema: loc.schema,
@@ -141,7 +141,7 @@ export function TableEditor(props: { tab: EditorTab }) {
       setPage(res);
       setPending(reconcile(emptyPending()));
       const n = res.total ?? res.rows.length;
-      setStatus(`${n} row${n === 1 ? "" : "s"} · ${res.elapsedMs} ms`);
+      setStatus(tr("database.tableEditor.rowsStatus", { count: n, ms: res.elapsedMs }));
     } catch (e) {
       setError(errorText(e));
     } finally {

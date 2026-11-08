@@ -79,9 +79,9 @@ function tabTooltip(tab: TerminalTab): string {
   const lines = [displayTitle(tab)];
   if (tab.renamed && tab.appTitle) lines.push(tab.appTitle);
   if (tab.liveCwd) lines.push(tab.liveCwd);
-  if (tab.progress) lines.push(`Progress: ${progressLabel(tab.progress)}`);
-  if (tab.shared) lines.push("Shared with Code With Me guests");
-  if (tab.source?.kind === "collab") lines.push(tab.source.readOnly ? "The host's terminal (read-only)" : "The host's terminal");
+  if (tab.progress) lines.push(t("tools.terminal.progressTooltip", { progress: progressLabel(tab.progress) }));
+  if (tab.shared) lines.push(t("tools.terminal.sharedWithCodeWithMeGuests"));
+  if (tab.source?.kind === "collab") lines.push(tab.source.readOnly ? t("tools.terminal.theHostsTerminalReadOnly") : t("tools.terminal.theHostsTerminal"));
   return lines.join("\n");
 }
 

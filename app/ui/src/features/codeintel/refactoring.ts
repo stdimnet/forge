@@ -333,8 +333,8 @@ export function refactoringHistory(): Extension {
 /** Edits a language server applies itself (while running a code action's command). */
 export function listenForServerEdits(): void {
   void listen<{ label?: string | null; edit: WorkspaceEdit }>("lsp://apply-edit", (e) => {
-    applyWorkspaceEdit(e.edit, { label: e.label ?? "Edit" }).catch((err) =>
-      showBalloon(`${e.label ?? tr("codeintel.refactoring.edit")} failed`, String(err instanceof Error ? err.message : err)),
+    applyWorkspaceEdit(e.edit, { label: e.label ?? tr("codeintel.refactoring.edit") }).catch((err) =>
+      showBalloon(tr("codeintel.refactoring.labelFailed", { label: e.label ?? tr("codeintel.refactoring.edit") }), String(err instanceof Error ? err.message : err)),
     );
   });
 }

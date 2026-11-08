@@ -36,7 +36,7 @@ function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) 
   const commit = async (raw: string) => {
     const id = ++seq;
     const n = props.spec.type === "int" ? Number.parseInt(raw, 10) : Number.parseFloat(raw);
-    const problem = Number.isFinite(n) ? await settingsApi.validate(props.spec.key, n) : "Not a number";
+    const problem = Number.isFinite(n) ? await settingsApi.validate(props.spec.key, n) : t("settings.validation.notANumber");
     if (id !== seq) return;
     setInvalid(problem);
     if (!problem) setDraft(props.spec.key, n);

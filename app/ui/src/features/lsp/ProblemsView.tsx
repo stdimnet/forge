@@ -11,7 +11,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import type { EditorDiagnostic } from "@/ipc/lsp";
 import { diagnostics, filesWithProblems, sortDiagnostics } from "./store";
 import { revealLocation } from "./navigation";
-import { pluralize, severityIcon } from "./severity";
+import { severityCount, severityIcon } from "./severity";
 import { baseName } from "./util";
 import { problemsTabs } from "./problemsTabs";
 import { t } from "@/i18n";
@@ -78,7 +78,7 @@ function FileNode(props: { path: string; diags: EditorDiagnostic[] }) {
         <FileIcon name={baseName(props.path)} />
         <span class="tree-label">{baseName(props.path)}</span>
         <span class="tree-hint">{dir()}</span>
-        <span class="tree-hint">{pluralize(props.diags.length, "problem")}</span>
+        <span class="tree-hint">{severityCount("problem", props.diags.length)}</span>
       </div>
       <Show when={open()}>
         <For each={props.diags}>{(d, i) => <ProblemRow path={props.path} diag={d} index={i()} />}</For>

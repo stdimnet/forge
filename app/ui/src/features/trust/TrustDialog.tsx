@@ -59,7 +59,7 @@ function Dialog(props: { req: Request }) {
           </span>
           <div class="trust-dialog-text">
             <h2 class="trust-dialog-title">
-              {open() ? t("tools.trust.trustAndOpenProject2") : t("tools.trust.trustProject2")} '{name()}'?
+              {open() ? t("tools.trust.trustAndOpenProjectName", { name: name() }) : t("tools.trust.trustProjectName", { name: name() })}
             </h2>
             <p>
               {t("tools.trust.forgeProvidesFeaturesThatMay")}

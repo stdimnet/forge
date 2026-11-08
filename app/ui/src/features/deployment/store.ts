@@ -110,8 +110,6 @@ export function targetPaths(): string[] {
   return selection.length ? selection : [""];
 }
 
-const label = (paths: string[]) => (paths.length === 1 ? paths[0] || "the project" : `${paths.length} items`);
-
 async function ensureServers(): Promise<DeployConfig | null> {
   const c = (await refreshConfig()) ?? config();
   if (!c?.servers.length) {
@@ -240,9 +238,10 @@ export async function deleteOnServer(paths = targetPaths(), server?: ServerView 
   const s = server ?? (await defaultOrAsk("Delete from"));
   if (!s) return;
   const ok = await askConfirm({
-    title: "Delete on Server",
-    message: `Delete ${label(paths)} from ${s.name}? This cannot be undone.`,
-    confirm: "Delete",
+    title: t("tools.deployment.deleteOnServer"),
+    // No path: the whole project (see `targetPaths`).
+    message: t("tools.deployment.deleteFromServerConfirm", { count: paths.length === 1 && !paths[0] ? 0 : paths.length, path: paths[0] ?? "", server: s.name }),
+    confirm: t("common.delete"),
   });
   if (!ok) return;
   showToolWindow("fileTransfer");

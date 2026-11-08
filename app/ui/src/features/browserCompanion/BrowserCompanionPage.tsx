@@ -157,7 +157,7 @@ function PairingCard(props: { code: PairingCode; onCancel: () => void }) {
         </div>
         <div class="bc-row-actions bc-pairing-actions">
           <span class="bc-small bc-countdown" classList={{ expired: left() === 0 }}>
-            <Show when={left() > 0} fallback="Expired">
+            <Show when={left() > 0} fallback={t("tools.browserCompanion.expired")}>
               {t("tools.browserCompanion.expiresIn", { value: formatCountdown(left()) })}
             </Show>
           </span>

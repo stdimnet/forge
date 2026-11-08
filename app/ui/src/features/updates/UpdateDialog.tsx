@@ -55,8 +55,8 @@ function UpdateDialog(props: { state: DialogState }) {
   const result = () => (props.state.kind === "result" ? props.state.result : null);
   const title = () => {
     const r = result();
-    if (!r) return "Checking for Updates";
-    return r.status === "available" ? "Update Available" : "Check for Updates";
+    if (!r) return t("tools.updates.checkingForUpdates");
+    return r.status === "available" ? t("tools.updates.updateAvailable") : t("tools.updates.checkForUpdates");
   };
   return (
     <div class="popup-backdrop modal" onMouseDown={(e) => e.target === e.currentTarget && close()}>

@@ -11,6 +11,7 @@ import {
   type McpStatus,
 } from "@/ipc/mcp";
 import { handleToolRequest } from "./editorTools";
+import { t } from "@/i18n";
 
 /** Entries the log view keeps. */
 export const LOG_LIMIT = 500;
@@ -57,15 +58,15 @@ export function clientsText(s: McpStatus | null): string {
   const n = s?.sessions.length ?? 0;
   if (n === 0) return "";
   if (n === 1) return s!.sessions[0].client.name;
-  return `${n} clients`;
+  return t("tools.mcp.clientCount", { count: n });
 }
 
 /** The status bar text: "MCP", "MCP: Claude Code", "MCP: port in use". */
 export function statusText(s: McpStatus | null): string {
-  if (!s?.enabled) return "MCP off";
-  if (!s.running) return "MCP: not running";
+  if (!s?.enabled) return t("tools.mcp.statusOff");
+  if (!s.running) return t("tools.mcp.statusNotRunning");
   const clients = clientsText(s);
-  return clients ? `MCP: ${clients}` : "MCP";
+  return clients ? t("tools.mcp.statusClients", { clients }) : "MCP";
 }
 
 /** "12:04:31". */

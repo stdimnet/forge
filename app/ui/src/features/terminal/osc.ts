@@ -9,6 +9,7 @@
  * Until the module is loaded, sequences are ignored.
  */
 import { forgeWasm, type ForgeWasm } from "@/wasm";
+import { t } from "@/i18n";
 
 export type ProgressState = "normal" | "error" | "indeterminate" | "paused";
 
@@ -75,11 +76,11 @@ export function linkTarget(uri: string, root?: string | null): LinkTarget {
 export function progressLabel(p: Progress): string {
   switch (p.state) {
     case "indeterminate":
-      return "Working…";
+      return t("tools.terminal.progressWorking");
     case "error":
-      return p.percent > 0 ? `Error ${p.percent}%` : "Error";
+      return p.percent > 0 ? t("tools.terminal.progressErrorPercent", { percent: String(p.percent) }) : t("tools.terminal.progressError");
     case "paused":
-      return p.percent > 0 ? `Paused ${p.percent}%` : "Paused";
+      return p.percent > 0 ? t("tools.terminal.progressPausedPercent", { percent: String(p.percent) }) : t("tools.terminal.progressPaused");
     default:
       return `${p.percent}%`;
   }

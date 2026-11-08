@@ -23,6 +23,7 @@ import { editor, updateContent } from "@/state/editor";
 import { getSetting, saveSettings } from "@/state/settings";
 import { openSettings } from "@/features/settings/dialogState";
 import { commandName, runCommandLine } from "@/features/python/state";
+import { t } from "@/i18n";
 import { moveTarget, newCell, selectionAfterRemove, toCellState, toNotebook, type CellState } from "./model";
 
 export const showJupyterBalloon = balloonsFor("Jupyter");
@@ -323,18 +324,18 @@ export class NotebookController {
       });
       if (!st) return null;
       if (st.needsServer) {
-        this.failed(`Kernels of ${st.interpreter} run on a Jupyter server`);
-        showJupyterBalloon("Configure a Jupyter server", `Forge cannot start kernels of ${st.interpreter} itself. Enter the URL of a Jupyter server that runs next to it.`, 10000, [
-          { label: "Configure…", run: () => openSettings("lang.jupyter") },
+        this.failed(t("langs.jupyter.kernelsOfRunOnAJupyterServer", { interpreter: st.interpreter }));
+        showJupyterBalloon(t("langs.jupyter.configureAJupyterServer"), t("langs.jupyter.forgeCannotStartKernelsOf", { interpreter: st.interpreter }), 10000, [
+          { label: t("common.configureEllipsis"), run: () => openSettings("lang.jupyter") },
         ]);
         return null;
       }
       if (!st.installed && !(await installIpykernel(st.interpreter))) {
-        this.failed(`ipykernel is not installed in ${st.interpreter}`);
+        this.failed(t("langs.jupyter.ipykernelIsNotInstalledIn", { interpreter: st.interpreter }));
         return null;
       }
     }
-    this.set("kernel", { status: "starting", error: undefined, label: this.state.kernel.label || "Kernel" });
+    this.set("kernel", { status: "starting", error: undefined, label: this.state.kernel.label || t("langs.jupyter.kernel") });
     try {
       const started = await jupyterApi.start({ path: this.path });
       this.unlisten?.();
@@ -343,7 +344,7 @@ export class NotebookController {
       return started.id;
     } catch (e) {
       this.failed(String(e));
-      showJupyterBalloon("Cannot start the kernel", String(e).replace(/^Error: /, ""), 10000, undefined, { type: "error" });
+      showJupyterBalloon(t("langs.jupyter.cannotStartTheKernel"), String(e).replace(/^Error: /, ""), 10000, undefined, { type: "error" });
       return null;
     }
   }

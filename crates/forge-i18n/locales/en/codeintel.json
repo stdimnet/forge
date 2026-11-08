@@ -152,6 +152,7 @@
   "codeintel.refactorThisPopup.refactorThis": "Refactor This",
   "codeintel.refactoring.edit": "Edit",
   "codeintel.refactoring.refactoringLabel": "Refactoring: {label}",
+  "codeintel.refactoring.labelFailed": "{label} failed",
   "codeintel.refactoringDialogs.cancelTheRefactoringAndList": "Cancel the refactoring and list the conflicts in the Find tool window",
   "codeintel.refactoringDialogs.conflicts": "Conflicts",
   "codeintel.refactoringDialogs.conflictsOfTitle": "Conflicts of {title}",

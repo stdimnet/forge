@@ -485,14 +485,14 @@ function ChangeView(props: { target: Extract<HistoryTarget, { kind: "change" }> 
     },
   );
   const sideTitle = (state: StateKind, when: string) =>
-    state === "absent" ? `${when} (file did not exist)` : state === "unknown" ? `${when} (content not recorded)` : when;
+    state === "absent" ? tr("tools.localHistory.fileDidNotExist", { when }) : state === "unknown" ? tr("tools.localHistory.contentNotRecorded", { when }) : when;
   const showDiff = () => {
     const t = texts();
     if (!t) return;
     setDiffRequest({
       path: t.f.path,
-      left: { title: sideTitle(t.before.state, `Before ${props.target.name}`), content: t.before.text },
-      right: { title: sideTitle(t.after.state, `After ${props.target.name}`), content: t.after.text },
+      left: { title: sideTitle(t.before.state, tr("tools.localHistory.beforeName", { name: props.target.name })), content: t.before.text },
+      right: { title: sideTitle(t.after.state, tr("tools.localHistory.afterName", { name: props.target.name })), content: t.after.text },
       editable: false,
     });
   };

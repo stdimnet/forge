@@ -11,6 +11,7 @@ import { StateEffect, StateField, type Extension } from "@codemirror/state";
 import type { LineMark } from "@/ipc/testing";
 import { openSearchEverywhere } from "@/features/search/state";
 import { marksFor, onCoverageChange } from "./store";
+import { t as tr } from "@/i18n";
 
 const setMarks = StateEffect.define<LineMark[]>();
 
@@ -64,14 +65,14 @@ export function showLineTests(mark: LineMark, x: number, y: number): void {
   const el = document.createElement("div");
   el.className = "coverage-line-popup";
   el.setAttribute("role", "dialog");
-  el.setAttribute("aria-label", `Tests covering line ${mark.line}`);
+  el.setAttribute("aria-label", tr("tools.coverage.testsCoveringLine", { line: String(mark.line) }));
   const head = document.createElement("header");
   const swatch = document.createElement("span");
   swatch.className = `swatch coverage-mark ${mark.status}`;
-  head.append(swatch, document.createTextNode(`Line ${mark.line}: ${mark.hint}`));
+  head.append(swatch, document.createTextNode(tr("tools.coverage.lineHint", { line: String(mark.line), hint: mark.hint })));
   const caption = document.createElement("div");
   caption.className = "caption";
-  caption.textContent = `${mark.tests!.length} test${mark.tests!.length === 1 ? "" : "s"} covering this line`;
+  caption.textContent = tr("tools.coverage.testsCoveringThisLine", { count: mark.tests!.length });
   const list = document.createElement("ul");
   for (const t of mark.tests!) {
     const li = document.createElement("li");

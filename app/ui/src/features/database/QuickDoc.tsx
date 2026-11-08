@@ -67,7 +67,7 @@ function Popup(p: Shown) {
         <span class="db-doc-kind">{p.doc.kind}</span>
         <b class="db-doc-name">{p.doc.name}</b>
         <Show when={p.doc.location}>
-          <span class="muted">in {p.doc.location}</span>
+          <span class="muted">{t("database.quickDoc.inLocation", { location: p.doc.location ?? "" })}</span>
         </Show>
         <span class="db-doc-spacer" />
         <button class="icon-btn" title={t("database.quickDoc.close", { shortcut: "Escape" })} onClick={closeQuickDoc}>

@@ -307,7 +307,7 @@ function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Tex
     };
     el.append(b);
   };
-  action("Rollback", "Rollback Lines (Ctrl+Alt+Z)", () => {
+  action(tr("git.actions.rollback"), tr("git.editorGit.rollbackLines", { shortcut: "Ctrl+Alt+Z" }), () => {
     view.dispatch({ changes: rollbackEdit(chunk, head, view.state.doc) });
   });
   // The Rust hunk (partial commits, changelists) under this chunk.
@@ -316,10 +316,10 @@ function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Tex
   const last = chunk.fromB === chunk.toB ? first : doc.lineAt(Math.min(Math.max(chunk.endB - 1, chunk.fromB), doc.length)).number - 1;
   const hunk = viewHunks(view).find((h) => h.newStart <= last && first <= h.newStart + Math.max(h.newLen, 1) - 1);
   if (hunk)
-    action("Move to Another Changelist…", "Move this change to another changelist (F6)", () =>
+    action(tr("git.editorGit.moveToAnotherChangelist"), tr("git.editorGit.moveThisChangeToAnotherChangelist", { shortcut: "F6" }), () =>
       moveToChangelistDialog([path], { hunks: [hunk.id] }),
     );
-  action("Show Diff", "Show Diff (Ctrl+D)", () => {
+  action(tr("git.changesDialogViews.showDiff"), tr("git.editorGit.showDiffShortcut", { shortcut: "Ctrl+D" }), () => {
     setDiffRequest({
       path,
       left: { title: "HEAD", content: head.toString() },

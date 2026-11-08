@@ -485,11 +485,11 @@ function handleEvent(id: string, s: Session, e: TerminalEvent): void {
     if (s.shared) {
       // The host's terminal ended: the guest's tab keeps its output, like a terminated session.
       s.term.options.disableStdin = true;
-      s.term.write(`\r\n\x1b[2m[Process completed${e.code ? ` with exit code ${e.code}` : ""}]\x1b[0m\r\n`);
+      s.term.write(`\r\n\x1b[2m${e.code ? tr("tools.terminal.processCompletedWithExitCode", { code: String(e.code) }) : tr("tools.terminal.processCompleted")}\x1b[0m\r\n`);
     } else if (e.code === 0 || e.code === null) {
       disposeSession(id);
       closeTab(id);
-    } else s.term.write(`\r\n\x1b[2m[Process completed with exit code ${e.code}]\x1b[0m\r\n`);
+    } else s.term.write(`\r\n\x1b[2m${tr("tools.terminal.processCompletedWithExitCode", { code: String(e.code) })}\x1b[0m\r\n`);
   }
 }
 
@@ -515,7 +515,7 @@ async function attachExisting(id: string, s: Session, source: TerminalSource): P
       if (r.scrollback) s.term.write(r.scrollback);
       if (!r.running) {
         s.exited = true;
-        s.term.write(`\r\n\x1b[2m[Process completed]\x1b[0m\r\n`);
+        s.term.write(`\r\n\x1b[2m${tr("tools.terminal.processCompleted")}\x1b[0m\r\n`);
       }
     } else {
       const r = await terminalApi.attach(id);
@@ -544,7 +544,7 @@ async function start(id: string, s: Session, cwd?: string, command?: TerminalPro
       ...(ssh && { ssh }),
     });
   try {
-    if (ssh) s.term.write(`\x1b[2mConnecting…\x1b[0m\r\n`);
+    if (ssh) s.term.write(`\x1b[2m${tr("tools.terminal.connecting")}\x1b[0m\r\n`);
     try {
       await open();
     } catch (err) {
@@ -556,8 +556,9 @@ async function start(id: string, s: Session, cwd?: string, command?: TerminalPro
     s.lastSize = `${s.term.cols}x${s.term.rows}`;
   } catch (err) {
     s.exited = true;
-    const what = ssh ? "Cannot start the SSH session" : "Cannot open the terminal";
-    s.term.write(`\x1b[31m${what}: ${String(err)}\x1b[0m\r\n`);
+    const error = String(err);
+    const what = ssh ? tr("tools.terminal.cannotStartTheSshSessionError", { error }) : tr("tools.terminal.cannotOpenTheTerminalError", { error });
+    s.term.write(`\x1b[31m${what}\x1b[0m\r\n`);
   }
 }
 

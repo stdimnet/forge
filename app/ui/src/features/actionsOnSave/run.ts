@@ -8,6 +8,7 @@ import { formattedText } from "@/features/lsp/format";
 import { openSettings } from "@/features/settings/dialogState";
 import { viewFor } from "@/editor/views";
 import { saveActionsApi, isEmptyPlan, type SaveTool, type SaveTrigger, type ToolOutcome } from "@/ipc/saveActions";
+import { t } from "@/i18n";
 import { balloonsFor } from "@/keymap";
 import { isPluginActive } from "@/state/project";
 import type { SaveActionsRunner } from "@/state/editor";
@@ -43,12 +44,12 @@ const reportedMissing = new Set<SaveTool>();
 /** Balloons for failed and missing tools (exported for tests). */
 export function reportOutcomes(outcomes: ToolOutcome[]): void {
   for (const o of outcomes) {
-    const configure = [{ label: "Configure…", run: () => openSettings(TOOL_PAGES[o.tool]) }];
+    const configure = [{ label: t("common.configureEllipsis"), run: () => openSettings(TOOL_PAGES[o.tool]) }];
     if (o.status === "failed") {
-      balloon(`${o.label} failed`, o.message, 8000, configure, { type: "error" });
+      balloon(t("tools.actionsOnSave.toolFailed", { tool: o.label }), o.message, 8000, configure, { type: "error" });
     } else if (o.status === "missing" && !reportedMissing.has(o.tool)) {
       reportedMissing.add(o.tool);
-      balloon(`${o.label} was skipped`, o.message, 6000, configure, { type: "warning" });
+      balloon(t("tools.actionsOnSave.toolSkipped", { tool: o.label }), o.message, 6000, configure, { type: "warning" });
     }
   }
 }
@@ -80,7 +81,7 @@ export const saveActionsRunner: SaveActionsRunner = {
       reportOutcomes(report.outcomes);
       return report.changed;
     } catch (e) {
-      balloon("Actions on Save failed", String(e instanceof Error ? e.message : e), 8000, undefined, { type: "error" });
+      balloon(t("tools.actionsOnSave.actionsOnSaveFailed"), String(e instanceof Error ? e.message : e), 8000, undefined, { type: "error" });
       return false;
     }
   },
