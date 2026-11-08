@@ -19,6 +19,8 @@ pub struct RemoteCache {
     dir: PathBuf,
     client: reqwest::Client,
     max_age: Duration,
+    /// Whether loopback and private network hosts may be fetched (tests only).
+    allow_private: bool,
 }
 
 impl RemoteCache {
@@ -34,10 +36,12 @@ impl RemoteCache {
             dir,
             client,
             max_age: Duration::from_secs(24 * 60 * 60),
+            allow_private: false,
         })
     }
 
-    /// A cache that never uses a proxy (tests talk to a server on localhost).
+    /// A cache that never uses a proxy and may fetch from private hosts (tests talk to a
+    /// server on localhost).
     pub fn direct(dir: PathBuf, max_age: Duration) -> Result<RemoteCache, String> {
         let client = reqwest::Client::builder()
             .no_proxy()
@@ -47,6 +51,7 @@ impl RemoteCache {
             dir,
             client,
             max_age,
+            allow_private: true,
         })
     }
 
@@ -95,7 +100,12 @@ impl RemoteCache {
     }
 
     async fn download(&self, url: &str) -> Result<String, String> {
-        let response = self
+        if !self.allow_private && private_host(&crate::uri::document(url)) {
+            return Err(format!(
+                "{url} is on a local or private network; remote schemas are only downloaded from public servers"
+            ));
+        }
+        let mut response = self
             .client
             .get(crate::uri::document(url))
             .send()
@@ -104,14 +114,26 @@ impl RemoteCache {
         if !response.status().is_success() {
             return Err(format!("{url}: HTTP {}", response.status()));
         }
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| format!("download of {url} failed: {e}"))?;
-        if bytes.len() > MAX_SIZE {
-            return Err(format!("{url} is too large for a schema"));
+        let too_large = || format!("{url} is too large for a schema");
+        if response
+            .content_length()
+            .is_some_and(|n| n > MAX_SIZE as u64)
+        {
+            return Err(too_large());
         }
-        let text = String::from_utf8(bytes.to_vec()).map_err(|_| format!("{url} is not UTF-8"))?;
+        // Read in chunks and stop at the limit instead of buffering the whole body.
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .map_err(|e| format!("download of {url} failed: {e}"))?
+        {
+            if bytes.len() + chunk.len() > MAX_SIZE {
+                return Err(too_large());
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        let text = String::from_utf8(bytes).map_err(|_| format!("{url} is not UTF-8"))?;
         if crate::json::parse(&text)
             .and_then(|n| n.as_object().map(|_| ()))
             .is_none()
@@ -128,6 +150,56 @@ impl RemoteCache {
         let tmp = path.with_extension("part");
         if std::fs::write(&tmp, text).is_ok() {
             let _ = std::fs::rename(&tmp, path);
+        }
+    }
+}
+
+/// Whether `url` points at this machine or a private network by its host: `localhost`,
+/// single-label intranet names, `.local` / `.internal` / `.lan` / `.home.arpa`, and
+/// loopback, private, link-local and unique-local IP addresses.
+pub fn private_host(url: &str) -> bool {
+    let Ok(parsed) = reqwest::Url::parse(url) else {
+        return true;
+    };
+    let Some(host) = parsed.host_str() else {
+        return true;
+    };
+    let host = host.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        return private_ip(ip);
+    }
+    let name = host.trim_end_matches('.').to_ascii_lowercase();
+    !name.contains('.')
+        || [
+            ".localhost",
+            ".local",
+            ".internal",
+            ".lan",
+            ".home.arpa",
+            ".intranet",
+        ]
+        .iter()
+        .any(|suffix| name.ends_with(suffix))
+}
+
+fn private_ip(ip: std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || v4.is_unspecified()
+                || v4.is_broadcast()
+                // Carrier-grade NAT 100.64.0.0/10.
+                || (v4.octets()[0] == 100 && (v4.octets()[1] & 0xc0) == 64)
+        }
+        std::net::IpAddr::V6(v6) => {
+            let first = v6.segments()[0];
+            v6.is_loopback()
+                || v6.is_unspecified()
+                || (first & 0xfe00) == 0xfc00
+                || (first & 0xffc0) == 0xfe80
+                || v6.to_ipv4_mapped().is_some_and(|v4| private_ip(v4.into()))
         }
     }
 }
@@ -213,6 +285,48 @@ mod tests {
             .unwrap_err()
             .contains("404"));
         assert!(cache.fetch("project:/x.json").await.is_err());
+    }
+
+    #[test]
+    fn private_hosts_are_recognized() {
+        for url in [
+            "http://localhost/s.json",
+            "http://127.0.0.1:8080/s.json",
+            "http://10.1.2.3/s.json",
+            "http://192.168.0.10/s.json",
+            "http://169.254.169.254/latest/meta-data",
+            "http://[::1]/s.json",
+            "http://[fd00::1]/s.json",
+            "http://[::ffff:10.0.0.1]/s.json",
+            "http://intranet/s.json",
+            "https://wiki.corp.internal/s.json",
+            "http://printer.local/s.json",
+        ] {
+            assert!(private_host(url), "{url}");
+        }
+        for url in [
+            "https://json.schemastore.org/package.json",
+            "https://8.8.8.8/s.json",
+            "https://[2001:db8::1]/s.json",
+        ] {
+            assert!(!private_host(url), "{url}");
+        }
+    }
+
+    #[tokio::test]
+    async fn refuses_private_hosts_and_oversized_bodies() {
+        let big: &'static str =
+            Box::leak(format!("{{\"a\": \"{}\"}}", "x".repeat(MAX_SIZE)).into_boxed_str());
+        let (url, hits) = server(HashMap::from([("/big.json", big)])).await;
+        let dir = tempfile::tempdir().unwrap();
+        // The production cache refuses localhost without connecting.
+        let public = RemoteCache::new(dir.path().join("a")).unwrap();
+        let err = public.fetch(&format!("{url}/big.json")).await.unwrap_err();
+        assert!(err.contains("private network"), "{err}");
+        assert_eq!(*hits.lock().unwrap(), 0);
+        let cache = RemoteCache::direct(dir.path().join("b"), Duration::ZERO).unwrap();
+        let err = cache.fetch(&format!("{url}/big.json")).await.unwrap_err();
+        assert!(err.contains("too large"), "{err}");
     }
 
     #[tokio::test]
