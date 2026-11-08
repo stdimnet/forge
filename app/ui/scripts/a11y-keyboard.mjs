@@ -238,10 +238,12 @@ await check("Alt+Shift+L announces the caret position", async () => {
 await check("Settings | Keymap: the shortcut field has a name and Shift+Tab leaves it (#217)", async () => {
   await press("Control+Alt+s");
   await page.waitForSelector(".set-tree-row");
-  await page.keyboard.type("Keymap");
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(300);
+  // Tab into the tree, then walk down to Keymap.
   await press("Tab");
-  for (let i = 0; i < 40 && (await page.evaluate(() => document.activeElement?.textContent?.trim())) !== "Keymap"; i++) await press("ArrowDown");
+  await press("Home");
+  for (let i = 0; i < 40 && (await page.evaluate(() => document.activeElement?.dataset.node)) !== "keymap"; i++) await press("ArrowDown");
+  expect((await page.evaluate(() => document.activeElement?.dataset.node)) === "keymap", "Keymap was not reached in the tree");
   await press("Enter");
   await page.waitForSelector(".keymap-page");
   // Tab to "Find Actions by Shortcut" and open it.
@@ -273,7 +275,14 @@ await check("Diff viewer: focus inside, F7 through the keymap, Escape closes it 
   if (!(await page.$(".commit-row"))) return; // everything was committed above
   await page.focus(".commit-tree");
   await press("Home");
-  await press("ArrowDown");
+  // Walk down to the first file (changelist rows have no diff).
+  const onFile = () =>
+    page.evaluate(() => {
+      const id = document.querySelector(".commit-tree")?.getAttribute("aria-activedescendant");
+      return !!(id && document.getElementById(id)?.dataset.path);
+    });
+  for (let i = 0; i < 6 && !(await onFile()); i++) await press("ArrowDown");
+  expect(await onFile(), "no file row in the Commit window");
   await press("Control+d");
   await page.waitForSelector(".diff-viewer", { timeout: 5000 });
   await page.waitForTimeout(400);
