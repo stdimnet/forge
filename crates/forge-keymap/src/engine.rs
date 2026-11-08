@@ -471,17 +471,21 @@ impl Resolver {
     }
 
     /// A click or wheel turn: mouse shortcuts are single strokes. Text fields and the
-    /// terminal keep their clicks; a pending chord or double tap is cancelled.
+    /// terminal keep their clicks, except the side buttons (Button4/5: Back/Forward), which
+    /// mean nothing there and work everywhere like in PHPStorm. A pending chord or double tap
+    /// is cancelled.
     pub fn mouse(&mut self, e: &MouseInput, focus: FocusContext) -> Resolution {
         self.interrupt();
         self.pending_chord = None;
         let Some(stroke) = mouse_stroke(e) else {
             return Resolution::ignored();
         };
-        if matches!(
-            focus,
-            FocusContext::Input | FocusContext::ToolwindowInput | FocusContext::Terminal
-        ) {
+        if !is_side_button(e)
+            && matches!(
+                focus,
+                FocusContext::Input | FocusContext::ToolwindowInput | FocusContext::Terminal
+            )
+        {
             return Resolution::ignored();
         }
         match Self::pick(self.index.get(&stroke.id()).map(|e| &e.single), focus) {
@@ -633,6 +637,11 @@ fn held(e: &KeyEvent, m: Modifier) -> bool {
     }
 }
 
+/// A click of a side button (DOM buttons 3 and 4, PHPStorm's Button4/Button5: back and forward).
+pub fn is_side_button(e: &MouseInput) -> bool {
+    e.delta_y.is_none() && (3..=4).contains(&e.button)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -701,7 +710,7 @@ mod tests {
         }
     }
 
-    use FocusContext::{Editor, Global, Input, Terminal, Toolwindow};
+    use FocusContext::{Editor, Global, Input, Terminal, Toolwindow, ToolwindowInput};
 
     fn action(r: &mut Resolver, text: &str, focus: FocusContext) -> Option<String> {
         r.key_down(&key(text), focus).action
@@ -1295,6 +1304,42 @@ mod tests {
         let mut input = click(0, true);
         input.focus = Input;
         assert_eq!(r.handle(&input), Resolution::ignored());
+    }
+
+    #[test]
+    fn side_buttons_navigate_in_every_focus() {
+        let mut r = resolver(&[
+            ("Back", &["Ctrl+Alt+Left", "Button4 Click"]),
+            ("Forward", &["Ctrl+Alt+Right", "Button5 Click"]),
+            ("GotoDeclaration", &["Ctrl+Button1 Click"]),
+        ]);
+        let side = |button: u8| MouseInput {
+            button,
+            click_count: 1,
+            ..Default::default()
+        };
+        for focus in [Global, Editor, Toolwindow, Input, ToolwindowInput, Terminal] {
+            assert_eq!(
+                r.mouse(&side(3), focus).action.as_deref(),
+                Some("Back"),
+                "{focus:?}"
+            );
+            assert_eq!(
+                r.mouse(&side(4), focus).action.as_deref(),
+                Some("Forward"),
+                "{focus:?}"
+            );
+        }
+        // Other clicks in text fields still stay with them.
+        let ctrl_click = MouseInput {
+            button: 0,
+            click_count: 1,
+            ctrl_key: true,
+            ..Default::default()
+        };
+        assert_eq!(r.mouse(&ctrl_click, Input), Resolution::ignored());
+        assert!(is_side_button(&side(3)) && is_side_button(&side(4)));
+        assert!(!is_side_button(&side(1)) && !is_side_button(&side(5)));
     }
 
     #[test]

@@ -1350,8 +1350,8 @@ recently **edited** files; **Recently Changed Files** opens that view directly.
 The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick switching: keep
 `Ctrl` pressed, press `Tab` to move, release to open.
 
-**Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
-through your navigation history.
+**Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`, or the
+back and forward buttons on the side of the mouse) move through your navigation history.
 
 **Last Edit Location** (`Ctrl+Shift+Backspace`, macOS `Cmd+Shift+Backspace`) and **Next Edit
 Location** move through a separate history: the places where you changed text, across files.
@@ -5967,11 +5967,17 @@ Actions can have mouse shortcuts, written like PHPStorm's:
 | `Ctrl+Wheel Up`, `Shift+Wheel Down` | turning the wheel while holding modifiers |
 
 The PHPStorm keymaps bind **Declaration or Usages** to `Ctrl+Button1 Click` (macOS
-`Cmd+Button1 Click`) and `Button2 Click` (middle click), and **Implementation(s)** to
-`Ctrl+Alt+Button1 Click`. In the editor they act on the clicked symbol; rebinding them in the
+`Cmd+Button1 Click`) and `Button2 Click` (middle click), **Implementation(s)** to
+`Ctrl+Alt+Button1 Click`, and **Back** / **Forward** to `Button4 Click` / `Button5 Click`, the
+back and forward buttons on the side of the mouse (the VS Code, Eclipse, Sublime Text and
+Emacs keymaps keep them). In the editor they act on the clicked symbol; rebinding them in the
 keymap changes what the click does. Plain left clicks, double clicks, right clicks and plain
 wheel turns cannot be bound, so selecting text, context menus and scrolling keep working.
-Mouse shortcuts are ignored in text fields and the terminal.
+Mouse shortcuts are ignored in text fields and the terminal, except the side buttons
+(`Button4`, `Button5`), which mean nothing there and work everywhere. They never navigate the
+window itself.
+
+![Back with its mouse shortcut](docs/screenshots/keymap-mouse-back-forward.png)
 
 ![Mouse Shortcut](docs/screenshots/keymap-mouse-shortcut.png)
 
@@ -7189,8 +7195,8 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Type Hierarchy](#type-hierarchy) | `Ctrl+H` | `Ctrl+H` |
 | [Method Hierarchy](#method-hierarchy) | `Ctrl+Shift+H` | `Cmd+Shift+H` |
 | [Call Hierarchy](#call-hierarchy) | `Ctrl+Alt+H` | `Ctrl+Alt+H` |
-| [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
-| [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
+| [Back](#back) | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` |
+| [Forward](#forward) | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` |
 | [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
 | [Next Edit Location](#next-edit-location) | — | — |
 | [Select In](#select-in) | `Alt+F1` | `Alt+F1` |
@@ -7310,9 +7316,10 @@ More: [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md#call-hier
 
 ## Back
 
-**Shortcut:** `Ctrl+Alt+Left` · macOS `Cmd+[`, `Cmd+Alt+Left` · action id `Back`
+**Shortcut:** `Ctrl+Alt+Left`, `Button4 Click` · macOS `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` · action id `Back`
 
-Goes back to the previous caret location in your navigation history.
+Goes back to the previous caret location in your navigation history. `Button4 Click` is the
+back button on the side of the mouse.
 
 **Menu:** Navigate | Back
 
@@ -7320,9 +7327,10 @@ More: [Editor](docs/guide/user/editor.md#go-to-declaration)
 
 ## Forward
 
-**Shortcut:** `Ctrl+Alt+Right` · macOS `Cmd+]`, `Cmd+Alt+Right` · action id `Forward`
+**Shortcut:** `Ctrl+Alt+Right`, `Button5 Click` · macOS `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` · action id `Forward`
 
-Goes forward in the navigation history.
+Goes forward in the navigation history. `Button5 Click` is the forward button on the side of
+the mouse.
 
 **Menu:** Navigate | Forward
 
@@ -22704,8 +22712,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | File… | `GotoFile` | `Ctrl+Shift+N` | `Cmd+Shift+O` | yes |
 | Symbol… | `GotoSymbol` | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes |
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
-| Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
-| Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
+| Back | `Back` | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes |
+| Forward | `Forward` | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes |
 | Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
 | Next Edit Location | `JumpToNextChange` |  |  | yes |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
@@ -23580,8 +23588,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Back | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes | Goes back to the previous caret location in your navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
-| Forward | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes | Goes forward in the navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
+| Back | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes | Goes back to the previous caret location in your navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
+| Forward | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes | Goes forward in the navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
 | Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes | Goes back to the previous place where you changed text, across files. [More](docs/guide/user/shortcuts/navigation.md#last-edit-location) |
 | Next Edit Location | — | — | yes | Goes forward again through the places where you changed text. [More](docs/guide/user/shortcuts/navigation.md#next-edit-location) |
 | **Bookmarks** | | | | submenu |
@@ -33317,7 +33325,9 @@ Forge's PHPStorm-compatible keymap engine.
   commands, user overrides and user keymaps (Duplicate / Derive / Rename / Delete) from the
   settings.
 - `shortcut` also models mouse shortcuts ("Ctrl+Button1 Click", "Button2 Double Click",
-  "Alt+Wheel Up"), which the resolver handles as single strokes.
+  "Alt+Wheel Up"), which the resolver handles as single strokes. The side buttons
+  (`Button4`/`Button5`, DOM buttons 3 and 4; `engine::is_side_button`) resolve in every focus
+  context, text fields and the terminal included.
 - `menu`: the main menu (PHPStorm's structure, plugin contributions, resolution).
 
 The crate is pure (no file system or async runtime): the desktop app wraps it in IPC

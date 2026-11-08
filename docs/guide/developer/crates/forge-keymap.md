@@ -23,7 +23,9 @@ Forge's PHPStorm-compatible keymap engine.
   commands, user overrides and user keymaps (Duplicate / Derive / Rename / Delete) from the
   settings.
 - `shortcut` also models mouse shortcuts ("Ctrl+Button1 Click", "Button2 Double Click",
-  "Alt+Wheel Up"), which the resolver handles as single strokes.
+  "Alt+Wheel Up"), which the resolver handles as single strokes. The side buttons
+  (`Button4`/`Button5`, DOM buttons 3 and 4; `engine::is_side_button`) resolve in every focus
+  context, text fields and the terminal included.
 - `menu`: the main menu (PHPStorm's structure, plugin contributions, resolution).
 
 The crate is pure (no file system or async runtime): the desktop app wraps it in IPC

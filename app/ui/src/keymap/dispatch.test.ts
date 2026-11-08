@@ -2,7 +2,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import "@/mock/settingsMock";
 import "@/mock/keymapMock";
 import { registerCommand } from "@/state/commands";
-import { balloons, focusContextOf, installKeymap, resolveCommand, runAction, suspendKeymap } from "./dispatch";
+import { emitMock } from "@/ipc";
+import { SIDE_BUTTON_EVENT, balloons, focusContextOf, installKeymap, resolveCommand, runAction, suspendKeymap } from "./dispatch";
 import { resetKeymap, setActionShortcuts, setKeymapId, startKeymap } from "./store";
 
 function press(target: EventTarget, init: KeyboardEventInit) {
@@ -62,12 +63,16 @@ describe("focusContextOf", () => {
 describe("installed keymap", () => {
   const gotoClass = vi.fn();
   const search = vi.fn();
+  const back = vi.fn();
+  const forward = vi.fn();
   beforeAll(async () => {
     await installKeymap(window);
     await setKeymapId("$default");
     await resetKeymap();
     registerCommand({ id: "GotoClass", title: "Class", run: gotoClass });
     registerCommand({ id: "SearchEverywhere", title: "Search Everywhere", run: search });
+    registerCommand({ id: "Back", title: "Back", run: back });
+    registerCommand({ id: "Forward", title: "Forward", run: forward });
   });
   beforeEach(() => {
     document.body.innerHTML = `<input id="field" /><button id="btn">b</button>`;
@@ -124,5 +129,61 @@ describe("installed keymap", () => {
     resume();
     expect(e.defaultPrevented).toBe(false);
     expect(gotoClass).not.toHaveBeenCalled();
+  });
+
+  /** A side button click as the webviews report it: mousedown, mouseup and (Chromium) auxclick. */
+  function sideClick(target: EventTarget, button: number) {
+    const init = { bubbles: true, cancelable: true, button, detail: 1 };
+    const down = new MouseEvent("mousedown", init);
+    const up = new MouseEvent("mouseup", init);
+    const aux = new MouseEvent("auxclick", init);
+    target.dispatchEvent(down);
+    target.dispatchEvent(up);
+    target.dispatchEvent(aux);
+    return { down, up, aux };
+  }
+
+  it("runs Back and Forward on the mouse side buttons once and cancels the webview's navigation (#222)", async () => {
+    const btn = document.getElementById("btn")!;
+    const { down, up, aux } = sideClick(btn, 3);
+    await Promise.resolve();
+    expect(back).toHaveBeenCalledOnce();
+    expect([down.defaultPrevented, up.defaultPrevented, aux.defaultPrevented]).toEqual([true, true, true]);
+    sideClick(btn, 4);
+    await Promise.resolve();
+    expect(forward).toHaveBeenCalledOnce();
+  });
+
+  it("runs the side buttons in text fields and the terminal too (#222)", async () => {
+    document.body.innerHTML = `<input id="field" /><div class="xterm"><textarea id="term"></textarea></div>`;
+    sideClick(document.getElementById("field")!, 3);
+    sideClick(document.getElementById("term")!, 4);
+    await Promise.resolve();
+    expect(back).toHaveBeenCalledOnce();
+    expect(forward).toHaveBeenCalledOnce();
+  });
+
+  it("follows a rebound side button (#222)", async () => {
+    await setActionShortcuts("Back", ["Ctrl+Alt+Left"]);
+    await setActionShortcuts("GotoClass", ["Ctrl+N", "Button4 Click"]);
+    sideClick(document.getElementById("btn")!, 3);
+    await Promise.resolve();
+    expect(back).not.toHaveBeenCalled();
+    expect(gotoClass).toHaveBeenCalledOnce();
+    await resetKeymap();
+  });
+
+  it("runs side button clicks the desktop shell reports (WebKitGTK, #222)", async () => {
+    const click = { ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, x: 1, y: 1 };
+    emitMock(SIDE_BUTTON_EVENT, { ...click, button: 3 });
+    emitMock(SIDE_BUTTON_EVENT, { ...click, button: 4 });
+    await Promise.resolve();
+    expect(back).toHaveBeenCalledOnce();
+    expect(forward).toHaveBeenCalledOnce();
+    const resume = suspendKeymap();
+    emitMock(SIDE_BUTTON_EVENT, { ...click, button: 3 });
+    resume();
+    await Promise.resolve();
+    expect(back).toHaveBeenCalledOnce();
   });
 });

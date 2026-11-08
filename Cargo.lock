@@ -2762,6 +2762,7 @@ dependencies = [
  "goforge-lang-go",
  "goforge-pprof",
  "goforge-sdk",
+ "gtk",
  "javaforge-android",
  "javaforge-build",
  "javaforge-fw-spring",
@@ -2817,6 +2818,7 @@ dependencies = [
  "webforge-lang-web",
  "webforge-quality-tools",
  "webforge-web-tooling",
+ "webkit2gtk",
 ]
 
 [[package]]

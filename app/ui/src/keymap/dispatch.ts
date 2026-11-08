@@ -6,9 +6,10 @@
 import { createSignal } from "solid-js";
 import type { FocusContext, KeyInput, Resolution } from "@/ipc/keymap";
 import { keymapApi } from "@/ipc/keymap";
+import { listen } from "@/ipc";
 import { commands, runCommand } from "@/state/commands";
 import { DEFAULT_GROUP, logNotification, modeOf, registerNotificationGroup, type NotificationType } from "@/state/notifications";
-import { loadKeymapCore, mouseActionOf, mouseInputOf, resolveKeySync, strokeOfEvent } from "./core";
+import { loadKeymapCore, mouseActionOf, mouseInputOf, resolveKeySync, strokeOfEvent, type MouseInput } from "./core";
 import { actionById, startKeymap } from "./store";
 
 export interface BalloonAction {
@@ -210,6 +211,9 @@ function mouseInput(e: MouseEvent): KeyInput {
   };
 }
 
+/** The back and forward side buttons (DOM buttons 3 and 4; PHPStorm's Button4/Button5). */
+const isSideButton = (e: MouseEvent) => e.button === 3 || e.button === 4;
+
 /** Resolve a click or wheel turn; true when a mouse shortcut ran. */
 function onMouse(e: MouseEvent): boolean {
   if (suspended) return false;
@@ -219,6 +223,31 @@ function onMouse(e: MouseEvent): boolean {
   e.stopPropagation();
   void runAction(res.action);
   return true;
+}
+
+/**
+ * A side button click the desktop shell took from the webview (WebKitGTK reports these
+ * buttons to the page without a button number; `app/src-tauri/src/mouse_buttons.rs`).
+ */
+export const SIDE_BUTTON_EVENT = "keymap://side-button";
+export interface SideButtonClick extends Omit<MouseInput, "clickCount" | "deltaY"> {
+  x: number;
+  y: number;
+}
+
+/** Resolve a side button click from the shell, in the focus context under the pointer. */
+function onSideButton(click: SideButtonClick): void {
+  if (suspended) return;
+  const { x, y, ...mouse } = click;
+  const target = document.elementFromPoint?.(x, y) ?? document.activeElement;
+  const res = resolveKeySync({
+    type: "mouse",
+    ...mouse,
+    clickCount: 1,
+    focus: focusContextOf(target),
+    time: performance.now(),
+  });
+  if (res?.action) void runAction(res.action);
 }
 
 let installed = false;
@@ -263,7 +292,31 @@ export function installKeymap(target: Window = window): Promise<void> {
     onMouse(e);
   };
   target.addEventListener("click", onClick);
-  target.addEventListener("auxclick", onClick);
+  target.addEventListener("auxclick", (e) => {
+    if (isSideButton(e)) {
+      e.preventDefault();
+      return;
+    }
+    onClick(e);
+  });
+  // The side buttons (Button4/5: Back/Forward) run on mouseup: WebKit webviews do not fire
+  // auxclick for them, and Chromium's own history navigation must be cancelled there.
+  target.addEventListener(
+    "mousedown",
+    (e) => {
+      if (isSideButton(e)) e.preventDefault();
+    },
+    true,
+  );
+  target.addEventListener(
+    "mouseup",
+    (e) => {
+      if (!isSideButton(e)) return;
+      e.preventDefault();
+      if (!mouseClaimed) onMouse(e);
+    },
+    true,
+  );
   target.addEventListener(
     "wheel",
     (e) => {
@@ -278,5 +331,6 @@ export function installKeymap(target: Window = window): Promise<void> {
     { capture: true, passive: false },
   );
   target.addEventListener("blur", () => resolveKeySync({ type: "reset" }));
+  void listen<SideButtonClick>(SIDE_BUTTON_EVENT, onSideButton);
   return Promise.all([loadKeymapCore(), startKeymap()]).then(() => {});
 }
