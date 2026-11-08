@@ -97,8 +97,8 @@ export function parameterInfo(path: string, view: EditorView): boolean {
 export function lspSignatureHelp(path: string): Extension {
   return [
     signatureField,
+    // Ctrl+P is the keymap's ParameterInfo (`lsp/index.ts`); only the popup's Escape is local.
     keymap.of([
-      { key: "Mod-p", run: (view) => parameterInfo(path, view) },
       {
         key: "Escape",
         run: (view) => {
