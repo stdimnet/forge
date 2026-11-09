@@ -1,7 +1,7 @@
 /** Reformat Code (Ctrl+Alt+L) through the language server's document formatting. */
-import type { ChangeSpec, Extension } from "@codemirror/state";
+import type { ChangeSpec } from "@codemirror/state";
 import { isolateHistory } from "@codemirror/commands";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import { lspApi, type TextEdit } from "@/ipc/lsp";
 import { syncNow } from "./sync";
 import { fromLsp } from "./util";
@@ -108,8 +108,4 @@ export async function reformat(path: string, view: EditorView): Promise<void> {
   const out = await formattedText(path, view);
   // Only when nobody typed meanwhile.
   if (view.state.doc.toString() === before) replaceChangedPart(view, out);
-}
-
-export function lspFormat(path: string): Extension {
-  return keymap.of([{ key: "Mod-Alt-l", run: (view) => (void reformat(path, view), true) }]);
 }

@@ -95,10 +95,10 @@ export async function exitApp(): Promise<void> {
   if (!isTauri()) return;
   if (getSetting<boolean>("system.confirmExit", true)) {
     const answer = await askConfirmWithCheckbox({
-      title: "Confirm Exit",
-      message: "Are you sure you want to exit Forge? All project windows will close.",
-      confirm: "Exit",
-      checkbox: "Do not ask me again",
+      title: tr("tools.system.confirmExit"),
+      message: tr("tools.system.areYouSureAllWindows"),
+      confirm: tr("tools.system.exit"),
+      checkbox: tr("tools.system.doNotAskMeAgain"),
     });
     if (!answer.ok) return;
     if (answer.checked) await saveSetting("system.confirmExit", false).catch(() => undefined);
@@ -118,10 +118,10 @@ async function confirmExitOnClose(): Promise<void> {
   await getCurrentWindow().onCloseRequested(async (event) => {
     if (getSetting<boolean>("system.confirmExit", true)) {
       const answer = await askConfirmWithCheckbox({
-        title: "Confirm Exit",
-        message: "Are you sure you want to exit Forge?",
-        confirm: "Exit",
-        checkbox: "Do not ask me again",
+        title: tr("tools.system.confirmExit"),
+        message: tr("tools.system.areYouSure"),
+        confirm: tr("tools.system.exit"),
+        checkbox: tr("tools.system.doNotAskMeAgain"),
       });
       if (!answer.ok) {
         event.preventDefault();

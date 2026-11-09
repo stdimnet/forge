@@ -52,8 +52,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | File… | `GotoFile` | `Ctrl+Shift+N` | `Cmd+Shift+O` | yes |
 | Symbol… | `GotoSymbol` | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes |
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
-| Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
-| Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
+| Back | `Back` | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes |
+| Forward | `Forward` | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes |
 | Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
 | Next Edit Location | `JumpToNextChange` |  |  | yes |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |

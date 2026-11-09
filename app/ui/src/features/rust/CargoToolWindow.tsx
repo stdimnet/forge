@@ -36,6 +36,7 @@ import { debugConfiguration, launch } from "@/features/run/runStore";
 import { getSetting, saveSettings } from "@/state/settings";
 import { cargoLoading, cargoWorkspace, cargoWorkspaceError, refreshCargo, runRustCommand, showRustBalloon } from "./state";
 import { t as tr } from "@/i18n";
+import { navigate } from "@/features/project/treeNavigation";
 import "./cargo.css";
 
 const KIND_LABEL: Record<CargoTarget["kind"], string> = {
@@ -246,6 +247,29 @@ export function CargoToolWindow() {
   };
   const run = (cfg: RunConfiguration | null) => cfg && void launch(useTemporary(cfg));
   const debug = (cfg: RunConfiguration | null) => cfg && void debugConfiguration(useTemporary(cfg));
+  /** Enter / double click: open or close a group, run a target, toggle a feature. */
+  const activate = (r: (ReturnType<typeof rows>)[number]) => {
+    if (r.children) toggle(r.key);
+    else if (r.target) run(configurationFor(r.target.pkg, r.target.target));
+    else if (r.feature) void toggleFeature(r.feature.pkg, r.feature.name);
+  };
+  const rowIndex = () => rows().findIndex((r) => r.key === selected());
+  const onTreeKey = (e: KeyboardEvent) => {
+    const list = rows();
+    const res = navigate(
+      list.map((r) => ({ path: r.key, isDir: !!r.children, expanded: !!r.children && isOpen(r.key), depth: r.depth })),
+      selected(),
+      e.key,
+    );
+    if (res.type === "none") return;
+    e.preventDefault();
+    if (res.type === "select") setSelected(res.path);
+    else if (res.type === "expand" || res.type === "collapse") toggle(res.path);
+    else {
+      const row = list.find((r) => r.key === res.path);
+      if (row) activate(row);
+    }
+  };
   const action = (a: CargoAction) => void cargoAction(a, selectedPackage()?.name, selectedRow()?.target ? targetKey(selectedRow()!.target!.target) : undefined);
   return (
     <div class="cargo-tw">
@@ -286,23 +310,31 @@ export function CargoToolWindow() {
       <Show when={!cargoWorkspace() && !cargoWorkspaceError()}>
         <div class="cargo-message muted">{cargoLoading() ? tr("langs.rust.loadingCargoMetadataEllipsis") : tr("langs.rust.noCargoProject")}</div>
       </Show>
-      <div class="cargo-tree" role="tree">
+      <div
+        class="cargo-tree"
+        role="tree"
+        tabIndex={0}
+        aria-label={tr("toolwindow.cargo.title")}
+        aria-activedescendant={rowIndex() >= 0 ? `cargo-row-${rowIndex()}` : undefined}
+        onKeyDown={onTreeKey}
+      >
         <For each={rows()}>
-          {(r) => (
+          {(r, i) => (
             <div
               class="tree-row cargo-row"
               classList={{ selected: selected() === r.key }}
+              id={`cargo-row-${i()}`}
+              role="treeitem"
+              aria-level={r.depth + 1}
+              aria-selected={selected() === r.key}
+              aria-expanded={r.children ? isOpen(r.key) : undefined}
               style={{ "padding-left": `${6 + r.depth * 16}px` }}
               data-cargo-row={r.key}
               title={r.feature ? (r.feature.enables.length ? `Enables ${r.feature.enables.join(", ")}` : r.feature.name) : r.target ? r.target.target.srcPath : undefined}
               onClick={() => setSelected(r.key)}
-              onDblClick={() => {
-                if (r.children) toggle(r.key);
-                else if (r.target) run(configurationFor(r.target.pkg, r.target.target));
-                else if (r.feature) void toggleFeature(r.feature.pkg, r.feature.name);
-              }}
+              onDblClick={() => activate(r)}
             >
-              <span class="cargo-twisty" onClick={(e) => (e.stopPropagation(), r.children && toggle(r.key))}>
+              <span class="cargo-twisty" aria-hidden="true" onClick={(e) => (e.stopPropagation(), r.children && toggle(r.key))}>
                 <Show when={r.children}>{isOpen(r.key) ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</Show>
               </span>
               <Show

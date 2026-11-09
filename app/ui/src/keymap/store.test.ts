@@ -89,8 +89,11 @@ describe("keymap client", () => {
     expect(keymapId()).toBe("Mine");
     expect(activeKeymap()?.user).toBe(true);
     expect(shortcutsOf("GotoFile")).toEqual(["Ctrl+P"]);
-    expect(keymapNameProblem("Mine")).toMatch(/already exists/);
+    expect(keymapNameProblem("Mine")).toBe('A keymap named "Mine" already exists');
     expect(keymapNameProblem("VS Code")).toMatch(/already exists/);
+    expect(keymapNameProblem("Mine", "Mine")).toBeNull();
+    expect(keymapNameProblem("  ")).toBe("Enter a name");
+    expect(keymapNameProblem("a\tb")).toBe("The name cannot contain tabs or line breaks");
     await deleteKeymap("Mine");
     expect(keymapId()).toBe("VSCode");
     expect(mockSettingValue("keymap.custom")).toEqual([]);

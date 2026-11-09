@@ -64,6 +64,8 @@ export function Console(props: ConsoleProps) {
   );
   const onKeyDown = (e: KeyboardEvent) => {
     if (!props.onInput || e.ctrlKey || e.metaKey || e.altKey) return;
+    // A focused file/URL link keeps Enter and Space (they open it).
+    if (e.target instanceof Element && e.target.closest(".run-link")) return;
     if (e.key === "Enter") {
       props.onInput(`${input()}\n`);
       setInput("");
@@ -89,8 +91,14 @@ export function Console(props: ConsoleProps) {
                 p.link ? (
                   <a
                     class="run-link"
+                    // A real href makes the link focusable and opens it with Enter; Forge opens
+                    // it itself (editor or system browser), never by navigating the window.
+                    href={p.link!.url ? p.link!.target : "#"}
                     style={styleOf(p.style)}
-                    onClick={() => void openFileLink(p.link!)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void openFileLink(p.link!);
+                    }}
                     title={p.link!.url ? t("run.console.openInBrowser") : t("run.console.openInEditor")}
                   >
                     {p.text}

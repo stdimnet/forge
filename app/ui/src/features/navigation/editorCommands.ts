@@ -18,7 +18,8 @@ import {
   toggleBlockComment,
   toggleComment,
 } from "@codemirror/commands";
-import { foldAll, foldCode, unfoldAll, unfoldCode } from "@codemirror/language";
+import { foldAll, unfoldAll } from "@codemirror/language";
+import { collapseRegion, collapseRegionRecursively, expandRegion, expandRegionRecursively } from "./foldRegion";
 import {
   findNext,
   findPrevious,
@@ -189,10 +190,11 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   EditorStartNewLineBefore: startNewLineBefore,
   AutoIndentLines: indentSelection,
   EditorMatchBrace: cursorMatchingBracket,
-  ExpandRegion: unfoldCode,
-  CollapseRegion: foldCode,
-  ExpandRegionRecursively: unfoldCode,
-  CollapseRegionRecursively: foldCode,
+  // PHPStorm folds the innermost region around the caret, not only from its first line (#218).
+  ExpandRegion: expandRegion,
+  CollapseRegion: collapseRegion,
+  ExpandRegionRecursively: expandRegionRecursively,
+  CollapseRegionRecursively: collapseRegionRecursively,
   ExpandAllRegions: unfoldAll,
   CollapseAllRegions: foldAll,
   CodeCompletion: startCompletion,

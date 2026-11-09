@@ -3,6 +3,7 @@ mod commands;
 mod companion;
 mod inspections;
 mod lifecycle;
+mod mouse_buttons;
 mod plugins;
 mod recent;
 mod startup;
@@ -56,6 +57,7 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(mouse_buttons::plugin())
         .plugin(updater.build())
         .manage(app_state)
         .manage(startup::StartupState::default())

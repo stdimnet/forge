@@ -549,6 +549,30 @@ mod tests {
     }
 
     #[test]
+    fn mouse_side_buttons_navigate_back_and_forward_in_every_keymap() {
+        for km in [KeymapId::Default, KeymapId::MacOs] {
+            let back = canonical_shortcut("Button4 Click", km.platform());
+            let forward = canonical_shortcut("Button5 Click", km.platform());
+            assert!(sc(km, "Back").contains(&back), "{km:?}");
+            assert!(sc(km, "Forward").contains(&forward), "{km:?}");
+        }
+        for km in bundled_keymaps() {
+            let platform = km.parent.platform();
+            for (id, button) in [("Back", "Button4 Click"), ("Forward", "Button5 Click")] {
+                // A derived keymap that overrides the action keeps the mouse button.
+                if let Some((_, list)) = derived(km).into_iter().find(|(a, _)| a == id) {
+                    let want = canonical_shortcut(button, platform);
+                    assert!(
+                        list.iter().any(|x| canonical_shortcut(x, platform) == want),
+                        "{}: {id}",
+                        km.id
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn derived_keymaps_have_no_unintended_same_context_conflicts() {
         let c = catalog();
         // Pairs PHPStorm binds on purpose (different UI contexts), as in the PHPStorm keymaps.

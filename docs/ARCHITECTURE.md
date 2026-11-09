@@ -142,7 +142,12 @@ app/ui/            SolidJS UI
   forwards clicks and wheel turns as `{ type: "mouse", button, clickCount, deltaY }`. Editor
   extensions that act on the clicked position (Ctrl+Click to the declaration) ask
   `editorMouseAction(e)` which action the keymap binds and call `claimMouseGesture()` so the
-  dispatcher does not run it a second time.
+  dispatcher does not run it a second time. The mouse side buttons (`Button4`/`Button5`, Back
+  and Forward) run on `mouseup`, and the dispatcher cancels the webview's own history
+  navigation. WebKitGTK reports them to the page without a button number, so on Linux the
+  shell takes them from the webview's GTK widget (`app/src-tauri/src/mouse_buttons.rs`, a
+  plugin on every webview) and sends `keymap://side-button` `{ button, ctrlKey, altKey,
+  shiftKey, metaKey, x, y }` to that webview instead.
 - Color schemes: `crates/forge-colorscheme` resolves the active scheme (Ember, Anvil, user
   schemes from `editor.colorScheme.*`) into CSS variables (`--syn-<token>[-bg|-weight|-style|
   -deco|-box]`, `--editor-fg`, `--editor-caret`, `--editor-selection`, …) that
@@ -857,7 +862,10 @@ or without Git, for local and remote projects.
   (`src/shell/window/dialogs.ts`). In the desktop app `dialog_window_open({ request })` creates
   the window `dialog-<id>` owned by the calling window (centered on it, or at the geometry
   remembered in `<config dir>/forge/dialog-windows.json`, see `forge_window::place_dialog`),
-  disables the owner and refocuses the dialog when the owner gets focus. The window loads the
+  disables the owner and refocuses the dialog when the owner gets focus. There is one window
+  per dialog id: a second request focuses the open window, and a request while the window is
+  still being built does nothing (the label is reserved before the build, so two windows can
+  never share a label and leave one that Tauri no longer knows). The window loads the
   same bundle with `?dialog=<id>` (props injected as `window.__FORGE_DIALOG__`) and renders only
   `DialogWindowApp`. The dialog ends with `closeDialog(id, result)` (`dialog_window_close`);
   the owner receives `dialog://closed { window, id, result }` and runs `onClosed` there.

@@ -498,6 +498,12 @@
   "langs.jupyter.tokenOrPasteAUrl": "Token (or paste a URL with ?token= above)",
   "langs.jupyter.jupyterServerToken": "Jupyter server token",
   "langs.jupyter.forgetToken": "Forget Token",
+  "langs.jupyter.kernelsOfRunOnAJupyterServer": "Kernels of {interpreter} run on a Jupyter server",
+  "langs.jupyter.configureAJupyterServer": "Configure a Jupyter server",
+  "langs.jupyter.forgeCannotStartKernelsOf": "Forge cannot start kernels of {interpreter} itself. Enter the URL of a Jupyter server that runs next to it.",
+  "langs.jupyter.ipykernelIsNotInstalledIn": "ipykernel is not installed in {interpreter}",
+  "langs.jupyter.kernel": "Kernel",
+  "langs.jupyter.cannotStartTheKernel": "Cannot start the kernel",
   "langs.kotlin.unknown": "UNKNOWN",
   "langs.kotlin.coroutineCreationStackTrace": "Coroutine creation stack trace",
   "langs.kotlin.coroutines": "{count} coroutines ·",
@@ -1348,5 +1354,9 @@
   "langs.cpp.cmakeOptions": "CMake options",
   "langs.cpp.buildDirectory": "Build directory",
   "langs.cpp.buildOptions": "Build options",
-  "langs.cpp.environment": "Environment"
+  "langs.cpp.environment": "Environment",
+  "langs.cpp.cmakeConfigureFailed": "CMake configure failed",
+  "langs.cpp.cmakeErrorsSeeTheToolWindow": "{count, plural, one {# error: see the CMake tool window} other {# errors: see the CMake tool window}}",
+  "langs.cpp.seeTheCmakeToolWindow": "See the CMake tool window",
+  "langs.cpp.cannotReloadTheCmakeProject": "Cannot reload the CMake project"
 }

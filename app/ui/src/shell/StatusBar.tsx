@@ -11,7 +11,11 @@ import { EncodingStatus, IndentStatus, LineSeparatorStatus } from "./FileStatusI
 import { t } from "@/i18n";
 
 export function StatusBar() {
-  const tab = activeTab;
+  /** The active tab when it is a text editor (not an image or other view tab). */
+  const textTab = () => {
+    const tab = activeTab();
+    return tab && !tab.view ? tab : undefined;
+  };
   return (
     <footer class="status-bar" aria-label={t("a11y.statusbar")}>
       <div class="status-left">
@@ -29,24 +33,28 @@ export function StatusBar() {
       </div>
       <div class="status-right">
         <For each={visibleStatusItems("right")}>{(s) => <Dynamic component={s.component} />}</For>
-        {tab() && !tab()!.view && (
-          <>
-            <button
-              class="status-item"
-              aria-label={
-                (tab()!.cursor.carets ?? 1) > 1
-                  ? t("statusbar.carets", { count: tab()!.cursor.carets ?? 1 })
-                  : t("a11y.caret.position", { line: tab()!.cursor.line, col: tab()!.cursor.col })
-              }
-            >
-              {(tab()!.cursor.carets ?? 1) > 1 ? t("statusbar.carets", { count: tab()!.cursor.carets ?? 1 }) : `${tab()!.cursor.line}:${tab()!.cursor.col}`}
-            </button>
-            <LineSeparatorStatus tab={tab()!} />
-            <EncodingStatus tab={tab()!} />
-            <IndentStatus tab={tab()!} />
-            <FileTypeStatus path={tab()!.path} content={tab()!.content} />
-          </>
-        )}
+        {/* Keyed <Show>: the inner items must never read a tab that is no longer active (#220). */}
+        <Show when={textTab()} keyed>
+          {(active) => (
+            <>
+              <button
+                class="status-item"
+                data-status="caret"
+                aria-label={
+                  (active.cursor.carets ?? 1) > 1
+                    ? t("statusbar.carets", { count: active.cursor.carets ?? 1 })
+                    : t("a11y.caret.position", { line: active.cursor.line, col: active.cursor.col })
+                }
+              >
+                {(active.cursor.carets ?? 1) > 1 ? t("statusbar.carets", { count: active.cursor.carets ?? 1 }) : `${active.cursor.line}:${active.cursor.col}`}
+              </button>
+              <LineSeparatorStatus tab={active} />
+              <EncodingStatus tab={active} />
+              <IndentStatus tab={active} />
+              <FileTypeStatus path={active.path} content={active.content} />
+            </>
+          )}
+        </Show>
         <Show when={branchLabel()}>
           <button class="status-item" aria-label={t("a11y.statusbar.branch", { branch: branchLabel() })}>
             <GitBranch size={12} aria-hidden="true" /> {branchLabel()}

@@ -28,6 +28,12 @@ export function registerObjectSettingEditor(key: string, editor: Component<{ spe
 export const settingControlId = (key: string) => `setting-${key.replace(/[^\w-]/g, "-")}`;
 const settingDescId = (key: string) => `${settingControlId(key)}-desc`;
 
+/** The number typed into a numeric setting, or why it is not one (exported for tests). */
+export function parseSettingNumber(raw: string, type: "int" | "number"): number | string {
+  const n = type === "int" ? Number.parseInt(raw, 10) : Number.parseFloat(raw);
+  return Number.isFinite(n) ? n : t("settings.validation.notANumber");
+}
+
 function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) {
   const step = () => (props.spec.type === "number" ? (props.spec.step ?? 0.1) : 1);
   const [invalid, setInvalid] = createSignal<string | null>(null);
@@ -35,11 +41,15 @@ function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) 
   // The schema check (type and range) runs in Rust, like the one `settings_set` applies.
   const commit = async (raw: string) => {
     const id = ++seq;
-    const n = props.spec.type === "int" ? Number.parseInt(raw, 10) : Number.parseFloat(raw);
-    const problem = Number.isFinite(n) ? await settingsApi.validate(props.spec.key, n) : "Not a number";
+    const n = parseSettingNumber(raw, props.spec.type);
+    // A failed check shows its error on the field instead of an unhandled rejection.
+    const problem =
+      typeof n === "string"
+        ? n
+        : await settingsApi.validate(props.spec.key, n).catch((e: unknown) => String(e).replace(/^Error: /, ""));
     if (id !== seq) return;
     setInvalid(problem);
-    if (!problem) setDraft(props.spec.key, n);
+    if (!problem && typeof n === "number") setDraft(props.spec.key, n);
   };
   return (
     <input

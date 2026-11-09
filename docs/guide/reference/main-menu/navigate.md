@@ -15,8 +15,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Back | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes | Goes back to the previous caret location in your navigation history. [More](../../user/editor.md#go-to-declaration) |
-| Forward | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes | Goes forward in the navigation history. [More](../../user/editor.md#go-to-declaration) |
+| Back | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes | Goes back to the previous caret location in your navigation history. [More](../../user/editor.md#go-to-declaration) |
+| Forward | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes | Goes forward in the navigation history. [More](../../user/editor.md#go-to-declaration) |
 | Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes | Goes back to the previous place where you changed text, across files. [More](../../user/shortcuts/navigation.md#last-edit-location) |
 | Next Edit Location | — | — | yes | Goes forward again through the places where you changed text. [More](../../user/shortcuts/navigation.md#next-edit-location) |
 | **Bookmarks** | | | | submenu |

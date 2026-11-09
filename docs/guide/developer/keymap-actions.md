@@ -10,6 +10,11 @@ tags: [keymap, shortcuts, actions]
 Recipe: [`add-keymap-action`](../../../.claude/skills/add-keymap-action/SKILL.md). Every
 shortcut goes through the keymap engine. **Never** add a `keydown` listener for a shortcut: it
 breaks user overrides, focus contexts and conflict detection, and causes double toggles.
+The same goes for CodeMirror `keymap.of([...])` bindings of a keymap action (`Mod-p`, `F2`):
+when the user rebinds the action, the old key keeps firing in the editor. Register a command
+with the action id instead; keep `keymap.of` for keys that belong to the widget itself, such
+as `Escape` closing its own popup. A window with its own Next/Previous actions (the diff
+viewer) marks itself `data-focus-context="diff"` and lets the action's command find it.
 
 ## The engine
 

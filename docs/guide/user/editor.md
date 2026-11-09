@@ -222,8 +222,8 @@ Declarations outside the project (PHP's own classes in the PHP stubs, files a la
 points to outside the project) open in a **read-only** tab with a "Read-only library file"
 banner and breadcrumbs such as `PHP Runtime › Core › Core_c.php › Throwable`.
 
-**Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) return
-to where you were.
+**Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`, or the
+mouse's side buttons) return to where you were, also when the declaration is in the same file.
 
 ### Implementation, Type Declaration, Super Method
 
@@ -534,6 +534,13 @@ Click the fold markers in the gutter, or use:
 | Expand / Collapse | `Ctrl+=` / `Ctrl+-` | `Cmd+=` / `Cmd+-` |
 | Expand / Collapse Recursively | `Ctrl+Alt+=` / `Ctrl+Alt+-` | `Cmd+Alt+=` / `Cmd+Alt+-` |
 | Expand All / Collapse All | `Ctrl+Shift+=` / `Ctrl+Shift+-` | `Cmd+Shift+=` / `Cmd+Shift+-` |
+
+**Collapse** folds the innermost region around the caret, wherever the caret is inside it: in a
+method body, on the method's signature line or on its opening brace. Press it again to fold the
+next region out (the class). **Expand** unfolds the fold at the caret. The **Recursively**
+variants also fold or unfold every region inside that region.
+
+![Collapse from a method's signature line](../../screenshots/folding-collapse-from-inside.png)
 
 Custom folding regions (`// region Name` … `// endregion`, `#region`, `<!-- region -->`,
 `// <editor-fold desc="…">`) fold too and show their name. Sticky lines, breadcrumbs, rendered

@@ -123,11 +123,17 @@ Actions can have mouse shortcuts, written like PHPStorm's:
 | `Ctrl+Wheel Up`, `Shift+Wheel Down` | turning the wheel while holding modifiers |
 
 The PHPStorm keymaps bind **Declaration or Usages** to `Ctrl+Button1 Click` (macOS
-`Cmd+Button1 Click`) and `Button2 Click` (middle click), and **Implementation(s)** to
-`Ctrl+Alt+Button1 Click`. In the editor they act on the clicked symbol; rebinding them in the
+`Cmd+Button1 Click`) and `Button2 Click` (middle click), **Implementation(s)** to
+`Ctrl+Alt+Button1 Click`, and **Back** / **Forward** to `Button4 Click` / `Button5 Click`, the
+back and forward buttons on the side of the mouse (the VS Code, Eclipse, Sublime Text and
+Emacs keymaps keep them). In the editor they act on the clicked symbol; rebinding them in the
 keymap changes what the click does. Plain left clicks, double clicks, right clicks and plain
 wheel turns cannot be bound, so selecting text, context menus and scrolling keep working.
-Mouse shortcuts are ignored in text fields and the terminal.
+Mouse shortcuts are ignored in text fields and the terminal, except the side buttons
+(`Button4`, `Button5`), which mean nothing there and work everywhere. They never navigate the
+window itself.
+
+![Back with its mouse shortcut](../../screenshots/keymap-mouse-back-forward.png)
 
 ![Mouse Shortcut](../../screenshots/keymap-mouse-shortcut.png)
 

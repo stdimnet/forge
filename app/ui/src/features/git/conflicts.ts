@@ -29,6 +29,21 @@ let mergeActions: MergeActions | null = null;
 export const setMergeActions = (a: MergeActions | null) => (mergeActions = a);
 export const activeMerge = () => mergeActions;
 
+/** What the open diff viewer offers to NextDiff / PreviousDiff (F7 / Shift+F7). */
+export interface DiffActions {
+  step: (forward: boolean) => void;
+}
+let diffActions: DiffActions | null = null;
+/** Set by the diff viewer while it is open; returns a function that clears it again. */
+export function setDiffActions(a: DiffActions): () => void {
+  diffActions = a;
+  return () => {
+    if (diffActions === a) diffActions = null;
+  };
+}
+/** The window NextDiff / PreviousDiff step through: the diff viewer, else the merge window. */
+export const activeDiffStepper = (): Pick<DiffActions, "step"> | null => diffActions ?? mergeActions;
+
 const errorText = (err: unknown) => String(err instanceof Error ? err.message : err);
 
 /** Git ▸ Resolve Conflicts… (Git.ResolveConflicts): the Conflicts dialog. */

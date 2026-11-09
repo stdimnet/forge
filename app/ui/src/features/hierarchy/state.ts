@@ -122,7 +122,7 @@ const errorText = (e: unknown) => String(e instanceof Error ? e.message : e);
 
 async function origin(path: string, view: EditorView, pos: number): Promise<Origin | null> {
   if (isLibraryPath(path)) {
-    showHint(view, pos, "Hierarchies are computed for project files");
+    showHint(view, pos, tr("tools.hierarchy.hierarchiesAreComputedForProjectFiles"));
     return null;
   }
   await syncNow(path);
@@ -136,7 +136,7 @@ export async function typeHierarchyAt(path: string, view: EditorView, pos: numbe
   if (!o) return;
   const answer = await hierarchyApi.typeHierarchy(o.path, o.pos, o.content).catch((e) => ({ graph: null, title: "", message: errorText(e) }));
   if (!answer.graph) {
-    showHint(view, pos, answer.message ?? "No type found at the caret");
+    showHint(view, pos, answer.message ?? tr("tools.hierarchy.noTypeFoundAtTheCaret"));
     return;
   }
   openTab({ ...base(answer.title, o), kind: "type", view: "class", graph: answer.graph });
@@ -148,7 +148,7 @@ export async function methodHierarchyAt(path: string, view: EditorView, pos: num
   if (!o) return;
   const answer = await hierarchyApi.methodHierarchy(o.path, o.pos, o.content).catch((e) => ({ graph: null, title: "", message: errorText(e) }));
   if (!answer.graph) {
-    showHint(view, pos, answer.message ?? "No method found at the caret");
+    showHint(view, pos, answer.message ?? tr("tools.hierarchy.noMethodFoundAtTheCaret"));
     return;
   }
   openTab({ ...base(answer.title, o), kind: "method", graph: answer.graph, hideNotImplemented: false });
@@ -162,7 +162,7 @@ export async function callHierarchyAt(path: string, view: EditorView, pos: numbe
   if (!o) return;
   const answer = await hierarchyApi.callHierarchy(o.path, o.pos, o.content).catch((e) => ({ root: null, title: "", message: errorText(e) }));
   if (!answer.root) {
-    showHint(view, pos, answer.message ?? "No method or function found at the caret");
+    showHint(view, pos, answer.message ?? tr("tools.hierarchy.noMethodOrFunctionFoundAtTheCaret"));
     return;
   }
   const id = openTab({ ...base(answer.title, o), kind: "call", root: answer.root, direction: "callers", calls: {}, expanded: [ROOT_KEY], selected: ROOT_KEY });

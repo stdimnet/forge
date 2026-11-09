@@ -1350,8 +1350,12 @@ recently **edited** files; **Recently Changed Files** opens that view directly.
 The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick switching: keep
 `Ctrl` pressed, press `Tab` to move, release to open.
 
-**Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
-through your navigation history.
+**Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`, or the
+back and forward buttons on the side of the mouse) move through your navigation history: the
+places you jumped from, as file and caret position. Switching files records a place, and so does
+every jump to a declaration, usage or search result (`Ctrl+Click`, `Ctrl+B`, Find in Files, …),
+also inside the same file, so **Back** after `Ctrl+Click` on a method call returns to the call.
+Back and Forward restore the caret and the scroll position as they were, without animation.
 
 **Last Edit Location** (`Ctrl+Shift+Backspace`, macOS `Cmd+Shift+Backspace`) and **Next Edit
 Location** move through a separate history: the places where you changed text, across files.
@@ -2024,8 +2028,8 @@ Declarations outside the project (PHP's own classes in the PHP stubs, files a la
 points to outside the project) open in a **read-only** tab with a "Read-only library file"
 banner and breadcrumbs such as `PHP Runtime › Core › Core_c.php › Throwable`.
 
-**Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) return
-to where you were.
+**Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`, or the
+mouse's side buttons) return to where you were, also when the declaration is in the same file.
 
 ### Implementation, Type Declaration, Super Method
 
@@ -2336,6 +2340,13 @@ Click the fold markers in the gutter, or use:
 | Expand / Collapse | `Ctrl+=` / `Ctrl+-` | `Cmd+=` / `Cmd+-` |
 | Expand / Collapse Recursively | `Ctrl+Alt+=` / `Ctrl+Alt+-` | `Cmd+Alt+=` / `Cmd+Alt+-` |
 | Expand All / Collapse All | `Ctrl+Shift+=` / `Ctrl+Shift+-` | `Cmd+Shift+=` / `Cmd+Shift+-` |
+
+**Collapse** folds the innermost region around the caret, wherever the caret is inside it: in a
+method body, on the method's signature line or on its opening brace. Press it again to fold the
+next region out (the class). **Expand** unfolds the fold at the caret. The **Recursively**
+variants also fold or unfold every region inside that region.
+
+![Collapse from a method's signature line](docs/screenshots/folding-collapse-from-inside.png)
 
 Custom folding regions (`// region Name` … `// endregion`, `#region`, `<!-- region -->`,
 `// <editor-fold desc="…">`) fold too and show their name. Sticky lines, breadcrumbs, rendered
@@ -5986,11 +5997,17 @@ Actions can have mouse shortcuts, written like PHPStorm's:
 | `Ctrl+Wheel Up`, `Shift+Wheel Down` | turning the wheel while holding modifiers |
 
 The PHPStorm keymaps bind **Declaration or Usages** to `Ctrl+Button1 Click` (macOS
-`Cmd+Button1 Click`) and `Button2 Click` (middle click), and **Implementation(s)** to
-`Ctrl+Alt+Button1 Click`. In the editor they act on the clicked symbol; rebinding them in the
+`Cmd+Button1 Click`) and `Button2 Click` (middle click), **Implementation(s)** to
+`Ctrl+Alt+Button1 Click`, and **Back** / **Forward** to `Button4 Click` / `Button5 Click`, the
+back and forward buttons on the side of the mouse (the VS Code, Eclipse, Sublime Text and
+Emacs keymaps keep them). In the editor they act on the clicked symbol; rebinding them in the
 keymap changes what the click does. Plain left clicks, double clicks, right clicks and plain
 wheel turns cannot be bound, so selecting text, context menus and scrolling keep working.
-Mouse shortcuts are ignored in text fields and the terminal.
+Mouse shortcuts are ignored in text fields and the terminal, except the side buttons
+(`Button4`, `Button5`), which mean nothing there and work everywhere. They never navigate the
+window itself.
+
+![Back with its mouse shortcut](docs/screenshots/keymap-mouse-back-forward.png)
 
 ![Mouse Shortcut](docs/screenshots/keymap-mouse-shortcut.png)
 
@@ -7129,7 +7146,8 @@ More: [Editor](docs/guide/user/editor.md#folding)
 
 **Shortcut:** `Ctrl+-`, `Ctrl+NumPad-` · macOS `Cmd+-`, `Cmd+NumPad-` · action id `CollapseRegion`
 
-Folds the region at the caret.
+Folds the innermost region around the caret, from anywhere inside it (also from a method's
+signature line). Pressed again, it folds the next region out.
 
 **Menu:** Code | Folding | Collapse
 
@@ -7139,7 +7157,7 @@ More: [Editor](docs/guide/user/editor.md#folding)
 
 **Shortcut:** `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` · macOS `Cmd+Alt+=`, `Cmd+Alt+NumPad+` · action id `ExpandRegionRecursively`
 
-Unfolds the region at the caret.
+Unfolds the region at the caret and every fold inside it.
 
 **Menu:** Code | Folding | Expand Recursively
 
@@ -7149,7 +7167,7 @@ More: [Editor](docs/guide/user/editor.md#folding)
 
 **Shortcut:** `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` · macOS `Cmd+Alt+-`, `Cmd+Alt+NumPad-` · action id `CollapseRegionRecursively`
 
-Folds the region at the caret.
+Folds the innermost region around the caret and every region inside it.
 
 **Menu:** Code | Folding | Collapse Recursively
 
@@ -7211,8 +7229,8 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Type Hierarchy](#type-hierarchy) | `Ctrl+H` | `Ctrl+H` |
 | [Method Hierarchy](#method-hierarchy) | `Ctrl+Shift+H` | `Cmd+Shift+H` |
 | [Call Hierarchy](#call-hierarchy) | `Ctrl+Alt+H` | `Ctrl+Alt+H` |
-| [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
-| [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
+| [Back](#back) | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` |
+| [Forward](#forward) | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` |
 | [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
 | [Next Edit Location](#next-edit-location) | — | — |
 | [Select In](#select-in) | `Alt+F1` | `Alt+F1` |
@@ -7332,9 +7350,10 @@ More: [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md#call-hier
 
 ## Back
 
-**Shortcut:** `Ctrl+Alt+Left` · macOS `Cmd+[`, `Cmd+Alt+Left` · action id `Back`
+**Shortcut:** `Ctrl+Alt+Left`, `Button4 Click` · macOS `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` · action id `Back`
 
-Goes back to the previous caret location in your navigation history.
+Goes back to the previous caret location in your navigation history. `Button4 Click` is the
+back button on the side of the mouse.
 
 **Menu:** Navigate | Back
 
@@ -7342,9 +7361,10 @@ More: [Editor](docs/guide/user/editor.md#go-to-declaration)
 
 ## Forward
 
-**Shortcut:** `Ctrl+Alt+Right` · macOS `Cmd+]`, `Cmd+Alt+Right` · action id `Forward`
+**Shortcut:** `Ctrl+Alt+Right`, `Button5 Click` · macOS `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` · action id `Forward`
 
-Goes forward in the navigation history.
+Goes forward in the navigation history. `Button5 Click` is the forward button on the side of
+the mouse.
 
 **Menu:** Navigate | Forward
 
@@ -10097,6 +10117,9 @@ of:
   variables, typed through parameters, `new`, `catch (X $e)`, inline `/** @var X $x */`,
   property types and PHPDoc, and call chains through return types
   (`$user->orders()->first()`);
+- magic methods and properties that a class (or a parent class) declares only in its PHPDoc
+  (`@method static Builder whereEmail(string $email)`, `@property string $email`): the line of
+  that tag, also in the same file;
 - class constants, enum cases and namespace constants (`PHP_EOL`, `const VERSION = 2`);
 - variables: the parameter or first assignment in the method or function.
 
@@ -16713,6 +16736,10 @@ commit messages there. See [AI](docs/guide/user/ai.md#providers).
 | Jump to Source | `F4` |
 | Close | `Escape` |
 
+Next / Previous Difference are the keymap actions of the same name, so a shortcut you change in
+Settings | Keymap works here too. `Escape` closes the viewer only while it has the focus, not a
+dialog opened above it.
+
 The toolbar also has viewer, whitespace and highlighting options and **Collapse Unchanged
 Fragments**. Each changed block has a "Revert" arrow that replaces your side with the left
 side.
@@ -17962,7 +17989,8 @@ on the machine that hosts the project (remote projects included).
 The **Run** tool window (`Alt+4`) has one tab per run. Tabs can be pinned and closed (`Ctrl+Shift+F4`).
 
 - Output is shown with ANSI colors; `\r` progress lines update in place.
-- File references (`app/User.php:42`, stack traces) and URLs are clickable.
+- File references (`app/User.php:42`, stack traces) and URLs are links: click them, or reach
+  them with `Tab` and press `Enter`. Files open in the editor, URLs in your browser.
 - Toolbar: **Rerun**, **Stop**, **Soft-Wrap**, **Scroll to the End**, **Clear All**.
 - Typing sends input to the process (stdin).
 - Stop sends SIGTERM to the process group, then SIGKILL after 2 seconds (`taskkill /T` on
@@ -22775,8 +22803,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | File… | `GotoFile` | `Ctrl+Shift+N` | `Cmd+Shift+O` | yes |
 | Symbol… | `GotoSymbol` | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes |
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
-| Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
-| Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
+| Back | `Back` | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes |
+| Forward | `Forward` | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes |
 | Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
 | Next Edit Location | `JumpToNextChange` |  |  | yes |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
@@ -23651,8 +23679,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Back | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes | Goes back to the previous caret location in your navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
-| Forward | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes | Goes forward in the navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
+| Back | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes | Goes back to the previous caret location in your navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
+| Forward | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes | Goes forward in the navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
 | Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes | Goes back to the previous place where you changed text, across files. [More](docs/guide/user/shortcuts/navigation.md#last-edit-location) |
 | Next Edit Location | — | — | yes | Goes forward again through the places where you changed text. [More](docs/guide/user/shortcuts/navigation.md#next-edit-location) |
 | **Bookmarks** | | | | submenu |
@@ -23717,9 +23745,9 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes | Lists the statements around the caret to unwrap (keep the body) or remove (`else`, `catch`, …). [More](docs/guide/user/live-templates.md#unwrapremove) ([screenshot](docs/screenshots/unwrap-remove.png)) |
 | **Folding** | | | | submenu |
 | Folding › Expand | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | yes | Unfolds the folded region at the caret. [More](docs/guide/user/editor.md#folding) |
-| Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the region at the caret. [More](docs/guide/user/editor.md#folding) |
-| Folding › Expand Recursively | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes | Unfolds the region at the caret. [More](docs/guide/user/editor.md#folding) |
-| Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the region at the caret. [More](docs/guide/user/editor.md#folding) |
+| Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the innermost region around the caret, from anywhere inside it. [More](docs/guide/user/editor.md#folding) |
+| Folding › Expand Recursively | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes | Unfolds the region at the caret and every fold inside it. [More](docs/guide/user/editor.md#folding) |
+| Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the innermost region around the caret and every region inside it. [More](docs/guide/user/editor.md#folding) |
 | Folding › Expand All | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes | Unfolds every region of the file. [More](docs/guide/user/editor.md#folding) |
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](docs/guide/user/editor.md#folding) ([screenshot](docs/screenshots/docs-folding.png)) |
 | Folding › Collapse Doc Comments | — | — | yes | Folds every documentation comment of the file. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) |
@@ -29210,7 +29238,11 @@ is described in [Accessibility](docs/guide/user/accessibility.md).
    active row with `aria-activedescendant` (Project, Structure, Commit, Search Everywhere), or
    the rows use a roving `tabIndex` (0 on the selected row, -1 on the others: Settings tree,
    editor tabs). Arrow keys, `Home`, `End` and `Enter` come from
-   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same.
+   `features/project/treeNavigation.ts` (`navigate`), so every tree behaves the same. Flat
+   selection lists use `listboxKeyDown` and `optionTabIndex` from the same file: options carry
+   `data-option-id`, and keys typed into a control inside an option (an editable row) stay
+   with that control. Twisty icons in a tree row are `aria-hidden`; the tree's own keys open
+   and close the row.
 4. **Dialogs are `role="dialog"` with a name.** Inside a backdrop (`*-backdrop`) they are
    modal. `features/accessibility/dialogs.ts` finds every dialog in the window: it names it
    after its title, sets `aria-modal`, connects `<label>` elements to the control after them,
@@ -29302,6 +29334,11 @@ Source: docs/guide/developer/keymap-actions.md
 Recipe: [`add-keymap-action`](.claude/skills/add-keymap-action/SKILL.md). Every
 shortcut goes through the keymap engine. **Never** add a `keydown` listener for a shortcut: it
 breaks user overrides, focus contexts and conflict detection, and causes double toggles.
+The same goes for CodeMirror `keymap.of([...])` bindings of a keymap action (`Mod-p`, `F2`):
+when the user rebinds the action, the old key keeps firing in the editor. Register a command
+with the action id instead; keep `keymap.of` for keys that belong to the widget itself, such
+as `Escape` closing its own popup. A window with its own Next/Previous actions (the diff
+viewer) marks itself `data-focus-context="diff"` and lets the action's command find it.
 
 ## The engine
 
@@ -33425,7 +33462,9 @@ Forge's PHPStorm-compatible keymap engine.
   commands, user overrides and user keymaps (Duplicate / Derive / Rename / Delete) from the
   settings.
 - `shortcut` also models mouse shortcuts ("Ctrl+Button1 Click", "Button2 Double Click",
-  "Alt+Wheel Up"), which the resolver handles as single strokes.
+  "Alt+Wheel Up"), which the resolver handles as single strokes. The side buttons
+  (`Button4`/`Button5`, DOM buttons 3 and 4; `engine::is_side_button`) resolve in every focus
+  context, text fields and the terminal included.
 - `menu`: the main menu (PHPStorm's structure, plugin contributions, resolution).
 
 The crate is pure (no file system or async runtime): the desktop app wraps it in IPC

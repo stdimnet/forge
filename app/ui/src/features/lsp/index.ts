@@ -12,7 +12,7 @@ import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { lspCompletion } from "./completion";
 import { gotoProblem, lspDiagnostics } from "./diagnostics";
-import { lspFormat, reformat } from "./format";
+import { reformat } from "./format";
 import { gotoDeclaration, lspGoto } from "./goto";
 import { lspHover } from "./hover";
 import { lspInlayHints } from "./inlayHints";
@@ -40,7 +40,6 @@ registerEditorExtension(({ path }) =>
         lspCompletion(path),
         lspGoto(path),
         lspSignatureHelp(path),
-        lspFormat(path),
         lspInlayHints(path),
       ],
 );

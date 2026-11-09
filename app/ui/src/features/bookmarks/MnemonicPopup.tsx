@@ -46,7 +46,7 @@ function Popup(props: { req: MnemonicRequest }) {
     <button
       class="mnemonic-cell"
       classList={{ current: props.req.current === p.m, used: !!used(p.m) && props.req.current !== p.m }}
-      title={used(p.m) ? `${used(p.m)!.path}:${used(p.m)!.line + 1}` : `Bookmark ${p.m}`}
+      title={used(p.m) ? `${used(p.m)!.path}:${used(p.m)!.line + 1}` : t("tools.bookmarks.bookmarkWithMnemonic", { mnemonic: p.m })}
       onClick={() => finish(p.m)}
     >
       {p.m}

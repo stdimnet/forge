@@ -22,6 +22,7 @@ import {
 import { SETTINGS_CHANGED_EVENT, type SettingsChange } from "@/ipc/settings";
 import { commands } from "@/state/commands";
 import { formatShortcut, loadBindings } from "./core";
+import { t } from "@/i18n";
 
 export type { ActionContext, ActionDef, ActionInfo, KeymapId, KeymapInfo, Platform } from "@/ipc/keymap";
 
@@ -171,10 +172,10 @@ export const deleteKeymap = (keymap: string) => change({ op: "delete", keymap })
 /** Why `name` cannot name a user keymap (null when it can); `except` is its current name. */
 export function keymapNameProblem(name: string, except?: string): string | null {
   const n = name.trim();
-  if (!n) return "Enter a name";
-  if (/[\t\n]/.test(n)) return "The name cannot contain tabs or line breaks";
+  if (!n) return t("tools.keymapSettings.enterAName");
+  if (/[\t\n]/.test(n)) return t("tools.keymapSettings.nameCannotContainTabsOrLineBreaks");
   const taken = n === "auto" || keymaps().some((k) => (k.id === n || k.title === n) && k.id !== except);
-  return taken ? `A keymap named "${n}" already exists` : null;
+  return taken ? t("tools.keymapSettings.keymapNamedAlreadyExists", { name: n }) : null;
 }
 
 /** Replace all shortcuts of an action in the active keymap. */

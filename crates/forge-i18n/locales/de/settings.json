@@ -189,5 +189,6 @@
   "settings.scope.project.tooltip": "Gespeichert in .forge/settings.toml des geöffneten Projekts",
   "settings.search": "Einstellungen durchsuchen",
   "settings.title": "Einstellungen",
-  "settings.titleNewProjects": "Einstellungen für neue Projekte"
+  "settings.titleNewProjects": "Einstellungen für neue Projekte",
+  "settings.validation.notANumber": "Keine Zahl"
 }

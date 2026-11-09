@@ -190,6 +190,8 @@
 .sf-events .sf-source {
   margin-left: 0;
   cursor: pointer;
+  background: none;
+  font-family: inherit;
 }
 .sf-path {
   font-family: var(--font-mono);

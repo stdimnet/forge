@@ -381,8 +381,12 @@ recently **edited** files; **Recently Changed Files** opens that view directly.
 The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick switching: keep
 `Ctrl` pressed, press `Tab` to move, release to open.
 
-**Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
-through your navigation history.
+**Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`, or the
+back and forward buttons on the side of the mouse) move through your navigation history: the
+places you jumped from, as file and caret position. Switching files records a place, and so does
+every jump to a declaration, usage or search result (`Ctrl+Click`, `Ctrl+B`, Find in Files, …),
+also inside the same file, so **Back** after `Ctrl+Click` on a method call returns to the call.
+Back and Forward restore the caret and the scroll position as they were, without animation.
 
 **Last Edit Location** (`Ctrl+Shift+Backspace`, macOS `Cmd+Shift+Backspace`) and **Next Edit
 Location** move through a separate history: the places where you changed text, across files.

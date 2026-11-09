@@ -67,7 +67,7 @@ export function actionRequest(kind: ActionKind, path: string, view: EditorView, 
 /** Errors that mean "set up a provider first" get a link to the settings. */
 function failed(title: string, message: string): void {
   const setup = /no AI provider|disabled|API key|no model/i.test(message);
-  showBalloon(`${title} failed`, message, 8000, setup ? [{ label: "Configure AI Providers…", run: () => openSettings("tools.ai-providers") }] : undefined, {
+  showBalloon(t("tools.aiEditor.actionFailed", { title }), message, 8000, setup ? [{ label: t("tools.aiEditor.configureAiProviders"), run: () => openSettings("tools.ai-providers") }] : undefined, {
     type: "error",
   });
 }
@@ -93,7 +93,7 @@ export async function applyProposal(): Promise<void> {
   try {
     if (p.edit && p.path === st.path) {
       if (st.view.state.doc.toString() !== st.request.text) {
-        setProposalState({ ...st, error: "The file changed while the AI was answering. Run the action again." });
+        setProposalState({ ...st, error: t("tools.aiEditor.fileChangedWhileAnswering") });
         return;
       }
       st.view.dispatch({
@@ -109,7 +109,7 @@ export async function applyProposal(): Promise<void> {
     closeProposal();
     await reloadFile(p.path).catch(() => undefined);
     await openFile(p.path);
-    showBalloon(p.newFile ? `Created ${p.path}` : `Updated ${p.path}`, undefined, 3000);
+    showBalloon(p.newFile ? t("tools.aiEditor.createdFile", { path: p.path }) : t("tools.aiEditor.updatedFile", { path: p.path }), undefined, 3000);
   } catch (e) {
     setProposalState({ ...st, error: errorText(e) });
   }

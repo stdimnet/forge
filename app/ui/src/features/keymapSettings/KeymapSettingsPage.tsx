@@ -46,8 +46,11 @@ import {
   setKeymapId,
   shortcutsOf,
   suspendKeymap,
+  SIDE_BUTTON_EVENT,
   type ActionDef,
+  type SideButtonClick,
 } from "@/keymap";
+import { listen } from "@/ipc";
 import type { ShortcutCheck } from "@/ipc/keymap";
 import { showContextMenu, item, separator, type MenuEntry } from "@/features/contextMenu/state";
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
@@ -192,14 +195,14 @@ function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
     <ShortcutDialogFrame title={tr("tools.keymapSettings.keyboardShortcut")} action={props.action} text={text()} hint={tr("tools.keymapSettings.pressTheKeysToUse")} onClose={props.onClose}>
       <div class="form-row">
         <span class="form-label">{tr("tools.keymapSettings.firstStrokeLabel")}</span>
-        <ShortcutField value={first()} onChange={setFirst} autofocus />
+        <ShortcutField value={first()} onChange={setFirst} label={tr("tools.keymapSettings.firstStrokeLabel")} autofocus />
       </div>
       <div class="form-row">
         <label class="form-label check">
           <input type="checkbox" checked={useSecond()} onChange={(e) => setUseSecond(e.currentTarget.checked)} />
           {tr("tools.keymapSettings.secondStrokeLabel")}
         </label>
-        <ShortcutField value={second()} onChange={setSecond} disabled={!useSecond()} />
+        <ShortcutField value={second()} onChange={setSecond} label={tr("tools.keymapSettings.secondStrokeLabel")} disabled={!useSecond()} />
       </div>
     </ShortcutDialogFrame>
   );
@@ -221,6 +224,13 @@ function MouseShortcutDialog(props: { action: ActionDef; onClose: () => void }) 
     const s = mouseStrokeOf(wheel ? input : { ...input, clickCount: double() ? 2 : 1, deltaY: undefined });
     if (s) setStroke(s);
   };
+  // The desktop shell reports the side buttons on Linux itself (WebKitGTK hides them from
+  // the page): record them while the dialog is open.
+  const unlisten = listen<SideButtonClick>(SIDE_BUTTON_EVENT, ({ x: _x, y: _y, ...mouse }) => {
+    const s = mouseStrokeOf({ ...mouse, clickCount: double() ? 2 : 1 });
+    if (s) setStroke(s);
+  });
+  onCleanup(() => void unlisten.then((stop) => stop()));
   return (
     <ShortcutDialogFrame
       title={tr("tools.keymapSettings.mouseShortcut")}
@@ -509,6 +519,7 @@ export function KeymapSettingsPage() {
                 value={shortcutFilter()}
                 onChange={(s) => setShortcutFilter(s)}
                 placeholder={tr("tools.keymapSettings.pressAShortcutEllipsis")}
+                label={tr("tools.keymapSettings.findActionsByShortcut")}
                 autofocus
               />
               <div class="km-find-hint muted">{tr("tools.keymapSettings.theListShowsActionsBound")}</div>

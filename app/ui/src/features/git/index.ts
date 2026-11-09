@@ -21,7 +21,7 @@ import { branchesOpen, setBranchesOpen } from "./overlays";
 import { repoAvailable, startGitStore, status } from "./store";
 import { fetchAll, newBranchDialog, openCommitWindow, push, updateProject } from "./actions";
 import { gitSubmenu } from "./fileMenu";
-import { activeMerge, resolveConflicts, watchConflicts } from "./conflicts";
+import { activeDiffStepper, activeMerge, resolveConflicts, watchConflicts } from "./conflicts";
 import { conflictBanner } from "./conflictBanner";
 import {
   addTargets,
@@ -103,8 +103,8 @@ registerCompareHandler(".commit-panel", showTargetsDiff);
 // Merge conflicts: Git ▸ Resolve Conflicts… and the merge window's actions ("diff" focus context).
 registerCommand({ id: "Git.ResolveConflicts", title: "Resolve Conflicts…", category: "Git", run: resolveConflicts });
 const mergeCommands: { id: string; title: string; run: () => void }[] = [
-  { id: "NextDiff", title: "Next Difference", run: () => activeMerge()?.step(true) },
-  { id: "PreviousDiff", title: "Previous Difference", run: () => activeMerge()?.step(false) },
+  { id: "NextDiff", title: "Next Difference", run: () => activeDiffStepper()?.step(true) },
+  { id: "PreviousDiff", title: "Previous Difference", run: () => activeDiffStepper()?.step(false) },
   { id: "Diff.ApplyNonConflicts.Left", title: "Apply Non-Conflicting Changes from the Left Side", run: () => activeMerge()?.applyAll("left") },
   { id: "Diff.ApplyNonConflicts", title: "Apply All Non-Conflicting Changes", run: () => activeMerge()?.applyAll("all") },
   { id: "Diff.ApplyNonConflicts.Right", title: "Apply Non-Conflicting Changes from the Right Side", run: () => activeMerge()?.applyAll("right") },

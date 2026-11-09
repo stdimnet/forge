@@ -1,22 +1,64 @@
 /**
- * Navigation history: recent files (Ctrl+E), edited files, Back/Forward over file
- * switches (Ctrl+Alt+Left/Right) and recently closed tabs.
+ * Navigation history: recent files (Ctrl+E), edited files, Back/Forward (Ctrl+Alt+Left/Right)
+ * and recently closed tabs.
+ *
+ * Back/Forward work on places (file and caret), like PHPStorm: a place is recorded when the
+ * active file changes and before every jump to a position (`openFileAt`: Ctrl+Click, Go to
+ * Declaration, search results), also inside the same file.
  */
 import { createEffect, createRoot, createSignal, on } from "solid-js";
-import { editor, isCustomTab, isDirty, onTabsReset, openFile } from "@/state/editor";
+import { openFileAt, scrollStateOf, viewFor, type ScrollState } from "@/editor/views";
+import { editor, isCustomTab, isDirty, onBeforeNavigate, onTabsReset, openFile } from "@/state/editor";
 
 const MAX_RECENT = 50;
+const MAX_PLACES = 100;
+
+interface Place {
+  path: string;
+  /** 1-based caret line and column. */
+  line: number;
+  col: number;
+  /** Where the editor was scrolled; Back / Forward restore it like PHPStorm. */
+  scroll?: ScrollState;
+}
 
 const [recentFiles, setRecentFiles] = createSignal<string[]>([]);
 const [editedFiles, setEditedFiles] = createSignal<string[]>([]);
 const [closedTabs, setClosedTabs] = createSignal<string[]>([]);
-const back: string[] = [];
-const forward: string[] = [];
+const back: Place[] = [];
+const forward: Place[] = [];
 let navigating = false;
 
 export { recentFiles, editedFiles, closedTabs };
 
 const bump = (list: string[], path: string) => [path, ...list.filter((p) => p !== path)].slice(0, MAX_RECENT);
+
+/** Where the caret of `path` is (the start of the file when it is not open any more). */
+function placeOf(path: string): Place {
+  const cursor = editor.tabs.find((t) => t.path === path)?.cursor;
+  return { path, line: cursor?.line ?? 1, col: cursor?.col ?? 1, scroll: scrollStateOf(viewFor(path)) };
+}
+
+const samePlace = (a: Place, b: Place) => a.path === b.path && a.line === b.line;
+
+/** Push `place` onto the Back list; a new place drops the Forward list. */
+function remember(place: Place): void {
+  if (navigating) return;
+  const top = back[back.length - 1];
+  if (top && samePlace(top, place)) return;
+  back.push(place);
+  if (back.length > MAX_PLACES) back.shift();
+  forward.length = 0;
+}
+
+onBeforeNavigate(({ path, line }) => {
+  const current = editor.active;
+  if (!current || isCustomTab(current)) return;
+  const here = placeOf(current);
+  // Already there: nothing to come back to.
+  if (path === current && (!line || line === here.line)) return;
+  remember(here);
+});
 
 createRoot(() => {
   createEffect(
@@ -25,10 +67,7 @@ createRoot(() => {
       (path, prev) => {
         if (!path || isCustomTab(path)) return;
         setRecentFiles((l) => bump(l, path));
-        if (!navigating && prev && prev !== path && !isCustomTab(prev)) {
-          back.push(prev);
-          forward.length = 0;
-        }
+        if (prev && prev !== path && !isCustomTab(prev)) remember(placeOf(prev));
       },
     ),
   );
@@ -57,19 +96,22 @@ onTabsReset(() => {
   forward.length = 0;
 });
 
-async function go(from: string[], to: string[]): Promise<void> {
+async function go(from: Place[], to: Place[]): Promise<void> {
   while (from.length) {
     const target = from.pop()!;
-    if (target === editor.active) continue;
-    if (editor.active) to.push(editor.active);
+    const current = editor.active && !isCustomTab(editor.active) ? placeOf(editor.active) : null;
+    if (current && samePlace(current, target)) continue;
     navigating = true;
     try {
-      await openFile(target);
+      // Tabs without a text editor (SQL consoles, table editors) have no caret to restore.
+      if (editor.tabs.find((t) => t.path === target.path)?.view) await openFile(target.path);
+      else await openFileAt(target.path, target.line, target.col, { flash: false, scroll: target.scroll });
     } catch {
       continue;
     } finally {
       navigating = false;
     }
+    if (current) to.push(current);
     return;
   }
 }

@@ -146,15 +146,16 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult | n
 
 const keys = (r: TargetResult) => r.vulnerabilities.map((v) => `${r.tool}:${v.package}:${v.installed ?? ""}:${v.id}`);
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+/** "Found 3 vulnerabilities in 2 packages" (exported for tests). */
+export const foundTitle = (vulnerabilities: number, packages: number) => t("tools.vulnerabilities.foundIn", { count: vulnerabilities, packages });
 
 function report(list: TargetResult[], quiet: boolean): void {
   const vulns = list.flatMap((r) => r.vulnerabilities);
   const packages = new Set(list.flatMap((r) => r.vulnerabilities.map((v) => `${r.tool}:${v.package}`))).size;
-  const reveal = { label: "Show Vulnerable Dependencies", run: () => (setProblemsTab(VULNERABILITIES_TAB), showToolWindow("problems")) };
+  const reveal = { label: t("tools.vulnerabilities.showVulnerableDependencies"), run: () => (setProblemsTab(VULNERABILITIES_TAB), showToolWindow("problems")) };
   if (vulns.length) {
     showBalloon(
-      t("tools.vulnerabilities.foundIn", { value: plural(vulns.length, "vulnerability", "vulnerabilities"), value2: plural(packages, "package") }),
+      foundTitle(vulns.length, packages),
       list.filter((r) => r.vulnerabilities.length).map((r) => TOOL_LABELS[r.tool]).join(", "),
       8000,
       [reveal],

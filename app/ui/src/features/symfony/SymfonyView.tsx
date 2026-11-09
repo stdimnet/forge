@@ -314,7 +314,9 @@ function EventsTab() {
                   </td>
                   <td class="muted">{l.priority}</td>
                   <td class="muted sf-ellipsis">
-                    <span class="sf-source" onClick={() => reveal(l.declaredAt)}>{SOURCE_LABEL[l.source]}</span>
+                    <button type="button" class="sf-source" onClick={() => reveal(l.declaredAt)}>
+                      {SOURCE_LABEL[l.source]}
+                    </button>
                   </td>
                 </tr>
               )}
@@ -372,14 +374,28 @@ export function SymfonyView() {
       <div class="sf-tabs" role="tablist">
         <For each={TABS}>
           {([id, title]) => (
-            <button role="tab" class="sf-tab" classList={{ active: activeTab() === id }} onClick={() => setActiveTab(id)}>
+            <button role="tab" class="sf-tab" classList={{ active: activeTab() === id }} aria-selected={activeTab() === id} onClick={() => setActiveTab(id)}>
               {title}
             </button>
           )}
         </For>
         <For each={runs()}>
           {(r) => (
-            <span class="sf-tab sf-run-tab" classList={{ active: activeTab() === r.id }} onClick={() => setActiveTab(r.id)} title={r.commandLine}>
+            // A tab with its own close button, so not a <button>: focusable, Enter/Space select it.
+            <span
+              class="sf-tab sf-run-tab"
+              classList={{ active: activeTab() === r.id }}
+              role="tab"
+              tabIndex={0}
+              aria-selected={activeTab() === r.id}
+              onClick={() => setActiveTab(r.id)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+                e.preventDefault();
+                setActiveTab(r.id);
+              }}
+              title={r.commandLine}
+            >
               <SquareTerminal size={12} class={r.running ? "sf-running" : ""} />
               {r.command}
               <button
