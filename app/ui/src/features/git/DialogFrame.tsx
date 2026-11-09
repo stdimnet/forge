@@ -8,7 +8,20 @@ import { suspendKeymap } from "@/keymap";
 import { closeGitDialog } from "./gitDialogs";
 import { t } from "@/i18n";
 
-/** Modal frame: title, body, footer; Escape cancels, Enter (outside text areas) confirms. */
+/**
+ * Whether Enter confirms a dialog: not on a button (Enter presses the focused button, so
+ * Cancel cancels), not on a checkbox or radio button, and in a text area only with Ctrl/Cmd.
+ */
+export function enterConfirms(e: KeyboardEvent): boolean {
+  if (e.key !== "Enter") return false;
+  const t = e.target as HTMLElement | null;
+  if (!t) return true;
+  if (t.tagName === "BUTTON") return false;
+  if (t.tagName === "INPUT" && ["checkbox", "radio"].includes((t as HTMLInputElement).type)) return false;
+  return t.tagName !== "TEXTAREA" || e.ctrlKey || e.metaKey;
+}
+
+/** Modal frame: title, body, footer; Escape cancels, Enter (see `enterConfirms`) confirms. */
 export function Frame(props: {
   title: string;
   class?: string;
@@ -27,9 +40,8 @@ export function Frame(props: {
     if (!props.okDisabled) void props.onOk();
   };
   const onKeyDown = (e: KeyboardEvent) => {
-    const t = e.target as HTMLElement;
     if (e.key === "Escape") closeGitDialog();
-    else if (e.key === "Enter" && (t.tagName !== "TEXTAREA" || e.ctrlKey || e.metaKey) && t.tagName !== "BUTTON") ok();
+    else if (enterConfirms(e)) ok();
     else return;
     e.preventDefault();
     e.stopPropagation();
