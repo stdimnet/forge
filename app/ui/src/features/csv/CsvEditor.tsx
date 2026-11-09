@@ -18,6 +18,7 @@ import type { GridColumn } from "@/features/database/grid";
 import "@/features/database/database.css";
 import { columnTitles, delimiterName, minimalChange } from "./model";
 import { t as tr } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 export type CsvMode = "text" | "table";
 
@@ -53,7 +54,7 @@ function TableView(props: { tab: EditorTab; group?: number }) {
             setTable(t);
             setError(null);
           },
-          (e) => setError(String(e)),
+          (e) => mine === seq && setError(String(e)),
         );
       },
     ),
@@ -64,15 +65,18 @@ function TableView(props: { tab: EditorTab; group?: number }) {
   const titles = createMemo(() => columnTitles(header() ? table()?.rows[0] : undefined, Math.max(1, table()?.columns ?? 0)));
   const columns = createMemo<GridColumn[]>(() => titles().map((name) => ({ name, typeName: "", kind: "text" })));
 
-  // Display order of the data rows: sorted in Rust, file order otherwise.
+  // Display order of the data rows: sorted in Rust, file order otherwise. A slower reply
+  // for an earlier sort or text does not replace the newer order.
+  const sorting = latestOnly();
   createEffect(() => {
     const t = table();
     const s = sort();
     const skip = headerRows();
+    const current = sorting.begin();
     if (!t || !s) return setOrder(null);
     const col = titles().indexOf(s.column);
     if (col < 0) return setOrder(null);
-    void viewersApi.csvSortOrder(t.rows, col, s.desc, skip).then((o) => setOrder(o.slice(skip)));
+    void viewersApi.csvSortOrder(t.rows, col, s.desc, skip).then((o) => current() && setOrder(o.slice(skip)));
   });
   /** File row of display row `i`. */
   const fileRow = (i: number) => (order()?.[i] ?? i + headerRows());

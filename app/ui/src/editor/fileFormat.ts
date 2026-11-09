@@ -18,9 +18,13 @@ export function refreshFormat(path: string): Promise<FileFormat | null> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab || tab.view || fileSystemFor(path)) return Promise.resolve(null);
   const type = fileTypeOf(path, tab.content);
-  const request = textApi
+  // A newer request for the same file (a setting changed meanwhile) wins, even when this
+  // older one answers last: its format is not applied and callers get the newer one.
+  const latest = () => resolving.get(path) === request;
+  const request: Promise<FileFormat | null> = textApi
     .fileFormat({ path, languageId: type.id, text: tab.content, fileTypeIndent: type.indent })
     .then((format) => {
+      if (!latest()) return resolving.get(path) ?? editor.tabs.find((t) => t.path === path)?.format ?? format;
       if (editor.tabs.some((t) => t.path === path)) setTabFormat(path, format);
       return format;
     })
@@ -28,7 +32,9 @@ export function refreshFormat(path: string): Promise<FileFormat | null> {
       console.warn(`format of ${path} could not be resolved`, e);
       return null;
     })
-    .finally(() => resolving.delete(path));
+    .finally(() => {
+      if (latest()) resolving.delete(path);
+    });
   resolving.set(path, request);
   return request;
 }

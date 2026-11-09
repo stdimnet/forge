@@ -14,6 +14,7 @@ import {
   type SettingSpec,
   type SettingValue,
 } from "@/ipc/settings";
+import { latestOnly } from "./async";
 
 interface SettingsState {
   loaded: boolean;
@@ -80,19 +81,40 @@ export function setLocalSetting(key: string, value: SettingValue): void {
   setState("values", key, value);
 }
 
-async function refreshSnapshot(): Promise<void> {
-  const snap = await settingsApi.getAll();
-  setState("values", reconcile(snap.values));
-  setState("user", reconcile(snap.user));
-  setState("project", reconcile(snap.project));
-  setState("newProjects", reconcile(snap.newProjects ?? {}));
-  setState("hasProject", snap.hasProject);
+/**
+ * Overlapping refreshes (two settings saved in quick succession) may answer out of order:
+ * only the newest applies, and an older call resolves when the newest has applied, so its
+ * caller still sees its own change afterwards.
+ */
+function newestWins<T>(fetch: () => Promise<T>, apply: (value: T) => void): () => Promise<void> {
+  const loads = latestOnly();
+  let newest: Promise<void> = Promise.resolve();
+  return () => {
+    const current = loads.begin();
+    const run = fetch().then((value) => {
+      if (current()) apply(value);
+      else return newest;
+    });
+    newest = run;
+    return run;
+  };
 }
 
-async function refreshPlugins(): Promise<void> {
-  const [schema, plugins] = await Promise.all([settingsApi.schema(), settingsApi.plugins()]);
-  setState({ schema, plugins });
-}
+const refreshSnapshot = newestWins(
+  () => settingsApi.getAll(),
+  (snap) => {
+    setState("values", reconcile(snap.values));
+    setState("user", reconcile(snap.user));
+    setState("project", reconcile(snap.project));
+    setState("newProjects", reconcile(snap.newProjects ?? {}));
+    setState("hasProject", snap.hasProject);
+  },
+);
+
+const refreshPlugins = newestWins(
+  () => Promise.all([settingsApi.schema(), settingsApi.plugins()]),
+  ([schema, plugins]) => setState({ schema, plugins }),
+);
 
 let listening = false;
 

@@ -92,15 +92,26 @@ export async function scanProject(): Promise<void> {
   }
 }
 
+/** The newest rescan of each file: an older answer for it must not replace a newer one. */
+const fileScans = new Map<string, number>();
+let fileScan = 0;
+
 /** Rescan some files (they changed) and merge them into the last answer. */
 export async function rescanPaths(paths: readonly string[], contents?: Record<string, string>): Promise<void> {
   const base = result();
   if (!base || !paths.length) return;
   const gen = generation;
+  const mine = ++fileScan;
+  for (const p of paths) fileScans.set(p, mine);
   try {
     const update = await todoApi.scan({ patterns: patterns(), paths: [...paths], buffers: { ...buffers(paths), ...contents } });
     const current = result();
-    if (gen === generation && current) setResult(mergeTodos(current, update, paths));
+    // Files rescanned again since keep the newer answer (a TODO deleted meanwhile stays gone).
+    const fresh = paths.filter((p) => fileScans.get(p) === mine);
+    for (const p of fresh) fileScans.delete(p);
+    const own = new Set(fresh);
+    if (gen === generation && current && fresh.length)
+      setResult(mergeTodos(current, { ...update, files: update.files.filter((f) => own.has(f.path)) }, fresh));
   } catch {
     // The next full scan picks the files up.
   }

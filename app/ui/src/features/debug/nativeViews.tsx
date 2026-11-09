@@ -23,6 +23,7 @@ import {
 } from "./store";
 import { VariableNode } from "./VariablesTree";
 import { t as tr } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 /** The built-in tabs, or the id of a registered one (`registerDebugTab`). */
 export type DebugTab = "frames" | "console" | "memory" | "disassembly" | "registers" | (string & {});
@@ -95,7 +96,10 @@ export function MemoryPane() {
   const [editing, setEditing] = createSignal<{ row: number; col: number } | null>(null);
   const canWrite = () => !!sessionFeatures()?.writeMemory && !!pausedSession();
 
+  // A slower read of an earlier address or offset must not replace the newer one.
+  const reads = latestOnly();
   const load = async () => {
+    const current = reads.begin();
     const s = pausedSession();
     let address = memoryAddress();
     if (!address) {
@@ -108,9 +112,12 @@ export function MemoryPane() {
     }
     setInput(address);
     try {
-      setBlock(await dapApi.readMemory(s.id, address, PAGE, memoryOffset()));
+      const read = await dapApi.readMemory(s.id, address, PAGE, memoryOffset());
+      if (!current()) return;
+      setBlock(read);
       setError(null);
     } catch (e) {
+      if (!current()) return;
       setBlock(null);
       setError(errorText(e));
     }
