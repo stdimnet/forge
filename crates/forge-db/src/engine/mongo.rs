@@ -577,7 +577,20 @@ impl MongoConn {
                     names_result("collection", names)
                 }
                 "runCommand" => {
-                    let r = db.run_command(to_doc(next())?).await?;
+                    let command = to_doc(next())?;
+                    // The console line was checked as text; the document MongoDB gets
+                    // decides (its first key is the command).
+                    if self.read_only
+                        && !command
+                            .keys()
+                            .next()
+                            .is_some_and(|k| forge_sql::guard::is_mongo_read_command(k))
+                    {
+                        return Err(DbError::Refused(
+                            "the data source is read-only: this command changes data".into(),
+                        ));
+                    }
+                    let r = db.run_command(command).await?;
                     documents_result(vec![r])
                 }
                 "stats" => documents_result(vec![db.run_command(doc! { "dbStats": 1 }).await?]),

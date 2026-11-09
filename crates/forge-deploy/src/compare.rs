@@ -57,6 +57,7 @@ pub fn listing(entries: &[Entry], by: CompareBy) -> forge_diff::Listing {
                     (_, CompareBy::Timestamp) => e.modified.unwrap_or(0) as u64,
                 },
                 modified: e.modified,
+                unreadable: false,
             })
             .collect(),
         truncated: false,

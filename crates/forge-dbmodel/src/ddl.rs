@@ -108,7 +108,11 @@ fn pieces(text: &str, d: Dialect) -> Vec<Piece> {
     };
     for line in text.split_inclusive('\n') {
         let t = line.trim();
-        if t.len() > 10 && t[..10].eq_ignore_ascii_case("delimiter ") {
+        // `get` and not `t[..10]`: byte 10 may fall inside a multi-byte character.
+        let directive = t
+            .get(..10)
+            .filter(|head| head.eq_ignore_ascii_case("delimiter ") && t.len() > 10);
+        if directive.is_some() {
             flush(&mut out, chunk_start, offset, &delimiter);
             delimiter = t[10..].trim().to_string();
             chunk_start = offset + line.len();
@@ -1193,6 +1197,14 @@ INSERT INTO users (email) VALUES ('a@b.c');
         assert_eq!(t.indexes.len(), 2);
         let r = &p.schemas[0].routines[0];
         assert_eq!((r.name.as_str(), r.kind.as_str()), ("p_reset", "procedure"));
+    }
+
+    #[test]
+    fn multi_byte_characters_around_the_delimiter_check() {
+        // `ü` takes bytes 9-10 of the first line.
+        let sql = "-- Kundenübersicht\nCREATE TABLE kunden (id int);\n-- delimiterö\n";
+        let p = parse(Dialect::MySql, "app", &[file("kunden.sql", sql)]);
+        assert!(p.schemas[0].table("kunden").is_some());
     }
 
     #[test]

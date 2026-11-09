@@ -27,6 +27,9 @@ pub struct ListedEntry {
     /// Modification time, seconds since the Unix epoch.
     #[serde(default)]
     pub modified: Option<i64>,
+    /// The file could not be read: its content is unknown, so it never counts as equal.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub unreadable: bool,
 }
 
 impl ListedEntry {
@@ -37,6 +40,28 @@ impl ListedEntry {
             size: bytes.len() as u64,
             digest: digest(bytes),
             modified,
+            unreadable: false,
+        }
+    }
+
+    /// A file read from `reader` in blocks (never whole into memory); unreadable when
+    /// reading fails.
+    pub fn file_from(
+        path: impl Into<String>,
+        reader: impl io::Read,
+        modified: Option<i64>,
+    ) -> Self {
+        let (size, digest, unreadable) = match digest_reader(reader) {
+            Ok((size, digest)) => (size, digest, false),
+            Err(_) => (0, 0, true),
+        };
+        Self {
+            path: path.into(),
+            dir: false,
+            size,
+            digest,
+            modified,
+            unreadable,
         }
     }
 
@@ -47,6 +72,7 @@ impl ListedEntry {
             size: 0,
             digest: 0,
             modified,
+            unreadable: false,
         }
     }
 }
@@ -97,12 +123,34 @@ pub struct DirCompare {
 
 /// FNV-1a digest of a file's bytes; equal sizes and digests count as equal content.
 pub fn digest(bytes: &[u8]) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    fnv(FNV_OFFSET, bytes)
+}
+
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+
+fn fnv(mut h: u64, bytes: &[u8]) -> u64 {
     for b in bytes {
         h ^= u64::from(*b);
         h = h.wrapping_mul(0x0100_0000_01b3);
     }
     h
+}
+
+/// Size and [`digest`] of everything `reader` yields, read in 64 KiB blocks.
+pub fn digest_reader(mut reader: impl io::Read) -> io::Result<(u64, u64)> {
+    let mut buf = vec![0u8; 64 * 1024];
+    let (mut size, mut h) = (0u64, FNV_OFFSET);
+    loop {
+        match reader.read(&mut buf) {
+            Ok(0) => return Ok((size, h)),
+            Ok(n) => {
+                size += n as u64;
+                h = fnv(h, &buf[..n]);
+            }
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -192,7 +240,7 @@ fn emit(node: &Node, prefix: &str, depth: usize, out: &mut Vec<DirDiffEntry>) ->
             (None, Some(_)) => DiffStatus::RightOnly,
             (Some(l), Some(r)) if l.dir != r.dir => DiffStatus::Different,
             (Some(l), Some(r)) if !l.dir => {
-                if l.size == r.size && l.digest == r.digest {
+                if l.size == r.size && l.digest == r.digest && !l.unreadable && !r.unreadable {
                     DiffStatus::Equal
                 } else {
                     DiffStatus::Different
@@ -259,10 +307,14 @@ pub fn list_tree(root: &Path, limit: usize) -> io::Result<Listing> {
                     .entries
                     .push(ListedEntry::file(path, target.as_bytes(), modified));
             } else {
-                let bytes = std::fs::read(item.path()).unwrap_or_default();
-                listing
-                    .entries
-                    .push(ListedEntry::file(path, &bytes, modified));
+                let entry = match std::fs::File::open(item.path()) {
+                    Ok(f) => ListedEntry::file_from(path, f, modified),
+                    Err(_) => ListedEntry {
+                        unreadable: true,
+                        ..ListedEntry::file(path, b"", modified)
+                    },
+                };
+                listing.entries.push(entry);
             }
         }
     }
@@ -368,6 +420,46 @@ mod tests {
         assert!(l.truncated);
         assert_eq!(l.entries.len(), 3);
         assert!(list_tree(&tmp.path().join("f0"), 3).is_err());
+    }
+
+    #[test]
+    fn unreadable_files_are_never_equal() {
+        struct Failing;
+        impl io::Read for Failing {
+            fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
+                Err(io::Error::other("permission denied"))
+            }
+        }
+        let bad = ListedEntry::file_from("x", Failing, None);
+        assert!(bad.unreadable);
+        let side = |e: ListedEntry| Listing {
+            entries: vec![e],
+            truncated: false,
+        };
+        let c = compare_listings(&side(bad.clone()), &side(bad));
+        assert_eq!(c.entries[0].status, DiffStatus::Different);
+        // Streamed digests match the in-memory one, also across block boundaries.
+        let big = vec![7u8; 200_000];
+        let streamed = ListedEntry::file_from("b", &big[..], None);
+        assert_eq!(streamed, ListedEntry::file("b", &big, None));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unreadable_file_on_disk_differs() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let (l, r) = (tmp.path().join("l"), tmp.path().join("r"));
+        write(&l, "secret.txt", "a");
+        write(&r, "secret.txt", "a");
+        let p = l.join("secret.txt");
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o000)).unwrap();
+        if std::fs::read(&p).is_ok() {
+            // Running as root: permissions do not apply.
+            return;
+        }
+        let c = compare_trees(&l, &r).unwrap();
+        assert_eq!(c.entries[0].status, DiffStatus::Different);
     }
 
     #[test]
