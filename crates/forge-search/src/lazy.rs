@@ -1,13 +1,23 @@
 use std::path::PathBuf;
 
-use forge_find::{FileMatches, FindPaged, LineMatch};
+use forge_find::{FileMatches, FindPaged, Finder, LineMatch};
+
+/// A fingerprint of a file's contents, to tell whether stored match ranges still apply.
+pub(crate) fn content_stamp(bytes: &[u8]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    bytes.hash(&mut h);
+    h.finish()
+}
 
 /// The matching lines of one file, kept as compact byte ranges until a page needs their text.
 pub(crate) enum Rows {
-    /// Match ranges (byte offsets) and, per row, the index after its last range.
+    /// Match ranges (byte offsets) and, per row, the index after its last range, valid for
+    /// the file contents with the fingerprint `stamp` ([`content_stamp`]).
     Ranges {
         ranges: Vec<(u32, u32)>,
         row_ends: Vec<u32>,
+        stamp: u64,
     },
     /// Rows built eagerly, for files the compact form cannot describe (matches spanning lines,
     /// text that is not valid UTF-8).
@@ -64,6 +74,8 @@ pub struct FoundText {
     pub(crate) root: PathBuf,
     pub(crate) files: Vec<LazyFile>,
     pub(crate) context: usize,
+    /// The request, to search a file again that changed since (its ranges no longer apply).
+    pub(crate) finder: Option<Finder>,
     pub match_count: usize,
     pub truncated: bool,
     pub error: Option<String>,
@@ -75,6 +87,7 @@ impl FoundText {
             root,
             files: Vec::new(),
             context: 0,
+            finder: None,
             match_count: 0,
             truncated: false,
             error: Some(error),
@@ -132,14 +145,18 @@ impl FoundText {
             let take = (rows - skip).min(left);
             let matches = match &file.rows {
                 Rows::Lines(lines) => lines[skip..skip + take].to_vec(),
-                Rows::Ranges { ranges, row_ends } => {
+                Rows::Ranges {
+                    ranges,
+                    row_ends,
+                    stamp,
+                } => {
                     let from = if skip == 0 {
                         0
                     } else {
                         row_ends[skip - 1] as usize
                     };
                     let to = row_ends[skip + take - 1] as usize;
-                    self.rows_of(&file.path, &ranges[from..to])
+                    self.rows_of(&file.path, &ranges[from..to], *stamp, skip, take)
                 }
             };
             out.push(FileMatches {
@@ -152,19 +169,35 @@ impl FoundText {
         out
     }
 
-    fn rows_of(&self, path: &str, ranges: &[(u32, u32)]) -> Vec<LineMatch> {
+    /// The text of rows `skip..skip + take` of a file, from their stored `ranges`. A file
+    /// that changed since the search (other `stamp`) is searched again instead, since the
+    /// ranges would point at other text or past its end.
+    fn rows_of(
+        &self,
+        path: &str,
+        ranges: &[(u32, u32)],
+        stamp: u64,
+        skip: usize,
+        take: usize,
+    ) -> Vec<LineMatch> {
         let Ok(bytes) = std::fs::read(self.root.join(path)) else {
             return Vec::new();
         };
-        let Ok(text) = std::str::from_utf8(&bytes) else {
-            return Vec::new();
-        };
+        let text = String::from_utf8_lossy(&bytes);
         let ranges: Vec<(usize, usize)> = ranges
             .iter()
             .map(|&(s, e)| (s as usize, e as usize))
             .collect();
-        let mut rows = forge_find::lines_from_ranges(text, &ranges, usize::MAX).0;
-        forge_find::add_context(text, &mut rows, self.context);
+        let mut rows = if content_stamp(&bytes) == stamp && forge_find::ranges_fit(&text, &ranges) {
+            forge_find::lines_from_ranges(&text, &ranges, usize::MAX).0
+        } else {
+            let Some(finder) = &self.finder else {
+                return Vec::new();
+            };
+            let all = finder.search(&text, skip.saturating_add(take)).0;
+            all.into_iter().skip(skip).take(take).collect()
+        };
+        forge_find::add_context(&text, &mut rows, self.context);
         rows
     }
 

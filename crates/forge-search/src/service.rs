@@ -16,7 +16,7 @@ use thread_priority::{set_current_thread_priority, ThreadPriority};
 use rayon::prelude::*;
 
 use crate::index;
-use crate::lazy::{group_rows, FoundText, LazyFile, Rows};
+use crate::lazy::{content_stamp, group_rows, FoundText, LazyFile, Rows};
 use forge_core::Excludes;
 
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
@@ -386,7 +386,16 @@ impl SearchService {
                 let (rows, count, cut) = match compact {
                     Some(ranges) => {
                         let (ranges, row_ends, count, cut) = group_rows(&bytes, &ranges, limit);
-                        (Rows::Ranges { ranges, row_ends }, count, cut)
+                        let stamp = content_stamp(&bytes);
+                        (
+                            Rows::Ranges {
+                                ranges,
+                                row_ends,
+                                stamp,
+                            },
+                            count,
+                            cut,
+                        )
                     }
                     None => {
                         let (lines, count, cut) =
@@ -409,6 +418,7 @@ impl SearchService {
             root: self.root.clone(),
             files: Vec::new(),
             context: finder.context(),
+            finder: Some(finder.clone()),
             match_count: 0,
             truncated: false,
             error: None,
@@ -447,6 +457,7 @@ impl SearchService {
             Rows::Ranges {
                 mut ranges,
                 mut row_ends,
+                stamp,
             } => {
                 let (mut keep, mut taken, mut before) = (0, 0, 0);
                 for &end in &row_ends {
@@ -460,7 +471,14 @@ impl SearchService {
                 }
                 row_ends.truncate(keep);
                 ranges.truncate(before as usize);
-                (keep > 0).then_some((Rows::Ranges { ranges, row_ends }, taken))
+                (keep > 0).then_some((
+                    Rows::Ranges {
+                        ranges,
+                        row_ends,
+                        stamp,
+                    },
+                    taken,
+                ))
             }
             Rows::Lines(_) => {
                 let text = self.read_text(path)?;

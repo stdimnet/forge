@@ -650,3 +650,31 @@ fn files_can_be_ordered_by_matches_and_by_modification_time() {
     let by_time = order(SortBy::Modified);
     assert_eq!(by_time.last().unwrap(), "b.txt");
 }
+
+#[test]
+fn lazy_pages_of_a_file_changed_after_the_search_are_searched_again() {
+    let dir = TempDir::new().unwrap();
+    write(dir.path(), "a.txt", "x foo\nfoo foo\n\n\nlast foo here\n");
+    let svc = SearchService::open(dir.path(), None);
+    svc.refresh();
+    let req = forge_find::FindRequest {
+        query: "foo".into(),
+        ..forge_find::FindRequest::default()
+    };
+    let found = svc
+        .find_text_lazy(&req, &std::sync::atomic::AtomicBool::new(false))
+        .unwrap();
+    assert_eq!(found.row_count(), 3);
+    // Shorter, with a multi-byte character where the old ranges point.
+    write(dir.path(), "a.txt", "€€€€€€€€ foo\n");
+    let rows: Vec<_> = found
+        .page(0, usize::MAX)
+        .into_iter()
+        .flat_map(|f| f.matches)
+        .collect();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].text, "€€€€€€€€ foo");
+    assert_eq!(rows[0].ranges, [(9, 12)]);
+    // A later page of the changed file is a page of the new matches (here: none).
+    assert!(found.page(1, 2).iter().all(|f| f.matches.is_empty()));
+}

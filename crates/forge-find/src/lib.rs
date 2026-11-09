@@ -462,14 +462,30 @@ impl Finder {
     }
 }
 
+/// Whether `ranges` can describe matches in `text`: sorted, non-empty, inside the text, on
+/// character boundaries and not spanning a line break. Ranges found in an earlier version of
+/// a file usually fail this once the file changed.
+pub fn ranges_fit(text: &str, ranges: &[(usize, usize)]) -> bool {
+    let mut prev_end = 0;
+    ranges.iter().all(|&(s, e)| {
+        let ok = s >= prev_end && s < e && text.get(s..e).is_some_and(|m| !m.contains('\n'));
+        prev_end = e;
+        ok
+    })
+}
+
 /// The rows of a file whose match ranges (byte offsets into `text`, none spanning a line break)
 /// were found elsewhere, e.g. by a faster regex engine. Same result as [`Finder::search`] with
 /// the same budget, provided the ranges are the non-empty matches of the request's pattern.
+/// Ranges that do not fit `text` ([`ranges_fit`]) give no rows instead of a panic.
 pub fn lines_from_ranges(
     text: &str,
     ranges: &[(usize, usize)],
     budget: usize,
 ) -> (Vec<LineMatch>, usize, bool) {
+    if !ranges_fit(text, ranges) {
+        return (Vec::new(), 0, false);
+    }
     let bytes = text.as_bytes();
     let mut out = Vec::new();
     let mut count = 0;
@@ -945,6 +961,15 @@ mod tests {
             );
         }
         assert_eq!(lines_from_ranges(text, &[], 10), (vec![], 0, false));
+        // Ranges of an older version of the text: out of range, inside `ü`, across lines.
+        let changed = "ü beta";
+        for stale in [&[(40, 44)][..], &[(1, 3)], &[(0, 9)], &[(3, 7), (2, 4)]] {
+            assert_eq!(
+                lines_from_ranges(changed, stale, 10),
+                (vec![], 0, false),
+                "{stale:?}"
+            );
+        }
     }
 
     #[test]
