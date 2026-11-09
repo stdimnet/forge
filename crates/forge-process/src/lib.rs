@@ -19,6 +19,7 @@ pub use forge_runtools::args;
 pub mod config;
 pub mod integration;
 pub mod pty;
+mod queued;
 pub mod runner;
 pub mod shell;
 pub mod termenv;

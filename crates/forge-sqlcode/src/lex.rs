@@ -164,9 +164,10 @@ pub fn lex(src: &str, d: SqlDialect) -> Vec<Token> {
                 let tag_len = rest[1..]
                     .find(|ch: char| !(ch.is_alphanumeric() || ch == '_'))
                     .map(|p| p + 1);
-                if let Some(tl) = tag_len {
+                // The tag must end with `$`; the character that ends it may be multi-byte.
+                if let Some(tl) = tag_len.filter(|&tl| rest[tl..].starts_with('$')) {
                     let tag = &rest[..=tl];
-                    if tag.ends_with('$') && !tag[1..tl].starts_with(|c: char| c.is_ascii_digit()) {
+                    if !tag[1..tl].starts_with(|c: char| c.is_ascii_digit()) {
                         let end = rest[tag.len()..]
                             .find(tag)
                             .map(|p| i + tag.len() + p + tag.len())
@@ -289,6 +290,26 @@ mod tests {
             .into_iter()
             .map(|t| (t.kind, &src[t.start..t.end]))
             .collect()
+    }
+
+    #[test]
+    fn sigils_before_multi_byte_characters_do_not_panic() {
+        for d in SqlDialect::ALL {
+            for sigil in [
+                "$", "$a", "${", "#{", ":", "?", "@", "'", "\"", "`", "[", "--", "/*",
+            ] {
+                for tail in ["€", "€$", "ü€x"] {
+                    let src = format!("{sigil}{tail}");
+                    for t in lex(&src, d) {
+                        assert!(src.get(t.start..t.end).is_some(), "{src:?} {d:?}");
+                    }
+                }
+            }
+        }
+        assert_eq!(
+            kinds("$€$ x", SqlDialect::Postgres)[0].0,
+            lex("$€$ x", SqlDialect::Postgres)[0].kind
+        );
     }
 
     #[test]

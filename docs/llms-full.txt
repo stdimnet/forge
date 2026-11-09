@@ -4484,7 +4484,7 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 
 ![Find window after files changed](docs/screenshots/search-index-find-stale.png)
 
-- **Replace in Files**: the Find window has a **Replace with** field. **Replace…** lists every line that would change (old text left, new text right) before anything is written; **Replace all** then writes the files, and **Undo replace** puts back the files the last replace changed, leaving alone any file you edited since. In regular expression mode the replacement may use `$1` and `${name}`; otherwise it is inserted as typed. It uses the same scope, file mask and options as the search, and works on remote projects too.
+- **Replace in Files**: the Find window has a **Replace with** field. **Replace…** lists every line that would change (old text left, new text right) before anything is written; **Replace all** then writes the files, and **Undo replace** puts back the files the last replace changed, leaving alone any file you edited since. In regular expression mode the replacement may use `$1` and `${name}` (as in PHPStorm, `$1_suffix` is group 1 followed by `_suffix`); otherwise it is inserted as typed. It uses the same scope, file mask and options as the search, and works on remote projects too.
 
 ![Replace in Files preview](docs/screenshots/search-index-replace.png)
 

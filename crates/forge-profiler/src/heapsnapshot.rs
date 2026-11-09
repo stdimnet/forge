@@ -224,12 +224,16 @@ fn summarize(raw: Raw, name: &str) -> Result<Snapshot, String> {
     let size_of = |i: usize| nodes[i * nf + n_size] as i64;
 
     // First edge of every node (edges are stored node by node).
+    // Checked: crafted edge counts must not wrap around and point past the edges.
+    let mismatch = || "the heap snapshot's edges do not match its nodes".to_string();
     let mut first = vec![0u32; n + 1];
     for i in 0..n {
-        first[i + 1] = first[i] + nodes[i * nf + n_edges];
+        first[i + 1] = first[i]
+            .checked_add(nodes[i * nf + n_edges])
+            .ok_or_else(mismatch)?;
     }
     if first[n] as usize > m {
-        return Err("the heap snapshot's edges do not match its nodes".into());
+        return Err(mismatch());
     }
     let strong = |e: usize| weak != Some(edges[e * ef + e_type]);
     let target = |e: usize| (edges[e * ef + e_to] as usize) / nf;
@@ -519,5 +523,12 @@ mod tests {
         assert_eq!(parse_reader(SMALL, "small.heapsnapshot").unwrap(), s);
         assert!(parse(b"{\"snapshot\":{}}", "x").is_err());
         assert!(parse(b"[]", "x").is_err());
+    }
+
+    #[test]
+    fn edge_counts_that_overflow_are_rejected() {
+        // 4294967295 + 2 edges wrap around to 1, which the edge list would seem to match.
+        let crafted = br#"{"snapshot":{"meta":{"node_fields":["type","name","id","self_size","edge_count"],"node_types":[["hidden"]],"edge_fields":["type","name_or_index","to_node"],"edge_types":[["element"]]}},"nodes":[0,0,1,10,4294967295,0,0,2,10,2],"edges":[0,0,5],"strings":[""]}"#;
+        assert!(parse(crafted, "x").is_err());
     }
 }

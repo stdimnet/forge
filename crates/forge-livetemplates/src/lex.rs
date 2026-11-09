@@ -231,7 +231,8 @@ fn skip_regex(b: &[u8], mut i: usize) -> usize {
         }
         i += 1;
     }
-    i
+    // A trailing backslash steps past the end.
+    i.min(b.len())
 }
 
 fn regex_allowed(src: &str, toks: &[Tok]) -> bool {
@@ -428,6 +429,13 @@ mod tests {
             .iter()
             .map(|t| (t.kind, t.text(src)))
             .collect()
+    }
+
+    #[test]
+    fn a_regex_ending_in_a_backslash_stays_inside_the_text() {
+        assert_eq!(skip_regex(b"a\\", 0), 2);
+        let src = "x = /a\\";
+        assert!(lex(src, Syntax::Js).iter().all(|t| t.end <= src.len()));
     }
 
     #[test]

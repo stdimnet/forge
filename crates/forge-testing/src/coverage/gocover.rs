@@ -13,6 +13,10 @@ use std::collections::BTreeMap;
 
 use super::{Builder, CoverageReport, LineHits};
 
+/// Most lines one block may cover. A Go source file is far smaller; a profile that claims
+/// more (`1.1,4000000000.1`) is damaged and its block is skipped instead of filling memory.
+const MAX_BLOCK_LINES: u32 = 1_000_000;
+
 pub fn parse(text: &str) -> Result<CoverageReport, String> {
     let mut lines_iter = text.lines();
     let first = lines_iter.next().unwrap_or_default().trim();
@@ -45,6 +49,9 @@ pub fn parse(text: &str) -> Result<CoverageReport, String> {
         let (Some(from), Some(to)) = (line_of(start), line_of(end)) else {
             continue;
         };
+        if to.saturating_sub(from) > MAX_BLOCK_LINES {
+            continue;
+        }
         if !acc.contains_key(file) {
             files.push(file.to_string());
         }
@@ -52,8 +59,8 @@ pub fn parse(text: &str) -> Result<CoverageReport, String> {
         for l in from..=to.max(from) {
             let e = per_line.entry(l).or_default();
             e.0 = e.0.max(count);
-            e.1 += u32::from(count > 0);
-            e.2 += 1;
+            e.1 = e.1.saturating_add(u32::from(count > 0));
+            e.2 = e.2.saturating_add(1);
         }
     }
     let mut b = Builder::default();
@@ -95,5 +102,11 @@ mod tests {
             ]
         );
         assert!(parse("SF:x").is_err());
+    }
+
+    #[test]
+    fn damaged_spans_are_skipped() {
+        let r = parse("mode: set\na.go:1.1,4000000000.1 1 1\na.go:2.1,3.1 1 1\n").unwrap();
+        assert_eq!(lines(&r, "a.go"), [(2, 1, Covered), (3, 1, Covered)]);
     }
 }

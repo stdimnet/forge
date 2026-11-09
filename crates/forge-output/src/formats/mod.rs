@@ -136,21 +136,20 @@ pub fn strip_ansi(text: &str) -> String {
     out
 }
 
-/// Remove the indentation all non-blank lines share.
+/// Remove the indentation all non-blank lines share, counted in characters (an NBSP in the
+/// indentation is one character, never cut inside).
 pub fn dedent(text: &str) -> String {
+    let lead = |l: &str| l.chars().take_while(|c| c.is_whitespace()).count();
     let indent = text
         .lines()
         .filter(|l| !l.trim().is_empty())
-        .map(|l| l.len() - l.trim_start().len())
+        .map(lead)
         .min()
         .unwrap_or(0);
     text.lines()
-        .map(|l| {
-            if l.len() >= indent {
-                &l[indent..]
-            } else {
-                l.trim_start()
-            }
+        .map(|l| match l.char_indices().nth(indent) {
+            Some((at, _)) if lead(l) >= indent => &l[at..],
+            _ => l.trim_start(),
         })
         .collect::<Vec<_>>()
         .join("\n")
@@ -228,5 +227,8 @@ pub(crate) mod tests {
     fn strips_ansi_and_dedents() {
         assert_eq!(strip_ansi("\u{1b}[31mred\u{1b}[39m!"), "red!");
         assert_eq!(dedent("    a\n      b\n\n    c"), "a\n  b\n\nc");
+        // An NBSP (two bytes) in the indentation is one character.
+        assert_eq!(dedent(" \u{a0}a\n  b"), "a\nb");
+        assert_eq!(dedent("\u{a0}a\n b"), "a\nb");
     }
 }

@@ -650,3 +650,78 @@ fn files_can_be_ordered_by_matches_and_by_modification_time() {
     let by_time = order(SortBy::Modified);
     assert_eq!(by_time.last().unwrap(), "b.txt");
 }
+
+#[test]
+fn lazy_pages_of_a_file_changed_after_the_search_are_searched_again() {
+    let dir = TempDir::new().unwrap();
+    write(dir.path(), "a.txt", "x foo\nfoo foo\n\n\nlast foo here\n");
+    let svc = SearchService::open(dir.path(), None);
+    svc.refresh();
+    let req = forge_find::FindRequest {
+        query: "foo".into(),
+        ..forge_find::FindRequest::default()
+    };
+    let found = svc
+        .find_text_lazy(&req, &std::sync::atomic::AtomicBool::new(false))
+        .unwrap();
+    assert_eq!(found.row_count(), 3);
+    // Shorter, with a multi-byte character where the old ranges point.
+    write(dir.path(), "a.txt", "€€€€€€€€ foo\n");
+    let rows: Vec<_> = found
+        .page(0, usize::MAX)
+        .into_iter()
+        .flat_map(|f| f.matches)
+        .collect();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].text, "€€€€€€€€ foo");
+    assert_eq!(rows[0].ranges, [(9, 12)]);
+    // A later page of the changed file is a page of the new matches (here: none).
+    assert!(found.page(1, 2).iter().all(|f| f.matches.is_empty()));
+}
+
+#[test]
+fn a_steady_stream_of_excluded_events_does_not_hold_back_changes() {
+    use forge_core::excludes::{FolderKind, FolderMark, StructureConfig};
+    let dir = TempDir::new().unwrap();
+    let r = dir.path();
+    write(r, "a.txt", "alpha\n");
+    let excludes = forge_core::Excludes::default();
+    excludes.set(StructureConfig {
+        folders: vec![FolderMark {
+            path: "target".into(),
+            kind: FolderKind::Excluded,
+        }],
+        exclude_patterns: String::new(),
+    });
+    let svc = std::sync::Arc::new(SearchService::open(r, None).with_excludes(excludes.clone()));
+    svc.refresh();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let weak = std::sync::Arc::downgrade(&svc);
+    std::thread::spawn(move || crate::service::watch_loop(rx, weak));
+    let event =
+        |path: std::path::PathBuf| Ok(notify::Event::new(notify::EventKind::Any).add_path(path));
+
+    // The user's file changes while a build keeps writing below `target/` (and, later, to a
+    // tracked file too): the index catches up anyway.
+    write(r, "b.txt", "streamtoken\n");
+    tx.send(event(r.join("b.txt"))).unwrap();
+    let started = std::time::Instant::now();
+    let mut n = 0;
+    while started.elapsed() < std::time::Duration::from_secs(8) {
+        if !paths(&svc, &q("streamtoken")).is_empty() {
+            break;
+        }
+        n += 1;
+        tx.send(event(r.join(format!("target/out{n}.o")))).unwrap();
+        if n % 10 == 0 {
+            tx.send(event(r.join("a.txt"))).unwrap();
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    assert_eq!(paths(&svc, &q("streamtoken")), ["b.txt"]);
+    assert!(
+        started.elapsed() < crate::service::WATCH_MAX_WAIT + std::time::Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
+}
