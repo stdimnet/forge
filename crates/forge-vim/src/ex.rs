@@ -174,8 +174,9 @@ impl Vim {
         let Some(a) = self.address(st, c, i)? else {
             if matches!(c.get(*i), Some(',' | ';')) {
                 *i += 1;
-                let b = self.address(st, c, i)?.unwrap_or(st.line());
-                return Ok(Some((st.line(), b)));
+                let a = st.line();
+                let b = self.address(st, c, i)?.unwrap_or(a);
+                return Ok(Some((a.min(b), a.max(b))));
             }
             return Ok(None);
         };

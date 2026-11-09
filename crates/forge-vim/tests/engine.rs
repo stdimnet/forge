@@ -205,6 +205,10 @@ fn runs_ex_commands() {
     check("|a\nb\nc", ":2,3><CR>", "a\n    b\n    |c");
     check("|foo\nfoo", ":s/foo/bar/<CR>j&", "bar\n|bar");
     check("|a\nb\nc", "Vj:s/$/!/<CR>", "a!\n|b!\nc");
+    // A range that starts at the cursor and ends above it is swapped, not an underflow.
+    let (mut v, h) = setup("a\nb\nc\n|d\ne");
+    v.feed(h, ":,3m0<CR>");
+    assert_eq!(v.text(h).unwrap(), "c\nd\na\nb\ne");
     let (mut v, h) = setup("|x");
     let r = v.feed(h, ":bogus<CR>");
     assert!(r.message.unwrap().text.starts_with("E492"));

@@ -100,8 +100,9 @@ pub fn exposed_ports(content: &str) -> Vec<String> {
     let mut out = Vec::new();
     for line in content.lines() {
         let t = line.trim();
-        if t.len() > 7 && t[..7].eq_ignore_ascii_case("EXPOSE ") {
-            for p in t[7..].split_whitespace() {
+        let instruction = t.get(..7).filter(|i| i.eq_ignore_ascii_case("EXPOSE "));
+        if let (Some(_), Some(ports)) = (instruction, t.get(7..)) {
+            for p in ports.split_whitespace() {
                 let port = p.split('/').next().unwrap_or(p);
                 if port.chars().all(|c| c.is_ascii_digit()) && !out.iter().any(|x| x == p) {
                     out.push(p.to_string());
@@ -187,6 +188,12 @@ pub fn dockerfile_run(path: &str, project: &str, content: &str) -> DockerfileRun
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exposed_ports_ignore_non_ascii_lines() {
+        assert!(exposed_ports("RUN echo \"héllo wörld\"\nLABEL ÄÖÜ=1\n").is_empty());
+        assert_eq!(exposed_ports("EXPOSE 80\nEXPOSÉ 81\n"), ["80"]);
+    }
 
     #[test]
     fn compose_markers() {
