@@ -9,6 +9,7 @@ import type { RunConfiguration } from "@/ipc/run";
 import { openMenu } from "./PopupMenu";
 import { COMPOUND, compoundMembers, findType } from "./types";
 import { t } from "@/i18n";
+import { listboxKeyDown, optionTabIndex } from "@/features/project/treeNavigation";
 
 export function CompoundForm(props: {
   cfg: RunConfiguration;
@@ -71,12 +72,25 @@ export function CompoundForm(props: {
             <ArrowDown size={14} />
           </button>
         </div>
-        <div class="rc-bl-list">
+        <div
+          class="rc-bl-list"
+          role="listbox"
+          aria-label={t("run.compoundForm.configurations")}
+          onKeyDown={(e) => listboxKeyDown(e, members().map((_, n) => String(n)), sel() === null ? null : String(sel()), (id) => setSel(Number(id)))}
+        >
           <For each={members()} fallback={<div class="rc-bl-empty muted">{t("run.compoundForm.clickToAddTheConfigurations")}</div>}>
             {(name, i) => {
               const type = () => findType(typeOf(name) ?? "");
               return (
-                <div class="rc-bl-item" classList={{ selected: sel() === i(), invalid: !typeOf(name) }} onClick={() => setSel(i())}>
+                <div
+                  class="rc-bl-item"
+                  classList={{ selected: sel() === i(), invalid: !typeOf(name) }}
+                  role="option"
+                  aria-selected={sel() === i()}
+                  tabIndex={optionTabIndex(String(i()), sel() === null ? null : String(sel()), "0")}
+                  data-option-id={String(i())}
+                  onClick={() => setSel(i())}
+                >
                   <span style={{ color: type()?.color }}>
                     <Dynamic component={type()?.icon ?? Settings2} size={13} />
                   </span>

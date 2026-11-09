@@ -2,7 +2,7 @@
  * Alt+Insert "Generate" popup at the caret and the PHPStorm-style member chooser dialog
  * ("Choose Fields to Initialize by Constructor", "Select Methods to Override", ...).
  */
-import { createMemo, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
+import { createMemo, createSignal, For, onMount, Show, type JSX } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { EditorView } from "@codemirror/view";
 import { ArrowDownAZ, X } from "lucide-solid";
@@ -307,10 +307,8 @@ function ChooserDialog() {
     e.stopPropagation();
   };
 
+  // Escape is handled by the dialog's own onKey (with the focus in the list on open).
   onMount(() => listEl.focus());
-  const keyListener = (e: KeyboardEvent) => e.key === "Escape" && close();
-  document.addEventListener("keydown", keyListener);
-  onCleanup(() => document.removeEventListener("keydown", keyListener));
 
   return (
     <div class="php-dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>

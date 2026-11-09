@@ -50,3 +50,40 @@ export function navigate(rows: VisibleRow[], selected: string | null, key: strin
       return { type: "none" };
   }
 }
+
+/**
+ * Arrow keys, Home and End in a flat list (`role="listbox"` with roving `tabIndex` options):
+ * the id to select next, or null when the key does nothing.
+ */
+export function navigateList(ids: readonly string[], selected: string | null, key: string): string | null {
+  const action = navigate(
+    ids.map((path) => ({ path, isDir: false, expanded: false, depth: 0 })),
+    selected,
+    key,
+  );
+  return action.type === "select" ? action.path : null;
+}
+
+/**
+ * Keyboard handler for a `role="listbox"` whose options carry `data-option-id` and a roving
+ * `tabIndex`: Up/Down/Home/End select and focus the next option. Keys typed into a control
+ * inside an option (an input in an editable row) are left alone.
+ */
+export function listboxKeyDown(
+  e: KeyboardEvent & { currentTarget: HTMLElement },
+  ids: readonly string[],
+  selected: string | null,
+  select: (id: string) => void,
+): void {
+  if (!(e.target instanceof Element) || e.target.getAttribute("role") !== "option") return;
+  const next = navigateList(ids, selected, e.key);
+  if (!next) return;
+  e.preventDefault();
+  select(next);
+  // Compare ids as data, not through a selector (ids may contain any character).
+  [...e.currentTarget.querySelectorAll<HTMLElement>("[data-option-id]")].find((el) => el.dataset.optionId === next)?.focus();
+}
+
+/** Roving tabIndex of a list option: 0 on the selected one (or the first without selection). */
+export const optionTabIndex = (id: string, selected: string | null, first: string | undefined): 0 | -1 =>
+  id === selected || (selected === null && id === first) ? 0 : -1;

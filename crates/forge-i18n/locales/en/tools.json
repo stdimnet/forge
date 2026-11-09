@@ -1175,6 +1175,7 @@
   "tools.keymapSettings.clearShortcutFilter": "Clear shortcut filter",
   "tools.keymapSettings.shortcutsAreSavedAsYou": "Shortcuts are saved as you change them. Double-click an action or press Enter to edit it; right-click it to add a mouse shortcut.",
   "tools.keymapSettings.pressKeysEllipsis": "Press keys…",
+  "tools.keymapSettings.shortcutField": "Shortcut",
   "tools.langservers.install": "Install {name}",
   "tools.langservers.supportNeeds": "{languages} support needs",
   "tools.langservers.chooseHowToInstallItLabel": ". Choose how to install it:",

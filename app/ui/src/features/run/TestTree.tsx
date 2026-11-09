@@ -162,12 +162,15 @@ export function TestTree(props: {
             class="tree-row test-row"
             classList={{ selected: props.selected === row.node.id }}
             role="treeitem"
+            aria-level={row.depth + 1}
+            aria-selected={props.selected === row.node.id}
+            aria-expanded={row.node.kind !== "test" && row.node.children.length ? row.open : undefined}
             data-test={row.node.name}
             style={{ "padding-left": `${6 + row.depth * 16}px` }}
             onClick={() => props.onSelect(row.node)}
             onDblClick={() => (row.node.kind === "test" ? void navigateToTest(row.node) : props.onToggle(row.node))}
           >
-            <span class="test-chevron" onClick={(e) => (e.stopPropagation(), props.onToggle(row.node))}>
+            <span class="test-chevron" aria-hidden="true" onClick={(e) => (e.stopPropagation(), props.onToggle(row.node))}>
               <Show when={row.node.kind !== "test" && row.node.children.length}>
                 {row.open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
               </Show>

@@ -265,7 +265,8 @@ on the machine that hosts the project (remote projects included).
 The **Run** tool window (`Alt+4`) has one tab per run. Tabs can be pinned and closed (`Ctrl+Shift+F4`).
 
 - Output is shown with ANSI colors; `\r` progress lines update in place.
-- File references (`app/User.php:42`, stack traces) and URLs are clickable.
+- File references (`app/User.php:42`, stack traces) and URLs are links: click them, or reach
+  them with `Tab` and press `Enter`. Files open in the editor, URLs in your browser.
 - Toolbar: **Rerun**, **Stop**, **Soft-Wrap**, **Scroll to the End**, **Clear All**.
 - Typing sends input to the process (stdin).
 - Stop sends SIGTERM to the process group, then SIGKILL after 2 seconds (`taskkill /T` on

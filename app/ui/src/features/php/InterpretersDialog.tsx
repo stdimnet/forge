@@ -28,6 +28,7 @@ import {
   type PhpInterpreter,
 } from "./interpreters";
 import { t } from "@/i18n";
+import { listboxKeyDown, optionTabIndex } from "@/features/project/treeNavigation";
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -218,10 +219,25 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
                 <Copy size={13} />
               </button>
             </div>
-            <div class="php-interp-items">
+            <div
+              class="php-interp-items"
+              role="listbox"
+              aria-label={t("langs.php.cliInterpreters")}
+              onKeyDown={(e) => listboxKeyDown(e, list.map((x) => x.id), current(), setCurrent)}
+            >
               <For each={list} fallback={<div class="php-hint php-interp-empty">{t("langs.php.noInterpretersConfiguredClickTo")}</div>}>
                 {(i) => (
-                  <div class="tree-row php-interp-row" classList={{ selected: i.id === current() }} data-interpreter={i.name} onClick={() => setCurrent(i.id)}>
+                  <div
+                    class="tree-row php-interp-row"
+                    classList={{ selected: i.id === current() }}
+                    role="option"
+                    aria-selected={i.id === current()}
+                    tabIndex={optionTabIndex(i.id, current(), list[0]?.id)}
+                    data-interpreter={i.name}
+                    data-option-id={i.id}
+                    onClick={() => setCurrent(i.id)}
+                    onFocus={() => setCurrent(i.id)}
+                  >
                     <span class="php-interp-icon">{KIND_ICONS[i.kind]({ size: 13 })}</span>
                     <span class="php-interp-name">{i.name}</span>
                     <Show when={i.version}>

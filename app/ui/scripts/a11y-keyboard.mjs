@@ -235,6 +235,93 @@ await check("Alt+Shift+L announces the caret position", async () => {
   expect(/Line \d+, column \d+/.test(said), `nothing announced: "${said}"`);
 });
 
+await check("Settings | Keymap: the shortcut field has a name and Shift+Tab leaves it (#217)", async () => {
+  await press("Control+Alt+s");
+  await page.waitForSelector(".set-tree-row");
+  await page.waitForTimeout(300);
+  // Tab into the tree, then walk down to Keymap.
+  await press("Tab");
+  await press("Home");
+  for (let i = 0; i < 40 && (await page.evaluate(() => document.activeElement?.dataset.node)) !== "keymap"; i++) await press("ArrowDown");
+  expect((await page.evaluate(() => document.activeElement?.dataset.node)) === "keymap", "Keymap was not reached in the tree");
+  await press("Enter");
+  await page.waitForSelector(".keymap-page");
+  // Tab to "Find Actions by Shortcut" and open it.
+  for (let i = 0; i < 40; i++) {
+    if ((await page.evaluate(() => document.activeElement?.getAttribute("title"))) === "Find Actions by Shortcut") break;
+    await press("Tab");
+  }
+  await press("Enter");
+  await page.waitForSelector(".km-find-popup .shortcut-field");
+  await page.waitForTimeout(100);
+  let f = await focused();
+  expect(f.role === "textbox" && f.label === "Find Actions by Shortcut", `the shortcut field has no role or name: ${JSON.stringify(f)}`);
+  await press("Shift+Tab");
+  f = await focused();
+  expect(!f.cls.includes("shortcut-field"), "Shift+Tab did not leave the shortcut field");
+  const recorded = await page.evaluate(() => document.querySelector(".km-find-popup .shortcut-field")?.classList.contains("empty") ?? true);
+  expect(recorded, "Shift+Tab was recorded as a shortcut");
+  await press("Escape");
+  await page.waitForTimeout(150);
+  if (await page.$(".set-tree-row")) await press("Escape");
+  await page.waitForTimeout(200);
+  expect(!(await page.$(".set-tree-row")), "the Settings dialog did not close");
+});
+
+await check("Diff viewer: focus inside, F7 through the keymap, Escape closes it (#217)", async () => {
+  await press("Control+k");
+  await page.waitForSelector(".commit-tree", { timeout: 5000 });
+  await page.waitForTimeout(300);
+  if (!(await page.$(".commit-row"))) return; // everything was committed above
+  await page.focus(".commit-tree");
+  await press("Home");
+  // Walk down to the first file (changelist rows have no diff).
+  const onFile = () =>
+    page.evaluate(() => {
+      const id = document.querySelector(".commit-tree")?.getAttribute("aria-activedescendant");
+      return !!(id && document.getElementById(id)?.dataset.path);
+    });
+  for (let i = 0; i < 6 && !(await onFile()); i++) await press("ArrowDown");
+  expect(await onFile(), "no file row in the Commit window");
+  await press("Control+d");
+  await page.waitForSelector(".diff-viewer", { timeout: 5000 });
+  await page.waitForTimeout(400);
+  let f = await focused();
+  expect(await page.evaluate(() => !!document.activeElement?.closest(".diff-viewer")), `the diff viewer has no focus: ${JSON.stringify(f)}`);
+  await press("F7");
+  await page.waitForTimeout(150);
+  expect(!!(await page.$(".diff-viewer")), "F7 closed the diff viewer");
+  await press("Escape");
+  await page.waitForTimeout(300);
+  expect(!(await page.$(".diff-viewer")), "Escape did not close the diff viewer");
+  await press("Shift+Escape");
+});
+
+await check("Generate chooser: Escape closes it once and the editor gets the focus back (#217)", async () => {
+  await press("Control+Shift+N");
+  await page.waitForSelector(".se-popup");
+  await page.keyboard.type("User.php");
+  await page.waitForTimeout(400);
+  await press("Enter");
+  await page.waitForSelector('.editor-tab.active[data-tab-id$="User.php"]', { timeout: 5000 });
+  await page.evaluate(async () => {
+    const { activeView } = await import("/src/editor/views.ts");
+    const { editor } = await import("/src/state/editor.ts");
+    const { startGenerate } = await import("/src/features/php/GenerateOverlay.tsx");
+    const view = activeView();
+    const at = view.state.doc.toString().indexOf("protected $hidden");
+    view.dispatch({ selection: { anchor: at } });
+    await startGenerate(editor.active, view, "getters");
+  });
+  await page.waitForSelector(".php-dialog[role=dialog]", { timeout: 5000 });
+  await page.waitForTimeout(150);
+  expect(await page.evaluate(() => !!document.activeElement?.closest(".php-dialog")), "the chooser has no focus");
+  await press("Escape");
+  await page.waitForTimeout(200);
+  expect(!(await page.$(".php-dialog[role=dialog]")), "Escape did not close the chooser");
+  expect((await focused()).cls.includes("cm-content"), "the editor did not get the focus back");
+});
+
 await check("no mouse event was used", async () => {
   const used = await page.evaluate(() => window.__forgeMouseUsed);
   expect(!used, `a ${used} event happened`);

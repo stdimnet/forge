@@ -10,7 +10,6 @@ import {
   GutterMarker,
   ViewPlugin,
   gutter,
-  keymap,
   type DecorationSet,
   type PluginValue,
   type ViewUpdate,
@@ -229,9 +228,6 @@ export function lspDiagnostics(path: string): Extension {
     diagnosticsGutter,
     ViewPlugin.fromClass(InspectionWidget),
     diagnosticsFeed(path),
-    keymap.of([
-      { key: "F2", run: (v) => gotoProblem(v, 1) },
-      { key: "Shift-F2", run: (v) => gotoProblem(v, -1) },
-    ]),
+    // F2 / Shift+F2 are the keymap's GotoNextError / GotoPreviousError (`lsp/index.ts`).
   ];
 }

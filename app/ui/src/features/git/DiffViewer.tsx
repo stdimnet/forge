@@ -13,6 +13,7 @@ import { openFileReported } from "@/features/navigation/openReported";
 import { workspaceApi } from "@/ipc/workspace";
 import { FileIcon } from "@/shell/FileIcon";
 import { reloadOpenFiles, repositoryChanged } from "./store";
+import { setDiffActions } from "./conflicts";
 import { showDiff } from "./actions";
 import type { DiffRequest } from "./overlays";
 import { lineDiffConfig } from "./lineDiff";
@@ -79,6 +80,8 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
       collapseUnchanged: collapse() ? { margin: 3, minSize: 6 } : undefined,
     });
     setCount(mv.chunks.length);
+    // Keys (Escape, F7) reach the viewer only with the focus inside it: start in the editor.
+    if (!root?.contains(document.activeElement) || document.activeElement === root) mv.b.focus();
   };
 
   /** Write edits made on the right side (reverted chunks) back to the file. */
@@ -110,36 +113,43 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
     if (next) void saveEdits().then(() => showDiff(next, files));
   };
 
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      void close();
-    } else if (e.key === "F7" || (e.altKey && e.key === "ArrowDown")) {
-      e.preventDefault();
-      nav(e.shiftKey ? -1 : 1);
-    } else if (e.altKey && e.key === "ArrowUp") {
-      e.preventDefault();
-      nav(-1);
-    }
+  // F7 / Shift+F7 are the keymap's NextDiff / PreviousDiff ("diff" focus context), so they
+  // follow the user's keymap. Escape is handled on the viewer itself: a dialog opened above it
+  // lives in the overlay host, so its Escape never reaches the viewer.
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || e.defaultPrevented || e.ctrlKey || e.altKey || e.shiftKey || e.metaKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void close();
   };
+  const clearDiffActions = setDiffActions({ step: (forward) => nav(forward ? 1 : -1) });
 
   let disposed = false;
+  let root: HTMLDivElement | undefined;
   onMount(() => {
+    root?.focus();
     // The syntax mode depends on the file type, which may still be resolving (desktop app).
     if (isFileTypeResolved(req.path)) build();
     else void ensureFileType(req.path).then(() => disposed || build());
-    window.addEventListener("keydown", onKey, true);
   });
   onCleanup(() => {
     disposed = true;
-    window.removeEventListener("keydown", onKey, true);
+    clearDiffActions();
     mv?.destroy();
   });
 
   const name = req.path.split("/").pop() ?? req.path;
   return (
     <div class="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && void close()}>
-      <div class="diff-viewer" role="dialog" aria-label={t("git.diffViewer.diffForPath", { path: req.path })}>
+      <div
+        class="diff-viewer"
+        role="dialog"
+        aria-label={t("git.diffViewer.diffForPath", { path: req.path })}
+        data-focus-context="diff"
+        tabIndex={-1}
+        ref={root}
+        onKeyDown={onKeyDown}
+      >
         <header class="dialog-title">
           <FileIcon name={name} size={14} />
           <span>{req.path}</span>

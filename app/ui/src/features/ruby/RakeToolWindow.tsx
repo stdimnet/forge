@@ -16,6 +16,7 @@ import { debugConfiguration, launch } from "@/features/run/runStore";
 import { revealSymbol } from "@/features/php/editorViews";
 import { rakeLoading, rakeTasks, refreshRake } from "./state";
 import { t as tr } from "@/i18n";
+import { navigate } from "@/features/project/treeNavigation";
 import "./ruby.css";
 
 /** The Rake configuration of a task. */
@@ -68,6 +69,21 @@ export function RakeToolWindow() {
     return out;
   });
   const selectedTask = () => rows().find((r) => r.key === selected())?.task;
+  const rowIndex = () => rows().findIndex((r) => r.key === selected());
+  /** Arrows, Home/End, Left/Right to close/open a namespace, Enter to run a task (like a double click). */
+  const onTreeKey = (e: KeyboardEvent) => {
+    const list = rows();
+    const res = navigate(
+      list.map((r) => ({ path: r.key, isDir: r.children, expanded: r.children && !collapsed().has(r.key), depth: r.depth })),
+      selected(),
+      e.key,
+    );
+    if (res.type === "none") return;
+    e.preventDefault();
+    if (res.type === "select") setSelected(res.path);
+    else if (res.type === "expand" || res.type === "collapse") toggle(res.path);
+    else run(list.find((r) => r.key === res.path)?.task);
+  };
   const run = (t: RakeTask | undefined) => t && void launch(useTemporary(rakeConfiguration(t)));
   const debug = (t: RakeTask | undefined) => t && void debugConfiguration(useTemporary(rakeConfiguration(t)));
   const jump = (t: RakeTask | undefined) => t?.file && !t.file.startsWith("/") && void revealSymbol(t.file, { line: t.line ?? 0 });
@@ -98,19 +114,31 @@ export function RakeToolWindow() {
       <Show when={rakeTasks() && !rakeTasks()!.tasks.length}>
         <div class="rake-message muted">{rakeLoading() ? tr("langs.ruby.loadingRakeTasksEllipsis") : tr("langs.ruby.noRakeTasks")}</div>
       </Show>
-      <div class="rake-tree" role="tree">
+      <div
+        class="rake-tree"
+        role="tree"
+        tabIndex={0}
+        aria-label={tr("toolwindow.rake.title")}
+        aria-activedescendant={rowIndex() >= 0 ? `rake-row-${rowIndex()}` : undefined}
+        onKeyDown={onTreeKey}
+      >
         <For each={rows()}>
-          {(r) => (
+          {(r, i) => (
             <div
               class="tree-row rake-row"
               classList={{ selected: selected() === r.key }}
+              id={`rake-row-${i()}`}
+              role="treeitem"
+              aria-level={r.depth + 1}
+              aria-selected={selected() === r.key}
+              aria-expanded={r.children ? !collapsed().has(r.key) : undefined}
               style={{ "padding-left": `${6 + r.depth * 16}px` }}
               data-rake-row={r.key}
               title={r.task ? `rake ${r.task.name}${r.task.args?.length ? `[${r.task.args.join(",")}]` : ""}${r.task.file ? `  (${r.task.file})` : ""}` : undefined}
               onClick={() => setSelected(r.key)}
               onDblClick={() => (r.children ? toggle(r.key) : run(r.task))}
             >
-              <span class="rake-twisty" onClick={(e) => (e.stopPropagation(), r.children && toggle(r.key))}>
+              <span class="rake-twisty" aria-hidden="true" onClick={(e) => (e.stopPropagation(), r.children && toggle(r.key))}>
                 <Show when={r.children}>{collapsed().has(r.key) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</Show>
               </span>
               <Show when={r.children} fallback={<Hammer size={14} class="rake-task-icon" />}>
