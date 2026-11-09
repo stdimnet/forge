@@ -624,6 +624,34 @@ async fn resolve_declaration(
         return Ok(library_declaration(&path, line, character, content, app, ws, lib).await);
     }
     let c = Ctx::new(&path, app, lsp, ws)?;
+    // PHP: Forge's index first. A member declared only in a class docblock (`@method`,
+    // `@property`) goes to the tag's line, like PHPStorm; language servers point at the class.
+    let php_def = if is_php(&path) {
+        let backend = c.backend.clone();
+        let (path, content) = (path.clone(), content.clone());
+        Some(
+            blocking(move || {
+                let text = current_text(&backend, &path, &content);
+                let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+                backend.php().definition(&path, offset, Some(text))
+            })
+            .await?,
+        )
+    } else {
+        None
+    };
+    if let Some(def) = php_def.as_ref().filter(|d| d.doc_tag) {
+        let mut targets = def.targets.clone();
+        for t in &mut targets {
+            t.path = lib.ui_path(&t.path);
+        }
+        return Ok(DeclarationAnswer {
+            title: def.title.clone(),
+            targets,
+            source: "index".into(),
+            ..Default::default()
+        });
+    }
     let pos = lsp_types::Position::new(line, character);
     let locs = c.manager.definition(&c.abs, pos).await.unwrap_or_default();
     let on_declaration = locs.iter().any(|l| {
@@ -651,16 +679,9 @@ async fn resolve_declaration(
         message: Some(forge_i18n::t("errors.noDeclaration")),
         ..Default::default()
     };
-    if !is_php(&path) {
+    let Some(def) = php_def else {
         return Ok(answer);
-    }
-    let backend = c.backend.clone();
-    let def = blocking(move || {
-        let text = current_text(&backend, &path, &content);
-        let offset = codeintel::utf16_offset(&text, Position::new(line, character));
-        backend.php().definition(&path, offset, Some(text))
-    })
-    .await?;
+    };
     answer.title = def.title.clone();
     if def.on_declaration {
         answer.on_declaration = true;

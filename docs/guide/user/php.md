@@ -88,6 +88,9 @@ of:
   variables, typed through parameters, `new`, `catch (X $e)`, inline `/** @var X $x */`,
   property types and PHPDoc, and call chains through return types
   (`$user->orders()->first()`);
+- magic methods and properties that a class (or a parent class) declares only in its PHPDoc
+  (`@method static Builder whereEmail(string $email)`, `@property string $email`): the line of
+  that tag, also in the same file;
 - class constants, enum cases and namespace constants (`PHP_EOL`, `const VERSION = 2`);
 - variables: the parameter or first assignment in the method or function.
 
