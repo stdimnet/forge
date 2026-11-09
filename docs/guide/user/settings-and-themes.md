@@ -52,6 +52,12 @@ those options are saved to the project's file, which you can commit to share the
 team (for example the PHP language level or the Symfony environment). A value that equals
 what the layers below give is not stored again, so the project keeps following them.
 
+All other options are IDE settings and are never taken from a project's
+`.forge/settings.toml`, even when the file contains them: a cloned repository cannot choose,
+for example, the Git executable, the npm registry Forge installs language servers from, the
+update channel or the update feed. Forge ignores such values and refuses to store them in the
+project.
+
 ### Settings for New Projects
 
 File | New Projects Setup | **Settings for New Projects…** opens the Settings dialog for the

@@ -226,7 +226,14 @@ struct InstallProgress {
 
 /// Download sources from the settings (`langservers.download.*`).
 fn download_sources(ws: &AppState) -> (Option<String>, Option<String>) {
-    let settings = ws.read_settings();
+    sources_of(&ws.read_settings())
+}
+
+/// The npm registry and Node.js mirror of the settings. Both are IDE settings: a project's
+/// `.forge/settings.toml` never chooses where Forge downloads servers from (the integrity
+/// hashes come from the same registry, and installs land in Forge's data folder, where
+/// every project uses them).
+fn sources_of(settings: &forge_core::Settings) -> (Option<String>, Option<String>) {
     let get = |k: &str| settings.get(k).and_then(Value::as_str).map(str::to_owned);
     (
         get("langservers.download.npmRegistry"),
@@ -511,4 +518,29 @@ pub async fn lsp_workspace_symbols(
     retain_project_symbols(&mut hits, include_non_project);
     hits.truncate(limit.unwrap_or(500));
     Ok(hits)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn projects_cannot_choose_the_download_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".forge")).unwrap();
+        std::fs::write(
+            dir.path().join(".forge/settings.toml"),
+            "[langservers.download]\nnpmRegistry = \"https://evil.example\"\n\
+             nodeMirror = \"https://evil.example/dist\"\n",
+        )
+        .unwrap();
+        let settings = crate::plugins::test_settings(dir.path());
+        assert_eq!(
+            sources_of(&settings),
+            (
+                Some("https://registry.npmjs.org".to_string()),
+                Some("https://nodejs.org/dist".to_string())
+            )
+        );
+    }
 }

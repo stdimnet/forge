@@ -30,7 +30,8 @@ without a window or an app handle, so it is unit tested.
 `pick_feed` takes the newest release among the answers: a missing beta feed (404) is ignored as
 long as the stable feed answers, and a feed marked `"channel": "beta"` never counts on the
 stable channel. The offer remembers its feed (`UpdateOffer::feed`), so the download reads the
-same one. An `updates.endpoint` override is the only feed read.
+same one. An `updates.endpoint` override is the only feed read. `fetch_feed` reads only `https`
+feeds (`check_endpoint`; plain `http` only from `localhost`) of at most `MAX_FEED_BYTES` (1 MB).
 - `simulate`: a fake offer and download for `FORGE_SIMULATE_UPDATE` (desktop dev builds) and
   `?simulateUpdate` (browser mode). Nothing is installed.
 - `meter`: the download speed shown while an update downloads.

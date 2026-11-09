@@ -135,6 +135,104 @@ fn is_reserved(component: &str) -> bool {
         && stem.as_bytes()[3] != b'0')
 }
 
+/// Whether `path` is `root` or lies inside it. The one comparison behind "is this a project
+/// file or program?" decisions that guard Safe Mode, so a spelling cannot sneak a project
+/// file past them:
+///
+/// - as written: Windows' verbatim prefix (`\\?\C:\…`, `\\?\UNC\…`), `\` and `/`, `.` and
+///   `..`, and letter case where the file system ignores it (drive and UNC paths everywhere,
+///   every path on Windows and macOS);
+/// - as the file system resolves both ([`resolve_existing`]: symlinks, `/proc/self/root/…`).
+///
+/// Either view counting `path` as inside is enough. Relative paths are never inside.
+pub fn is_within(root: &Path, path: &Path) -> bool {
+    let fold = cfg!(any(windows, target_os = "macos"));
+    let lexical = within(&root.to_string_lossy(), &path.to_string_lossy(), fold);
+    lexical
+        || match (resolve_existing(root), resolve_existing(path)) {
+            (Some(r), Some(p)) => within(&r.to_string_lossy(), &p.to_string_lossy(), fold),
+            _ => false,
+        }
+}
+
+/// `path` as the file system resolves it ([`canonicalize`]), also when it does not exist
+/// (yet): its deepest existing folder is resolved and the rest appended. `None` when nothing
+/// of it resolves, or a part that does not exist is `..`.
+pub fn resolve_existing(path: &Path) -> Option<PathBuf> {
+    let mut existing = path;
+    let mut rest = Vec::new();
+    loop {
+        if let Ok(mut out) = canonicalize(existing) {
+            for part in rest.iter().rev() {
+                out.push(part);
+            }
+            return Some(out);
+        }
+        rest.push(existing.file_name()?.to_os_string());
+        existing = existing.parent()?;
+    }
+}
+
+/// [`is_within`] on the spelling alone; `fold_posix` folds the case of POSIX paths too.
+/// Works on any platform.
+pub fn within(root: &str, path: &str, fold_posix: bool) -> bool {
+    let (Some(root), Some(path)) = (lexical(root), lexical(path)) else {
+        return false;
+    };
+    let fold = fold_posix || is_windows_path(&root) || is_windows_path(&path);
+    let (root, path) = if fold {
+        (root.to_lowercase(), path.to_lowercase())
+    } else {
+        (root, path)
+    };
+    if root == path {
+        return true;
+    }
+    let dir = if root.ends_with('/') {
+        root
+    } else {
+        format!("{root}/")
+    };
+    path.starts_with(&dir)
+}
+
+/// An absolute path with `/` separators, without a verbatim prefix and without `.` and `..`
+/// (`\\?\C:\a\..\b` → `C:/b`); `None` for a relative path.
+fn lexical(path: &str) -> Option<String> {
+    let mut path = comparable(path.trim());
+    // Verbatim paths `simplify_verbatim` keeps (long ones, with `..`): drop the prefix.
+    if let Some(rest) = path.strip_prefix("//?/") {
+        path = match rest
+            .strip_prefix("UNC/")
+            .or_else(|| rest.strip_prefix("unc/"))
+        {
+            Some(unc) => format!("//{unc}"),
+            None => comparable(rest),
+        };
+    }
+    let (prefix, rest) = if let Some(rest) = path.strip_prefix("//") {
+        ("//".to_string(), rest)
+    } else if is_windows_path(&path) {
+        (
+            format!("{}/", &path[..2]),
+            path[2..].trim_start_matches('/'),
+        )
+    } else {
+        ("/".to_string(), path.strip_prefix('/')?)
+    };
+    let mut parts: Vec<&str> = Vec::new();
+    for part in rest.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                parts.pop();
+            }
+            p => parts.push(p),
+        }
+    }
+    Some(format!("{prefix}{}", parts.join("/")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -235,6 +333,59 @@ mod tests {
             assert_eq!(simplified(&expected), got);
         } else {
             assert_eq!(got, expected);
+        }
+    }
+
+    #[test]
+    fn within_compares_spellings() {
+        // Windows' verbatim prefix (canonicalize) against the ordinary root.
+        assert!(within(r"C:\proj", r"\\?\C:\proj\build.ps1", false));
+        assert!(within(r"\\?\C:\proj", r"C:\proj\build.ps1", false));
+        assert!(within(r"C:\proj", r"\\?\C:\proj\a\..\build.ps1", false));
+        assert!(within(
+            r"\\server\share\proj",
+            r"\\?\UNC\server\share\proj\x",
+            false
+        ));
+        // Drive and UNC paths ignore letter case everywhere.
+        assert!(within(
+            "C:/Users/me/proj",
+            r"c:\users\ME\PROJ\evil.exe",
+            false
+        ));
+        // POSIX paths only where the file system does.
+        assert!(!within("/users/me/proj", "/Users/me/PROJ/evil", false));
+        assert!(within("/users/me/proj", "/Users/me/PROJ/evil", true));
+        assert!(within("/home/me/proj", "/home/me/proj", false));
+        assert!(within("/home/me/proj/", "/home/me/proj/./a/../b", false));
+        assert!(!within("/home/me/proj", "/home/me/project/x", false));
+        assert!(!within("/home/me/proj", "/home/me/proj/../other/x", false));
+        assert!(!within("/home/me/proj", "proj/x", false));
+        assert!(!within("C:/proj", "D:/proj/x", false));
+        assert!(within("/", "/anything", false));
+    }
+
+    #[test]
+    fn within_resolves_the_file_system() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = canonicalize(dir.path()).unwrap();
+        let proj = root.join("proj");
+        std::fs::create_dir_all(proj.join("bin")).unwrap();
+        // Files that do not exist yet count by their folder.
+        assert!(is_within(&proj, &proj.join("bin/new/tool")));
+        assert!(!is_within(&proj, &root.join("other/tool")));
+        #[cfg(unix)]
+        {
+            // A link outside the project that points into it.
+            std::os::unix::fs::symlink(proj.join("bin"), root.join("link")).unwrap();
+            assert!(is_within(&proj, &root.join("link/evil")));
+            // A link inside the project that points out of it still is a project path.
+            assert!(is_within(&proj, &proj.join("bin/../x")));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let via_proc = format!("/proc/self/root{}", proj.join("evil").display());
+            assert!(is_within(&proj, Path::new(&via_proc)));
         }
     }
 }
