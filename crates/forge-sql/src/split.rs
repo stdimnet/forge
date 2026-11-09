@@ -96,7 +96,7 @@ fn separator_line(sql: &str, i: usize, dialect: Dialect) -> Option<usize> {
             words.next().is_some_and(|w| w.eq_ignore_ascii_case("go"))
                 && words
                     .next()
-                    .map_or(true, |n| n.bytes().all(|c| c.is_ascii_digit()))
+                    .is_none_or(|n| n.bytes().all(|c| c.is_ascii_digit()))
                 && words.next().is_none()
         }
         Dialect::Oracle => line == "/",

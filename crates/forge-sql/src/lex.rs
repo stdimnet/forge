@@ -123,7 +123,7 @@ pub fn tokenize(sql: &str, d: Dialect, o: LexOptions) -> Lexed<'_> {
             b'-' if next == Some(b'-')
                 && (d != Dialect::MySql
                     || b.get(i + 2)
-                        .map_or(true, |c| c.is_ascii_whitespace() || *c < 0x20)) =>
+                        .is_none_or(|c| c.is_ascii_whitespace() || *c < 0x20)) =>
             {
                 i = line_end(b, i);
             }

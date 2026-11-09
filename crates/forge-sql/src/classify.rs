@@ -758,7 +758,7 @@ mod tests {
         };
         sql.split(' ')
             .map(|w| {
-                if rng.next() % 2 == 0 {
+                if rng.next().is_multiple_of(2) {
                     w.to_ascii_lowercase()
                 } else {
                     w.to_ascii_uppercase()

@@ -100,7 +100,7 @@ impl RemoteCache {
     }
 
     async fn download(&self, url: &str) -> Result<String, String> {
-        if !self.allow_private && private_host(&crate::uri::document(url)) {
+        if !self.allow_private && private_host(crate::uri::document(url)) {
             return Err(format!(
                 "{url} is on a local or private network; remote schemas are only downloaded from public servers"
             ));
