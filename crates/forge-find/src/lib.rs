@@ -395,7 +395,9 @@ impl Finder {
     /// `text` with every match replaced by `with`, and how many were replaced. Matches are found
     /// line by line like [`Finder::search`]; line breaks are kept as they are. In regular
     /// expression mode `with` may use `$1`, `${name}` and `$$`; otherwise it is inserted as typed.
+    /// A group number ends like in PHPStorm (Java): `$1_controller` is group 1 and `_controller`.
     pub fn replace_text(&self, text: &str, with: &str) -> (String, usize) {
+        let with = &self.replacement(with);
         let mut out = String::with_capacity(text.len());
         let mut count = 0;
         for piece in text.split_inclusive('\n') {
@@ -407,6 +409,46 @@ impl Finder {
             count += n;
         }
         (out, count)
+    }
+
+    /// `with` in the syntax of `Captures::expand`: `$N` becomes `${N}`, since the regex crate
+    /// would read `$1_controller` as a group named `1_controller` and insert nothing. Like
+    /// Java, a group number takes further digits only while it stays a valid group (`$10` is
+    /// group 10 with ten groups, else group 1 and `0`).
+    fn replacement<'a>(&self, with: &'a str) -> std::borrow::Cow<'a, str> {
+        if !self.regex || !with.contains('$') {
+            return with.into();
+        }
+        let groups = self.re.captures_len();
+        let mut out = String::with_capacity(with.len() + 8);
+        let mut chars = with.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c != '$' {
+                out.push(c);
+                continue;
+            }
+            match chars.peek().copied() {
+                Some('$') => {
+                    chars.next();
+                    out.push_str("$$");
+                }
+                Some(d) if d.is_ascii_digit() => {
+                    chars.next();
+                    let mut n = d.to_digit(10).unwrap_or(0) as usize;
+                    while let Some(next) = chars.peek().and_then(|c| c.to_digit(10)) {
+                        let longer = n * 10 + next as usize;
+                        if longer >= groups {
+                            break;
+                        }
+                        n = longer;
+                        chars.next();
+                    }
+                    out.push_str(&format!("${{{n}}}"));
+                }
+                _ => out.push('$'),
+            }
+        }
+        out.into()
     }
 
     fn replace_line(&self, line: &str, with: &str) -> (String, usize) {
@@ -432,6 +474,7 @@ impl Finder {
     /// The matching lines of `text` as they would read after replacing: `(line, before, after)`,
     /// at most `budget` lines. Both texts are trimmed and cut like result rows.
     pub fn replace_preview(&self, text: &str, with: &str, budget: usize) -> Vec<ReplacePreview> {
+        let with = &self.replacement(with);
         let mut out = Vec::new();
         for (line_no, line) in text.split('\n').enumerate() {
             let line = line.strip_suffix('\r').unwrap_or(line);
@@ -835,6 +878,17 @@ mod tests {
         let (out, n) = finder.replace_text("me@home and you@work\n", "$2:$1");
         assert_eq!(out, "home:me and work:you\n");
         assert_eq!(n, 2);
+        // A group number ends at the first non-digit, or where it would name no group.
+        assert_eq!(
+            finder
+                .replace_text("me@home\n", "$1_at_$2Server $10 $$1 ${2}x")
+                .0,
+            "me_at_homeServer me0 $1 homex\n"
+        );
+        assert_eq!(
+            finder.replace_preview("me@home\n", "$1_x", 10)[0].after,
+            "me_x"
+        );
 
         let mut q = req("a*");
         q.regex = true;
