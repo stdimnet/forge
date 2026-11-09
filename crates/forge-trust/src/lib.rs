@@ -376,22 +376,31 @@ pub fn parent_location(project: &str) -> Option<String> {
 /// Whether a server or tool started as `program args…` for the project in `root` runs a
 /// program from the project: the program itself lies in the project (`node_modules/.bin`,
 /// `vendor/bin`, `./tool`), or an argument names a script or file inside it
-/// (`node /project/node_modules/x/server.js`). Lexical, so it also works for remote roots.
+/// (`node /project/node_modules/x/server.js`, also as an option value:
+/// `--require=/project/x.js`). Paths are compared with [`forge_core::paths::is_within`]:
+/// as written (verbatim prefixes, separators, `..`, letter case where the file system
+/// ignores it) and as this machine resolves them (symlinks, `/proc/self/root/…`). Remote
+/// roots are compared as written.
 pub fn runs_project_program(root: &Path, program: &str, args: &[String]) -> bool {
-    let root = normalize(&root.to_string_lossy());
     let inside = |p: &str| {
         let p = p.trim();
-        if p.is_empty() || p.starts_with('-') {
+        let p = if p.starts_with('-') {
+            match p.split_once('=') {
+                Some((_, value)) => value.trim(),
+                None => return false,
+            }
+        } else {
+            p
+        };
+        if p.is_empty() || !(p.contains('/') || p.contains('\\')) {
             return false;
         }
-        let looks_like_path = p.contains('/') || p.contains('\\');
-        if is_absolute(&p.replace('\\', "/")) {
-            contains(&root, p)
-        } else if looks_like_path {
-            contains(&root, &format!("{root}/{p}"))
+        let path = if is_absolute(&p.replace('\\', "/")) {
+            PathBuf::from(p)
         } else {
-            false
-        }
+            root.join(p)
+        };
+        forge_core::paths::is_within(root, &path)
     };
     inside(program) || args.iter().any(|a| inside(a))
 }
@@ -689,6 +698,90 @@ mod tests {
             &["/opt/x/server.js".into()]
         ));
         assert!(server_runs_project_code("rust-analyzer"));
+    }
+
+    #[test]
+    fn project_programs_are_found_in_every_spelling() {
+        let none: Vec<String> = Vec::new();
+        // Windows: a verbatim path, another letter case, `..` inside a verbatim path.
+        let win = Path::new(r"C:\Users\me\proj");
+        assert!(runs_project_program(
+            win,
+            r"\\?\C:\Users\me\proj\evil.exe",
+            &none
+        ));
+        assert!(runs_project_program(
+            win,
+            r"c:\users\ME\Proj\evil.exe",
+            &none
+        ));
+        assert!(runs_project_program(
+            win,
+            r"\\?\C:\Users\me\x\..\proj\evil.exe",
+            &none
+        ));
+        assert!(!runs_project_program(
+            win,
+            r"C:\Program Files\Lua\stylua.exe",
+            &none
+        ));
+        // Paths in option values.
+        let root = Path::new("/home/me/shop");
+        assert!(runs_project_program(
+            root,
+            "node",
+            &["--require=/home/me/shop/evil.js".into()]
+        ));
+        assert!(runs_project_program(
+            root,
+            "php",
+            &["-dauto_prepend_file=./evil.php".into()]
+        ));
+        assert!(!runs_project_program(
+            root,
+            "node",
+            &["--max-old-space-size=4096".into()]
+        ));
+        assert!(!runs_project_program(
+            root,
+            "node",
+            &["--require=/opt/x.js".into()]
+        ));
+    }
+
+    #[test]
+    fn project_programs_are_found_through_the_file_system() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = forge_core::paths::canonicalize(dir.path()).unwrap();
+        let root = base.join("proj");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("evil"), "").unwrap();
+        let none: Vec<String> = Vec::new();
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(&root, base.join("alias")).unwrap();
+            let via_link = base.join("alias/evil");
+            assert!(runs_project_program(
+                &root,
+                &via_link.to_string_lossy(),
+                &none
+            ));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let via_proc = format!("/proc/self/root{}", root.join("evil").display());
+            assert!(runs_project_program(&root, &via_proc, &none));
+        }
+        #[cfg(any(windows, target_os = "macos"))]
+        {
+            let upper = root.join("evil").to_string_lossy().to_uppercase();
+            assert!(runs_project_program(&root, &upper, &none));
+        }
+        assert!(!runs_project_program(
+            &root,
+            &base.join("other/tool").to_string_lossy(),
+            &none
+        ));
         assert!(!server_runs_project_code("intelephense"));
     }
 }

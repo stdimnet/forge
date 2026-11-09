@@ -16,7 +16,12 @@ Recipe: [`add-setting`](../../../.claude/skills/add-setting/SKILL.md). User docu
 `forge_core::Settings` merges four layers: schema defaults < user
 (`<config dir>/forge/settings.toml`) < Settings for New Projects
 (`<config dir>/forge/new-project-settings.toml`, scope `newProjects`, only settings declared
-with `project = true`) < project (`<project>/.forge/settings.toml`). Keys are
+with `project = true`) < project (`<project>/.forge/settings.toml`). Settings without
+`project = true` are **user-only**: `forge_plugin_api::apply_setting_specs` registers the
+schema's defaults and marks them (`Settings::set_user_only`), `resolve`, `get*` and `effective`
+skip their project values, and `set` refuses to store them in the project layer. A project's
+file comes with its (possibly untrusted) checkout, so it never chooses IDE settings such as
+`vcs.git.path` or `updates.endpoint`. Keys are
 dotted (`editor.font.size`) and stored as nested TOML tables. Values are JSON so they cross IPC
 unchanged. Writing a value persists its layer and notifies subscribers with the new effective
 value (`SettingsChange { key, value, scope }`), which the shell forwards as `settings://changed`.
@@ -44,7 +49,7 @@ default = true
 group = "appearance"     # settings page id
 section = "Project View" # optional heading on the page
 order = 40
-project = true           # optional: may be stored per project
+project = true           # optional: may be stored per project (otherwise user-only)
 # int/number: min = 10, max = 20 (number: step)
 # enum: options = [{ value = "auto", label = "Platform default" }, …]
 ```

@@ -9437,6 +9437,12 @@ those options are saved to the project's file, which you can commit to share the
 team (for example the PHP language level or the Symfony environment). A value that equals
 what the layers below give is not stored again, so the project keeps following them.
 
+All other options are IDE settings and are never taken from a project's
+`.forge/settings.toml`, even when the file contains them: a cloned repository cannot choose,
+for example, the Git executable, the npm registry Forge installs language servers from, the
+update channel or the update feed. Forge ignores such values and refuses to store them in the
+project.
+
 ### Settings for New Projects
 
 File | New Projects Setup | **Settings for New Projects…** opens the Settings dialog for the
@@ -17563,6 +17569,12 @@ Click **Trust Project…** in the banner (or run *Trust Project…* through Find
 After trusting, everything below is available at once; language servers that were held back
 start on the next file you open.
 
+While a window switches from one project to another, Safe Mode stays on until the new
+project's trust applies, so nothing started in between runs the new project's programs with
+the old project's trust. Whether a program or file lies inside the project is checked on the
+resolved path (symlinks, `/proc/self/root/…`) and in every spelling (`\\?\C:\…`, other letter
+case on Windows and macOS), also for plugins that write project files.
+
 ### What does not run in Safe Mode
 
 Forge's backend refuses these commands with an error that names the action, so they stay
@@ -17587,6 +17599,9 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby interpreters inside the project (a `bin/ruby` chosen in the project's settings or found on the `PATH`) | not run, not even for their version |
+| Android: `adb` and the emulator of an SDK inside the project; `sdk.dir` in `local.properties` | not run; `local.properties` is not read for the SDK |
+| Groovy installed in the project (`node_modules/.bin/groovy`) | not run, not even for its version |
 | Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
@@ -17598,6 +17613,11 @@ project (for example a server from npm or Forge's own install), Git, Local Histo
 databases, the HTTP client and [Deployment](docs/guide/user/deployment.md) actions you start yourself (upload,
 download, compare and sync only copy files), and the [Remote Host](docs/guide/user/remote-host-and-ssh.md)
 tool window with Edit Remote File.
+
+IDE settings never come from the project, trusted or not: its `.forge/settings.toml` cannot
+choose the Git executable, the npm registry or Node.js mirror for language server installs,
+the update feed or channel, or the Android and Groovy SDKs (see
+[User and project settings](docs/guide/user/settings-and-themes.md#user-and-project-settings)).
 
 The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
 settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your
@@ -28849,7 +28869,12 @@ Recipe: [`add-setting`](.claude/skills/add-setting/SKILL.md). User documentation
 `forge_core::Settings` merges four layers: schema defaults < user
 (`<config dir>/forge/settings.toml`) < Settings for New Projects
 (`<config dir>/forge/new-project-settings.toml`, scope `newProjects`, only settings declared
-with `project = true`) < project (`<project>/.forge/settings.toml`). Keys are
+with `project = true`) < project (`<project>/.forge/settings.toml`). Settings without
+`project = true` are **user-only**: `forge_plugin_api::apply_setting_specs` registers the
+schema's defaults and marks them (`Settings::set_user_only`), `resolve`, `get*` and `effective`
+skip their project values, and `set` refuses to store them in the project layer. A project's
+file comes with its (possibly untrusted) checkout, so it never chooses IDE settings such as
+`vcs.git.path` or `updates.endpoint`. Keys are
 dotted (`editor.font.size`) and stored as nested TOML tables. Values are JSON so they cross IPC
 unchanged. Writing a value persists its layer and notifies subscribers with the new effective
 value (`SettingsChange { key, value, scope }`), which the shell forwards as `settings://changed`.
@@ -28877,7 +28902,7 @@ default = true
 group = "appearance"     # settings page id
 section = "Project View" # optional heading on the page
 order = 40
-project = true           # optional: may be stored per project
+project = true           # optional: may be stored per project (otherwise user-only)
 # int/number: min = 10, max = 20 (number: step)
 # enum: options = [{ value = "auto", label = "Platform default" }, …]
 ```
@@ -29654,7 +29679,12 @@ updates.
 
 Forge updates itself with `tauri-plugin-updater`: it reads `latest.json`, downloads the bundle
 for its platform, verifies the bundle's minisign signature against the public key built into
-the app, installs it and restarts. When and what to offer (once a day, skipped versions,
+the app, installs it and restarts. `tauri.conf.json` sets `requireSignedVersion`: the
+signature's trusted comment must name the version the feed announces (the Tauri CLI writes it
+when it signs a bundle), so a feed cannot pair a newer version number with an older signed
+build. Feeds are read over `https` only (plain `http` only from `localhost`) and at most 1 MB.
+`updates.endpoint` and `updates.channel` are IDE settings: a project's `.forge/settings.toml`
+never sets them. When and what to offer (once a day, skipped versions,
 channel, version compare) is decided in [`forge-update`](docs/guide/developer/crates/forge-update.md); the shell side
 is `app/src-tauri/src/commands/updates.rs` and the splash steps are in
 `app/src-tauri/src/startup.rs`.
@@ -31378,10 +31408,10 @@ Forge core: the language-agnostic foundation every pack builds on.
 | `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
 | `lifecycle.rs` | The window's project lifecycle: `ProjectLifecycleBus` runs `ProjectLifecycle` subscribers (`beforeClose` objections, `closing`, `opened`, `ready`) in a fixed order with error and panic isolation, tracks the open project and its generation (a late `ready` of an earlier project is dropped) and defines the `project://lifecycle` event payload (`LifecycleEvent`, `ProjectRef`, `Objection`). See ARCHITECTURE.md, "Project lifecycle". |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
-| `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. |
+| `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. `is_within(root, path)` is the one "is this inside the project?" check of Safe Mode: it compares the spellings (`within`: verbatim prefixes, separators, `.`/`..`, letter case for drive and UNC paths and on Windows and macOS) and the paths as the file system resolves them (`resolve_existing`: symlinks, `/proc/self/root`, missing files by their deepest existing folder). |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
-| `settings.rs` | Layered settings: built-in defaults < user < Settings for New Projects (`SettingsScope::NewProjects`, `new-project-settings.toml`) < project. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes); `parse_settings_toml` / `settings_to_toml` convert between flat keys and the nested files (settings archives). |
+| `settings.rs` | Layered settings: built-in defaults < user < Settings for New Projects (`SettingsScope::NewProjects`, `new-project-settings.toml`) < project. User-only keys (`set_user_only`: schema settings without `project = true`) ignore the project layer and cannot be stored in it. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes); `parse_settings_toml` / `settings_to_toml` convert between flat keys and the nested files (settings archives). |
 | `watch.rs` | Watches the open project for changes made outside the editor (git checkouts, composer, code generators, other editors) and reports them in debounced batches. |
 | `workspace.rs` |  |
 
@@ -35433,8 +35463,11 @@ The logic behind [Project trust and Safe Mode](docs/guide/user/project-trust.md)
 - `SafeMode` is the shared flag of the open project; `check(what)` returns the error
   `refusal(what)` while it is on.
 - `runs_project_program(root, program, args)` tells whether a command starts a program from
-  the project (the program or a path argument lies inside `root`), lexically so it works for
-  remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
+  the project (the program, a path argument or an option value such as `--require=…` lies
+  inside `root`). It compares with `forge_core::paths::is_within`: the spelling (Windows'
+  `\\?\` prefix, `\` and `/`, `..`, letter case on Windows and macOS and for drive paths) and
+  what this machine resolves (symlinks, `/proc/self/root/…`), so remote roots still work by
+  their spelling; `server_runs_project_code(id)` lists catalog language servers that execute
   project files (`SERVERS_RUNNING_PROJECT_CODE`; DotNetForge adds `roslyn` and `fsautocomplete`, which load MSBuild projects).
 - `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
   deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
@@ -35491,7 +35524,8 @@ without a window or an app handle, so it is unit tested.
 `pick_feed` takes the newest release among the answers: a missing beta feed (404) is ignored as
 long as the stable feed answers, and a feed marked `"channel": "beta"` never counts on the
 stable channel. The offer remembers its feed (`UpdateOffer::feed`), so the download reads the
-same one. An `updates.endpoint` override is the only feed read.
+same one. An `updates.endpoint` override is the only feed read. `fetch_feed` reads only `https`
+feeds (`check_endpoint`; plain `http` only from `localhost`) of at most `MAX_FEED_BYTES` (1 MB).
 - `simulate`: a fake offer and download for `FORGE_SIMULATE_UPDATE` (desktop dev builds) and
   `?simulateUpdate` (browser mode). Nothing is installed.
 - `meter`: the download speed shown while an update downloads.

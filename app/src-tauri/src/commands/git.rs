@@ -18,8 +18,13 @@ pub const CHANGED_EVENT: &str = "git://changed";
 /// Settings | Version Control | Git, "Path to Git executable" (`vcs.git.path`), applied
 /// before every git command so a changed path takes effect at once.
 pub(crate) fn apply_git_path(state: &AppState) {
-    let path = state.read_settings().get_as::<String>("vcs.git.path");
-    forge_vcs::set_git_program(path.as_deref());
+    forge_vcs::set_git_program(git_path(&state.read_settings()).as_deref());
+}
+
+/// The Git executable of the settings. `vcs.git.path` is an IDE setting: a project's
+/// `.forge/settings.toml` never chooses the program Forge runs for every Git command.
+fn git_path(settings: &forge_core::Settings) -> Option<String> {
+    settings.get_as::<String>("vcs.git.path")
 }
 
 pub(crate) async fn with_repo<T, F>(state: &AppState, f: F) -> Result<T>
@@ -471,5 +476,19 @@ mod tests {
         assert_eq!(update_method_rebase(Some("merge")), Some(false));
         assert_eq!(update_method_rebase(Some("rebase")), Some(true));
         assert_eq!(update_method_rebase(Some("branchDefault")), None);
+    }
+
+    #[test]
+    fn projects_cannot_choose_the_git_executable() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".forge")).unwrap();
+        std::fs::write(dir.path().join(".forge/x.sh"), "#!/bin/sh\ntouch pwned\n").unwrap();
+        std::fs::write(
+            dir.path().join(".forge/settings.toml"),
+            "[vcs.git]\npath = \"./.forge/x.sh\"\n",
+        )
+        .unwrap();
+        let settings = crate::plugins::test_settings(dir.path());
+        assert_eq!(git_path(&settings).as_deref(), Some("git"));
     }
 }

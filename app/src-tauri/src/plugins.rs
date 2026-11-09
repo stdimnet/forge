@@ -111,11 +111,72 @@ pub fn builtin_registry() -> Result<PluginRegistry> {
     Ok(registry)
 }
 
+/// Settings with the built-in schema (defaults, user-only keys) and the project layer of
+/// `root`, without the user's own files (for tests).
+#[cfg(test)]
+pub(crate) fn test_settings(root: &std::path::Path) -> forge_core::Settings {
+    let mut settings = forge_core::Settings::new();
+    forge_plugin_api::apply_setting_specs(
+        &mut settings,
+        builtin_registry().unwrap().all_settings(),
+    );
+    settings.load_project(root).unwrap();
+    settings
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::HashSet;
     use std::path::PathBuf;
+
+    #[test]
+    fn ide_settings_are_user_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let settings = test_settings(dir.path());
+        // Programs, servers and feeds Forge uses for the user.
+        for key in [
+            "vcs.git.path",
+            "langservers.download.npmRegistry",
+            "langservers.download.nodeMirror",
+            "updates.endpoint",
+            "updates.channel",
+            "android.sdk.path",
+            "groovy.sdk.path",
+            "terminal.shellPath",
+        ] {
+            assert!(settings.is_user_only(key), "{key}");
+        }
+        // Project settings stay with the project, including the keys the Code Style and
+        // Inspections pages store in it.
+        for spec in builtin_registry().unwrap().all_settings() {
+            assert_eq!(
+                settings.is_user_only(&spec.key),
+                !spec.project,
+                "{}",
+                spec.key
+            );
+        }
+        for key in [
+            forge_codestyle::scheme::SCHEME_KEY,
+            forge_codestyle::scheme::LEGACY_BRACES_KEY,
+            forge_inspections::store::SELECTED_KEY,
+            forge_inspections::store::PROJECT_PROFILES_KEY,
+            "projectStructure.folders",
+            "jsonSchema.mappings",
+            "deployment.autoUpload",
+            "editor.codeStyle.detectIndents",
+            "ruby.interpreter",
+        ] {
+            assert!(!settings.is_user_only(key), "{key}");
+        }
+        let model = forge_codestyle::model();
+        for full in model.defaults().into_keys() {
+            if let Some(key) = forge_codestyle::scheme::settings_key(&full) {
+                assert!(!settings.is_user_only(&key), "{key}");
+            }
+        }
+    }
 
     #[test]
     fn manifests_are_consistent() {

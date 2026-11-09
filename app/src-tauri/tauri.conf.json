@@ -88,6 +88,7 @@
     "updater": {
       "pubkey": "",
       "endpoints": [],
+      "requireSignedVersion": true,
       "windows": { "installMode": "passive" }
     }
   }

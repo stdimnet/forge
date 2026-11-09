@@ -21,7 +21,7 @@ use forge_core::{ForgeError, Result};
 use forge_lsp::{LspManager, LspServerConfig};
 use forge_process::{CommandLine, RunConfiguration};
 use rubyforge_lang_ruby::{Bundle, RakeTask, RubyCommand, RubyContext, RubyProblem};
-use rubyforge_sdk::detect::{system_runner, Interpreter};
+use rubyforge_sdk::detect::{system_runner, Interpreter, Runner};
 use rubyforge_sdk::{RubyEnv, RubyStatus};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -87,17 +87,33 @@ type Cached = (PathBuf, String, Instant, RubyStatus);
 static STATUS: Mutex<Option<Cached>> = Mutex::new(None);
 
 /// The interpreters added in Settings (`ruby.interpreters`), probed for their version.
-fn custom_interpreters(state: &AppState) -> Vec<Interpreter> {
+fn custom_interpreters(state: &AppState, run: &Runner) -> Vec<Interpreter> {
     list(state, "ruby.interpreters")
         .into_iter()
         .filter(|p| Path::new(p).is_file())
-        .map(|p| probe_interpreter(&p))
+        .map(|p| probe_interpreter(&p, run))
         .collect()
 }
 
-fn probe_interpreter(path: &str) -> Interpreter {
+/// The runner of the interpreter probes. In Safe Mode it never starts a program inside the
+/// project, not even for its version: a `ruby` in the project's `bin/`, chosen by the
+/// project's `ruby.interpreter` or found on the `PATH`, is the project's code.
+fn probe_runner(root: &Path, safe_mode: bool) -> impl Fn(&Path, &[String]) -> Option<String> + '_ {
+    move |program, args| {
+        if safe_mode && forge_core::paths::is_within(root, program) {
+            tracing::info!(
+                "not probing {} in Safe Mode: it is inside the project",
+                program.display()
+            );
+            return None;
+        }
+        system_runner(program, args)
+    }
+}
+
+fn probe_interpreter(path: &str, run: &Runner) -> Interpreter {
     let ruby = Path::new(path);
-    let version = system_runner(
+    let version = run(
         ruby,
         &["-e".to_string(), rubyforge_sdk::detect::PROBE.to_string()],
     )
@@ -142,8 +158,10 @@ pub(crate) fn status(state: &AppState, refresh: bool) -> RubyStatus {
     let read = |p: &str| backend.read_optional(p).ok().flatten();
     let request = rubyforge_lang_ruby::requested_version(&read);
     let env = RubyEnv::system();
-    let mut s = rubyforge_sdk::detect(&env, &chosen, request.clone(), &system_runner);
-    let custom = custom_interpreters(state);
+    let safe_mode = state.safe_mode.is_on();
+    let run = probe_runner(&root, safe_mode);
+    let mut s = rubyforge_sdk::detect(&env, &chosen, request.clone(), &run);
+    let custom = custom_interpreters(state, &run);
     if !custom.is_empty() {
         s.interpreters.extend(custom);
         let global = rubyforge_sdk::detect::global_version(&env);
@@ -158,14 +176,16 @@ pub(crate) fn status(state: &AppState, refresh: bool) -> RubyStatus {
             }
         }
     }
-    // A Ruby inside an untrusted project must not run, not even for its version.
-    if state.safe_mode.is_on() {
+    // A Ruby inside an untrusted project must not run later either (the probes above
+    // already skipped it).
+    if safe_mode {
         if let Some(c) = &s.chosen {
-            if Path::new(&c.interpreter.path).starts_with(&root) {
+            if forge_core::paths::is_within(&root, Path::new(&c.interpreter.path)) {
                 s.chosen = None;
             }
         }
     }
+    drop(run);
     *STATUS.lock().expect("ruby status") = Some((root, chosen, Instant::now(), s.clone()));
     s
 }
@@ -336,7 +356,7 @@ pub async fn ruby_interpreter_probe(path: String) -> Result<Interpreter> {
         if !Path::new(&path).is_file() {
             return Err(ForgeError::Other(format!("{path} is not a file")));
         }
-        let i = probe_interpreter(&path);
+        let i = probe_interpreter(&path, &system_runner);
         if i.version.is_empty() {
             return Err(ForgeError::Other(format!(
                 "{path} is not a Ruby interpreter"
@@ -967,6 +987,43 @@ mod tests {
         assert_eq!(take_rdbg_port(&mut env), Some(40123));
         assert!(!env.contains_key(RDBG_PORT_ENV));
         assert!(is_ruby_type("rspec") && is_ruby_type("rake") && !is_ruby_type("cargo"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn safe_mode_never_runs_a_project_ruby_for_its_status() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let root = forge_core::paths::canonicalize(dir.path())
+            .unwrap()
+            .join("shop");
+        std::fs::create_dir_all(root.join("bin")).unwrap();
+        std::fs::write(root.join("Gemfile"), "source \"https://rubygems.org\"\n").unwrap();
+        let marker = dir.path().join("ran");
+        let ruby = root.join("bin/ruby");
+        std::fs::write(&ruby, format!("#!/bin/sh\ntouch '{}'\n", marker.display())).unwrap();
+        std::fs::set_permissions(&ruby, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let state = AppState::for_tests(dir.path().join("trusted-projects.toml"));
+        state.set_workspace(forge_core::Workspace::open(&root).unwrap());
+        assert!(state.safe_mode.is_on());
+        // The untrusted project chooses its own `bin/ruby`.
+        state
+            .write_settings()
+            .set(
+                "ruby.interpreter",
+                serde_json::json!(ruby.to_string_lossy()),
+                forge_core::SettingsScope::Project,
+            )
+            .unwrap();
+        let s = status(&state, true);
+        assert!(!marker.exists(), "the project's ruby ran in Safe Mode");
+        assert!(s
+            .chosen
+            .is_none_or(|c| c.interpreter.path != ruby.to_string_lossy()));
+        // A probe on the PATH is skipped the same way.
+        let run = probe_runner(&root, true);
+        assert_eq!(run(&ruby, &["-v".to_string()]), None);
+        assert!(!marker.exists());
     }
 
     #[test]

@@ -176,8 +176,12 @@ fn endpoint(app: &AppHandle) -> String {
 
 /// Every feed the selected channel reads (the beta channel also reads the stable feed).
 fn endpoints(app: &AppHandle) -> Vec<String> {
-    let state = app.state::<AppState>();
-    let settings = state.read_settings();
+    feeds(&app.state::<AppState>().read_settings())
+}
+
+/// The feeds of `settings`. `updates.endpoint` and `updates.channel` are user-only: a
+/// project's `.forge/settings.toml` never points Forge at another feed.
+fn feeds(settings: &forge_core::Settings) -> Vec<String> {
     forge_update::Channel::from_setting(settings.get_str(KEY_CHANNEL))
         .endpoints(settings.get_str(KEY_ENDPOINT))
 }
@@ -638,4 +642,37 @@ pub fn updates_status(app: AppHandle, updates: State<'_, UpdatesState>) -> Updat
 #[tauri::command]
 pub fn updates_clear_skipped(updates: State<'_, UpdatesState>) {
     updates.update_state(|s| s.clear_skipped());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signatures_must_bind_the_announced_version() {
+        // Without it, a feed may pair a newer version number with an older, genuinely
+        // signed build (a downgrade to a vulnerable release).
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        assert_eq!(
+            conf["plugins"]["updater"]["requireSignedVersion"],
+            serde_json::json!(true)
+        );
+    }
+
+    #[test]
+    fn projects_cannot_choose_the_update_feed() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".forge")).unwrap();
+        std::fs::write(
+            dir.path().join(".forge/settings.toml"),
+            "[updates]\nendpoint = \"https://evil.example/latest.json\"\nchannel = \"beta\"\n",
+        )
+        .unwrap();
+        let settings = crate::plugins::test_settings(dir.path());
+        assert_eq!(
+            feeds(&settings),
+            vec![forge_update::DEFAULT_ENDPOINT.to_string()]
+        );
+    }
 }

@@ -50,6 +50,12 @@ Click **Trust Project…** in the banner (or run *Trust Project…* through Find
 After trusting, everything below is available at once; language servers that were held back
 start on the next file you open.
 
+While a window switches from one project to another, Safe Mode stays on until the new
+project's trust applies, so nothing started in between runs the new project's programs with
+the old project's trust. Whether a program or file lies inside the project is checked on the
+resolved path (symlinks, `/proc/self/root/…`) and in every spelling (`\\?\C:\…`, other letter
+case on Windows and macOS), also for plugins that write project files.
+
 ### What does not run in Safe Mode
 
 Forge's backend refuses these commands with an error that names the action, so they stay
@@ -74,6 +80,9 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby interpreters inside the project (a `bin/ruby` chosen in the project's settings or found on the `PATH`) | not run, not even for their version |
+| Android: `adb` and the emulator of an SDK inside the project; `sdk.dir` in `local.properties` | not run; `local.properties` is not read for the SDK |
+| Groovy installed in the project (`node_modules/.bin/groovy`) | not run, not even for its version |
 | Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
@@ -85,6 +94,11 @@ project (for example a server from npm or Forge's own install), Git, Local Histo
 databases, the HTTP client and [Deployment](deployment.md) actions you start yourself (upload,
 download, compare and sync only copy files), and the [Remote Host](remote-host-and-ssh.md)
 tool window with Edit Remote File.
+
+IDE settings never come from the project, trusted or not: its `.forge/settings.toml` cannot
+choose the Git executable, the npm registry or Node.js mirror for language server installs,
+the update feed or channel, or the Android and Groovy SDKs (see
+[User and project settings](settings-and-themes.md#user-and-project-settings)).
 
 The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
 settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your

@@ -28,8 +28,11 @@ The logic behind [Project trust and Safe Mode](../../user/project-trust.md):
 - `SafeMode` is the shared flag of the open project; `check(what)` returns the error
   `refusal(what)` while it is on.
 - `runs_project_program(root, program, args)` tells whether a command starts a program from
-  the project (the program or a path argument lies inside `root`), lexically so it works for
-  remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
+  the project (the program, a path argument or an option value such as `--require=…` lies
+  inside `root`). It compares with `forge_core::paths::is_within`: the spelling (Windows'
+  `\\?\` prefix, `\` and `/`, `..`, letter case on Windows and macOS and for drive paths) and
+  what this machine resolves (symlinks, `/proc/self/root/…`), so remote roots still work by
+  their spelling; `server_runs_project_code(id)` lists catalog language servers that execute
   project files (`SERVERS_RUNNING_PROJECT_CODE`; DotNetForge adds `roslyn` and `fsautocomplete`, which load MSBuild projects).
 - `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
   deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the

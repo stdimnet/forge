@@ -73,9 +73,16 @@ fn local_only(backend: &dyn Backend) -> Result<()> {
 
 // ---- SDK and modules -----------------------------------------------------------------------
 
+/// The SDK: `android.sdk.path` (an IDE setting, never the project's), `ANDROID_HOME`,
+/// `local.properties` and the default folder. In Safe Mode `local.properties` is skipped: it
+/// is a project file, and Forge runs the SDK's `adb` and `emulator`.
 fn find_sdk(state: &AppState, backend: &dyn Backend) -> Option<SdkLocation> {
     let setting = java::setting(state, "android.sdk.path");
-    let props = backend.read_optional("local.properties").ok().flatten();
+    let props = if state.safe_mode.is_on() {
+        None
+    } else {
+        backend.read_optional("local.properties").ok().flatten()
+    };
     let env = |k: &str| std::env::var(k).ok();
     let home = dirs::home_dir();
     let is_sdk = |p: &Path| {
@@ -277,50 +284,57 @@ fn devices_of(adb_path: &Path) -> Result<Vec<Device>> {
 
 #[tauri::command]
 pub async fn android_devices(app: AppHandle) -> Result<DevicesSnapshot> {
-    blocking(move || {
-        let state = app.state::<AppState>();
-        let backend = state.backend()?;
-        local_only(backend.as_ref())?;
-        let sdk = find_sdk(&state, backend.as_ref());
-        let adb_path = find_adb(sdk.as_ref(), backend.as_ref());
-        let emulator = find_emulator(sdk.as_ref(), backend.as_ref());
-        let mut error = None;
-        let devices = match &adb_path {
-            Some(a) => devices_of(a).unwrap_or_else(|e| {
+    blocking(move || devices_snapshot(&app.state::<AppState>())).await
+}
+
+const RUN_ADB: &str = "Running adb from the project";
+const RUN_EMULATOR: &str = "Running the Android Emulator from the project";
+
+fn devices_snapshot(state: &AppState) -> Result<DevicesSnapshot> {
+    let backend = state.backend()?;
+    local_only(backend.as_ref())?;
+    let sdk = find_sdk(state, backend.as_ref());
+    let adb_path = find_adb(sdk.as_ref(), backend.as_ref());
+    let emulator = find_emulator(sdk.as_ref(), backend.as_ref());
+    let mut error = None;
+    let devices = match &adb_path {
+        Some(a) => state
+            .refuse_project_program(a, RUN_ADB)
+            .and_then(|()| devices_of(a))
+            .unwrap_or_else(|e| {
                 error = Some(e.to_string());
                 Vec::new()
             }),
-            None => Vec::new(),
-        };
-        let avds = emulator
-            .as_ref()
-            .and_then(|e| run_tool(e, &["-list-avds"], Duration::from_secs(20)).ok())
-            .map(|o| adb::parse_avds(&o))
-            .unwrap_or_default()
-            .into_iter()
-            .map(|name| Avd {
-                serial: devices
-                    .iter()
-                    .find(|d| d.avd.as_deref() == Some(name.as_str()))
-                    .map(|d| d.serial.clone()),
-                name,
-            })
-            .collect();
-        let hint = if sdk.is_none() && adb_path.is_none() {
-            Some(sdk::NO_SDK_HINT.to_string())
-        } else {
-            None
-        };
-        Ok(DevicesSnapshot {
-            devices,
-            avds,
-            adb: adb_path.map(|p| p.display().to_string()),
-            emulator: emulator.map(|p| p.display().to_string()),
-            hint,
-            error,
+        None => Vec::new(),
+    };
+    let avds = emulator
+        .as_ref()
+        .filter(|e| state.refuse_project_program(e, RUN_EMULATOR).is_ok())
+        .and_then(|e| run_tool(e, &["-list-avds"], Duration::from_secs(20)).ok())
+        .map(|o| adb::parse_avds(&o))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|name| Avd {
+            serial: devices
+                .iter()
+                .find(|d| d.avd.as_deref() == Some(name.as_str()))
+                .map(|d| d.serial.clone()),
+            name,
         })
+        .collect();
+    let hint = if sdk.is_none() && adb_path.is_none() {
+        Some(sdk::NO_SDK_HINT.to_string())
+    } else {
+        None
+    };
+    Ok(DevicesSnapshot {
+        devices,
+        avds,
+        adb: adb_path.map(|p| p.display().to_string()),
+        emulator: emulator.map(|p| p.display().to_string()),
+        hint,
+        error,
     })
-    .await
 }
 
 /// Start an emulator (it keeps running after Forge exits, like Android Studio's).
@@ -334,6 +348,7 @@ pub async fn android_emulator_start(avd: String, app: AppHandle) -> Result<()> {
         let emulator = find_emulator(sdk.as_ref(), backend.as_ref()).ok_or_else(|| {
             other("The Android Emulator was not found in the SDK (emulator/emulator)")
         })?;
+        state.refuse_project_program(&emulator, RUN_EMULATOR)?;
         let mut cmd = Command::new(&emulator);
         cmd.args(["-avd", avd.trim()]);
         if let Some(s) = &sdk {
@@ -400,6 +415,7 @@ pub async fn android_logcat_start(
         let sdk = find_sdk(&state, backend.as_ref());
         let adb_path = find_adb(sdk.as_ref(), backend.as_ref())
             .ok_or_else(|| other("adb was not found: install the Android SDK platform-tools"))?;
+        state.refuse_project_program(&adb_path, RUN_ADB)?;
         stop_session();
         let capacity = state
             .read_settings()
@@ -615,6 +631,8 @@ pub(crate) fn command_line(
     let sdk = find_sdk(state, backend.as_ref());
     let adb_path = find_adb(sdk.as_ref(), backend.as_ref())
         .ok_or_else(|| other("adb was not found: install the Android SDK platform-tools"))?;
+    // Listing the devices runs adb before the run itself is refused in Safe Mode.
+    state.refuse_project_program(&adb_path, RUN_ADB)?;
     let serial = match cfg.option("device").trim() {
         "" => devices_of(&adb_path)?
             .into_iter()
@@ -663,4 +681,47 @@ pub(crate) fn command_line(
     }
     cmd.env.extend(cfg.env.clone());
     Ok(Some(cmd))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn safe_mode_never_runs_the_project_sdk() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let root = forge_core::paths::canonicalize(dir.path())
+            .unwrap()
+            .join("app");
+        let marker = dir.path().join("ran");
+        let tools = root.join("tools/sdk");
+        for (sub, name) in [("platform-tools", "adb"), ("emulator", "emulator")] {
+            std::fs::create_dir_all(tools.join(sub)).unwrap();
+            let tool = tools.join(sub).join(name);
+            std::fs::write(&tool, format!("#!/bin/sh\ntouch '{}'\n", marker.display())).unwrap();
+            std::fs::set_permissions(&tool, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        std::fs::write(
+            root.join("local.properties"),
+            format!("sdk.dir={}\n", tools.display()),
+        )
+        .unwrap();
+        let state = AppState::for_tests(dir.path().join("trusted-projects.toml"));
+        state.set_workspace(forge_core::Workspace::open(&root).unwrap());
+        assert!(state.safe_mode.is_on());
+        let backend = state.backend().unwrap();
+        // The project's `local.properties` does not choose the SDK in Safe Mode.
+        assert!(find_sdk(&state, backend.as_ref()).is_none_or(|s| !s.path.starts_with(&root)));
+        let _ = devices_snapshot(&state);
+        assert!(
+            !marker.exists(),
+            "the project's adb or emulator ran in Safe Mode"
+        );
+        // A tool inside the project is refused wherever it was found.
+        assert!(state
+            .refuse_project_program(&tools.join("platform-tools/adb"), RUN_ADB)
+            .is_err());
+    }
 }
