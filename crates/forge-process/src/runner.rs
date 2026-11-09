@@ -3,17 +3,18 @@
 //! process tree (so `composer run` or `npm run` children stop too).
 
 use std::collections::BTreeMap;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
-use std::process::{Child, ChildStdin, Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::args::quote_arg;
+use crate::queued::QueuedWriter;
 use crate::utf8::Utf8Decoder;
 
 /// A fully resolved command: what the Run tool window shows on its first line.
@@ -93,7 +94,8 @@ pub type RunSink = Arc<dyn Fn(RunEvent) + Send + Sync>;
 /// A started process. Dropping it does not stop the process; call [`RunningProcess::kill`].
 pub struct RunningProcess {
     pid: u32,
-    stdin: Mutex<Option<ChildStdin>>,
+    /// Queued, so a program that does not read its input never blocks the caller.
+    stdin: Option<QueuedWriter>,
     exited: Arc<AtomicBool>,
 }
 
@@ -140,7 +142,13 @@ impl RunningProcess {
             pid,
             command_line: cmd.display(),
         });
-        let stdin = child.stdin.take();
+        let stdin = match child.stdin.take() {
+            Some(s) => Some(
+                QueuedWriter::spawn(format!("run-stdin-{pid}"), s)
+                    .map_err(|e| ForgeError::Other(e.to_string()))?,
+            ),
+            None => None,
+        };
         let readers = [
             pump(child.stdout.take(), OutputStream::Stdout, sink.clone()),
             pump(child.stderr.take(), OutputStream::Stderr, sink.clone()),
@@ -158,11 +166,7 @@ impl RunningProcess {
                 sink(RunEvent::Exited { code, signal });
             })
             .map_err(|e| ForgeError::Other(e.to_string()))?;
-        Ok(Self {
-            pid,
-            stdin: Mutex::new(stdin),
-            exited,
-        })
+        Ok(Self { pid, stdin, exited })
     }
 
     pub fn pid(&self) -> u32 {
@@ -173,21 +177,21 @@ impl RunningProcess {
         self.exited.load(Ordering::SeqCst)
     }
 
-    /// Write to the process's stdin (input typed into the Run console).
+    /// Write to the process's stdin (input typed into the Run console). Never blocks: the
+    /// data is queued and written in order, even while the process does not read.
     pub fn write_stdin(&self, data: &[u8]) -> Result<()> {
-        let mut guard = self.stdin.lock().expect("stdin poisoned");
-        let stdin = guard
-            .as_mut()
-            .ok_or_else(|| ForgeError::Other("stdin is closed".into()))?;
-        stdin
-            .write_all(data)
-            .and_then(|_| stdin.flush())
-            .map_err(|e| ForgeError::Other(e.to_string()))
+        self.stdin
+            .as_ref()
+            .ok_or("stdin is closed")
+            .and_then(|s| s.write(data))
+            .map_err(|_| ForgeError::Other("stdin is closed".into()))
     }
 
-    /// Close stdin (Ctrl+D in the console).
+    /// Close stdin (Ctrl+D in the console), after the input queued so far.
     pub fn close_stdin(&self) {
-        self.stdin.lock().expect("stdin poisoned").take();
+        if let Some(s) = &self.stdin {
+            s.close();
+        }
     }
 
     /// Stop the process and its children. On Unix the group gets SIGTERM and, if it is still
@@ -285,7 +289,7 @@ fn kill_tree(pid: u32, _grace: Duration, _exited: Arc<AtomicBool>) {
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
-    use std::sync::mpsc;
+    use std::sync::{mpsc, Mutex};
 
     fn run(cmd: CommandLine) -> (RunningProcess, mpsc::Receiver<RunEvent>) {
         let (tx, rx) = mpsc::channel();
@@ -342,6 +346,29 @@ mod tests {
         p.write_stdin(b"forge\n").unwrap();
         let (out, _, exit) = drain(&rx);
         assert!(out.contains("got:forge"), "{out}");
+        assert_eq!(exit, Some((Some(0), None)));
+    }
+
+    /// Input for a process that never reads stdin is queued instead of blocking the caller
+    /// once the pipe buffer (64 KB on Linux) is full.
+    #[test]
+    fn large_input_does_not_block() {
+        let (p, _rx) = run(CommandLine::new("/bin/sleep").arg("30"));
+        let started = std::time::Instant::now();
+        p.write_stdin(&vec![b'x'; 1024 * 1024]).unwrap();
+        p.write_stdin(b"more").unwrap();
+        assert!(started.elapsed() < Duration::from_secs(5));
+        p.kill(Duration::from_millis(100));
+    }
+
+    #[test]
+    fn closed_stdin_refuses_input() {
+        let (p, rx) = run(CommandLine::new("/bin/cat"));
+        p.write_stdin(b"before close\n").unwrap();
+        p.close_stdin();
+        assert!(p.write_stdin(b"after").is_err());
+        let (out, _, exit) = drain(&rx);
+        assert!(out.contains("before close"), "{out}");
         assert_eq!(exit, Some((Some(0), None)));
     }
 
