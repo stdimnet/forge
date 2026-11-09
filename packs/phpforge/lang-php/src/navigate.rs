@@ -2009,6 +2009,10 @@ pub struct PhpDefinition {
     pub external: Option<ExternalSymbol>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub info: Option<SymbolInfo>,
+    /// The target is an `@method` / `@property` tag in a class docblock. Language servers
+    /// point at the class there; PHPStorm (and Forge) go to the tag's line.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub doc_tag: bool,
 }
 
 fn namespace_of(fqn: &str) -> String {
@@ -2115,6 +2119,10 @@ pub fn definition(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
         return PhpDefinition::default();
     };
     let lines = Lines::new(src);
+    if let Some(mut d) = doc_tag_definition(index, &file, rel, src, start, end) {
+        d.range = Some(lines.range(start, end));
+        return d;
+    }
     let mut out = PhpDefinition {
         range: Some(lines.range(start, end)),
         ..Default::default()
@@ -2144,6 +2152,144 @@ pub fn definition(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
         Resolved::Dynamic { .. } | Resolved::Nothing => out.range = None,
     }
     out
+}
+
+/// Go to Declaration on a member that a class only declares in its docblock
+/// (`@method static Builder whereEmail(string $email)`, `@property string $email`): the line
+/// of that tag, like PHPStorm. A member declared in code wins.
+fn doc_tag_definition(
+    index: &mut ProjectIndex,
+    file: &FileIndex,
+    rel: &str,
+    src: &str,
+    start: usize,
+    end: usize,
+) -> Option<PhpDefinition> {
+    let (recv_end, op) = access_before(src[..start].trim_end())?;
+    let word = &src[start..end];
+    let method = src[end..].trim_start().starts_with('(');
+    // `->name` reads a property, `::$name` a static one; `::NAME` is a constant.
+    if !method && op != "->" && !word.starts_with('$') {
+        return None;
+    }
+    let name = word.trim_start_matches('$');
+    let kind = if method {
+        SymbolKind::Method
+    } else {
+        SymbolKind::Property
+    };
+    let mut sources = sources(index, rel, src);
+    for fqn in receiver_types(index, file, src, recv_end, 0) {
+        let Some(class) = find_class(index, file, &fqn) else {
+            continue;
+        };
+        if find_member(index, &class, name, &[kind]).is_some() {
+            return None;
+        }
+        let mut chain = vec![class.clone()];
+        chain.extend(index.ancestors(&class));
+        for owner in chain {
+            let declares = owner.doc.as_ref().is_some_and(|d| {
+                if method {
+                    d.methods.iter().any(|m| m.name.eq_ignore_ascii_case(name))
+                } else {
+                    d.properties
+                        .iter()
+                        .any(|p| p.name.trim_start_matches('$') == name)
+                }
+            });
+            if !declares {
+                continue;
+            }
+            let path = if file
+                .classes
+                .iter()
+                .any(|c| c.fqn.eq_ignore_ascii_case(&owner.fqn))
+            {
+                rel.to_string()
+            } else {
+                index.class_path(&owner.fqn)?.to_string()
+            };
+            let text = sources.get(&path)?;
+            let at = doc_tag_offset(&text, &owner, name, method)?;
+            let symbol = SymbolRef::Member {
+                class: owner.fqn.clone(),
+                member: kind,
+                name: name.to_string(),
+            };
+            let container = Some(namespace_of(&owner.fqn)).filter(|c| !c.is_empty());
+            let range = crate::model::Range {
+                start: at,
+                end: at + name.len(),
+                line: 0,
+                column: 0,
+            };
+            let t = target(&mut sources, &path, range, symbol.display(), container)?;
+            return Some(PhpDefinition {
+                title: Some(symbol.display()),
+                targets: vec![t],
+                doc_tag: true,
+                ..Default::default()
+            });
+        }
+    }
+    None
+}
+
+/// Byte offset of `name` in the `@method` (or `@property`) tag of the docblock right
+/// before `class` in `text`.
+fn doc_tag_offset(text: &str, class: &ClassLike, name: &str, method: bool) -> Option<usize> {
+    let head = text.get(..class.name_range.start)?;
+    let open = head.rfind("/**")?;
+    let close = open + head[open..].find("*/")?;
+    // Only modifiers and attributes may stand between the docblock and the class name.
+    if head[close..].contains(['{', '}', ';']) {
+        return None;
+    }
+    let mut line_start = open;
+    for line in head[open..close].split_inclusive('\n') {
+        let tag = line.trim_start_matches([' ', '\t', '*', '/']).trim_start();
+        let is_tag = if method {
+            ["@method", "@phpstan-method", "@psalm-method"]
+                .iter()
+                .any(|t| tag.starts_with(t))
+        } else {
+            ["@property", "@phpstan-property", "@psalm-property"]
+                .iter()
+                .any(|t| tag.starts_with(t))
+        };
+        if is_tag {
+            if let Some(i) = tag_name_offset(line, name, method) {
+                return Some(line_start + i);
+            }
+        }
+        line_start += line.len();
+    }
+    None
+}
+
+/// Offset of `name` in a tag line: `name(` for methods, `$name` for properties.
+fn tag_name_offset(line: &str, name: &str, method: bool) -> Option<usize> {
+    let is_ident = |c: char| c.is_ascii_alphanumeric() || c == '_' || !c.is_ascii();
+    let lower = line.to_ascii_lowercase();
+    let needle = name.to_ascii_lowercase();
+    let mut from = 0;
+    while let Some(i) = lower[from..].find(&needle).map(|i| from + i) {
+        from = i + needle.len();
+        let before = line[..i].chars().next_back();
+        let after = &line[i + needle.len()..];
+        let found = if method {
+            !before.is_some_and(|c| is_ident(c) || c == '$')
+                && !after.starts_with(is_ident)
+                && after.trim_start().starts_with('(')
+        } else {
+            before == Some('$') && !after.starts_with(is_ident) && line[i..].starts_with(name)
+        };
+        if found {
+            return Some(i);
+        }
+    }
+    None
 }
 
 /// Go to Declaration on a string argument that a `.phpstorm.meta.php` map knows
@@ -2751,6 +2897,35 @@ final class Checkout extends \RuntimeException implements \JsonSerializable
             d.external.unwrap().classes,
             vec!["App\\Models\\Collection".to_string()]
         );
+    }
+
+    #[test]
+    fn goes_to_doc_tags_of_magic_members() {
+        let (_d, mut idx) = setup();
+        let user = "<?php\nnamespace App\\Models;\n\n/**\n * A user.\n *\n * @property string $email\n * @method static Builder|User whereEmail(string $email) Find by email\n * @method void touch()\n */\n#[Table('users')]\nclass User extends Model\n{\n    public function save(): bool { return true; }\n\n    public function f(): void { $this->touch(); $this->email; self::whereEmail('a'); $this->save(); }\n}\n";
+        fs::write(idx.root().join("app/Models/User.php"), user).unwrap();
+        idx.update_file("app/Models/User.php", user);
+        let def = |idx: &mut ProjectIndex, src: &str, needle: &str| {
+            definition(idx, "app/Models/User.php", src, at(src, needle, 0))
+        };
+        // Same file: the line of the tag, at the member's name.
+        let d = def(&mut idx, user, "touch();");
+        assert!(d.doc_tag);
+        assert_eq!(d.title.as_deref(), Some("User::touch()"));
+        assert_eq!((d.targets[0].line, d.targets[0].column), (8, 16));
+        let d = def(&mut idx, user, "whereEmail('a')");
+        assert_eq!((d.targets[0].line, d.targets[0].column), (7, 31));
+        let d = def(&mut idx, user, "email;");
+        assert_eq!((d.targets[0].line, d.targets[0].column), (6, 21));
+        // A method declared in code is not a doc tag.
+        assert!(!def(&mut idx, user, "save(); }").doc_tag);
+
+        // Another file, through a subclass: the tag in the parent's docblock.
+        let src = "<?php\nnamespace App\\Models;\n\nclass Admin extends User {}\nfunction g(Admin $a) { $a->touch(); }\n";
+        let d = definition(&mut idx, "app/Models/g.php", src, at(src, "touch()", 0));
+        assert!(d.doc_tag);
+        assert_eq!(d.targets[0].path, "app/Models/User.php");
+        assert_eq!(d.targets[0].line, 8);
     }
 
     #[test]
