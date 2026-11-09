@@ -3130,6 +3130,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "filetime",
+ "forge-core",
  "forge-diff",
  "forge-ports",
  "forge-remote",

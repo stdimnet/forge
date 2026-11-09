@@ -66,6 +66,8 @@ pub struct Options {
     pub routes_output: Option<String>,
     /// Environment variables for database.yml's ERB (the project's `.env` is read too).
     pub env: BTreeMap<String, String>,
+    /// Variable names match in any letter case, as on Windows (`ENV["PATH"]` is `Path`).
+    pub env_case_insensitive: bool,
 }
 
 /// What the Endpoints and Rails tool windows show.
@@ -210,6 +212,23 @@ pub struct Project {
     pub info: RailsInfo,
 }
 
+/// The variable `key` of `env`: matched exactly, or in any letter case when
+/// `case_insensitive` (Windows).
+pub fn env_value(
+    env: &BTreeMap<String, String>,
+    key: &str,
+    case_insensitive: bool,
+) -> Option<String> {
+    env.get(key)
+        .or_else(|| {
+            case_insensitive
+                .then(|| env.iter().find(|(k, _)| k.eq_ignore_ascii_case(key)))
+                .flatten()
+                .map(|(_, v)| v)
+        })
+        .cloned()
+}
+
 fn dotenv(text: &str) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
     for line in text.lines() {
@@ -314,7 +333,8 @@ impl Project {
         let mut env = files.get(".env").map(|t| dotenv(t)).unwrap_or_default();
         env.extend(options.env.clone());
         if let Some(text) = files.get("config/database.yml") {
-            info.databases = database::parse("config/database.yml", text, &|k| env.get(k).cloned());
+            let lookup = |k: &str| env_value(&env, k, options.env_case_insensitive);
+            info.databases = database::parse("config/database.yml", text, &lookup);
         }
         Project {
             files,
@@ -356,6 +376,37 @@ impl Project {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn database_yml_env_follows_windows_letter_case() {
+        let files: BTreeMap<String, String> = [(
+            "config/database.yml".to_string(),
+            "development:\n  adapter: postgresql\n  database: <%= ENV[\"DB_FILE\"] %>\n"
+                .to_string(),
+        )]
+        .into();
+        let env: BTreeMap<String, String> =
+            [("Db_File".to_string(), "storage/dev.sqlite3".to_string())].into();
+        let db = |case_insensitive: bool| {
+            let p = Project::new(
+                files.clone(),
+                Options {
+                    env: env.clone(),
+                    env_case_insensitive: case_insensitive,
+                    ..Options::default()
+                },
+            );
+            p.info.databases[0].database.clone()
+        };
+        // On Windows `ENV["DB_FILE"]` finds `Db_File` (#215); elsewhere names are exact.
+        assert_eq!(db(true), "storage/dev.sqlite3");
+        assert_eq!(db(false), "");
+        assert_eq!(
+            env_value(&env, "DB_FILE", true).as_deref(),
+            Some("storage/dev.sqlite3")
+        );
+        assert_eq!(env_value(&env, "DB_FILE", false), None);
+    }
 
     #[test]
     fn detection_and_versions() {

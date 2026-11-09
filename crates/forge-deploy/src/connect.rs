@@ -72,8 +72,11 @@ pub fn open(server: &DeployServer, secret: Option<&str>, project: Option<&Path>)
                     root.display()
                 )));
             }
-            let canonical = root.canonicalize()?;
-            let inside_project = match project.and_then(|p| p.canonicalize().ok()) {
+            // Without Windows' `\\?\` prefix: the root is shown and compared as the user
+            // spells it.
+            let canonical = forge_core::paths::canonicalize(&root)?;
+            let inside_project = match project.and_then(|p| forge_core::paths::canonicalize(p).ok())
+            {
                 Some(p) if p == canonical => {
                     return Err(DeployError::new(
                         "The deployment folder is the project folder itself",

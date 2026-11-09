@@ -331,6 +331,9 @@ fn local_servers_are_opened_through_connect() {
     };
     let mut opened = forge_deploy::connect::open(&server, None, Some(project.path())).unwrap();
     assert_eq!(opened.inside_project.as_deref(), Some("dist"));
+    // The root is shown as the user spells it, without Windows' `\\?\` prefix (#215).
+    assert!(!opened.root.starts_with(r"\\?\"), "{}", opened.root);
+    assert!(opened.root.ends_with("dist"), "{}", opened.root);
     let mut local = LocalFolder::new(project.path());
     let summary = Deployer::new(
         &mut local,
