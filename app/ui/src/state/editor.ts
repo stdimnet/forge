@@ -614,7 +614,12 @@ export async function reloadFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   // Shared tabs follow the disk through the session (the host applies the change).
   if (!tab || !isFileTab(tab) || isDirty(tab) || tab.shared) return;
+  const before = tab.content;
+  const gen = generation;
   const file = await readText(path, tab.encoding === "UTF-8" ? undefined : tab.encoding);
+  // Typed (or saved) while the file was read: the editor's text wins, nothing is replaced.
+  const now = editor.tabs.find((t) => t.path === path);
+  if (gen !== generation || !now || now.content !== before || isDirty(now)) return;
   if (file.text === tab.content && file.eol === tab.eol && file.bom === tab.bom) return;
   setEditor("tabs", (t) => t.path === path, {
     content: file.text,

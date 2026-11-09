@@ -6,6 +6,8 @@ import {
   closeAllTabs,
   editor,
   openFile,
+  reloadFile,
+  updateContent,
 } from "./editor";
 
 const disk: Record<string, number[]> = {};
@@ -30,6 +32,21 @@ beforeAll(async () => {
 beforeEach(() => {
   closeAllTabs();
   gate = null;
+});
+
+describe("reload from disk", () => {
+  it("keeps text typed while the file was read", async () => {
+    disk["r.php"] = bytes("one\n");
+    await openFile("r.php");
+    let release!: () => void;
+    gate = new Promise((r) => (release = r));
+    disk["r.php"] = bytes("changed on disk\n");
+    const reload = reloadFile("r.php");
+    updateContent("r.php", "one\ntyped\n");
+    release();
+    await reload;
+    expect(editor.tabs[0].content).toBe("one\ntyped\n");
+  });
 });
 
 describe("opening files while the project changes", () => {
