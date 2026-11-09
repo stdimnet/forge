@@ -142,7 +142,12 @@ app/ui/            SolidJS UI
   forwards clicks and wheel turns as `{ type: "mouse", button, clickCount, deltaY }`. Editor
   extensions that act on the clicked position (Ctrl+Click to the declaration) ask
   `editorMouseAction(e)` which action the keymap binds and call `claimMouseGesture()` so the
-  dispatcher does not run it a second time.
+  dispatcher does not run it a second time. The mouse side buttons (`Button4`/`Button5`, Back
+  and Forward) run on `mouseup`, and the dispatcher cancels the webview's own history
+  navigation. WebKitGTK reports them to the page without a button number, so on Linux the
+  shell takes them from the webview's GTK widget (`app/src-tauri/src/mouse_buttons.rs`, a
+  plugin on every webview) and sends `keymap://side-button` `{ button, ctrlKey, altKey,
+  shiftKey, metaKey, x, y }` to that webview instead.
 - Color schemes: `crates/forge-colorscheme` resolves the active scheme (Ember, Anvil, user
   schemes from `editor.colorScheme.*`) into CSS variables (`--syn-<token>[-bg|-weight|-style|
   -deco|-box]`, `--editor-fg`, `--editor-caret`, `--editor-selection`, …) that

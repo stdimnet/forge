@@ -46,8 +46,11 @@ import {
   setKeymapId,
   shortcutsOf,
   suspendKeymap,
+  SIDE_BUTTON_EVENT,
   type ActionDef,
+  type SideButtonClick,
 } from "@/keymap";
+import { listen } from "@/ipc";
 import type { ShortcutCheck } from "@/ipc/keymap";
 import { showContextMenu, item, separator, type MenuEntry } from "@/features/contextMenu/state";
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
@@ -221,6 +224,13 @@ function MouseShortcutDialog(props: { action: ActionDef; onClose: () => void }) 
     const s = mouseStrokeOf(wheel ? input : { ...input, clickCount: double() ? 2 : 1, deltaY: undefined });
     if (s) setStroke(s);
   };
+  // The desktop shell reports the side buttons on Linux itself (WebKitGTK hides them from
+  // the page): record them while the dialog is open.
+  const unlisten = listen<SideButtonClick>(SIDE_BUTTON_EVENT, ({ x: _x, y: _y, ...mouse }) => {
+    const s = mouseStrokeOf({ ...mouse, clickCount: double() ? 2 : 1 });
+    if (s) setStroke(s);
+  });
+  onCleanup(() => void unlisten.then((stop) => stop()));
   return (
     <ShortcutDialogFrame
       title={tr("tools.keymapSettings.mouseShortcut")}

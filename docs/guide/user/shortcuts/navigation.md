@@ -18,8 +18,8 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Type Hierarchy](#type-hierarchy) | `Ctrl+H` | `Ctrl+H` |
 | [Method Hierarchy](#method-hierarchy) | `Ctrl+Shift+H` | `Cmd+Shift+H` |
 | [Call Hierarchy](#call-hierarchy) | `Ctrl+Alt+H` | `Ctrl+Alt+H` |
-| [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
-| [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
+| [Back](#back) | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` |
+| [Forward](#forward) | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` |
 | [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
 | [Next Edit Location](#next-edit-location) | — | — |
 | [Select In](#select-in) | `Alt+F1` | `Alt+F1` |
@@ -139,9 +139,10 @@ More: [Type, Method and Call Hierarchy](../../user/hierarchies.md#call-hierarchy
 
 ## Back
 
-**Shortcut:** `Ctrl+Alt+Left` · macOS `Cmd+[`, `Cmd+Alt+Left` · action id `Back`
+**Shortcut:** `Ctrl+Alt+Left`, `Button4 Click` · macOS `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` · action id `Back`
 
-Goes back to the previous caret location in your navigation history.
+Goes back to the previous caret location in your navigation history. `Button4 Click` is the
+back button on the side of the mouse.
 
 **Menu:** Navigate | Back
 
@@ -149,9 +150,10 @@ More: [Editor](../../user/editor.md#go-to-declaration)
 
 ## Forward
 
-**Shortcut:** `Ctrl+Alt+Right` · macOS `Cmd+]`, `Cmd+Alt+Right` · action id `Forward`
+**Shortcut:** `Ctrl+Alt+Right`, `Button5 Click` · macOS `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` · action id `Forward`
 
-Goes forward in the navigation history.
+Goes forward in the navigation history. `Button5 Click` is the forward button on the side of
+the mouse.
 
 **Menu:** Navigate | Forward
 
