@@ -66,6 +66,25 @@ pub fn apply_files(state: &AppState, files: Vec<(String, Vec<u8>)>) -> Result<bo
     Ok(restart)
 }
 
+/// Delete config files whose group was removed on another machine. The installed plugin list
+/// is not a file and plugins are never uninstalled by a sync. Returns whether a restart is
+/// needed.
+fn remove_files(names: Vec<String>) -> Result<bool> {
+    let Some(config) = crate::commands::maintenance::forge_dirs().forge_config() else {
+        return Ok(false);
+    };
+    let mut restart = false;
+    for name in names.into_iter().filter(|n| n != INSTALLED_PLUGINS_FILE) {
+        let target = config.join(&name);
+        match std::fs::remove_file(&target) {
+            Ok(()) => restart = true,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(ForgeError::io(&target, e)),
+        }
+    }
+    Ok(restart)
+}
+
 fn apply(state: &AppState, plan: ImportPlan) -> Result<bool> {
     if !plan.changes.is_empty() {
         state.write_settings().set_many(
@@ -75,7 +94,8 @@ fn apply(state: &AppState, plan: ImportPlan) -> Result<bool> {
                 .collect(),
         )?;
     }
-    apply_files(state, plan.files)
+    let removed = remove_files(plan.removed_files)?;
+    Ok(apply_files(state, plan.files)? || removed)
 }
 
 fn config_dir() -> Result<PathBuf> {

@@ -144,6 +144,9 @@ pub struct ImportPlan {
     pub changes: Vec<(String, Value)>,
     /// Configuration files to write into `<config dir>/forge`.
     pub files: Vec<(String, Vec<u8>)>,
+    /// Configuration files to delete from `<config dir>/forge` (a synced group that was
+    /// removed on another machine).
+    pub removed_files: Vec<String>,
 }
 
 impl SettingsArchive {
@@ -184,7 +187,11 @@ impl SettingsArchive {
             })
             .map(|(n, b)| (n.clone(), b.clone()))
             .collect();
-        ImportPlan { changes, files }
+        ImportPlan {
+            changes,
+            files,
+            removed_files: Vec::new(),
+        }
     }
 }
 

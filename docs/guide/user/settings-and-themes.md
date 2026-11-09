@@ -105,6 +105,10 @@ Schemes, Code Style, File Types, File and Code Templates, Live Templates, Plugin
 Installed Plugins list). Each group is synced as a whole:
 
 - changed only here → it is sent; changed only on the other computer → it is received;
+- reset to defaults (or its configuration file deleted) on one computer and unchanged on the
+  other → the reset is synced too: the group is reset on the other computer instead of the old
+  values coming back. If the other computer changed the group meanwhile, its change is kept;
+  the installed plugins are never uninstalled by a sync;
 - changed on both since the last sync → the **newer** change wins (last writer wins per
   group). The other version is not lost: a losing local version is saved in
   `<config dir>/forge/settings-sync-backups/<time>/`, a losing shared version in

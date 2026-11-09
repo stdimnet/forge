@@ -13,7 +13,9 @@
 //! Each group is compared with the hash it had at the last sync (kept in
 //! `<config dir>/forge/settings-sync-state.json`): only one side changed → that side wins;
 //! both changed → the newer change wins (last writer wins per group) and the losing version
-//! is backed up (local ones to `<config dir>/forge/settings-sync-backups/<ms>/`). Secrets
+//! is backed up (local ones to `<config dir>/forge/settings-sync-backups/<ms>/`). A group
+//! that disappeared on one side since the last sync (reset to defaults, config file deleted)
+//! is removed on the other side too, unless the other side changed it meanwhile. Secrets
 //! are never part of it: they live in the OS keychain.
 
 use std::collections::BTreeMap;
@@ -160,10 +162,16 @@ pub enum Action {
     Pull,
     /// Both sides changed; the newer one wins.
     Conflict(Side),
+    /// The group was removed here (reset to defaults, file deleted) and is unchanged there:
+    /// remove it from the shared folder.
+    PushRemoval,
+    /// The group was removed there and is unchanged here: remove it locally.
+    PullRemoval,
 }
 
 /// What to do with one group: `(hash, modified_ms)` of each side and the hash at the last
-/// sync.
+/// sync. A missing side that existed at the last sync was removed there; a removal loses
+/// against a change on the other side (nothing is lost).
 pub fn decide(
     local: Option<(&str, u64)>,
     remote: Option<(&str, u64)>,
@@ -171,7 +179,9 @@ pub fn decide(
 ) -> Action {
     match (local, remote) {
         (None, None) => Action::Nothing,
+        (Some((l, _)), None) if base == Some(l) => Action::PullRemoval,
         (Some(_), None) => Action::Push,
+        (None, Some((r, _))) if base == Some(r) => Action::PushRemoval,
         (None, Some(_)) => Action::Pull,
         (Some((l, lt)), Some((r, rt))) => {
             if l == r {
@@ -221,6 +231,9 @@ impl SyncReport {
 pub struct Pulled {
     pub group: String,
     pub bytes: Vec<u8>,
+    /// The group was removed there: reset it here (settings back to defaults, config file
+    /// deleted). `bytes` is empty then.
+    pub removed: bool,
 }
 
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
@@ -323,6 +336,26 @@ pub fn sync_folder(
                 pulled.push(Pulled {
                     group: id.clone(),
                     bytes: read_remote()?,
+                    removed: false,
+                });
+                report.pulled.push(id.clone());
+            }
+            Action::PushRemoval => {
+                let path = component_path(id);
+                match std::fs::remove_file(&path) {
+                    Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                        return Err(format!("{}: {e}", path.display()));
+                    }
+                    _ => {}
+                }
+                meta.components.remove(id);
+                report.pushed.push(id.clone());
+            }
+            Action::PullRemoval => {
+                pulled.push(Pulled {
+                    group: id.clone(),
+                    bytes: Vec::new(),
+                    removed: true,
                 });
                 report.pulled.push(id.clone());
             }
@@ -348,6 +381,7 @@ pub fn sync_folder(
                 pulled.push(Pulled {
                     group: id.clone(),
                     bytes: read_remote()?,
+                    removed: false,
                 });
                 report.pulled.push(id.clone());
                 report.conflicts.push(ConflictInfo {
@@ -378,8 +412,22 @@ pub fn apply_plan(
 ) -> Result<ImportPlan, String> {
     let mut archive = SettingsArchive::default();
     let mut ids = Vec::new();
+    let mut removed_values = Vec::new();
+    let mut removed_files = Vec::new();
     for p in pulled {
         ids.push(p.group.clone());
+        if p.removed {
+            match group(&p.group).and_then(|g| g.file) {
+                Some(name) => removed_files.push(name.to_string()),
+                None => removed_values.extend(
+                    current
+                        .keys()
+                        .filter(|k| group_of_key(k) == p.group && !k.starts_with(LOCAL_ONLY))
+                        .map(|k| (k.clone(), Value::Null)),
+                ),
+            }
+            continue;
+        }
         match group(&p.group).and_then(|g| g.file) {
             Some(name) => {
                 archive.files.insert(name.to_string(), p.bytes.clone());
@@ -399,6 +447,8 @@ pub fn apply_plan(
     }
     let mut plan = archive.plan(current, &ids);
     plan.changes.retain(|(k, _)| !k.starts_with(LOCAL_ONLY));
+    plan.changes.extend(removed_values);
+    plan.removed_files = removed_files;
     Ok(plan)
 }
 
@@ -577,6 +627,83 @@ mod tests {
             decide(Some(("b", 3)), Some(("c", 5)), None),
             Action::Conflict(Side::Remote)
         );
+        // Removed on one side since the last sync, unchanged on the other.
+        assert_eq!(decide(None, Some(("a", 1)), Some("a")), Action::PushRemoval);
+        assert_eq!(decide(Some(("a", 1)), None, Some("a")), Action::PullRemoval);
+        // A removal never wins over a change on the other side.
+        assert_eq!(decide(None, Some(("b", 1)), Some("a")), Action::Pull);
+        assert_eq!(decide(Some(("b", 1)), None, Some("a")), Action::Push);
+    }
+
+    /// A group reset to defaults on one machine stays reset and reaches the other machine.
+    #[test]
+    fn a_reset_group_is_removed_everywhere() {
+        let dir = tempfile::tempdir().unwrap();
+        let shared = dir.path().join("Dropbox");
+        std::fs::create_dir_all(&shared).unwrap();
+        let backups = dir.path().join("backups");
+        let groups: Vec<String> = ["keymap", "ssh"].map(String::from).to_vec();
+        let (mut state_a, mut state_b) = (SyncState::default(), SyncState::default());
+        let both = BTreeMap::from([
+            (
+                "keymap".to_string(),
+                comp("[keymap]\nactive = \"macOS\"\n", 10),
+            ),
+            ("ssh".to_string(), comp("[[configs]]\n", 10)),
+        ]);
+        sync_folder(
+            &shared,
+            &input(&both, &groups, 100, "a", &backups),
+            &mut state_a,
+        )
+        .unwrap();
+        sync_folder(
+            &shared,
+            &input(&both, &groups, 200, "b", &backups),
+            &mut state_b,
+        )
+        .unwrap();
+
+        // A resets the keymap to defaults and deletes ssh.toml.
+        let empty = BTreeMap::new();
+        let (r, pulled) = sync_folder(
+            &shared,
+            &input(&empty, &groups, 300, "a", &backups),
+            &mut state_a,
+        )
+        .unwrap();
+        assert!(pulled.is_empty(), "the old values came back: {pulled:?}");
+        assert_eq!(r.pushed, ["keymap", "ssh"]);
+        assert!(!shared.join(SYNC_DIR).join("components/ssh.data").exists());
+        // The next sync on A keeps it that way.
+        let (r, pulled) = sync_folder(
+            &shared,
+            &input(&empty, &groups, 400, "a", &backups),
+            &mut state_a,
+        )
+        .unwrap();
+        assert!(pulled.is_empty() && r.pushed.is_empty());
+
+        // B, unchanged since the last sync, resets the groups too.
+        let (r, pulled) = sync_folder(
+            &shared,
+            &input(&both, &groups, 500, "b", &backups),
+            &mut state_b,
+        )
+        .unwrap();
+        assert!(r.pushed.is_empty());
+        assert!(pulled.iter().all(|p| p.removed));
+        let current = BTreeMap::from([
+            ("keymap.active".to_string(), json!("macOS")),
+            ("editor.font.size".to_string(), json!(12)),
+        ]);
+        let plan = apply_plan(&pulled, &current).unwrap();
+        assert_eq!(
+            plan.changes,
+            vec![("keymap.active".to_string(), Value::Null)]
+        );
+        assert_eq!(plan.removed_files, ["ssh.toml"]);
+        assert!(plan.files.is_empty());
     }
 
     #[test]
@@ -745,15 +872,18 @@ mod tests {
             Pulled {
                 group: "other".into(),
                 bytes: b"[other]\nx = 1\n".to_vec(),
+                removed: false,
             },
             Pulled {
                 group: "keymap".into(),
                 // A foreign key in the file is ignored.
                 bytes: b"[keymap]\nactive = \"VSCode\"\n[editor.font]\nsize = 30\n".to_vec(),
+                removed: false,
             },
             Pulled {
                 group: "ssh".into(),
                 bytes: b"[[configs]]\n".to_vec(),
+                removed: false,
             },
         ];
         let plan = apply_plan(&pulled, &current).unwrap();
