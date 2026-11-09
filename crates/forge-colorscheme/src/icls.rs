@@ -156,7 +156,7 @@ pub fn import_icls(text: &str) -> Result<Imported, String> {
         .filter(|n| !n.is_empty())
         .unwrap_or("Imported");
     // Drop the "_@user_" prefix of PHPStorm's copies of bundled schemes.
-    let name = name.strip_prefix("_@user_").unwrap_or(name).to_string();
+    let name = crate::scheme::clean_name(name.strip_prefix("_@user_").unwrap_or(name));
     let parent = Bundled::from_icls_parent(root.attr("parent_scheme").unwrap_or(""));
 
     let colors: HashMap<&str, String> = root
@@ -387,6 +387,22 @@ mod tests {
         assert_eq!(s.name, "Default");
         assert_eq!(s.parent, Bundled::Anvil);
         assert!(s.attributes.is_empty());
+    }
+
+    #[test]
+    fn names_with_tabs_or_line_breaks_are_imported_with_spaces() {
+        let s = import_icls(r#"<scheme name="My&#9;Scheme&#10;" parent_scheme="Darcula"/>"#)
+            .unwrap()
+            .scheme;
+        assert_eq!(s.name, "My Scheme");
+        // Importing it next to an existing scheme of that name picks a numbered one.
+        let settings = SchemeSettings::from_json(&serde_json::json!({
+            "editor.colorScheme.schemes": [{ "name": "My Scheme", "parent": "Ember" }]
+        }));
+        let mut raw = s.clone();
+        raw.name = "My\tScheme".into();
+        let writes = settings.add_imported(raw);
+        assert_eq!(writes[1].value, serde_json::json!("My Scheme 2"));
     }
 
     #[test]

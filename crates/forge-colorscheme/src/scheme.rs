@@ -99,6 +99,25 @@ pub struct SchemeSettings {
     pub schemes: Vec<UserScheme>,
 }
 
+/// `name` with whitespace and control characters other than a plain space replaced by one,
+/// trimmed; "Imported" when nothing is left.
+pub(crate) fn clean_name(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| {
+            if c.is_control() || (c.is_whitespace() && c != ' ') {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect();
+    match cleaned.trim() {
+        "" => "Imported".to_string(),
+        t => t.to_string(),
+    }
+}
+
 impl SchemeSettings {
     pub fn from_values(get: impl Fn(&str) -> Option<Value>) -> Self {
         Self {
@@ -165,10 +184,13 @@ impl SchemeSettings {
         taken.then(|| format!("A scheme named \"{name}\" already exists"))
     }
 
-    /// `base` or "base 2", "base 3", … whichever is free.
+    /// `base` or "base 2", "base 3", … whichever is free. Tabs, line breaks and other
+    /// control characters in `base` (an imported file's name) become spaces first: no number
+    /// would make such a name valid.
     pub fn free_name(&self, base: &str) -> String {
-        if self.name_problem(base, None).is_none() {
-            return base.to_string();
+        let base = clean_name(base);
+        if self.name_problem(&base, None).is_none() {
+            return base;
         }
         (2..)
             .map(|n| format!("{base} {n}"))
