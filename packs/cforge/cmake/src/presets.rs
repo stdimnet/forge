@@ -351,6 +351,8 @@ pub fn expand(
             format!("{source}/{d}")
         }
     };
+    // Windows environment variable names are case-insensitive (`Path` is `$penv{PATH}`).
+    let windows = ctx.host_system_name == "Windows";
     let mut out = String::new();
     let mut rest = text;
     while let Some(i) = rest.find('$') {
@@ -390,12 +392,16 @@ pub fn expand(
                 .into(),
             ),
             ("env", k) => Some(
-                env.get(k)
-                    .or_else(|| ctx.env.get(k))
+                env_lookup(env, k, windows)
+                    .or_else(|| env_lookup(&ctx.env, k, windows))
                     .cloned()
                     .unwrap_or_default(),
             ),
-            ("penv", k) => Some(ctx.env.get(k).cloned().unwrap_or_default()),
+            ("penv", k) => Some(
+                env_lookup(&ctx.env, k, windows)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
             _ => None,
         };
         match value {
@@ -406,6 +412,21 @@ pub fn expand(
     }
     out.push_str(rest);
     out
+}
+
+/// The value of the environment variable `key`: matched exactly, and on Windows, where
+/// names are case-insensitive, also in any letter case.
+fn env_lookup<'a>(
+    env: &'a BTreeMap<String, String>,
+    key: &str,
+    windows: bool,
+) -> Option<&'a String> {
+    env.get(key).or_else(|| {
+        windows
+            .then(|| env.iter().find(|(k, _)| k.eq_ignore_ascii_case(key)))
+            .flatten()
+            .map(|(_, v)| v)
+    })
 }
 
 /// Evaluate a preset `condition` (`const`, `equals`, `notEquals`, `inList`, `notInList`,
@@ -666,6 +687,22 @@ mod tests {
             mine.binary_dir.as_deref(),
             Some("/home/dev/shapes/build/my-clang")
         );
+    }
+
+    #[test]
+    fn windows_environment_names_are_case_insensitive() {
+        let mut win = ctx();
+        win.host_system_name = "Windows".into();
+        win.env = [("Path".to_string(), r"C:\bin".to_string())].into();
+        let preset_env: BTreeMap<String, String> = [("MyVar".to_string(), "1".to_string())].into();
+        let x = |text: &str, c: &MacroContext| expand(text, "p", "Ninja", "", &preset_env, c);
+        // `$penv{PATH}` finds `Path` on Windows (#215), `$env{MYVAR}` the preset's `MyVar`.
+        assert_eq!(x("$penv{PATH};$env{PATH}", &win), r"C:\bin;C:\bin");
+        assert_eq!(x("$env{MYVAR}", &win), "1");
+        // Elsewhere names stay case-sensitive.
+        let mut linux = win.clone();
+        linux.host_system_name = "Linux".into();
+        assert_eq!(x("[$penv{PATH}][$env{MYVAR}]", &linux), "[][]");
     }
 
     #[test]

@@ -425,8 +425,9 @@ pub async fn php_interpreter_wsl_distributions() -> Result<Vec<String>> {
         return Ok(Vec::new());
     }
     blocking(|| {
-        let out = std::process::Command::new("wsl.exe")
-            .args(["-l", "-q"])
+        let mut wsl = std::process::Command::new("wsl.exe");
+        wsl.args(["-l", "-q"]);
+        let out = forge_process::host::local_command(wsl)
             .output()
             .map_err(|e| ForgeError::Other(format!("Cannot run wsl.exe: {e}")))?;
         Ok(probe::parse_wsl_list(&out.stdout))

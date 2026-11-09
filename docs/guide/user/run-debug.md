@@ -105,7 +105,7 @@ type, so they run like configurations:
 | Artisan | Command (`migrate --seed`) | `<php> artisan <command>` | Xdebug |
 | Composer Script | Script | `composer run <script>` with `php.composer.executable` | Xdebug |
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
-| Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
+| Shell Script | Execute: Script file or Script text; Script path / text | the shell (an interpreter of `cmd` or `cmd.exe` runs `cmd /C <line>` with the line passed verbatim) | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
 | Native Application | Executable, Debugger (LLDB, GDB or a pack's adapter), Stop at the beginning of the program, Launch options (JSON) | `<executable> <program arguments>` | the chosen [debug adapter](debugging.md#debug-adapter-sessions) |
 | Compound | Configurations, Allow multiple instances | starts every configuration, each in its own Run tab | debugs every member |

@@ -404,10 +404,14 @@ impl EngineConn for OracleConn {
                         .status()
                         .await;
                     #[cfg(windows)]
-                    let _ = tokio::process::Command::new("taskkill")
-                        .args(["/PID", &pid.to_string(), "/F"])
-                        .status()
-                        .await;
+                    {
+                        let mut taskkill = std::process::Command::new("taskkill");
+                        taskkill.args(["/PID", &pid.to_string(), "/F"]);
+                        let _ =
+                            tokio::process::Command::from(forge_hostspawn::local_command(taskkill))
+                                .status()
+                                .await;
+                    }
                 }
             })
         }))

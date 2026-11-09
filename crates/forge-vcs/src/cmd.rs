@@ -235,12 +235,6 @@ fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<LocalOutput> {
         } else {
             Stdio::null()
         });
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
 
     tracing::debug!(?args, "git");
     let mut child = cmd.spawn().map_err(|e| {
