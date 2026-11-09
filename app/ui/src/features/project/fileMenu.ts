@@ -8,6 +8,7 @@ import { item, providedEntries, separator, showContextMenu, submenu, type MenuEn
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
+import { deletePath, renamePath } from "@/state/pathOps";
 import { isCollabGuest, workspace } from "@/state/workspace";
 import { guestCanEdit } from "@/features/code-with-me/guest";
 import { projectTree, refreshDirs, revealPath } from "./ProjectView";
@@ -102,7 +103,7 @@ async function rename(entry: FileEntry): Promise<void> {
   try {
     // Unsaved edits go to disk first, so the renamed file keeps them.
     for (const t of tabs.filter(isDirty)) await saveFile(t.path);
-    await workspaceApi.rename(entry.path, target);
+    await renamePath(entry.path, target);
   } catch (e) {
     return fail(t("project.renaming"), e);
   }
@@ -140,7 +141,7 @@ async function remove(entry: FileEntry): Promise<void> {
   });
   if (!ok) return;
   try {
-    await workspaceApi.delete(entry.path);
+    await deletePath(entry.path);
   } catch (e) {
     return fail(t("project.deleting"), e);
   }
