@@ -409,7 +409,11 @@ its data directory (`<data dir>/forge/projects/<project>/shelf`, see
 
 - **Git ▸ Uncommitted Changes ▸ Shelve Changes…** (`ChangesView.Shelve`) lists the local
   changes (new files included) with checkboxes and a **Comment**. **Shelve Changes** saves the
-  ticked files as a patch and rolls them back (new files are removed).
+  ticked files as a patch and rolls them back (new files are removed). The patch keeps the
+  files' bytes exactly, so files in other encodings (Windows-1252, ISO-8859-1) come back
+  unchanged. Forge rolls nothing back unless the saved patch can restore every file; otherwise
+  shelving fails and your changes stay in place. Over a remote connection, files that are not
+  UTF-8 cannot be shelved.
 - **Show Shelf** (`Vcs.Show.Shelf`) opens the **Shelf** tab of the Commit tool window. Expand a
   shelved changelist to see its files; `Ctrl`-click selects several.
 - Toolbar: **Unshelve…** (`ShelveChanges.UnshelveWithDialog`), **Unshelve Silently**,

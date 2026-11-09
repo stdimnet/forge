@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use forge_core::Result;
 use forge_vcs::{
-    GitExec, GitOutput, GitRequest, MergeOptions, OngoingOperation, OperationAction, PullOptions,
-    RebaseOptions, Repo, ResetMode, Shelf, TagOptions,
+    GitBytesOutput, GitExec, GitOutput, GitRequest, MergeOptions, OngoingOperation,
+    OperationAction, PullOptions, RebaseOptions, Repo, ResetMode, Shelf, TagOptions,
 };
 use tempfile::TempDir;
 
@@ -46,26 +46,49 @@ fn git_command(dir: &Path) -> Command {
 
 struct TestGit;
 
+fn run_git(req: &GitRequest, stdin_bytes: Option<&[u8]>) -> std::process::Output {
+    use std::io::Write;
+    let mut cmd = git_command(Path::new(&req.cwd));
+    cmd.args(&req.args)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let mut child = cmd.spawn().expect("git runs");
+    let mut stdin = child.stdin.take().unwrap();
+    if let Some(input) = stdin_bytes.or(req.stdin.as_deref().map(str::as_bytes)) {
+        stdin.write_all(input).unwrap();
+    }
+    drop(stdin);
+    child.wait_with_output().unwrap()
+}
+
 impl GitExec for TestGit {
     fn exec(&self, req: &GitRequest) -> Result<GitOutput> {
-        use std::io::Write;
-        let mut cmd = git_command(Path::new(&req.cwd));
-        cmd.args(&req.args)
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
-        let mut child = cmd.spawn().expect("git runs");
-        let mut stdin = child.stdin.take().unwrap();
-        if let Some(input) = &req.stdin {
-            stdin.write_all(input.as_bytes()).unwrap();
-        }
-        drop(stdin);
-        let out = child.wait_with_output().unwrap();
+        let out = run_git(req, None);
         Ok(GitOutput {
             ok: out.status.success(),
             stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
         })
+    }
+
+    fn exec_bytes(&self, req: &GitRequest, stdin: Option<&[u8]>) -> Result<GitBytesOutput> {
+        let out = run_git(req, stdin);
+        Ok(GitBytesOutput {
+            ok: out.status.success(),
+            stdout: out.stdout,
+            stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
+            faithful: true,
+        })
+    }
+}
+
+/// A transport that only carries text (like a remote connection): the default `exec_bytes`.
+struct TextOnlyGit;
+
+impl GitExec for TextOnlyGit {
+    fn exec(&self, req: &GitRequest) -> Result<GitOutput> {
+        TestGit.exec(req)
     }
 }
 
@@ -545,6 +568,44 @@ fn shelve_and_unshelve() {
     let st = repo.status().unwrap();
     let a = st.entries.iter().find(|e| e.path == "a.txt").unwrap();
     assert_eq!(a.index, forge_vcs::FileState::Unmodified);
+}
+
+#[test]
+fn shelve_keeps_files_that_are_not_utf8() {
+    // Windows-1252: "ä" is the single byte 0xE4, which is not valid UTF-8.
+    let tmp = fixture();
+    let d = tmp.path();
+    let original: &[u8] = b"<?php\n// Gr\xfc\xdfe\n$a = 'b';\n";
+    fs::write(d.join("legacy.php"), original).unwrap();
+    commit_all(d, "Add legacy file");
+    let edited: &[u8] = b"<?php\n// Gr\xfc\xdfe\n$a = 'b\xe4\xe4';\n";
+    fs::write(d.join("legacy.php"), edited).unwrap();
+    let data = TempDir::new().unwrap();
+    let shelf = Shelf::new(data.path().join("shelf"));
+
+    // A text-only transport cannot carry the bytes: refused, nothing is rolled back.
+    let text_only = Repo::open_with(d, Arc::new(TextOnlyGit)).unwrap();
+    let err = text_only
+        .shelve(&shelf, &["legacy.php".into()], "Umlauts")
+        .unwrap_err();
+    assert!(err.to_string().contains("legacy.php"), "{err}");
+    assert_eq!(fs::read(d.join("legacy.php")).unwrap(), edited);
+    assert!(shelf.list().is_empty());
+
+    let repo = open(d);
+    let cl = repo
+        .shelve(&shelf, &["legacy.php".into()], "Umlauts")
+        .unwrap();
+    assert_eq!(fs::read(d.join("legacy.php")).unwrap(), original);
+    assert!(shelf
+        .patch_bytes(&cl.id)
+        .unwrap()
+        .windows(3)
+        .any(|w| w == b"\xe4\xe4'"));
+
+    repo.unshelve(&shelf, &cl.id, None, true).unwrap();
+    assert_eq!(fs::read(d.join("legacy.php")).unwrap(), edited);
+    assert!(shelf.list().is_empty());
 }
 
 #[test]

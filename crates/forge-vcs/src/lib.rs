@@ -56,7 +56,9 @@ pub use worktree::{NewWorktree, Worktree};
 
 pub use changelists::{Changelist, ChangelistFile, ChangelistView, Changelists};
 #[cfg(feature = "git")]
-pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
+pub use cmd::{
+    git_binary, set_git_program, GitBytesOutput, GitExec, GitOutput, GitRequest, LocalGit,
+};
 pub use hunks::ChangeHunk;
 pub use ops::{MergeOptions, OperationAction, PullOptions, RebaseOptions, ResetMode, TagOptions};
 pub use rebase::{
