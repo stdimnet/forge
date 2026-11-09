@@ -90,7 +90,12 @@ updates.
 
 Forge updates itself with `tauri-plugin-updater`: it reads `latest.json`, downloads the bundle
 for its platform, verifies the bundle's minisign signature against the public key built into
-the app, installs it and restarts. When and what to offer (once a day, skipped versions,
+the app, installs it and restarts. `tauri.conf.json` sets `requireSignedVersion`: the
+signature's trusted comment must name the version the feed announces (the Tauri CLI writes it
+when it signs a bundle), so a feed cannot pair a newer version number with an older signed
+build. Feeds are read over `https` only (plain `http` only from `localhost`) and at most 1 MB.
+`updates.endpoint` and `updates.channel` are IDE settings: a project's `.forge/settings.toml`
+never sets them. When and what to offer (once a day, skipped versions,
 channel, version compare) is decided in [`forge-update`](crates/forge-update.md); the shell side
 is `app/src-tauri/src/commands/updates.rs` and the splash steps are in
 `app/src-tauri/src/startup.rs`.

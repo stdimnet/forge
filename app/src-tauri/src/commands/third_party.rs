@@ -147,13 +147,9 @@ fn register(state: &AppState, plugin: &InstalledPlugin) -> Result<()> {
         registry.set_enabled(&plugin.manifest.id, false)?;
     }
     drop(registry);
-    state.write_settings().set_defaults(
-        plugin
-            .manifest
-            .contributes
-            .settings
-            .iter()
-            .map(|s| (s.key.clone(), s.default.clone())),
+    forge_plugin_api::apply_setting_specs(
+        &mut state.write_settings(),
+        &plugin.manifest.contributes.settings,
     );
     Ok(())
 }
@@ -308,7 +304,7 @@ pub async fn plugin_host_write_file(
     }
     .check_fs(Path::new(&path), true, &roots)
     .map_err(err)?;
-    if roots.project.as_ref().is_some_and(|p| real.starts_with(p)) {
+    if writes_project_file(roots.project.as_deref(), &real) {
         state.require_trusted(&format!("let {} write project files", plugin.manifest.name))?;
     }
     blocking(move || {
@@ -318,6 +314,13 @@ pub async fn plugin_host_write_file(
         std::fs::write(&real, contents).map_err(|e| ForgeError::io(&real, e))
     })
     .await
+}
+
+/// Whether `real` (the resolved target of a write) is a file of the project. Compared with
+/// `forge_core::paths::is_within`: on Windows `real` is a verbatim path (`\\?\C:\…`) while the
+/// project root is not, so a plain `starts_with` never matched there.
+fn writes_project_file(project: Option<&Path>, real: &Path) -> bool {
+    project.is_some_and(|p| forge_core::paths::is_within(p, real))
 }
 
 /// `forge.http.fetch`: requests to granted hosts only.
@@ -555,4 +558,32 @@ pub async fn marketplace_updates(state: State<'_, AppState>) -> Result<Vec<Entry
 #[tauri::command]
 pub fn plugins_wanted_dismiss(state: State<'_, AppState>) -> Result<()> {
     store(&state)?.dismiss_wanted().map_err(err)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_writes_are_recognized_in_every_spelling() {
+        // Windows: the guard resolves the target to a verbatim path.
+        let root = Path::new(r"C:\proj");
+        assert!(writes_project_file(
+            Some(root),
+            Path::new(r"\\?\C:\proj\build.ps1")
+        ));
+        assert!(writes_project_file(
+            Some(root),
+            Path::new(r"\\?\c:\PROJ\build.ps1")
+        ));
+        assert!(!writes_project_file(
+            Some(root),
+            Path::new(r"\\?\C:\data\x.txt")
+        ));
+        assert!(writes_project_file(
+            Some(Path::new("/home/me/proj")),
+            Path::new("/home/me/proj/a")
+        ));
+        assert!(!writes_project_file(None, Path::new("/home/me/proj/a")));
+    }
 }

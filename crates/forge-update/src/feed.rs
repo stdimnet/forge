@@ -136,9 +136,31 @@ pub fn client(version: &str) -> reqwest::Client {
         .unwrap_or_default()
 }
 
-/// Read the feed. A `204 No Content` answer means "no update" and returns `None`.
+/// The largest feed Forge reads (a real `latest.json` is a few kilobytes).
+pub const MAX_FEED_BYTES: usize = 1024 * 1024;
+
+/// Feeds are read over https; plain http only from this machine (local test servers).
+pub fn check_endpoint(endpoint: &str) -> Result<()> {
+    let insecure = || UpdateError::Insecure(endpoint.to_string());
+    let url = reqwest::Url::parse(endpoint.trim()).map_err(|_| insecure())?;
+    let host = url.host_str().unwrap_or_default();
+    let host = host.trim_start_matches('[').trim_end_matches(']');
+    let local = host.eq_ignore_ascii_case("localhost")
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback());
+    match url.scheme() {
+        "https" => Ok(()),
+        "http" if local => Ok(()),
+        _ => Err(insecure()),
+    }
+}
+
+/// Read the feed. A `204 No Content` answer means "no update" and returns `None`. Only
+/// https feeds ([`check_endpoint`]) of at most [`MAX_FEED_BYTES`] are read.
 pub async fn fetch_feed(client: &reqwest::Client, endpoint: &str) -> Result<Option<Feed>> {
-    let response = client
+    check_endpoint(endpoint)?;
+    let mut response = client
         .get(endpoint)
         .header(reqwest::header::ACCEPT, "application/json")
         .send()
@@ -151,11 +173,24 @@ pub async fn fetch_feed(client: &reqwest::Client, endpoint: &str) -> Result<Opti
     if !status.is_success() {
         return Err(UpdateError::Status(status.as_u16()));
     }
-    let text = response
-        .text()
+    if response
+        .content_length()
+        .is_some_and(|n| n > MAX_FEED_BYTES as u64)
+    {
+        return Err(UpdateError::TooLarge(MAX_FEED_BYTES));
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
         .await
-        .map_err(|e| UpdateError::Network(e.to_string()))?;
-    Feed::parse(&text).map(Some)
+        .map_err(|e| UpdateError::Network(e.to_string()))?
+    {
+        if body.len() + chunk.len() > MAX_FEED_BYTES {
+            return Err(UpdateError::TooLarge(MAX_FEED_BYTES));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Feed::parse(&String::from_utf8_lossy(&body)).map(Some)
 }
 
 /// The download's size from a `HEAD` request, if the server tells.

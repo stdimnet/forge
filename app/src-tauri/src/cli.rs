@@ -124,11 +124,7 @@ pub fn inspect(args: &Args) -> Result<i32, String> {
         .map_err(|e| format!("cannot open {}: {e}", args.project.display()))?;
     let plugins = crate::plugins::builtin_registry().map_err(|e| e.to_string())?;
     let mut settings = Settings::new();
-    settings.set_defaults(
-        plugins
-            .all_settings()
-            .map(|s| (s.key.clone(), s.default.clone())),
-    );
+    forge_plugin_api::apply_setting_specs(&mut settings, plugins.all_settings());
     if let Some(path) = Settings::default_user_path() {
         let _ = settings.load_user(path);
     }
