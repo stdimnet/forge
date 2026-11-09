@@ -20,6 +20,8 @@ use crate::lazy::{content_stamp, group_rows, FoundText, LazyFile, Rows};
 use forge_core::Excludes;
 
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
+/// Longest a change waits for the index while events keep arriving (a build writing files).
+pub(crate) const WATCH_MAX_WAIT: Duration = Duration::from_secs(2);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
 
 /// A result keeps 8 bytes per match plus its row index; past this the search stops and reports
@@ -220,6 +222,16 @@ impl SearchService {
             });
         }
         plan.stats
+    }
+
+    /// Whether a change of `path` (absolute) can change the index: it is inside the project
+    /// and not excluded (`target/`, `node_modules/` once marked so).
+    pub(crate) fn tracks(&self, path: &Path) -> bool {
+        let Ok(rel) = path.strip_prefix(&self.root) else {
+            return false;
+        };
+        let rel = rel.to_string_lossy().replace('\\', "/");
+        !rel.is_empty() && !self.excludes.get().excludes(&rel, path.is_dir())
     }
 
     /// Re-index just what changed under `paths` (absolute), as reported by a file watcher.
@@ -630,20 +642,45 @@ pub(crate) fn watch_loop(
     let mut overflowed = false;
     let mut unsaved = false;
     let mut last_save = Instant::now();
+    // The first and the latest change waiting for the index. Events of excluded paths are
+    // dropped before they count, and the wait is capped, so a steady stream of events (a
+    // build writing `target/`) cannot postpone the update forever.
+    let mut pending: Option<(Instant, Instant)> = None;
     loop {
-        match rx.recv_timeout(WATCH_DEBOUNCE) {
+        let wait = match pending {
+            Some((first, last)) => (last + WATCH_DEBOUNCE)
+                .min(first + WATCH_MAX_WAIT)
+                .saturating_duration_since(Instant::now()),
+            None => WATCH_DEBOUNCE,
+        };
+        let changed = match rx.recv_timeout(wait) {
             Ok(Ok(event)) => {
-                overflowed |= event.need_rescan();
-                dirty.extend(event.paths);
-                continue;
+                let Some(service) = service.upgrade() else {
+                    return;
+                };
+                let rescan = event.need_rescan();
+                let before = dirty.len();
+                dirty.extend(event.paths.into_iter().filter(|p| service.tracks(p)));
+                overflowed |= rescan;
+                rescan || dirty.len() > before
             }
             Ok(Err(_)) => {
                 overflowed = true;
+                true
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => false,
+            Err(mpsc::RecvTimeoutError::Disconnected) => return,
+        };
+        let now = Instant::now();
+        if changed {
+            pending = Some(pending.map_or((now, now), |(first, _)| (first, now)));
+        }
+        if let Some((first, last)) = pending {
+            if now < last + WATCH_DEBOUNCE && now < first + WATCH_MAX_WAIT {
                 continue;
             }
-            Err(mpsc::RecvTimeoutError::Timeout) => {}
-            Err(mpsc::RecvTimeoutError::Disconnected) => return,
         }
+        pending = None;
         let Some(service) = service.upgrade() else {
             return;
         };

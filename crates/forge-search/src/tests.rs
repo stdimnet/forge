@@ -678,3 +678,50 @@ fn lazy_pages_of_a_file_changed_after_the_search_are_searched_again() {
     // A later page of the changed file is a page of the new matches (here: none).
     assert!(found.page(1, 2).iter().all(|f| f.matches.is_empty()));
 }
+
+#[test]
+fn a_steady_stream_of_excluded_events_does_not_hold_back_changes() {
+    use forge_core::excludes::{FolderKind, FolderMark, StructureConfig};
+    let dir = TempDir::new().unwrap();
+    let r = dir.path();
+    write(r, "a.txt", "alpha\n");
+    let excludes = forge_core::Excludes::default();
+    excludes.set(StructureConfig {
+        folders: vec![FolderMark {
+            path: "target".into(),
+            kind: FolderKind::Excluded,
+        }],
+        exclude_patterns: String::new(),
+    });
+    let svc = std::sync::Arc::new(SearchService::open(r, None).with_excludes(excludes.clone()));
+    svc.refresh();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let weak = std::sync::Arc::downgrade(&svc);
+    std::thread::spawn(move || crate::service::watch_loop(rx, weak));
+    let event =
+        |path: std::path::PathBuf| Ok(notify::Event::new(notify::EventKind::Any).add_path(path));
+
+    // The user's file changes while a build keeps writing below `target/` (and, later, to a
+    // tracked file too): the index catches up anyway.
+    write(r, "b.txt", "streamtoken\n");
+    tx.send(event(r.join("b.txt"))).unwrap();
+    let started = std::time::Instant::now();
+    let mut n = 0;
+    while started.elapsed() < std::time::Duration::from_secs(8) {
+        if !paths(&svc, &q("streamtoken")).is_empty() {
+            break;
+        }
+        n += 1;
+        tx.send(event(r.join(format!("target/out{n}.o")))).unwrap();
+        if n % 10 == 0 {
+            tx.send(event(r.join("a.txt"))).unwrap();
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    assert_eq!(paths(&svc, &q("streamtoken")), ["b.txt"]);
+    assert!(
+        started.elapsed() < crate::service::WATCH_MAX_WAIT + std::time::Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
+}
