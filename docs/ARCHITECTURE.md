@@ -862,7 +862,10 @@ or without Git, for local and remote projects.
   (`src/shell/window/dialogs.ts`). In the desktop app `dialog_window_open({ request })` creates
   the window `dialog-<id>` owned by the calling window (centered on it, or at the geometry
   remembered in `<config dir>/forge/dialog-windows.json`, see `forge_window::place_dialog`),
-  disables the owner and refocuses the dialog when the owner gets focus. The window loads the
+  disables the owner and refocuses the dialog when the owner gets focus. There is one window
+  per dialog id: a second request focuses the open window, and a request while the window is
+  still being built does nothing (the label is reserved before the build, so two windows can
+  never share a label and leave one that Tauri no longer knows). The window loads the
   same bundle with `?dialog=<id>` (props injected as `window.__FORGE_DIALOG__`) and renders only
   `DialogWindowApp`. The dialog ends with `closeDialog(id, result)` (`dialog_window_close`);
   the owner receives `dialog://closed { window, id, result }` and runs `onClosed` there.

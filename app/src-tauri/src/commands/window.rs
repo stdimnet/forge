@@ -6,7 +6,7 @@
 //! parent window (`dialog://closed`), and the dialog's last geometry is remembered in
 //! `<config dir>/forge/dialog-windows.json`. Pure logic lives in `forge-window`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -57,10 +57,48 @@ struct OpenDialog {
 #[derive(Default)]
 pub struct DialogWindowsState {
     open: Mutex<HashMap<String, OpenDialog>>,
+    /// Labels of dialog windows being built. A second request for the same dialog while the
+    /// first window is still being created must not build another window with the same
+    /// label: Tauri would then drop the label of the window that stays (#227).
+    opening: Mutex<HashSet<String>>,
     states: Mutex<Option<DialogStates>>,
 }
 
+/// A label reserved for a dialog window being built; released when dropped (also on errors).
+struct OpeningGuard<'a> {
+    state: &'a DialogWindowsState,
+    label: String,
+}
+
+impl Drop for OpeningGuard<'_> {
+    fn drop(&mut self) {
+        self.state
+            .opening
+            .lock()
+            .expect("dialogs opening lock poisoned")
+            .remove(&self.label);
+    }
+}
+
 impl DialogWindowsState {
+    /// Reserve `label` for a new dialog window: `None` while a window with that label is open
+    /// or being built. The check and the reservation happen under one lock, so two requests
+    /// cannot both get it.
+    fn reserve(&self, label: &str) -> Option<OpeningGuard<'_>> {
+        let open = self.open.lock().expect("dialogs lock poisoned");
+        if open.contains_key(label) {
+            return None;
+        }
+        let mut opening = self.opening.lock().expect("dialogs opening lock poisoned");
+        if !opening.insert(label.to_string()) {
+            return None;
+        }
+        Some(OpeningGuard {
+            state: self,
+            label: label.to_string(),
+        })
+    }
+
     fn with_states<T>(&self, f: impl FnOnce(&mut DialogStates) -> T) -> T {
         let mut guard = self.states.lock().expect("dialog states lock poisoned");
         let states = guard.get_or_insert_with(|| {
@@ -314,6 +352,11 @@ pub async fn dialog_window_open(
         existing.set_focus().map_err(err)?;
         return Ok(());
     }
+    // Already being opened (the user asked twice while the first window is created): that
+    // window shows itself when its UI is ready.
+    let Some(_reservation) = dialogs.reserve(&label) else {
+        return Ok(());
+    };
     let parent = window;
     let chrome = chrome_for(&setting(&state));
     let scale = parent.scale_factor().unwrap_or(1.0);
@@ -413,6 +456,9 @@ pub fn open_standalone(
         return Ok(existing);
     }
     let dialogs = app.state::<DialogWindowsState>();
+    let Some(_reservation) = dialogs.reserve(&label) else {
+        return Err(err(format!("the {id} window is already opening")));
+    };
     let chrome = chrome_for(&setting(&app.state::<AppState>()));
     let monitor = app.primary_monitor().ok().flatten();
     let scale = monitor.as_ref().map_or(1.0, |m| m.scale_factor());
@@ -674,5 +720,88 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn open_entry() -> OpenDialog {
+        OpenDialog {
+            id: "settings".into(),
+            parent: "main".into(),
+            modal: true,
+            result: None,
+            closing: false,
+            close_requested: None,
+            geometry: None,
+        }
+    }
+
+    #[test]
+    fn a_dialog_being_opened_cannot_be_opened_again() {
+        let state = DialogWindowsState::default();
+        let first = state.reserve("dialog-settings").expect("first request");
+        assert!(
+            state.reserve("dialog-settings").is_none(),
+            "a second request while the first window is built must not build another one"
+        );
+        // Other dialogs are independent.
+        assert!(state.reserve("dialog-plugins").is_some());
+        drop(first);
+        assert!(state.reserve("dialog-settings").is_some());
+    }
+
+    #[test]
+    fn an_open_dialog_cannot_be_reserved() {
+        let state = DialogWindowsState::default();
+        {
+            let _building = state.reserve("dialog-settings").unwrap();
+            state
+                .open
+                .lock()
+                .unwrap()
+                .insert("dialog-settings".into(), open_entry());
+        }
+        assert!(state.reserve("dialog-settings").is_none());
+        state.open.lock().unwrap().remove("dialog-settings");
+        assert!(state.reserve("dialog-settings").is_some());
+    }
+
+    #[test]
+    fn a_failed_build_releases_the_label() {
+        let state = DialogWindowsState::default();
+        let build = || -> std::result::Result<(), &'static str> {
+            let _reservation = state.reserve("dialog-settings").unwrap();
+            Err("webview creation failed")
+        };
+        assert!(build().is_err());
+        assert!(state.reserve("dialog-settings").is_some());
+    }
+
+    #[test]
+    fn concurrent_requests_get_one_reservation() {
+        let state = std::sync::Arc::new(DialogWindowsState::default());
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+        let granted = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                let (state, barrier, granted) = (state.clone(), barrier.clone(), granted.clone());
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    if let Some(r) = state.reserve("dialog-settings") {
+                        granted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        // Hold it like a window build would, so late threads still see it.
+                        std::thread::sleep(Duration::from_millis(50));
+                        drop(r);
+                    }
+                })
+            })
+            .collect();
+        for t in threads {
+            t.join().unwrap();
+        }
+        assert_eq!(granted.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 }
