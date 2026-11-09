@@ -529,7 +529,11 @@ pub fn new_file(req: &NewFileRequest, custom: &[CustomTemplate]) -> Result<NewFi
     check_segment(base)?;
     let name = match base.len().checked_sub(ext.len() + 1) {
         Some(n)
-            if !ext.is_empty() && base[n..].eq_ignore_ascii_case(&format!(".{ext}")) && n > 0 =>
+            if n > 0
+                && !ext.is_empty()
+                && base
+                    .get(n..)
+                    .is_some_and(|tail| tail.eq_ignore_ascii_case(&format!(".{ext}"))) =>
         {
             &base[..n]
         }
@@ -696,6 +700,15 @@ mod tests {
         let f = new_file(&req("PHP Class", "", "Order.php"), &[]).unwrap();
         assert_eq!(f.path, "Order.php");
         assert_eq!(f.text, "<?php\n\nclass Order\n{\n\n}\n");
+    }
+
+    #[test]
+    fn names_starting_with_a_multi_byte_character() {
+        // `Über` is 5 bytes: the extension check must not slice inside `Ü`.
+        let f = new_file(&req("PHP File", "", "Über"), &[]).unwrap();
+        assert_eq!(f.path, "Über.php");
+        let f = new_file(&req("PHP File", "", "Ü.php"), &[]).unwrap();
+        assert_eq!(f.path, "Ü.php");
     }
 
     #[test]
