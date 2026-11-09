@@ -60,41 +60,98 @@ fn dash_prefix(t: &str) -> usize {
     n
 }
 
+/// The quoted scalar starting at `chars[i]` (a `'` or `"`): the index of its closing quote
+/// and its value, or `None` when it does not end on this line.
+fn quoted_scalar(chars: &[char], i: usize) -> Option<(usize, String)> {
+    let q = chars[i];
+    let mut value = String::new();
+    let mut j = i + 1;
+    while j < chars.len() {
+        let c = chars[j];
+        if q == '\'' && c == '\'' {
+            // `''` is an escaped apostrophe inside a single-quoted scalar.
+            if chars.get(j + 1) == Some(&'\'') {
+                value.push('\'');
+                j += 2;
+                continue;
+            }
+            return Some((j, value));
+        }
+        if q == '"' && c == '\\' {
+            value.push(c);
+            if let Some(&n) = chars.get(j + 1) {
+                value.push(n);
+            }
+            j += 2;
+            continue;
+        }
+        if q == '"' && c == '"' {
+            return Some((j, value));
+        }
+        value.push(c);
+        j += 1;
+    }
+    None
+}
+
+/// The scalar `value` (unescaped for single quotes, raw for double quotes) written with the
+/// quote `want`, or `None` when that would need escapes (the original is kept then).
+fn requote(from: char, value: &str, want: char) -> Option<String> {
+    if from == want {
+        return None;
+    }
+    if want == '"' {
+        // A single-quoted value has no escapes; `"` and `\` would need them.
+        (!value.contains(['"', '\\'])).then(|| format!("\"{value}\""))
+    } else {
+        // Escapes (`\n`, `\"`) have no single-quoted form; an apostrophe would be `''`.
+        (!value.contains(['\\', '\''])).then(|| format!("'{value}'"))
+    }
+}
+
 /// Spaces inside `{…}` / `[…]` and the preferred quotes, outside strings and comments.
+/// Only scalars that start with a quote are quoted scalars: an apostrophe inside a plain
+/// scalar (`title: Bob's book`) is text.
 fn fix_flow(line: &str, o: &Opts<'_>) -> String {
     let braces = o.bool("spaces.withinBraces");
     let brackets = o.bool("spaces.withinBrackets");
     let single = o.bool("other.singleQuote");
+    let want = if single { '\'' } else { '"' };
     let mut out = String::with_capacity(line.len());
     let chars: Vec<char> = line.chars().collect();
     let mut depth = 0;
+    // Whether a node (scalar, flow collection) may start here: at the start of the line,
+    // after `- `, `? `, `: ` and, in flow collections, after `[`, `{` and `,`.
+    let mut at_value = true;
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
+        let next = chars.get(i + 1).copied();
+        let ends_indicator = |n: Option<char>| {
+            n.is_none_or(|n| n == ' ' || (depth > 0 && matches!(n, ',' | ']' | '}')))
+        };
         if c == '#' && (i == 0 || chars[i - 1] == ' ') {
             out.extend(&chars[i..]);
             break;
         }
-        if c == '"' || c == '\'' {
-            let end = (i + 1..chars.len()).find(|&j| chars[j] == c && chars[j - 1] != '\\');
-            let Some(end) = end else {
+        if c == ' ' {
+            out.push(c);
+            i += 1;
+            continue;
+        }
+        if (c == '"' || c == '\'') && at_value {
+            let Some((end, value)) = quoted_scalar(&chars, i) else {
                 out.extend(&chars[i..]);
                 break;
             };
-            let inner: String = chars[i + 1..end].iter().collect();
-            let want = if single { '\'' } else { '"' };
-            if c != want && !inner.contains(want) && !inner.contains('\\') {
-                out.push(want);
-                out.push_str(&inner);
-                out.push(want);
-            } else {
-                out.extend(&chars[i..=end]);
+            match requote(c, &value, want) {
+                Some(q) => out.push_str(&q),
+                None => out.extend(&chars[i..=end]),
             }
+            at_value = false;
             i = end + 1;
             continue;
         }
-        let at_value = depth > 0
-            || (i > 0 && (out.ends_with(": ") || out.ends_with("- ") || out.trim().is_empty()));
         match c {
             '{' | '[' if at_value => {
                 depth += 1;
@@ -122,8 +179,23 @@ fn fix_flow(line: &str, o: &Opts<'_>) -> String {
                     out.push(' ');
                 }
                 out.push(c);
+                at_value = false;
             }
-            _ => out.push(c),
+            ',' if depth > 0 => {
+                out.push(c);
+                at_value = true;
+            }
+            ':' if ends_indicator(next) => {
+                out.push(c);
+                at_value = true;
+            }
+            '-' | '?' if at_value && depth == 0 && ends_indicator(next) => {
+                out.push(c);
+            }
+            _ => {
+                out.push(c);
+                at_value = false;
+            }
         }
         i += 1;
     }
@@ -270,5 +342,34 @@ mod tests {
         let o = Opts::new("yaml", &v);
         assert_eq!(format("a:\n  - \"x\"\n", &o, true), "a:\n- 'x'\n");
         assert_eq!(block_scalars("a: |\n  x\n\n  y\nb: 1\n"), vec![(5, 14)]);
+    }
+
+    #[test]
+    fn apostrophes_in_plain_and_quoted_scalars_keep_their_value() {
+        let v = model().defaults();
+        let o = Opts::new("yaml", &v);
+        let same = [
+            "title: Bob's and Alice's book\n",
+            "- it's 'quoted' later\n",
+            "k: \"say \\\"hi\\\"\"\n",
+            "k: 'say \"hi\"'\n",
+            "k: { a: Bob's, b: Ann's }\n",
+        ];
+        for src in same {
+            assert_eq!(format(src, &o, true), src, "{src}");
+        }
+        assert_eq!(format("k: 'it''s'\n", &o, true), "k: \"it's\"\n");
+        assert_eq!(
+            format("'key': 'v' # it's\n", &o, true),
+            "\"key\": \"v\" # it's\n"
+        );
+        assert_eq!(format("- ['a', 'b']\n", &o, true), "- [\"a\", \"b\"]\n");
+
+        let mut v = model().defaults();
+        v.insert("yaml.other.singleQuote".into(), json!(true));
+        let o = Opts::new("yaml", &v);
+        assert_eq!(format("k: \"it's\"\n", &o, true), "k: \"it's\"\n");
+        assert_eq!(format("k: \"a\\tb\"\n", &o, true), "k: \"a\\tb\"\n");
+        assert_eq!(format("k: \"ab\"\n", &o, true), "k: 'ab'\n");
     }
 }
