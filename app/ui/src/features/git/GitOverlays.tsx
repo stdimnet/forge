@@ -3,6 +3,7 @@ import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-solid";
 import { DiffViewer } from "./DiffViewer";
 import { ConflictsDialog } from "./ConflictsDialog";
+import { enterConfirms } from "./DialogFrame";
 import { MergeWindow } from "./MergeWindow";
 import { conflictsOpen, mergeFile, setMergeFile } from "./conflicts";
 import { BranchesPopup } from "./BranchesPopup";
@@ -26,7 +27,7 @@ function Dialog(props: { d: InputDialog }) {
     if (e.key === "Escape") {
       e.preventDefault();
       setInputDialog(null);
-    } else if (e.key === "Enter") {
+    } else if (enterConfirms(e)) {
       e.preventDefault();
       void ok();
     }

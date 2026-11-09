@@ -130,12 +130,14 @@ export function NuGetToolWindow() {
       const known = selected()?.versions;
       try {
         const list = known?.length ? known : await dotnetApi.nugetVersions(id);
+        // Another package was selected while the versions of this one loaded.
+        if (selectedId() !== id) return;
         const sorted = [...list].reverse();
         setVersions(sorted);
         const stable = sorted.find((v) => prerelease() || !v.includes("-")) ?? sorted[0] ?? "";
         setVersion(updateOf(id)?.latest ?? stable);
       } catch {
-        setVersions([]);
+        if (selectedId() === id) setVersions([]);
       }
     }),
   );

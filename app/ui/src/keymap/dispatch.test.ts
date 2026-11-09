@@ -4,6 +4,7 @@ import "@/mock/keymapMock";
 import { registerCommand } from "@/state/commands";
 import { balloons, focusContextOf, installKeymap, resolveCommand, runAction, suspendKeymap } from "./dispatch";
 import { resetKeymap, setActionShortcuts, setKeymapId, startKeymap } from "./store";
+import { setLocale } from "@/i18n";
 
 function press(target: EventTarget, init: KeyboardEventInit) {
   const e = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
@@ -124,5 +125,25 @@ describe("installed keymap", () => {
     resume();
     expect(e.defaultPrevented).toBe(false);
     expect(gotoClass).not.toHaveBeenCalled();
+  });
+});
+
+describe("action balloons", () => {
+  afterEach(() => setLocale("en"));
+
+  it("follow the IDE language", async () => {
+    setLocale("de");
+    registerCommand({
+      id: "Annotate",
+      title: "Annotate",
+      run: () => {
+        throw new Error("boom");
+      },
+    });
+    await runAction("Annotate");
+    expect(balloons().at(-1)?.text).toMatch(/ fehlgeschlagen$/);
+    await runAction("Vcs.Push");
+    expect(balloons().at(-1)?.text).toMatch(/ ist noch nicht verfügbar$/);
+    expect(balloons().at(-1)?.detail).toBe("Diese Aktion kommt mit einem späteren Forge-Update.");
   });
 });

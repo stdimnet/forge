@@ -4,8 +4,6 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-pub(crate) const UNCOMMITTED: &str = "0000000000000000000000000000000000000000";
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlameCommit {
@@ -48,7 +46,8 @@ pub fn parse_blame(out: &str) -> Blame {
         let mut parts = line.splitn(2, ' ');
         let first = parts.next().unwrap_or("");
         let rest = parts.next().unwrap_or("");
-        if first.len() == 40 && first.bytes().all(|b| b.is_ascii_hexdigit()) {
+        // SHA-1 or SHA-256 (`git init --object-format=sha256`) commits.
+        if crate::log::is_object_id(first) {
             let i = *index.entry(first.to_string()).or_insert_with(|| {
                 blame.commits.push(BlameCommit {
                     sha: first.to_string(),
@@ -56,7 +55,8 @@ pub fn parse_blame(out: &str) -> Blame {
                     email: String::new(),
                     time: 0,
                     summary: String::new(),
-                    uncommitted: first == UNCOMMITTED,
+                    // Lines not committed yet carry the null object id.
+                    uncommitted: first.bytes().all(|b| b == b'0'),
                 });
                 blame.commits.len() - 1
             });
@@ -121,6 +121,19 @@ filename User.php
         assert_eq!(c.email, "m@x.io");
         assert_eq!(c.time, 1_700_000_000);
         assert_eq!(c.summary, "Add user model");
+        assert!(b.commit_for_line(2).unwrap().uncommitted);
+    }
+
+    #[test]
+    fn parses_sha256_repositories() {
+        let sample = SAMPLE
+            .replace(&"1".repeat(40), &"a1".repeat(32))
+            .replace(&"0".repeat(40), &"0".repeat(64));
+        let b = parse_blame(&sample);
+        assert_eq!(b.commits.len(), 2);
+        assert_eq!(b.lines, vec![0, 0, 1]);
+        assert_eq!(b.commit_for_line(0).unwrap().sha, "a1".repeat(32));
+        assert_eq!(b.commit_for_line(0).unwrap().author, "Marlon");
         assert!(b.commit_for_line(2).unwrap().uncommitted);
     }
 }

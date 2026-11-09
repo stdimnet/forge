@@ -37,6 +37,7 @@ import {
   valueOf,
 } from "./store";
 import { t as tr } from "@/i18n";
+import { downloadBlob } from "@/state/download";
 
 // ---- Scheme box and ⚙ menu -------------------------------------------------------------
 
@@ -60,12 +61,7 @@ async function exportScheme(format: CodeStyleExportFormat): Promise<void> {
       return;
     }
     const text = await codeStyleApi.export(scheme.name, scheme.values, format);
-    const url = URL.createObjectURL(new Blob([text], { type: format === "xml" ? "application/xml" : "application/json" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(file, new Blob([text], { type: format === "xml" ? "application/xml" : "application/json" }));
     showBalloon(tr("tools.codeStyle.schemeExported", { name: scheme.name }), file);
   } catch (e) {
     showBalloon(tr("common.exportFailed"), e instanceof Error ? e.message : String(e));

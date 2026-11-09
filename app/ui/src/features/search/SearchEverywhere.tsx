@@ -98,12 +98,19 @@ export function SearchEverywhere() {
     setLoading(true);
     const perGroup = tab === "all" ? 5 : 60;
     // Ranked in Rust; disabled actions only show when asked for or when nothing else matches.
-    await runSearchStreaming(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup }, (res, done) => {
-      if (id !== seq) return;
-      setGroups(res);
-      if (done) setLoading(false);
-    });
-    if (id === seq) setSelected(0);
+    try {
+      await runSearchStreaming(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup }, (res, done) => {
+        if (id !== seq) return;
+        setGroups(res);
+        if (done) setLoading(false);
+      });
+    } catch (e) {
+      console.warn("search failed", e);
+    }
+    if (id !== seq) return;
+    // A failed search never reports `done`: the spinner must not keep turning.
+    setLoading(false);
+    setSelected(0);
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -126,6 +133,11 @@ export function SearchEverywhere() {
     return out;
   });
   const selectable = createMemo(() => rows().map((r, i) => (r.type === "header" ? -1 : i)).filter((i) => i >= 0));
+  // Streamed results can shrink the list under the selection: keep it on a row.
+  createEffect(() => {
+    const n = selectable().length;
+    if (selected() >= n) setSelected(Math.max(0, n - 1));
+  });
 
   createEffect(() => {
     const idx = selectable()[selected()];

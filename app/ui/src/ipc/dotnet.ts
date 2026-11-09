@@ -152,6 +152,8 @@ export interface BuildProblem {
   column: number;
   endLine: number;
   endColumn: number;
+  /** The output named a position (`line` 0, `column` 0 is then `:1:1`). */
+  located?: boolean;
   project?: string;
   origin?: string;
 }

@@ -571,8 +571,15 @@ fn utf16_len(s: &str) -> usize {
 /// The result row of a line: trimmed, cut around the first match, ranges in UTF-16.
 fn line_match(line_no: usize, line: &str, found: &[(usize, usize)]) -> LineMatch {
     let (first_start, first_end) = found[0];
-    let mut start = line.len() - line.trim_start().len();
-    let mut end = line.trim_end().len().max(start);
+    // Indentation and trailing whitespace are left out, unless a match is in them (a search
+    // for a tab or for trailing spaces): then the text keeps them, so the match is highlighted.
+    let last_end = found.iter().map(|&(_, e)| e).max().unwrap_or(first_end);
+    let mut start = (line.len() - line.trim_start().len()).min(first_start);
+    let mut end = line
+        .trim_end()
+        .len()
+        .max(last_end.min(line.len()))
+        .max(start);
     // Long lines: keep some context before the first match.
     if line[start..end].chars().count() > PREVIEW_CHARS {
         let before: Vec<(usize, char)> =
@@ -952,6 +959,30 @@ mod tests {
         assert_eq!(find_in(&q, [("e.txt", "a\r\nb")]).match_count, 0);
         assert!(is_binary(b"ab\0c"));
         assert!(!is_binary(b"abc"));
+    }
+
+    #[test]
+    fn matches_in_indentation_and_trailing_whitespace_are_highlighted() {
+        let mut q = req("\t");
+        q.regex = true;
+        let finder = Finder::new(&q).unwrap();
+        let (rows, _, _) = finder.search("\tfoo();", 10);
+        assert_eq!(
+            (rows[0].text.as_str(), rows[0].ranges.clone()),
+            ("\tfoo();", vec![(0, 1)])
+        );
+        let mut q = req("\\s+$");
+        q.regex = true;
+        let finder = Finder::new(&q).unwrap();
+        let (rows, _, _) = finder.search("  let x = 1;   ", 10);
+        assert_eq!(rows[0].text, "let x = 1;   ");
+        assert_eq!(rows[0].ranges, vec![(10, 13)]);
+        // Other lines keep their indentation trimmed.
+        let (rows, _, _) = Finder::new(&req("foo")).unwrap().search("    foo  ", 10);
+        assert_eq!(
+            (rows[0].text.as_str(), rows[0].ranges.clone()),
+            ("foo", vec![(0, 3)])
+        );
     }
 
     #[test]

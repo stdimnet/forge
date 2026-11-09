@@ -84,8 +84,9 @@ you enable it.
 ### Excluding files: .aiignore
 
 An `.aiignore` file in the project root (gitignore syntax; `.aiexclude` is read too) keeps
-files away from every AI feature: inline completion is not asked there and the actions report
-"… is excluded from AI by .aiignore".
+files away from every AI feature: inline completion is not asked there, excluded files open in
+other tabs are not sent along as context, and the actions report "… is excluded from AI by
+.aiignore".
 
 ```text
 # secrets and generated code never go to a model

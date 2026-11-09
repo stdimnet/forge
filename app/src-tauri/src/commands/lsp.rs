@@ -87,39 +87,85 @@ impl LspState {
     pub(crate) fn manager(&self, app: &AppHandle, ws: &AppState) -> Result<Arc<LspManager>> {
         let backend = ws.backend()?;
         let root = backend.info().root.clone();
-        let mut current = self.manager.lock().expect("lsp lock");
-        if let Some(m) = current.as_ref().filter(|m| m.root() == root) {
-            return Ok(m.clone());
-        }
-        if let Some(old) = current.take() {
+        let (manager, created) = current_or_create(
+            &self.manager,
+            |m| m.root() == root,
+            || {
+                let launcher = Arc::new(SafeModeLauncher {
+                    inner: backend.lsp_launcher(),
+                    safe_mode: ws.safe_mode.clone(),
+                    local: backend.info().remote.is_none(),
+                });
+                let manager = Arc::new(LspManager::with_launcher(root.clone(), launcher));
+                // Language packs register their servers (PHP: `commands::php::sync_lsp_server`).
+                for config in self.registered.lock().expect("lsp lock").iter().cloned() {
+                    manager.register_server(config);
+                }
+                // Catalog servers are planned where the project is: a remote host scans and
+                // probes in the agent, so it is asked in the background.
+                if backend.info().is_local() {
+                    crate::commands::langservers::register_enabled(&manager, ws);
+                }
+                manager
+            },
+        );
+        if let Some(old) = created.replaced {
             tauri::async_runtime::spawn(async move { old.shutdown_all().await });
         }
-        let launcher = Arc::new(SafeModeLauncher {
-            inner: backend.lsp_launcher(),
-            safe_mode: ws.safe_mode.clone(),
-            local: backend.info().remote.is_none(),
-        });
-        let manager = Arc::new(LspManager::with_launcher(root, launcher));
-        // Language packs register their servers (PHP: `commands::php::sync_lsp_server`).
-        for config in self.registered.lock().expect("lsp lock").iter().cloned() {
-            manager.register_server(config);
+        if created.new {
+            if !backend.info().is_local() {
+                let (app, manager) = (app.clone(), manager.clone());
+                tauri::async_runtime::spawn_blocking(move || {
+                    use tauri::Manager;
+                    crate::commands::langservers::register_enabled(
+                        &manager,
+                        &app.state::<AppState>(),
+                    );
+                    let _ = tauri::Emitter::emit(&app, "langservers://changed", ());
+                });
+            }
+            forward_events(app.clone(), &manager);
         }
-        // Catalog servers are planned where the project is: a remote host scans and probes
-        // in the agent, so it is asked in the background.
-        if backend.info().is_local() {
-            crate::commands::langservers::register_enabled(&manager, ws);
-        } else {
-            let (app, manager) = (app.clone(), manager.clone());
-            tauri::async_runtime::spawn_blocking(move || {
-                use tauri::Manager;
-                crate::commands::langservers::register_enabled(&manager, &app.state::<AppState>());
-                let _ = tauri::Emitter::emit(&app, "langservers://changed", ());
-            });
-        }
-        forward_events(app.clone(), &manager);
-        *current = Some(manager.clone());
         Ok(manager)
     }
+}
+
+/// What [`current_or_create`] did besides returning the value.
+struct Created<T> {
+    /// The value was made by this call (and is now the current one).
+    new: bool,
+    /// The value it replaced, to shut down.
+    replaced: Option<Arc<T>>,
+}
+
+/// The current value of `slot` when `fits`, else a new one from `create`. `create` runs
+/// without the lock held (it scans the project and probes tools), so other requests are not
+/// blocked meanwhile; when one of them installed a fitting value first, that one wins.
+fn current_or_create<T>(
+    slot: &Mutex<Option<Arc<T>>>,
+    fits: impl Fn(&T) -> bool,
+    create: impl FnOnce() -> Arc<T>,
+) -> (Arc<T>, Created<T>) {
+    let unchanged = || Created {
+        new: false,
+        replaced: None,
+    };
+    if let Some(m) = slot.lock().expect("lsp lock").as_ref().filter(|m| fits(m)) {
+        return (m.clone(), unchanged());
+    }
+    let made = create();
+    let mut current = slot.lock().expect("lsp lock");
+    if let Some(m) = current.as_ref().filter(|m| fits(m)) {
+        return (m.clone(), unchanged());
+    }
+    let replaced = current.replace(made.clone());
+    (
+        made,
+        Created {
+            new: true,
+            replaced,
+        },
+    )
 }
 
 /// Refuses, in Safe Mode, language servers that would run project code: binaries inside
@@ -645,6 +691,37 @@ pub fn lsp_register_server(config: LspServerConfig, lsp: State<'_, LspState>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_manager_is_created_without_holding_the_lock() {
+        let slot: Mutex<Option<Arc<String>>> = Mutex::new(Some(Arc::new("old".into())));
+        let (made, created) = current_or_create(
+            &slot,
+            |m| m == "new",
+            || {
+                // Scanning the project must not block other requests.
+                assert!(slot.try_lock().is_ok(), "the lock is held while creating");
+                Arc::new("new".into())
+            },
+        );
+        assert_eq!(*made, "new");
+        assert!(created.new);
+        assert_eq!(created.replaced.as_deref().map(String::as_str), Some("old"));
+        let (again, created) = current_or_create(&slot, |m| m == "new", || unreachable!());
+        assert!(Arc::ptr_eq(&made, &again) && !created.new);
+
+        // Another request installed a fitting manager meanwhile: it wins.
+        let (won, created) = current_or_create(
+            &slot,
+            |m| m == "other",
+            || {
+                *slot.lock().unwrap() = Some(Arc::new("other".into()));
+                Arc::new("other".into())
+            },
+        );
+        assert!(Arc::ptr_eq(&won, slot.lock().unwrap().as_ref().unwrap()));
+        assert!(!created.new && created.replaced.is_none());
+    }
 
     #[test]
     fn ui_paths_are_relative_with_forward_slashes() {

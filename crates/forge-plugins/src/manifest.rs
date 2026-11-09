@@ -223,6 +223,17 @@ pub struct Problem {
     pub message: String,
 }
 
+/// Forge's version as plugin engine ranges see it: without the pre-release part, so a beta of
+/// `0.1.1` counts as `0.1.1` and satisfies `>=0.1.0`. SemVer's own rule would only let a
+/// pre-release match ranges that name a pre-release of the same version, which would make every
+/// beta reject the plugins written for it.
+pub fn engine_version(forge_version: &str) -> Option<semver::Version> {
+    let mut v = semver::Version::parse(forge_version).ok()?;
+    v.pre = semver::Prerelease::EMPTY;
+    v.build = semver::BuildMetadata::EMPTY;
+    Some(v)
+}
+
 fn problem(field: impl Into<String>, message: impl Into<String>) -> Problem {
     Problem {
         field: field.into(),
@@ -277,7 +288,7 @@ impl PluginManifest {
         match semver::VersionReq::parse(&self.engines.forge) {
             Err(e) => out.push(problem("engines.forge", format!("invalid range: {e}"))),
             Ok(req) => {
-                if let Ok(v) = semver::Version::parse(forge_version) {
+                if let Some(v) = engine_version(forge_version) {
                     if !req.matches(&v) {
                         out.push(problem(
                             "engines.forge",
@@ -602,6 +613,26 @@ pub(crate) mod tests {
         }]
       }
     }"#;
+
+    #[test]
+    fn engine_ranges_accept_pre_releases_of_newer_versions() {
+        assert_eq!(
+            engine_version("0.1.1-beta.2"),
+            Some(semver::Version::new(0, 1, 1))
+        );
+        assert_eq!(
+            engine_version("1.2.3+build.5"),
+            Some(semver::Version::new(1, 2, 3))
+        );
+        assert_eq!(engine_version("not a version"), None);
+        let at_least = semver::VersionReq::parse(">=0.1.0").unwrap();
+        assert!(at_least.matches(&engine_version("0.1.1-beta.2").unwrap()));
+        // A beta of 0.1.0 counts as 0.1.0, so it still satisfies the range it is a beta of.
+        assert!(at_least.matches(&engine_version("0.1.0-beta.1").unwrap()));
+        assert!(!semver::VersionReq::parse(">=0.2.0")
+            .unwrap()
+            .matches(&engine_version("0.1.9-rc.1").unwrap()));
+    }
 
     #[test]
     fn the_example_manifest_is_valid() {

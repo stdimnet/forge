@@ -8,6 +8,7 @@ import { balloonsFor } from "@/keymap";
 import { workspace } from "@/state/workspace";
 import { activeSuite, showSuite } from "./store";
 import { t } from "@/i18n";
+import { downloadBlob } from "@/state/download";
 
 const showBalloon = balloonsFor("Coverage");
 
@@ -60,12 +61,7 @@ export async function generateReport(): Promise<void> {
       return;
     }
     const html = await testingApi.coverageExportHtml(suite.id);
-    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(file, new Blob([html], { type: "text/html" }));
     showBalloon(t("tools.coverage.coverageReportGenerated"), file);
   } catch (err) {
     showBalloon(t("tools.coverage.cannotGenerateTheCoverageReport"), String(err));

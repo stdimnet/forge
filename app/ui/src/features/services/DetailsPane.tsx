@@ -235,21 +235,30 @@ function LogTab(props: { d: ServiceDetails; container?: string }) {
   );
 }
 
-function AttachedConsole(props: { d: ServiceDetails; container?: string }) {
+/** The Attached Console tab (exported for tests). */
+export function AttachedConsole(props: { d: ServiceDetails; container?: string }) {
   let host!: HTMLDivElement;
   const id = `services-attach-${`${props.d.nodeId}-${props.container ?? ""}`.replace(/[^a-zA-Z0-9-]/g, "_")}`;
+  // Cleanups are registered before the await (afterwards there is no owner to run them), and
+  // a console switched away from while its command loads is never attached.
+  let disposed = false;
+  let ro: ResizeObserver | undefined;
+  onCleanup(() => {
+    disposed = true;
+    ro?.disconnect();
+    disposeSession(id);
+  });
   onMount(async () => {
     try {
       const cmd = await servicesApi.terminal(props.d.nodeId, true, props.container);
+      if (disposed) return;
       attachSession(id, host, undefined, { program: cmd.program, args: cmd.args, env: cmd.env, local: !cmd.onHost });
-      const ro = new ResizeObserver(() => fitSession(id));
+      ro = new ResizeObserver(() => fitSession(id));
       ro.observe(host);
-      onCleanup(() => ro.disconnect());
     } catch (err) {
-      host.textContent = String(err).replace(/^Error: /, "");
+      if (!disposed) host.textContent = String(err).replace(/^Error: /, "");
     }
   });
-  onCleanup(() => disposeSession(id));
   return <div class="svc-attach" ref={host} />;
 }
 

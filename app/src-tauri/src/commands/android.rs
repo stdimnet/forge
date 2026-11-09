@@ -478,13 +478,7 @@ pub async fn android_logcat_start(
                     Ok(n) => n,
                 };
                 pending.extend_from_slice(&chunk[..n]);
-                // Hand over complete UTF-8 only.
-                let valid = match std::str::from_utf8(&pending) {
-                    Ok(s) => s.len(),
-                    Err(e) => e.valid_up_to(),
-                };
-                let text = String::from_utf8_lossy(&pending[..valid]).to_string();
-                pending.drain(..valid);
+                let text = logcat::take_text(&mut pending);
                 let mut guard = LOGCAT.lock().expect("logcat lock");
                 let Some(s) = guard.as_mut().filter(|s| s.generation == generation) else {
                     return;

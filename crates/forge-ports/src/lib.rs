@@ -76,13 +76,22 @@ pub fn free_ports(n: usize) -> io::Result<Vec<u16>> {
     Ok(ports)
 }
 
-/// Check that `port` is free by binding it on 127.0.0.1, without listening.
+/// Check that `port` is free by binding it on 127.0.0.1, without listening (port 0: a port
+/// the system picks).
 pub fn probe(port: u16) -> io::Result<u16> {
+    let port = bind_probe(Ipv4Addr::LOCALHOST, port)?;
+    // With SO_REUSEADDR, macOS and the BSDs let 127.0.0.1:P be bound while a server listens
+    // on 0.0.0.0:P: that port is in use all the same.
+    bind_probe(Ipv4Addr::UNSPECIFIED, port)?;
+    Ok(port)
+}
+
+fn bind_probe(ip: Ipv4Addr, port: u16) -> io::Result<u16> {
     let socket = Socket::new(Domain::IPV4, Type::STREAM, Some(Protocol::TCP))?;
     // Not on Windows: there the option lets a socket take over a port that is in use.
     #[cfg(unix)]
     socket.set_reuse_address(true)?;
-    socket.bind(&SocketAddr::from((Ipv4Addr::LOCALHOST, port)).into())?;
+    socket.bind(&SocketAddr::from((ip, port)).into())?;
     socket
         .local_addr()?
         .as_socket()
@@ -128,6 +137,10 @@ mod tests {
     #[test]
     fn ports_in_use_are_not_free() {
         let server = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let port = server.local_addr().unwrap().port();
+        assert!(probe(port).is_err());
+        // A server on every address uses the port on 127.0.0.1 too.
+        let server = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0)).unwrap();
         let port = server.local_addr().unwrap().port();
         assert!(probe(port).is_err());
     }

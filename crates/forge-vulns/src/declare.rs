@@ -285,6 +285,48 @@ fn quoted(line: &str, from: usize) -> Option<(usize, usize)> {
     Some((q + 1, close))
 }
 
+/// Where the value of `key` in the inline table starting at or after `from` begins (just after
+/// its `=`). Only keys count, not text inside values: `{ git = "…", branch = "version" }`
+/// has no version.
+fn inline_value(line: &str, from: usize, key: &str) -> Option<usize> {
+    let bytes = line.as_bytes();
+    let mut i = from + line[from..].find('{')? + 1;
+    let mut depth = 0usize;
+    // At the start of a key: after `{` or a `,` at the table's own level.
+    let mut at_key = true;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'"' | b'\'' => {
+                let close = line[i + 1..].find(bytes[i] as char)? + i + 1;
+                at_key = false;
+                i = close;
+            }
+            b'[' | b'{' => {
+                depth += 1;
+                at_key = false;
+            }
+            b']' => depth = depth.saturating_sub(1),
+            b'}' if depth == 0 => return None,
+            b'}' => depth -= 1,
+            b',' if depth == 0 => at_key = true,
+            b if b.is_ascii_whitespace() => {}
+            _ if at_key && depth == 0 => {
+                at_key = false;
+                let rest = &line[i..];
+                if let Some(after) = rest.strip_prefix(key) {
+                    let trimmed = after.trim_start();
+                    if trimmed.starts_with('=') {
+                        return Some(line.len() - trimmed.len() + 1);
+                    }
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
 /// Cargo.toml: `[dependencies]`, `[dev-dependencies]`, `[build-dependencies]`,
 /// `[workspace.dependencies]`, their `[target.….dependencies]` forms and
 /// `[dependencies.<name>]` tables; `package = "…"` renames.
@@ -406,14 +448,14 @@ fn cargo_toml(text: &str) -> Vec<Declaration> {
                 d.value = Some(span);
             }
         } else if rhs.starts_with('{') {
-            if let Some(v) = line[eq..].find("version").map(|v| eq + v) {
-                if let Some((c, span)) = line[v..].find('=').and_then(|e| value_at(v + e + 1)) {
+            if let Some(v) = inline_value(line, eq + 1, "version") {
+                if let Some((c, span)) = value_at(v) {
                     d.constraint = c;
                     d.value = Some(span);
                 }
             }
-            if let Some(p) = line[eq..].find("package").map(|p| eq + p) {
-                if let Some((c, _)) = line[p..].find('=').and_then(|e| value_at(p + e + 1)) {
+            if let Some(p) = inline_value(line, eq + 1, "package") {
+                if let Some((c, _)) = value_at(p) {
                     d.package = c;
                 }
             }
@@ -677,6 +719,12 @@ mod tests {
                 row("tokio", "tokio", Some("1.20")),
                 row("nix", "nix", Some("0.26")),
             ]
+        );
+        // Words inside values are not keys: no version here, and the git branch is no package.
+        let git = "[dependencies]\nfoo = { git = \"https://x/foo\", branch = \"version-2\", features = [\"package\"] }\nbar = { versioned = true, version = \"1.2\" }\n";
+        assert_eq!(
+            summary("Cargo.toml", git),
+            [row("foo", "foo", None), row("bar", "bar", Some("1.2"))]
         );
     }
 

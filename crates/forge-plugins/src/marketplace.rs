@@ -191,7 +191,8 @@ fn works_with(v: &IndexVersion, forge: &semver::Version) -> bool {
 
 /// The entries of the index for this Forge version and the installed plugins.
 pub fn entries(index: &Index, forge_version: &str, installed: &[InstalledVersion]) -> Vec<Entry> {
-    let forge = semver::Version::parse(forge_version).unwrap_or(semver::Version::new(0, 0, 0));
+    let forge =
+        crate::manifest::engine_version(forge_version).unwrap_or(semver::Version::new(0, 0, 0));
     index
         .plugins
         .iter()
@@ -510,7 +511,8 @@ pub fn find_version<'a>(
         .iter()
         .find(|p| p.id == id)
         .ok_or_else(|| format!("`{id}` is not in the marketplace"))?;
-    let forge = semver::Version::parse(forge_version).unwrap_or(semver::Version::new(0, 0, 0));
+    let forge =
+        crate::manifest::engine_version(forge_version).unwrap_or(semver::Version::new(0, 0, 0));
     match version {
         Some(v) => plugin
             .versions

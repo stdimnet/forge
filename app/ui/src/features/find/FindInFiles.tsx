@@ -21,6 +21,7 @@ import { ScopeSelect } from "@/features/scopes/ScopeSelect";
 import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, findRequest, openFindResultsInWindow, setFindQuery, updateFindOptions } from "./state";
 import { t } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 interface Row {
   path: string;
@@ -62,10 +63,14 @@ function Preview(props: { row: Row | undefined }) {
   let shown: string | undefined;
   const contentOf = async (path: string) => editor.tabs.find((t) => t.path === path)?.content ?? workspaceApi.readFile(path);
 
+  // A slow read of an earlier selection's file must not replace the newer preview.
+  const shows = latestOnly();
   const show = async (row: Row) => {
+    const current = shows.begin();
     if (shown !== row.path || !view) {
       const content = await contentOf(row.path).catch(() => "");
       await ensureFileType(row.path, content);
+      if (!current()) return;
       view?.destroy();
       view = new EditorView({
         parent: host,
@@ -106,6 +111,7 @@ function Preview(props: { row: Row | undefined }) {
       (row) => {
         if (row) void show(row);
         else {
+          shows.invalidate();
           view?.destroy();
           view = undefined;
           shown = undefined;

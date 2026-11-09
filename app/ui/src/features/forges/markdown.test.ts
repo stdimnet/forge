@@ -26,6 +26,13 @@ describe("renderMarkdown", () => {
     expect(html).toContain('<span class="md-mention">@anna</span>');
   });
 
+  it("keeps emphasis, mentions and references out of link URLs", () => {
+    const html = renderMarkdown("See https://x.dev/a_b_c/~~d~~/@me#12 and [y](https://x.dev/*z*/_q_)");
+    expect(html).toContain('<a href="https://x.dev/a_b_c/~~d~~/@me#12" target="_blank" rel="noreferrer">https://x.dev/a_b_c/~~d~~/@me#12</a>');
+    expect(html).toContain('<a href="https://x.dev/*z*/_q_" target="_blank" rel="noreferrer">y</a>');
+    expect(html).not.toContain("<em>");
+  });
+
   it("keeps code spans literal and renders quotes", () => {
     const html = renderMarkdown("> **Note** keep `**this**`");
     expect(html).toContain("<blockquote><p><strong>Note</strong> keep <code>**this**</code></p></blockquote>");

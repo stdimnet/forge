@@ -185,10 +185,18 @@ pub fn capture(
         RunEvent::Started { .. } => {}
     });
     let process = backend.start_process(cmd, sink)?;
-    if !stdin.is_empty() {
-        process.write_stdin(stdin.as_bytes())?;
+    // The input is written on its own thread: a tool that does not read its stdin would block
+    // a write of more than the pipe buffer forever, and the timeout below would never fire.
+    // Killing the process ends the write.
+    {
+        let (process, input) = (process.clone(), stdin.as_bytes().to_vec());
+        std::thread::spawn(move || {
+            if !input.is_empty() {
+                let _ = process.write_stdin(&input);
+            }
+            let _ = process.close_stdin();
+        });
     }
-    process.close_stdin()?;
     let code = match rx.recv_timeout(timeout) {
         Ok(code) => code,
         Err(mpsc::RecvTimeoutError::Timeout) => {
@@ -439,6 +447,24 @@ mod tests {
 
         let slow = CommandLine::new("sh").args(["-c", "sleep 30"]);
         let out = capture(&backend, &slow, "", Duration::from_millis(200)).unwrap();
+        assert_eq!(out.code, None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn times_out_when_the_tool_does_not_read_a_large_input() {
+        let dir = tempfile::tempdir().unwrap();
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let backend = LocalBackend::open(dir.path()).unwrap();
+            let cmd = CommandLine::new("sh").args(["-c", "sleep 30"]);
+            let input = "x".repeat(1024 * 1024);
+            let _ = tx.send(capture(&backend, &cmd, &input, Duration::from_millis(200)));
+        });
+        let out = rx
+            .recv_timeout(Duration::from_secs(10))
+            .expect("the timeout fired")
+            .unwrap();
         assert_eq!(out.code, None);
     }
 

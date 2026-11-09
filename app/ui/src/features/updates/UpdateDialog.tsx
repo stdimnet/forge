@@ -9,25 +9,34 @@ import { updatesApi, type CheckResult, type DownloadProgress, type UpdateAction,
 import { isFinished } from "./format";
 import { UpdatePanel } from "./UpdatePanel";
 import { t } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 type DialogState = { kind: "checking" } | { kind: "result"; result: CheckResult };
 
 const [state, setState] = createSignal<DialogState | null>(null);
 
+/** Checks may overlap (closed while checking, then checked again): only the newest answers. */
+const checks = latestOnly();
+
 /** Check for updates now and show the result. */
 export async function openCheckForUpdates(): Promise<void> {
   if (state()?.kind === "checking") return;
+  const current = checks.begin();
   setState({ kind: "checking" });
   const result = await updatesApi.check().catch(
     (e): CheckResult => ({ status: "error", message: String((e as Error)?.message ?? e) }),
   );
-  if (state()) setState({ kind: "result", result });
+  if (current() && state()?.kind === "checking") setState({ kind: "result", result });
 }
 
 /** Offer an update found while Forge started without a splash window. */
 export function openUpdateOffer(offer: UpdateOffer): void {
+  checks.invalidate();
   setState({ kind: "result", result: { status: "available", offer } });
 }
+
+/** What the dialog shows (exported for tests). */
+export const updateDialogState = state;
 
 function UpdateDialog(props: { state: DialogState }) {
   const release = suspendKeymap();

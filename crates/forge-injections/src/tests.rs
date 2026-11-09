@@ -340,6 +340,14 @@ fn escaping_round_trips_per_literal_kind() {
         let back = escape(kind, &text);
         assert_eq!(unescape(kind, &back, 0, back.len()).0, value, "{kind:?}");
     }
+    // A sign is no hex digit: these backslashes stay literal.
+    for (kind, src) in [
+        (LiteralKind::JsDouble, r"\x+1"),
+        (LiteralKind::JsDouble, r"\u+abc"),
+        (LiteralKind::PhpDouble, r"\u{+41}"),
+    ] {
+        assert_eq!(unescape(kind, src, 0, src.len()).0, src, "{src}");
+    }
     assert_eq!(escape(LiteralKind::JsDouble, "a\"\nb"), r#"a\"\nb"#);
     assert_eq!(escape(LiteralKind::PhpSingle, "it's"), r"it\'s");
     assert_eq!(escape(LiteralKind::PhpDouble, "$id"), r"\$id");

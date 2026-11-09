@@ -8,7 +8,7 @@ import { registerCommand } from "@/state/commands";
 import { registerSettingsPage, type SettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
 import { loadSettings } from "@/state/settings";
-import { registerDialog, isDialogOpen } from "@/shell/window/dialogs";
+import { registerDialog } from "@/shell/window/dialogs";
 import {
   closeSettings,
   openSettings,
@@ -93,21 +93,6 @@ registerDialog<SettingsDialogProps, SettingsDialogResult>({
   },
   onMessage: () => void loadSettings().catch(() => undefined),
 });
-
-// Ctrl+Alt+S (Cmd+, on macOS) toggles the dialog; capture phase so the editor cannot eat it.
-window.addEventListener(
-  "keydown",
-  (e) => {
-    const ctrlAltS = e.ctrlKey && e.altKey && !e.shiftKey && e.code === "KeyS";
-    const cmdComma = e.metaKey && !e.ctrlKey && e.key === ",";
-    if (!ctrlAltS && !cmdComma) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (isDialogOpen(SETTINGS_DIALOG)) closeSettings();
-    else openSettings();
-  },
-  true,
-);
 
 // Whitespace markers are always rendered and shown via CSS, so the setting applies live.
 registerEditorExtension(() => highlightWhitespace());

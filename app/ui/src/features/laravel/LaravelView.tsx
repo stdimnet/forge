@@ -14,9 +14,13 @@ import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
 import { laravelActive, laravelSetting, reveal } from "./state";
 import { t as tr } from "@/i18n";
+import { latestOnly } from "@/state/async";
+import { onProject } from "@/state/projectLifecycle";
 
 const [tab, setTab] = createSignal<"overview" | "logs">("overview");
 export { setTab as setLaravelTab };
+/** The log page shown (exported for tests). */
+export const laravelLogPage = () => page();
 
 const [overview, setOverview] = createSignal<LaravelOverview | null>(null);
 const [overviewLoading, setOverviewLoading] = createSignal(false);
@@ -35,18 +39,37 @@ export async function loadOverview(): Promise<void> {
   }
 }
 
+// Only the newest read applies: an older one (the previously selected file, or the previous
+// project) arriving last would show the wrong log under the new selection.
+const logReads = latestOnly();
+
 export async function loadLogs(): Promise<void> {
+  const current = logReads.begin();
   setLogsLoading(true);
   try {
     const p = await laravelApi.logs(logFile() || undefined);
+    if (!current()) return;
     setPage(p);
     if (!logFile() && p.path) setLogFile(p.path);
   } catch (e) {
-    console.warn("Laravel logs failed", e);
+    if (current()) console.warn("Laravel logs failed", e);
   } finally {
-    setLogsLoading(false);
+    if (current()) setLogsLoading(false);
   }
 }
+
+// The selected log file and the entries belong to the project.
+onProject(
+  "closing",
+  () => {
+    logReads.invalidate();
+    setLogsLoading(false);
+    setPage(null);
+    setLogFile("");
+    setOverview(null);
+  },
+  { name: "laravel logs" },
+);
 
 const LEVELS: LogLevel[] = ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"];
 const rank = (l: LogLevel) => LEVELS.indexOf(l);

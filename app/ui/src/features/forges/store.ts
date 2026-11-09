@@ -8,6 +8,7 @@ import { forgesApi, type Capabilities, type Pipeline, type RepoContext } from "@
 import { currentBranch } from "@/state/vcs";
 import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
+import { latestOnly } from "@/state/async";
 
 const [context, setContext] = createSignal<RepoContext | null>(null);
 const [contextLoaded, setContextLoaded] = createSignal(false);
@@ -36,15 +37,26 @@ export const me = () => context()?.account?.username ?? null;
 
 export const errorText = (e: unknown) => String((e as Error)?.message ?? e);
 
+// Replies can arrive out of order (another project opened, the branch changed): only the
+// newest request of each kind applies.
+const contextLoads = latestOnly();
+const pipelineLoads = latestOnly();
+
 export async function loadContext(): Promise<void> {
+  const current = contextLoads.begin();
+  // The CI status of the previous context no longer applies.
+  pipelineLoads.invalidate();
   try {
-    setContext(await forgesApi.repo());
+    const repo = await forgesApi.repo();
+    if (!current()) return;
+    setContext(repo);
     setContextError(null);
   } catch (e) {
+    if (!current()) return;
     setContext(null);
     setContextError(errorText(e));
   } finally {
-    setContextLoaded(true);
+    if (current()) setContextLoaded(true);
   }
 }
 
@@ -55,14 +67,16 @@ export async function refreshAll(): Promise<void> {
 }
 
 export async function refreshBranchPipeline(): Promise<void> {
+  const current = pipelineLoads.begin();
   if (!context() || !getSetting<boolean>("vcs.hosts.statusBarPipeline", true)) {
     setBranchPipeline(null);
     return;
   }
   try {
-    setBranchPipeline(await forgesApi.ciStatus(currentBranch()));
+    const pipeline = await forgesApi.ciStatus(currentBranch());
+    if (current()) setBranchPipeline(pipeline);
   } catch {
-    setBranchPipeline(null);
+    if (current()) setBranchPipeline(null);
   }
 }
 

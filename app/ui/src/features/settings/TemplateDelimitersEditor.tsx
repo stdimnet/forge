@@ -106,10 +106,17 @@ export function TemplateDelimitersEditor(props: { spec: SettingSpec }) {
     }),
   );
 
-  const save = () => {
+  // The verdict shown may still be the one of the previous edit: check exactly what is saved.
+  const save = async () => {
     const f = form();
     const next = withForm();
-    if (!f || !next || problem()) return;
+    if (!f || !next) return;
+    const id = ++seq;
+    const verdict = await settingsApi.validate(props.spec.key, next).catch((e) => String(e));
+    // Edited again meanwhile: the newer validation decides.
+    if (id !== seq) return;
+    setProblem(verdict);
+    if (verdict || form() !== f) return;
     update(next);
     setSel(f.index ?? next.length - 1);
     setForm(null);

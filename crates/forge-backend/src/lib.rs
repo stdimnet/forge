@@ -462,6 +462,21 @@ pub trait Backend: Send + Sync {
     /// usual package manager directories). An existing `custom` path wins.
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>>;
 
+    /// [`Self::find_executable`] for programs Forge runs for itself (AI agent CLIs): never one
+    /// inside the project, such as its `node_modules/.bin`, which the project's authors
+    /// control. Only an explicit `custom` path may point there.
+    fn find_system_executable(
+        &self,
+        names: &[String],
+        custom: Option<&str>,
+    ) -> Result<Option<PathBuf>> {
+        let explicit = custom.is_some_and(|c| !c.trim().is_empty());
+        let root = &self.info().root;
+        Ok(self
+            .find_executable(names, custom)?
+            .filter(|p| explicit || !p.starts_with(root)))
+    }
+
     /// SSH tunnels to the project's host; `None` for local projects.
     fn tunnels(&self) -> Option<Arc<dyn Tunnels>> {
         None

@@ -17,15 +17,19 @@ const ignore = () => {};
 /** Debounced `didChange` per path, flushed before requests that depend on it. */
 const pending = new Map<string, () => Promise<void>>();
 
-/** Re-announce functions of the open editors, see `reopenDocuments`. */
-const announcers = new Map<string, () => void>();
+/**
+ * Re-announce functions of the open editors by path, see `reopenDocuments`. A file shown in
+ * several editors (split views) has one per editor; the server sees it as one document, opened
+ * with the first editor and closed with the last.
+ */
+const announcers = new Map<string, Set<() => void>>();
 
 /**
  * Announce every open document again so servers registered since (installed, enabled)
  * attach to files that were opened before they existed.
  */
 export function reopenDocuments(): void {
-  announcers.forEach((announce) => announce());
+  announcers.forEach((views) => views.values().next().value?.());
 }
 
 /** Send any debounced edits of `path` now. Call before position-based requests. */
@@ -44,8 +48,10 @@ export function documentSync(path: string) {
       await lspApi.didChange(path, view.state.doc.toString()).catch(ignore);
     };
     const announce = () => void lspApi.didOpen(path, view.state.doc.toString(), languageOf(path)).catch(ignore);
-    announce();
-    announcers.set(path, announce);
+    const views = announcers.get(path) ?? new Set();
+    if (!views.size) announce();
+    views.add(announce);
+    announcers.set(path, views);
     const offSave = onFileSaved(async (p, content) => {
       if (p !== path) return;
       await flush();
@@ -60,9 +66,11 @@ export function documentSync(path: string) {
       },
       destroy() {
         clearTimeout(timer);
-        pending.delete(path);
-        announcers.delete(path);
+        if (pending.get(path) === flush) pending.delete(path);
         offSave();
+        views.delete(announce);
+        if (views.size) return;
+        announcers.delete(path);
         lspApi.didClose(path).catch(ignore);
       },
     };

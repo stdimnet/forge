@@ -116,6 +116,39 @@ impl ShortcutMap {
     }
 }
 
+/// Plugin default shortcuts are written for PHPStorm's keymaps. A derived bundled keymap that
+/// gives one of those strokes to another action (VS Code's Ctrl+Shift+O: File Structure) wins:
+/// the plugin action loses that stroke there instead of conflicting with it.
+fn shadow_plugin_defaults(
+    map: &mut ShortcutMap,
+    plugins: &ShortcutMap,
+    changes: &[(String, Vec<String>)],
+    platform: Platform,
+) {
+    let claimed: HashSet<String> = changes
+        .iter()
+        .flat_map(|(_, list)| list)
+        .filter_map(|s| canonical_shortcut(s, platform))
+        .collect();
+    if claimed.is_empty() {
+        return;
+    }
+    for (id, _) in plugins.entries() {
+        if changes.iter().any(|(changed, _)| changed == id) {
+            continue;
+        }
+        let Some(list) = map.get(id) else { continue };
+        let kept: Vec<String> = list
+            .iter()
+            .filter(|s| canonical_shortcut(s, platform).is_none_or(|c| !claimed.contains(&c)))
+            .cloned()
+            .collect();
+        if kept.len() != list.len() {
+            map.insert(id, kept);
+        }
+    }
+}
+
 /// The settings list format of one keymap's overrides, sorted by action id.
 pub fn encode_overrides(map: &ShortcutMap) -> Vec<String> {
     let mut entries: Vec<&(String, Vec<String>)> = map.entries().iter().collect();
@@ -810,7 +843,11 @@ impl KeymapService {
         let last = nodes.len().checked_sub(1);
         for (i, node) in nodes.iter().enumerate() {
             match node {
-                Node::Bundled(b) => map.extend_from(&b.changes),
+                Node::Bundled(b) => {
+                    let plugins = &self.registry.defaults[slot(root)];
+                    shadow_plugin_defaults(&mut map, plugins, &b.changes, root.platform());
+                    map.extend_from(&b.changes)
+                }
                 Node::Custom(u) if Some(i) != last => map.extend_from(u.shortcuts.entries()),
                 _ => {}
             }
@@ -1579,6 +1616,41 @@ mod tests {
         assert_eq!(s.shortcuts_of("php.RunComposer"), vec!["Ctrl+Alt+Shift+R"]);
         select(&mut s, "macOS");
         assert_eq!(s.shortcuts_of("php.RunComposer"), vec!["Cmd+Alt+Shift+R"]);
+    }
+
+    #[test]
+    fn derived_keymaps_take_plugin_default_strokes_they_bind_elsewhere() {
+        let mut s = service();
+        let reg: Vec<ActionRegistration> = serde_json::from_value(json!([{
+            "id": "ForceOthersToFollowAction", "title": "Make Everyone Follow You",
+            "group": "Plugins/Code With Me",
+            "shortcuts": { "$default": ["Ctrl+Shift+O", "Ctrl+Alt+Shift+F"], "macOS": ["Ctrl+Shift+O"] }
+        }]))
+        .unwrap();
+        s.register_actions(reg);
+        assert_eq!(
+            s.shortcuts_of("ForceOthersToFollowAction"),
+            vec!["Ctrl+Shift+O", "Ctrl+Alt+Shift+F"]
+        );
+        // VS Code: Ctrl+Shift+O is File Structure; Eclipse: Optimize Imports.
+        for (keymap, owner) in [
+            ("VSCode", "FileStructurePopup"),
+            ("Eclipse", "OptimizeImports"),
+        ] {
+            select(&mut s, keymap);
+            assert_eq!(s.shortcuts_of(owner), vec!["Ctrl+Shift+O"], "{keymap}");
+            assert_eq!(
+                s.shortcuts_of("ForceOthersToFollowAction"),
+                vec!["Ctrl+Alt+Shift+F"],
+                "{keymap}"
+            );
+            let check = s.conflicts("Ctrl+Shift+O", Some(owner));
+            assert!(
+                check.conflicts.is_empty(),
+                "{keymap}: {:?}",
+                check.conflicts
+            );
+        }
     }
 
     #[test]

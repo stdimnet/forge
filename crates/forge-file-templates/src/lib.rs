@@ -500,7 +500,7 @@ fn join_path(dir: &str, name: &str) -> String {
 }
 
 fn check_segment(seg: &str) -> Result<(), TemplateError> {
-    if seg.is_empty() || seg == "." || seg == ".." || seg.contains(['\\', '\0', ':']) {
+    if seg.is_empty() || seg == "." || seg == ".." || seg.contains(['/', '\\', '\0', ':']) {
         return fail(format!("'{seg}' is not a valid file name"));
     }
     Ok(())
@@ -520,7 +520,11 @@ pub fn new_file(req: &NewFileRequest, custom: &[CustomTemplate]) -> Result<NewFi
     if typed.is_empty() {
         return fail("Enter a name");
     }
+    // The folder stays inside the project on its own, not only through the backend's check.
     let mut dir = req.dir.trim_matches('/').to_string();
+    for seg in dir.split('/').filter(|s| !s.is_empty()) {
+        check_segment(seg)?;
+    }
     let (subdirs, base) = typed.rsplit_once('/').unwrap_or(("", typed));
     for seg in subdirs.split('/').filter(|s| !s.is_empty()) {
         check_segment(seg)?;
@@ -684,6 +688,23 @@ mod tests {
             },
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn new_files_stay_inside_the_project() {
+        assert!(new_file(&req("PHP Class", "../outside", "Order"), &[]).is_err());
+        assert!(new_file(&req("PHP Class", "app/../../x", "Order"), &[]).is_err());
+        let mut r = req("PHP Class", "app", "Order");
+        r.file_name = Some("../../evil.php".into());
+        assert!(new_file(&r, &[]).is_err());
+        r.file_name = Some("sub/Order.php".into());
+        assert!(new_file(&r, &[]).is_err());
+        assert_eq!(
+            new_file(&req("PHP Class", "/app/Models/", "Order"), &[])
+                .unwrap()
+                .path,
+            "app/Models/Order.php"
+        );
     }
 
     #[test]

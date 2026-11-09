@@ -43,7 +43,7 @@ impl AgentHost for BackendHost {
             .map(|n| n.to_string())
             .collect();
         self.backend
-            .find_executable(&names, override_path)
+            .find_system_executable(&names, override_path)
             .unwrap_or_else(|e| {
                 tracing::warn!("cannot look for {} on the host: {e}", adapter.name());
                 None

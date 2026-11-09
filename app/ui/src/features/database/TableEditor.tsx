@@ -45,6 +45,7 @@ import { ValueEditor } from "./ValueEditor";
 import { ChartView } from "./ChartView";
 import { CompareDialog, registerCompareSource, tableSource } from "./CompareView";
 import { t as tr } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -122,7 +123,11 @@ export function TableEditor(props: { tab: EditorTab }) {
   const pendingRequest = tableRequest();
   if (pendingRequest?.path === props.tab.path && pendingRequest.options.filter !== undefined) setWhere(pendingRequest.options.filter);
 
+  // Only the newest load applies its reply: a slower earlier one (another page or filter)
+  // would show the wrong rows and throw away the edits made since.
+  const loads = latestOnly();
   async function load(nextOffset = offset()): Promise<void> {
+    const current = loads.begin();
     setLoading(true);
     setError(null);
     try {
@@ -137,15 +142,16 @@ export function TableEditor(props: { tab: EditorTab }) {
         offset: nextOffset,
         limit: pageSize(),
       });
+      if (!current()) return;
       setOffset(nextOffset);
       setPage(res);
       setPending(reconcile(emptyPending()));
       const n = res.total ?? res.rows.length;
       setStatus(`${n} row${n === 1 ? "" : "s"} · ${res.elapsedMs} ms`);
     } catch (e) {
-      setError(errorText(e));
+      if (current()) setError(errorText(e));
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }
 

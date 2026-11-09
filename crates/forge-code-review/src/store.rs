@@ -8,6 +8,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use forge_forges::{ChangedFile, RepoRef};
 use forge_vcs::LineKind;
@@ -157,14 +159,22 @@ impl ReviewRecord {
 }
 
 /// Reads and writes [`ReviewRecord`]s below one folder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ReviewStore {
     dir: PathBuf,
+    /// Serializes load-modify-save, so concurrent updates do not lose each other's changes.
+    lock: Arc<Mutex<()>>,
 }
+
+/// Distinguishes the temporary files of concurrent saves.
+static TMP: AtomicU64 = AtomicU64::new(0);
 
 impl ReviewStore {
     pub fn new(dir: impl Into<PathBuf>) -> Self {
-        Self { dir: dir.into() }
+        Self {
+            dir: dir.into(),
+            lock: Arc::default(),
+        }
     }
 
     /// `<cache dir>/forge/code-review`.
@@ -176,8 +186,22 @@ impl ReviewStore {
         &self.dir
     }
 
-    /// A file-name-safe key for a repository: `<kind>-<host>-<path>`.
+    /// A file-name-safe key for a repository: `<kind>-<host>-<path>`. Letters, digits, `.`
+    /// and `-` stay; every other byte becomes `_` and two hex digits, so different
+    /// repositories never share a key (`team/a_b` and `team_a/b`).
     pub fn repo_key(repo: &RepoRef) -> String {
+        let mut out = String::new();
+        for b in Self::raw_key(repo).bytes() {
+            if b.is_ascii_alphanumeric() || b == b'.' || b == b'-' {
+                out.push(b as char);
+            } else {
+                out.push_str(&format!("_{b:02x}"));
+            }
+        }
+        out
+    }
+
+    fn raw_key(repo: &RepoRef) -> String {
         let host = repo
             .server
             .split("://")
@@ -185,6 +209,12 @@ impl ReviewStore {
             .unwrap_or(&repo.server)
             .trim_end_matches('/');
         format!("{}-{host}-{}", repo.kind.id(), repo.path)
+    }
+
+    /// The key of earlier versions (every other character became `_`), read when a record
+    /// has not been saved under [`Self::repo_key`] yet.
+    fn legacy_key(repo: &RepoRef) -> String {
+        Self::raw_key(repo)
             .chars()
             .map(|c| {
                 if c.is_ascii_alphanumeric() || c == '.' || c == '-' {
@@ -204,18 +234,45 @@ impl ReviewStore {
 
     /// The record of a request; a missing or unreadable file yields an empty one.
     pub fn load(&self, repo: &RepoRef, number: u64) -> ReviewRecord {
-        std::fs::read_to_string(self.path(repo, number))
-            .ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default()
+        self.read(repo, number).unwrap_or_default()
+    }
+
+    /// The stored record (empty when there is none); an unreadable file is an error, so an
+    /// update does not replace the drafts in it with an empty record.
+    fn read(&self, repo: &RepoRef, number: u64) -> std::io::Result<ReviewRecord> {
+        let legacy = self
+            .dir
+            .join(Self::legacy_key(repo))
+            .join(format!("{number}.json"));
+        for path in [self.path(repo, number), legacy] {
+            match std::fs::read_to_string(&path) {
+                Ok(text) => {
+                    return serde_json::from_str(&text).map_err(|e| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            format!("{} cannot be read: {e}", path.display()),
+                        )
+                    })
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(ReviewRecord::default())
     }
 
     pub fn save(&self, repo: &RepoRef, number: u64, record: &ReviewRecord) -> std::io::Result<()> {
+        let _guard = self.lock.lock().unwrap_or_else(|e| e.into_inner());
+        self.write(repo, number, record)
+    }
+
+    fn write(&self, repo: &RepoRef, number: u64, record: &ReviewRecord) -> std::io::Result<()> {
         let path = self.path(repo, number);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let tmp = path.with_extension("json.tmp");
+        let n = TMP.fetch_add(1, Ordering::Relaxed);
+        let tmp = path.with_extension(format!("json.{}-{n}.tmp", std::process::id()));
         std::fs::write(&tmp, serde_json::to_vec_pretty(record)?)?;
         std::fs::rename(tmp, path)
     }
@@ -227,9 +284,10 @@ impl ReviewStore {
         number: u64,
         f: impl FnOnce(&mut ReviewRecord) -> T,
     ) -> std::io::Result<T> {
-        let mut record = self.load(repo, number);
+        let _guard = self.lock.lock().unwrap_or_else(|e| e.into_inner());
+        let mut record = self.read(repo, number)?;
         let out = f(&mut record);
-        self.save(repo, number, &record)?;
+        self.write(repo, number, &record)?;
         Ok(out)
     }
 }
@@ -298,7 +356,7 @@ mod tests {
         let store = ReviewStore::new(tmp.path());
         assert_eq!(
             ReviewStore::repo_key(&repo()),
-            "gitlab-git.acme.dev_8443-team_sub_shop"
+            "gitlab-git.acme.dev_3a8443-team_2fsub_2fshop"
         );
         assert_eq!(store.load(&repo(), 7), ReviewRecord::default());
         store
@@ -314,7 +372,73 @@ mod tests {
         assert!(back.summary_for("def").is_none());
         assert!(tmp
             .path()
-            .join("gitlab-git.acme.dev_8443-team_sub_shop/7.json")
+            .join("gitlab-git.acme.dev_3a8443-team_2fsub_2fshop/7.json")
             .exists());
+    }
+
+    #[test]
+    fn different_repositories_never_share_a_key() {
+        let at = |path: &str| RepoRef {
+            path: path.into(),
+            ..repo()
+        };
+        assert_ne!(
+            ReviewStore::repo_key(&at("team/a_b")),
+            ReviewStore::repo_key(&at("team_a/b"))
+        );
+    }
+
+    #[test]
+    fn reads_records_saved_under_the_old_key() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("gitlab-git.acme.dev_8443-team_sub_shop");
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(
+            old.join("7.json"),
+            r#"{"drafts":[{"id":"d1","body":"keep"}]}"#,
+        )
+        .unwrap();
+        let store = ReviewStore::new(tmp.path());
+        assert_eq!(store.load(&repo(), 7).drafts[0].body, "keep");
+    }
+
+    #[test]
+    fn an_unreadable_record_is_not_overwritten() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = ReviewStore::new(tmp.path());
+        store
+            .update(&repo(), 7, |r| r.save_draft(Draft::default()))
+            .unwrap();
+        let path = store.path(&repo(), 7);
+        std::fs::write(&path, "{ not json").unwrap();
+        assert!(store.update(&repo(), 7, |_| ()).is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{ not json");
+    }
+
+    #[test]
+    fn concurrent_updates_keep_every_change() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = ReviewStore::new(tmp.path());
+        let threads: Vec<_> = (0..8)
+            .map(|i| {
+                let store = store.clone();
+                std::thread::spawn(move || {
+                    for j in 0..10 {
+                        store
+                            .update(&repo(), 7, |r| {
+                                r.save_draft(Draft {
+                                    body: format!("{i}-{j}"),
+                                    ..Draft::default()
+                                })
+                            })
+                            .unwrap();
+                    }
+                })
+            })
+            .collect();
+        for t in threads {
+            t.join().unwrap();
+        }
+        assert_eq!(store.load(&repo(), 7).drafts.len(), 80);
     }
 }

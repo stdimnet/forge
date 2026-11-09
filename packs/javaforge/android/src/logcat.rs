@@ -196,6 +196,41 @@ fn is_exception_line(message: &str) -> bool {
             .is_ok_and(|re| re.is_match(m))
 }
 
+/// The text of `pending` (bytes read from `adb logcat`) that can be handed over: everything
+/// except an incomplete UTF-8 sequence at the end, which waits for the next read. Invalid
+/// bytes are replaced by U+FFFD instead of holding back everything after them.
+pub fn take_text(pending: &mut Vec<u8>) -> String {
+    let mut out = String::new();
+    let mut rest: &[u8] = pending;
+    loop {
+        match std::str::from_utf8(rest) {
+            Ok(s) => {
+                out.push_str(s);
+                rest = &[];
+                break;
+            }
+            Err(e) => {
+                let (valid, after) = rest.split_at(e.valid_up_to());
+                out.push_str(std::str::from_utf8(valid).unwrap_or_default());
+                match e.error_len() {
+                    Some(bad) => {
+                        out.push(char::REPLACEMENT_CHARACTER);
+                        rest = &after[bad..];
+                    }
+                    // Incomplete at the end: keep it for the next read.
+                    None => {
+                        rest = after;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    let keep = rest.len();
+    pending.drain(..pending.len() - keep);
+    out
+}
+
 /// The arguments of a stream: the recent `tail` lines, then new ones.
 pub fn stream_args(serial: &str, tail: u32) -> Vec<String> {
     vec![
@@ -528,6 +563,19 @@ impl Logcat {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invalid_bytes_do_not_stall_the_stream() {
+        let mut pending = b"I/app: \xff ok\n\xe2\x82".to_vec();
+        assert_eq!(take_text(&mut pending), "I/app: \u{fffd} ok\n");
+        // The incomplete euro sign waits for its last byte.
+        assert_eq!(pending, b"\xe2\x82");
+        pending.extend_from_slice(b"\xac\n");
+        assert_eq!(take_text(&mut pending), "\u{20ac}\n");
+        assert!(pending.is_empty());
+        let mut bad_first = b"\xffrest".to_vec();
+        assert_eq!(take_text(&mut bad_first), "\u{fffd}rest");
+    }
 
     const LOG: &str = include_str!("../tests/fixtures/logcat-threadtime.txt");
     const PS: &str = include_str!("../tests/fixtures/adb-ps.txt");

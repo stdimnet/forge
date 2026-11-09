@@ -44,10 +44,7 @@ pub fn parse_diff(out: &str) -> Vec<FileDiff> {
     let mut files: Vec<FileDiff> = Vec::new();
     for line in out.lines() {
         if let Some(rest) = line.strip_prefix("diff --git ") {
-            let path = rest
-                .rsplit_once(" b/")
-                .map(|(_, b)| b.to_string())
-                .unwrap_or_default();
+            let path = header_path(rest);
             files.push(FileDiff {
                 path,
                 ..FileDiff::default()
@@ -89,6 +86,27 @@ pub fn parse_diff(out: &str) -> Vec<FileDiff> {
         }
     }
     files
+}
+
+/// The path of a `diff --git a/<path> b/<path>` header. Both halves are the same unless the
+/// file was renamed (then `rename to`/`+++ b/` set it), so a path that itself contains ` b/`
+/// is found by splitting in the middle; binary diffs have no `+++` line to correct it.
+fn header_path(rest: &str) -> String {
+    if let Some(half) = rest
+        .len()
+        .checked_sub(5)
+        .filter(|n| n % 2 == 0)
+        .map(|n| n / 2)
+    {
+        let a = rest.get(2..2 + half);
+        let b = rest.get(2 + half + 3..);
+        if rest.starts_with("a/") && rest.get(2 + half..2 + half + 3) == Some(" b/") && a == b {
+            return b.unwrap_or_default().to_string();
+        }
+    }
+    rest.rsplit_once(" b/")
+        .map(|(_, b)| b.to_string())
+        .unwrap_or_default()
 }
 
 /// `-12,7 +12,9 @@ fn name` (the leading `@@ ` already stripped).
@@ -140,9 +158,11 @@ new file mode 100644
 +x
 diff --git a/img.png b/img.png
 Binary files a/img.png and b/img.png differ
+diff --git a/assets b/logo.png b/assets b/logo.png
+Binary files a/assets b/logo.png and b/assets b/logo.png differ
 ";
         let files = parse_diff(out);
-        assert_eq!(files.len(), 3);
+        assert_eq!(files.len(), 4);
         let a = &files[0];
         assert_eq!(a.path, "a.php");
         assert_eq!(a.hunks.len(), 1);
@@ -158,5 +178,8 @@ Binary files a/img.png and b/img.png differ
         assert!(files[1].new_file);
         assert_eq!(files[1].hunks[0].new_lines, 1);
         assert!(files[2].binary);
+        // A binary file in a folder named "assets b": no `+++` line corrects the header.
+        assert_eq!(files[3].path, "assets b/logo.png");
+        assert!(files[3].binary);
     }
 }

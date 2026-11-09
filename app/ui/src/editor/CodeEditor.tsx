@@ -16,7 +16,7 @@ import { forgeEditorTheme, forgeHighlight } from "./forgeTheme";
 import { indentFor, languageFor } from "./languages";
 import { ensureFileType, fileTypeOf, isFileTypeResolved, noteContent } from "./fileTypes";
 import { extensionsFor } from "./extensions";
-import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/editor";
+import { updateContent, updateCursor, type EditorTab } from "@/state/editor";
 import { registerView } from "./views";
 import { replaceDocument, undoHistory } from "./reload";
 import { wordCompletion } from "./wordCompletion";
@@ -84,8 +84,8 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           findBar(),
           usageHighlighting(),
           errorStripe(),
+          // Ctrl+S is Save All of the IDE keymap (crates/forge-keymap), not an editor key.
           keymap.of([
-            { key: "Mod-s", run: () => (void saveFile(path, "explicit"), true) },
             indentWithTab,
             ...defaultKeymap,
             ...historyKeymap,

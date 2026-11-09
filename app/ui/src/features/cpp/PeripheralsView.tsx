@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, RefreshCw, Search } from "lucide-solid";
 import { cppToolsApi, type RegisterValue } from "@/ipc/cppTools";
 import { activeSession, pausedSession } from "@/features/debug/store";
 import { t } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 const [svds, setSvds] = createSignal<Record<string, string>>({});
 
@@ -66,15 +67,20 @@ function PeripheralNode(props: { path: string; name: string; base: number; descr
       else next.add(name);
       return next;
     });
+  // Only the newest read counts: an older one arriving last would show stale values and
+  // mark the wrong registers as changed.
+  const reads = latestOnly();
   const load = async () => {
+    const current = reads.begin();
     try {
       const list = await cppToolsApi.svdRead(props.path, props.name, props.sessionId);
+      if (!current()) return;
       const old = values();
       if (old) setPrevious(new Map(old.map((r) => [r.name, r.value])));
       setValues(list);
       setError(null);
     } catch (e) {
-      setError(String(e).replace(/^Error: /, ""));
+      if (current()) setError(String(e).replace(/^Error: /, ""));
     }
   };
   // Read again whenever the program stops while the peripheral is open.

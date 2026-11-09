@@ -237,6 +237,12 @@ impl Policy {
         }
         Verdict::Allowed
     }
+
+    /// Drop the other open files that must not go along as context: those excluded by
+    /// `.aiignore` (their language does not matter, they are not completed).
+    pub fn retain_allowed_context(&self, related: &mut Vec<crate::inline::RelatedFile>) {
+        related.retain(|r| self.project_enabled && !self.ignore.is_ignored(&r.path));
+    }
 }
 
 #[cfg(test)]
@@ -262,6 +268,35 @@ mod tests {
         assert!(ig.is_ignored("notes-3.md"));
         assert!(!ig.is_ignored("notes-x.md"));
         assert!(!ig.is_ignored("app/Models/User.php"));
+    }
+
+    #[test]
+    fn ignored_files_do_not_go_along_as_context() {
+        let file = |path: &str| crate::inline::RelatedFile {
+            path: path.into(),
+            text: "SECRET=1".into(),
+        };
+        let policy = Policy {
+            disabled_languages: vec!["php".into()],
+            ignore: AiIgnore::parse(".env\nconfig/secrets/\n"),
+            ..Policy::default()
+        };
+        let mut related = vec![
+            file(".env"),
+            file("app/User.php"),
+            file("config/secrets/db.php"),
+        ];
+        policy.retain_allowed_context(&mut related);
+        let paths: Vec<_> = related.iter().map(|r| r.path.as_str()).collect();
+        assert_eq!(paths, ["app/User.php"]);
+
+        let off = Policy {
+            project_enabled: false,
+            ..Policy::default()
+        };
+        let mut related = vec![file("app/User.php")];
+        off.retain_allowed_context(&mut related);
+        assert!(related.is_empty());
     }
 
     #[test]

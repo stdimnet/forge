@@ -34,6 +34,7 @@ import { isToolWindowVisible } from "@/state/layout";
 import { partialCommitGutter, viewHunks } from "./partialGutter";
 import { moveToChangelistDialog } from "./changesDialogs";
 import { t as tr } from "@/i18n";
+import { latestOnly } from "@/state/async";
 
 // ---- shared per-view git data ---------------------------------------------------------
 
@@ -399,8 +400,13 @@ function controller(path: string, blameCompartment: Compartment, partialCompartm
     const atRevision = parseRevisionPath(path);
     // A Code With Me guest's `cwm://` tab: the status names the project file.
     const file = projectPathOf(path);
+    // After a save and commit, the reply for the old HEAD may arrive last: only the newest
+    // request of each kind applies.
+    const heads = latestOnly();
+    const blames = latestOnly();
     const fetchHead = async () => {
       if (atRevision) return;
+      const current = heads.begin();
       const st = status();
       const entry = st?.entries.find((e) => e.path === file);
       if (entry && (entry.worktree === "untracked" || entry.index === "added")) {
@@ -409,19 +415,20 @@ function controller(path: string, blameCompartment: Compartment, partialCompartm
       }
       try {
         const head = await gitApi.show("HEAD", path);
-        if (!disposed) view.dispatch({ effects: setHeadEffect.of(head) });
+        if (!disposed && current()) view.dispatch({ effects: setHeadEffect.of(head) });
       } catch {
-        if (!disposed) view.dispatch({ effects: setHeadEffect.of(null) });
+        if (!disposed && current()) view.dispatch({ effects: setHeadEffect.of(null) });
       }
     };
     const fetchBlame = async () => {
+      const current = blames.begin();
       try {
         const blame = atRevision
           ? await historyApi.blameRevision(atRevision.sha, atRevision.path)
           : await gitApi.blame(path, view.state.doc.toString());
-        if (!disposed) view.dispatch({ effects: setBlameEffect.of(blame) });
+        if (!disposed && current()) view.dispatch({ effects: setBlameEffect.of(blame) });
       } catch {
-        if (!disposed) view.dispatch({ effects: setBlameEffect.of(null) });
+        if (!disposed && current()) view.dispatch({ effects: setBlameEffect.of(null) });
       }
     };
     createRoot((d) => {

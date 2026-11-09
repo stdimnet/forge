@@ -20,6 +20,7 @@ import { showToolWindow } from "@/state/layout";
 import { editor, reloadFile, saveAll } from "@/state/editor";
 import { onProject } from "@/state/projectLifecycle";
 import { t as tr } from "@/i18n";
+import { downloadBlob } from "@/state/download";
 
 export const RESULTS_WINDOW = "inspectionResults";
 
@@ -180,12 +181,7 @@ export async function exportResults(tab: ResultsTab, format: "html" | "xml"): Pr
       return;
     }
     const text = await inspectionsApi.exportReport(tab.report, format);
-    const url = URL.createObjectURL(new Blob([text], { type: format === "html" ? "text/html" : "application/xml" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(file, new Blob([text], { type: format === "html" ? "text/html" : "application/xml" }));
     showBalloon(tr("tools.inspections.inspectionResultsExported"), file);
   } catch (e) {
     showBalloon(tr("common.exportFailed"), e instanceof Error ? e.message : String(e));

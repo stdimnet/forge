@@ -205,8 +205,12 @@ impl ScratchStore {
         if name == new_name {
             return self.get(name);
         }
-        // A case-only rename on a case-insensitive file system "exists" already.
-        if to.exists() && !name.eq_ignore_ascii_case(new_name) {
+        // A case-only rename on a case-insensitive file system "exists" already (as the file
+        // itself). On a case-sensitive one a file listed under exactly that name is another
+        // scratch, which the rename must not overwrite.
+        let other = !name.eq_ignore_ascii_case(new_name)
+            || self.names()?.iter().any(|(n, _)| n == new_name);
+        if to.exists() && other {
             return Err(Error::Exists(new_name.into()));
         }
         fs::rename(&from, &to).map_err(io(&from))?;
@@ -343,6 +347,24 @@ mod tests {
         s.create_named("orders.sql", "").unwrap();
         assert_eq!(s.get("orders.sql").unwrap().data_source, None);
         assert!(matches!(s.delete("missing.sql"), Err(Error::NotFound(_))));
+    }
+
+    #[test]
+    fn case_only_renames_keep_other_scratches() {
+        let (_tmp, s) = store();
+        s.create_named("notes.txt", "mine").unwrap();
+        // Fails on a case-insensitive file system, where both are one file.
+        if s.create_named("Notes.txt", "other").is_ok() {
+            assert!(matches!(
+                s.rename("notes.txt", "Notes.txt"),
+                Err(Error::Exists(_))
+            ));
+            assert_eq!(s.read("Notes.txt").unwrap(), "other");
+        }
+        // A case-only rename of a scratch without such a sibling works everywhere.
+        s.create_named("todo.txt", "x").unwrap();
+        assert_eq!(s.rename("todo.txt", "TODO.txt").unwrap().name, "TODO.txt");
+        assert_eq!(s.read("TODO.txt").unwrap(), "x");
     }
 
     #[test]

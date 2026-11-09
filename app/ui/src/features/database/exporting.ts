@@ -7,6 +7,7 @@ import { showBalloon } from "@/keymap";
 import type { MenuItem } from "./ContextMenu";
 import { t } from "@/i18n";
 import { writeClipboardText } from "@/features/clipboard/system";
+import { downloadBlob } from "@/state/download";
 
 const LABELS: Record<ExportFormat, string> = { csv: "CSV", json: "JSON", sql: "SQL Inserts", markdown: "Markdown" };
 const EXTENSIONS: Record<ExportFormat, string> = { csv: "csv", json: "json", sql: "sql", markdown: "md" };
@@ -32,12 +33,7 @@ export async function exportToFile(format: ExportFormat, src: ExportSource): Pro
       return;
     }
     const text = await dbApi.export({ format, ...src });
-    const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(name, new Blob([text], { type: "text/plain" }));
     showBalloon(t("database.exporting.exportedPlural", { count: src.rows.length }), name);
   } catch (e) {
     showBalloon(t("database.exporting.exportFailed"), e instanceof Error ? e.message : String(e));
@@ -69,12 +65,7 @@ export async function exportToExcel(src: ExportSource): Promise<void> {
     }
     const b64 = (await dbObjectsApi.exportXlsx(sheet, src.columns, src.rows)) ?? "";
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(name, new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
     showBalloon(t("database.exporting.exportedPlural", { count: src.rows.length }), name);
   } catch (e) {
     showBalloon(t("database.exporting.exportFailed"), e instanceof Error ? e.message : String(e));
