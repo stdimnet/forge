@@ -364,7 +364,7 @@ Settings | Editor | General | Editor Tabs:
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | Tab limit (`editor.tabs.limit`) | 10 | Maximum tabs per editor group; `0` keeps every tab. When a new tab goes over the limit, the least recently used tab is closed. |
-| When the tab limit is reached, close non-modified tabs first (`editor.tabs.closeUnmodifiedFirst`) | on | Tabs with unsaved changes are closed last. |
+| When the tab limit is reached, close non-modified tabs first (`editor.tabs.closeUnmodifiedFirst`) | on | Tabs with unsaved changes are closed last. A modified tab that closes is saved first (see [Saving](editor.md#saving)). |
 | When the current tab is closed, activate (`editor.tabs.activateOnClose`) | Most recently opened tab | Or the tab on the left / on the right. |
 | Show pin icon on pinned tabs (`editor.tabs.showPinnedIcon`) | on | |
 
