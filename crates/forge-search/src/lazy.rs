@@ -75,7 +75,7 @@ pub struct FoundText {
     pub(crate) files: Vec<LazyFile>,
     pub(crate) context: usize,
     /// The request, to search a file again that changed since (its ranges no longer apply).
-    pub(crate) finder: Option<Finder>,
+    pub(crate) finder: Option<Box<Finder>>,
     pub match_count: usize,
     pub truncated: bool,
     pub error: Option<String>,

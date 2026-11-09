@@ -430,7 +430,7 @@ impl SearchService {
             root: self.root.clone(),
             files: Vec::new(),
             context: finder.context(),
-            finder: Some(finder.clone()),
+            finder: Some(Box::new(finder.clone())),
             match_count: 0,
             truncated: false,
             error: None,
