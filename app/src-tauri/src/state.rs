@@ -178,11 +178,23 @@ impl AppState {
                 None
             }
         };
-        if let Err(e) = self.write_settings().load_project(ws.root()) {
-            tracing::warn!("project settings not loaded: {e}");
-        }
-        *self.workspace.write().expect("workspace lock poisoned") = Some(ws);
-        *self.backend.write().expect("backend lock poisoned") = backend;
+        self.switch_project(|| {
+            if let Err(e) = self.write_settings().load_project(ws.root()) {
+                tracing::warn!("project settings not loaded: {e}");
+            }
+            *self.workspace.write().expect("workspace lock poisoned") = Some(ws);
+            *self.backend.write().expect("backend lock poisoned") = backend;
+        });
+    }
+
+    /// Replace the open project with `install` (which swaps the settings layer, folder and
+    /// backend). Safe Mode is on while it runs: a command running meanwhile (an on-save
+    /// tool, a queued language server start) may already see the new project's settings
+    /// with the old project's trust, so it must be refused. Afterwards Safe Mode follows the
+    /// new project's trust.
+    fn switch_project(&self, install: impl FnOnce()) {
+        self.safe_mode.set(true);
+        install();
         self.refresh_safe_mode();
     }
 
@@ -190,16 +202,17 @@ impl AppState {
     /// host. Blocks while the host answers (call off the async runtime).
     pub fn set_remote_project(&self, backend: Arc<dyn Backend>) {
         let files = Arc::new(BackendFiles(backend.clone()));
-        {
-            let mut settings = self.write_settings();
-            if let Err(e) = settings.load_project_files(files) {
-                tracing::warn!("project settings not loaded: {e}");
-                settings.close_project();
+        self.switch_project(|| {
+            {
+                let mut settings = self.write_settings();
+                if let Err(e) = settings.load_project_files(files) {
+                    tracing::warn!("project settings not loaded: {e}");
+                    settings.close_project();
+                }
             }
-        }
-        *self.workspace.write().expect("workspace lock poisoned") = None;
-        *self.backend.write().expect("backend lock poisoned") = Some(backend);
-        self.refresh_safe_mode();
+            *self.workspace.write().expect("workspace lock poisoned") = None;
+            *self.backend.write().expect("backend lock poisoned") = Some(backend);
+        });
     }
     /// Open the host's project of a Code With Me session as a guest. Project settings are
     /// read from the host (read-only for the guest). Blocks while the host answers (call off
@@ -210,10 +223,11 @@ impl AppState {
 
     /// Close the open project (a Code With Me session ended).
     pub fn close_project(&self) {
-        self.write_settings().close_project();
-        *self.workspace.write().expect("workspace lock poisoned") = None;
-        *self.backend.write().expect("backend lock poisoned") = None;
-        self.refresh_safe_mode();
+        self.switch_project(|| {
+            self.write_settings().close_project();
+            *self.workspace.write().expect("workspace lock poisoned") = None;
+            *self.backend.write().expect("backend lock poisoned") = None;
+        });
     }
 
     /// The open project's folder when it is on this machine (`None` for remote projects).
@@ -390,6 +404,58 @@ mod tests {
         assert!(needs_safe_mode(&local, &store));
         store.trust(&trust_key(&local)).unwrap();
         assert!(!needs_safe_mode(&local, &store));
+    }
+
+    /// Open `next` while trusted `prev` is open, and report whether Safe Mode was on at the
+    /// moment `next`'s `.forge/settings.toml` was read: it is a FIFO, so the read waits until
+    /// this test has looked.
+    #[cfg(unix)]
+    fn safe_mode_while_installing(state: &AppState, next: &std::path::Path) -> bool {
+        use std::io::Write;
+        std::fs::create_dir_all(next.join(".forge")).unwrap();
+        let fifo = next.join(".forge/settings.toml");
+        let made = std::process::Command::new("mkfifo")
+            .arg(&fifo)
+            .status()
+            .unwrap();
+        assert!(made.success());
+        std::thread::scope(|scope| {
+            let opening =
+                scope.spawn(|| state.set_workspace(forge_core::Workspace::open(next).unwrap()));
+            // Opening the FIFO for writing waits until the settings loader opens it.
+            let mut writer = std::fs::OpenOptions::new().write(true).open(&fifo).unwrap();
+            let on = state.safe_mode.is_on();
+            writer
+                .write_all(b"[php]\ninterpreter = \"./evil\"\n")
+                .unwrap();
+            drop(writer);
+            opening.join().unwrap();
+            on
+        })
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_project_switch_is_in_safe_mode_until_the_new_trust_applies() {
+        let dir = tempfile::tempdir().unwrap();
+        let (trusted, untrusted) = (dir.path().join("a"), dir.path().join("b"));
+        std::fs::create_dir_all(&trusted).unwrap();
+        std::fs::create_dir_all(&untrusted).unwrap();
+        let state = AppState {
+            trust_path: Some(dir.path().join("trusted-projects.toml")),
+            ..AppState::default()
+        };
+        let mut store = forge_trust::TrustStore::default();
+        store.trust(&forge_trust::local_key(&trusted)).unwrap();
+        state.save_trust_store(&store).unwrap();
+        state.set_workspace(forge_core::Workspace::open(&trusted).unwrap());
+        assert!(!state.safe_mode.is_on());
+        // Trusted A to untrusted B: B's settings never meet A's trust.
+        assert!(safe_mode_while_installing(&state, &untrusted));
+        assert!(state.safe_mode.is_on());
+        // Back to A.
+        state.set_workspace(forge_core::Workspace::open(&trusted).unwrap());
+        assert!(!state.safe_mode.is_on());
     }
 
     #[test]

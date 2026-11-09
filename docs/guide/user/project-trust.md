@@ -50,6 +50,12 @@ Click **Trust Project…** in the banner (or run *Trust Project…* through Find
 After trusting, everything below is available at once; language servers that were held back
 start on the next file you open.
 
+While a window switches from one project to another, Safe Mode stays on until the new
+project's trust applies, so nothing started in between runs the new project's programs with
+the old project's trust. Whether a program or file lies inside the project is checked on the
+resolved path (symlinks, `/proc/self/root/…`) and in every spelling (`\\?\C:\…`, other letter
+case on Windows and macOS), also for plugins that write project files.
+
 ### What does not run in Safe Mode
 
 Forge's backend refuses these commands with an error that names the action, so they stay
