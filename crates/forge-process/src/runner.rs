@@ -128,12 +128,6 @@ impl RunningProcess {
             // Own process group, so Stop can signal the whole tree.
             command.process_group(0);
         }
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            command.creation_flags(CREATE_NO_WINDOW);
-        }
         let mut child = command
             .spawn()
             .map_err(|e| ForgeError::Other(format!("cannot run {}: {e}", cmd.program)))?;
@@ -277,10 +271,9 @@ fn kill_tree(pid: u32, grace: Duration, exited: Arc<AtomicBool>) {
 
 #[cfg(windows)]
 fn kill_tree(pid: u32, _grace: Duration, _exited: Arc<AtomicBool>) {
-    use std::os::windows::process::CommandExt;
-    let _ = Command::new("taskkill")
-        .args(["/T", "/F", "/PID", &pid.to_string()])
-        .creation_flags(0x0800_0000)
+    let mut taskkill = Command::new("taskkill");
+    taskkill.args(["/T", "/F", "/PID", &pid.to_string()]);
+    let _ = forge_hostspawn::local_command(taskkill)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();

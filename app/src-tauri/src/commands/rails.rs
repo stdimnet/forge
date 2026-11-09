@@ -94,7 +94,12 @@ fn options(state: &AppState, key: &str) -> Options {
     } else {
         None
     };
-    Options { routes_output, env }
+    Options {
+        routes_output,
+        env,
+        // Windows variable names are case-insensitive (`Path`, `ComSpec`).
+        env_case_insensitive: cfg!(windows),
+    }
 }
 
 /// The analysed project, read again after [`TTL`] or with `refresh`.

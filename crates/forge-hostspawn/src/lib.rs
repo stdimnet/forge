@@ -18,6 +18,12 @@
 //!
 //! Programs that are part of Forge itself (the built-in PHP language server, project
 //! windows) keep running inside the sandbox: their callers simply do not rewrite them.
+//!
+//! [`host_command`] is also where every child process gets its Windows treatment ([`win`]):
+//! programs are looked up with `PATH` and `PATHEXT` (`composer.bat`, `npm.cmd`), `cmd /C`
+//! lines are passed to `cmd.exe` verbatim, and no child opens a console window. Processes that
+//! must stay in the sandbox (`kill`, `taskkill`, Windows tools) use [`local_command`], which
+//! does the Windows part only.
 
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
@@ -38,6 +44,8 @@ pub const HOST_ROOT: &str = "/run/host";
 /// Host folders that the sandbox replaces with its own (the runtime) and that `host-os`
 /// access exposes under [`HOST_ROOT`].
 const HOST_OS_DIRS: &[&str] = &["/usr", "/bin", "/sbin", "/lib", "/lib32", "/lib64", "/etc"];
+
+pub mod win;
 
 static ENABLED: AtomicBool = AtomicBool::new(true);
 
@@ -244,16 +252,92 @@ fn canonical(p: PathBuf) -> PathBuf {
     std::fs::canonicalize(&p).unwrap_or(p)
 }
 
-/// `cmd` unchanged outside Flatpak; inside it the `flatpak-spawn --host` command that runs
-/// it on the host (unless it is a [sandbox program](is_sandbox_program)). Call it after
-/// program, arguments, environment and working directory are set and before stdio and other
-/// options, which are not carried over.
+/// The one way Forge starts a tool: `cmd` ready to spawn. Inside Flatpak it becomes the
+/// `flatpak-spawn --host` command that runs it on the host (unless it is a
+/// [sandbox program](is_sandbox_program)); on Windows it gets [`local_command`]'s treatment
+/// (`PATHEXT` lookup, verbatim `cmd /C` lines, no console window). Call it after program,
+/// arguments, environment and working directory are set and before stdio, creation flags and
+/// other options, which are not carried over. Pass `cmd.exe` lines as plain arguments
+/// (`.args(["/C", line])`), never with `raw_arg`.
 pub fn host_command(cmd: Command) -> Command {
-    if active() && !is_sandbox_program(Path::new(cmd.get_program())) {
+    let cmd = if active() && !is_sandbox_program(Path::new(cmd.get_program())) {
         rewrite(&Spec::from_command(&cmd)).into_command()
     } else {
         cmd
+    };
+    local_command(cmd)
+}
+
+/// [`host_command`] without the Flatpak part, for processes that belong to Forge's own
+/// environment (signalling its own children, Windows system tools). On Windows: the program
+/// is looked up with `PATH` (the child's, when the command sets one) and `PATHEXT`, `cmd /C`
+/// lines are passed verbatim ([`win::cmd_invocation`]) and the child gets
+/// [`win::CREATE_NO_WINDOW`]. Elsewhere `cmd` is returned unchanged. The same rules as for
+/// [`host_command`] apply: call it before stdio and other options.
+pub fn local_command(cmd: Command) -> Command {
+    #[cfg(windows)]
+    {
+        windows_command(cmd)
     }
+    #[cfg(not(windows))]
+    {
+        cmd
+    }
+}
+
+#[cfg(windows)]
+fn windows_command(cmd: Command) -> Command {
+    use std::os::windows::process::CommandExt;
+    let spec = Spec::from_command(&cmd);
+    let program = spec.program.to_string_lossy().into_owned();
+    let args: Option<Vec<String>> = spec
+        .args
+        .iter()
+        .map(|a| a.to_str().map(str::to_string))
+        .collect();
+    // The child's PATH decides where Windows looks, as in `Command` itself.
+    let path = match spec
+        .env
+        .iter()
+        .rev()
+        .find(|(k, _)| k.to_string_lossy().eq_ignore_ascii_case("PATH"))
+    {
+        Some((_, v)) => v.as_ref().map(|v| v.to_string_lossy().into_owned()),
+        None => std::env::var("PATH").ok(),
+    };
+    let pathext = std::env::var("PATHEXT").ok();
+    let plan = win::plan(
+        &program,
+        args.as_deref(),
+        path.as_deref(),
+        pathext.as_deref(),
+        |p| Path::new(p).is_file(),
+    );
+    let mut cmd = if plan.is_noop() {
+        cmd
+    } else {
+        let mut out = Command::new(plan.program.map_or(spec.program, OsString::from));
+        match plan.raw_args {
+            Some(raw) => {
+                out.raw_arg(raw);
+            }
+            None => {
+                out.args(&spec.args);
+            }
+        }
+        for (k, v) in &spec.env {
+            match v {
+                Some(v) => out.env(k, v),
+                None => out.env_remove(k),
+            };
+        }
+        if let Some(dir) = &spec.cwd {
+            out.current_dir(dir);
+        }
+        out
+    };
+    cmd.creation_flags(win::CREATE_NO_WINDOW);
+    cmd
 }
 
 /// [`host_command`] for a [`Spec`].
@@ -446,21 +530,24 @@ pub fn which(program: &str) -> Option<PathBuf> {
         return is_file(p).then(|| p.to_path_buf());
     }
     let path = path_var()?;
-    let exts: Vec<String> = if cfg!(windows) && p.extension().is_none() {
-        std::env::var("PATHEXT")
-            .unwrap_or_else(|_| ".EXE;.CMD;.BAT;.COM".into())
-            .split(';')
-            .map(str::to_string)
-            .collect()
-    } else {
-        vec![String::new()]
-    };
-    std::env::split_paths(&path).find_map(|dir| {
-        exts.iter().find_map(|ext| {
-            let candidate = dir.join(format!("{program}{ext}"));
-            is_file(&candidate).then_some(candidate)
-        })
-    })
+    if cfg!(windows) {
+        let pathext = std::env::var("PATHEXT").ok();
+        if win::has_executable_ext(program, &win::pathext(pathext.as_deref())) {
+            return std::env::split_paths(&path)
+                .map(|dir| dir.join(program))
+                .find(|c| is_file(c));
+        }
+        return win::resolve_program(
+            program,
+            Some(&path.to_string_lossy()),
+            pathext.as_deref(),
+            |c| is_file(Path::new(c)),
+        )
+        .map(PathBuf::from);
+    }
+    std::env::split_paths(&path)
+        .map(|dir| dir.join(program))
+        .find(|c| is_file(c))
 }
 
 #[cfg(test)]
@@ -511,6 +598,8 @@ mod tests {
         assert_eq!(r.cwd, None);
     }
 
+    // `PATH` lists are `:`-separated: Flatpak only exists on Linux.
+    #[cfg(unix)]
     #[test]
     fn rewrite_translates_sandbox_paths_to_host_paths() {
         let spec = Spec {
@@ -595,6 +684,8 @@ mod tests {
         assert!(!is_sandbox_program(Path::new("php")));
     }
 
+    // `PATH` lists are `:`-separated: Flatpak only exists on Linux.
+    #[cfg(unix)]
     #[test]
     fn host_paths_and_path_lists() {
         assert_eq!(
@@ -675,5 +766,63 @@ mod tests {
                 .map(|d| d.join("sh"))
                 .find(|p| p.is_file())
         });
+    }
+}
+
+/// Real spawns on Windows (run under Wine on Linux CI machines too).
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::*;
+
+    fn stdout(cmd: Command) -> String {
+        let out = local_command(cmd).output().expect("spawn");
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    }
+
+    #[test]
+    fn batch_files_on_path_are_found_through_pathext() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("forgetool.bat"), "@echo tool %1\r\n").unwrap();
+        let mut path = std::ffi::OsString::from(dir.path());
+        path.push(";");
+        path.push(std::env::var_os("PATH").unwrap_or_default());
+        let mut cmd = Command::new("forgetool");
+        cmd.arg("ok").env("PATH", path);
+        assert_eq!(stdout(cmd), "tool ok");
+    }
+
+    #[test]
+    fn cmd_lines_keep_their_quotes() {
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", r#"echo "fix bug""#]);
+        assert_eq!(stdout(cmd), r#""fix bug""#);
+    }
+
+    #[test]
+    fn built_cmd_lines_are_not_expanded() {
+        let line = win::cmd_line(&["echo", "100%OS% & more"]);
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", &line]);
+        assert_eq!(stdout(cmd), r#""100%OS% & more""#);
+    }
+
+    #[test]
+    fn built_cmd_lines_run_programs_in_folders_with_spaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("Jane Doe");
+        std::fs::create_dir(&bin).unwrap();
+        let tool = bin.join("tool.bat");
+        std::fs::write(&tool, "@echo [%1] [%2]\r\n").unwrap();
+        let tool = tool.to_string_lossy().into_owned();
+        let line = format!(
+            "{} && {}",
+            win::cmd_line(&[tool.as_str(), "a b", "c&d"]),
+            win::cmd_line(&[tool.as_str(), "x", "y"])
+        );
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", &line]);
+        let out = stdout(cmd);
+        let lines: Vec<&str> = out.lines().map(str::trim).collect();
+        assert_eq!(lines, [r#"["a b"] ["c&d"]"#, "[x] [y]"]);
     }
 }

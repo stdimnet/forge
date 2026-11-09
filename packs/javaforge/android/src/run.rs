@@ -156,23 +156,16 @@ fn sh_quote(s: &str) -> String {
     }
 }
 
-/// Quote an argument for `cmd.exe`.
-fn cmd_quote(s: &str) -> String {
-    if !s.is_empty()
-        && !s
-            .chars()
-            .any(|c| c.is_whitespace() || "\"&|<>^()".contains(c))
-    {
-        s.to_string()
-    } else {
-        format!("\"{}\"", s.replace('"', "\"\""))
-    }
-}
-
 /// The steps as one shell command line: each step is echoed (`> adb install …`) and the
 /// next runs only when it succeeded.
 pub fn chain(steps: &[(String, Vec<String>)], windows: bool) -> (String, Vec<String>) {
-    let quote: fn(&str) -> String = if windows { cmd_quote } else { sh_quote };
+    // `cmd.exe` arguments are quoted so that spaces, operators and `%VAR%` stay literal; the
+    // spawn passes the line to `cmd /C` verbatim (`forge_hostspawn::win`).
+    let quote: fn(&str) -> String = if windows {
+        forge_hostspawn::win::cmd_arg
+    } else {
+        sh_quote
+    };
     let short = |p: &str| {
         p.rsplit(['/', '\\'])
             .next()
@@ -193,7 +186,10 @@ pub fn chain(steps: &[(String, Vec<String>)], windows: bool) -> (String, Vec<Str
                 .collect::<Vec<_>>()
                 .join(" ");
             if windows {
-                format!("echo ^> {} && {line}", shown.replace('&', "^&"))
+                format!(
+                    "echo {} && {line}",
+                    forge_hostspawn::win::cmd_escape(&format!("> {shown}"))
+                )
             } else {
                 format!("echo {} && {line}", sh_quote(&format!("> {shown}")))
             }
@@ -285,6 +281,23 @@ mod tests {
             a[3].starts_with("echo ^> gradlew --console=plain :app:assembleDebug && /p/gradlew")
         );
 
+        // A profile path with a space and an argument with `%` (#208, #215).
+        let windows_steps = vec![
+            (
+                r"C:\Users\Jane Doe\p\gradlew.bat".to_string(),
+                vec![":app:assembleDebug".to_string(), "-Pv=100%".into()],
+            ),
+            (
+                r"C:\Users\Jane Doe\sdk\adb.exe".to_string(),
+                vec!["shell".to_string(), "echo a&b".into()],
+            ),
+        ];
+        let (_, a) = chain(&windows_steps, true);
+        assert_eq!(
+            a[3],
+            r#"echo ^> gradlew :app:assembleDebug -Pv=100%%cd:~,% && "C:\Users\Jane Doe\p\gradlew.bat" :app:assembleDebug "-Pv=100%%cd:~,%" && echo ^> adb shell echo a^&b && "C:\Users\Jane Doe\sdk\adb.exe" shell "echo a&b""#
+        );
+
         let mut r = run();
         r.activity.clear();
         r.skip_build = true;
@@ -294,9 +307,5 @@ mod tests {
         r.serial.clear();
         assert!(steps(&r).unwrap_err().contains("No device"));
         assert_eq!(sh_quote("a b'c"), "'a b'\\''c'");
-        assert_eq!(
-            cmd_quote("C:\\Program Files\\x"),
-            "\"C:\\Program Files\\x\""
-        );
     }
 }

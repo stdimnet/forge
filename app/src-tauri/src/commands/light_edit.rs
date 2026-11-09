@@ -134,7 +134,9 @@ pub fn light_edit_open(paths: Vec<String>, state: State<'_, LightEditState>) -> 
             tracing::warn!("LightEdit: not a file: {}", path.display());
             continue;
         }
-        let path = path.canonicalize().unwrap_or(path);
+        // Without Windows' `\\?\` prefix, so tab ids (`light-edit://C:/…`) and the shown
+        // path match files opened in other ways.
+        let path = forge_core::paths::canonicalize(&path).unwrap_or(path);
         tabs.open(&path.display().to_string(), None, None);
     }
     tabs.snapshot()
@@ -220,6 +222,7 @@ pub fn light_edit_open_project(path: String, app: AppHandle) -> Result<()> {
     if !dir.is_dir() {
         return Err(ForgeError::Other(format!("not a folder: {path}")));
     }
-    crate::companion::open_project_later(&app, &dir.canonicalize().unwrap_or(dir), false);
+    let dir = forge_core::paths::canonicalize(&dir).unwrap_or(dir);
+    crate::companion::open_project_later(&app, &dir, false);
     Ok(())
 }
