@@ -21,7 +21,9 @@ computed by the diff viewer itself.
   folder) with `equal`, `different`, `leftOnly` or `rightOnly`; a folder is equal when
   everything below it is.
 - `list_tree` / `compare_trees`: read two folders on this machine (`.git`, `.hg`, `.svn`
-  skipped, symbolic links compared by their target, at most `MAX_ENTRIES` per side).
+  skipped, symbolic links compared by their target, at most `MAX_ENTRIES` per side). Files
+  are hashed in 64 KiB blocks (`digest_reader`), never read whole; a file that cannot be read
+  is `unreadable` and never compares as equal.
 
 ## Main public items
 

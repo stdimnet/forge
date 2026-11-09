@@ -5,7 +5,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::classify;
 use crate::dialect::Dialect;
+use crate::lex::{tokenize_default, Tok};
 use crate::split::{leading_keyword, split_statements};
 
 /// What the data source allows.
@@ -34,128 +36,60 @@ pub struct Guard {
     pub confirm: Option<String>,
 }
 
-/// Words of a statement outside strings and comments, upper-cased, with their bracket depth.
-fn words(stmt: &str) -> Vec<(String, i32)> {
-    let b = stmt.as_bytes();
-    let mut out = Vec::new();
-    let mut depth = 0;
-    let mut i = 0;
-    while i < b.len() {
-        let c = b[i];
-        match c {
-            b'\'' | b'"' | b'`' => {
-                let mut j = i + 1;
-                while j < b.len() && b[j] != c {
-                    if b[j] == b'\\' {
-                        j += 1;
-                    }
-                    j += 1;
-                }
-                i = j + 1;
+/// Words and quoted identifiers (without their quotes) of a statement outside strings and
+/// comments, upper-cased, with their parenthesis depth.
+fn words(stmt: &str, d: Dialect) -> Vec<(String, i32)> {
+    tokenize_default(stmt, d)
+        .tokens
+        .iter()
+        .filter_map(|t| match t.tok {
+            Tok::Word(w) => Some((w.to_ascii_uppercase(), t.depth)),
+            Tok::Ident if t.end >= t.start + 2 => {
+                Some((stmt[t.start + 1..t.end - 1].to_ascii_uppercase(), t.depth))
             }
-            b'-' if b.get(i + 1) == Some(&b'-') => {
-                i = stmt[i..].find('\n').map(|p| i + p).unwrap_or(b.len());
-            }
-            b'/' if b.get(i + 1) == Some(&b'*') => {
-                i = stmt[i + 2..]
-                    .find("*/")
-                    .map(|p| i + 2 + p + 2)
-                    .unwrap_or(b.len());
-            }
-            b'(' | b'{' | b'[' => {
-                depth += 1;
-                i += 1;
-            }
-            b')' | b'}' | b']' => {
-                depth -= 1;
-                i += 1;
-            }
-            c if c.is_ascii_alphabetic() || c == b'_' || c == b'$' => {
-                let start = i;
-                while i < b.len() && (b[i].is_ascii_alphanumeric() || b[i] == b'_' || b[i] == b'$')
-                {
-                    i += 1;
-                }
-                out.push((stmt[start..i].to_ascii_uppercase(), depth));
-            }
-            _ => i += 1,
-        }
-    }
-    out
+            _ => None,
+        })
+        .collect()
 }
 
-const SQL_WRITES: &[&str] = &[
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "MERGE",
-    "REPLACE",
-    "UPSERT",
-    "CREATE",
-    "ALTER",
-    "DROP",
-    "TRUNCATE",
-    "RENAME",
-    "GRANT",
-    "REVOKE",
-    "COMMENT",
-    "CALL",
-    "EXEC",
-    "EXECUTE",
-    "DO",
-    "COPY",
-    "LOAD",
-    "IMPORT",
-    "OPTIMIZE",
-    "VACUUM",
-    "REINDEX",
-    "CLUSTER",
-    "LOCK",
-    "ATTACH",
-    "DETACH",
-    "SYSTEM",
-    "KILL",
-    "DECLARE",
-    "BULK",
-    "DBCC",
-    "PURGE",
-    "FLASHBACK",
-    "INSTALL",
-    "UNINSTALL",
-];
-
-/// Whether a SQL statement changes data or schema (DML/DDL).
-fn sql_write(stmt: &str) -> Option<String> {
-    let kw = leading_keyword(stmt);
-    if SQL_WRITES.contains(&kw.as_str()) {
-        return Some(kw);
-    }
-    let ws = words(stmt);
-    match kw.as_str() {
-        // `WITH x AS (…) DELETE …`, data-modifying CTEs.
-        "WITH" => ws
-            .iter()
-            .find(|(w, _)| matches!(w.as_str(), "INSERT" | "UPDATE" | "DELETE" | "MERGE"))
-            .map(|(w, _)| w.clone()),
-        // T-SQL `SELECT … INTO new_table` creates a table.
-        "SELECT" => ws
-            .iter()
-            .any(|(w, d)| w == "INTO" && *d == 0)
-            .then(|| "SELECT INTO".to_string()),
-        // `PRAGMA user_version = 3` writes, `PRAGMA table_info(t)` reads.
-        "PRAGMA" => stmt.contains('=').then(|| "PRAGMA".to_string()),
-        // Oracle PL/SQL blocks and T-SQL `BEGIN … END` may contain anything.
-        "BEGIN" if ws.len() > 1 && !ws[1].0.starts_with("TRAN") && ws[1].0 != "WORK" => {
-            Some("BEGIN … END".to_string())
+/// `UPDATE`/`DELETE` without a top-level `WHERE`, or `TRUNCATE`: what it affects. A T-SQL
+/// batch may hold several statements without `;` (`SELECT 1 DELETE FROM t`), so each
+/// top-level `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE` or `MERGE` starts a part
+/// that is checked on its own.
+fn sql_unbounded(stmt: &str, d: Dialect) -> Option<String> {
+    let ws = words(stmt, d);
+    let ddl = matches!(
+        leading_keyword(stmt).as_str(),
+        "CREATE" | "ALTER" | "GRANT" | "REVOKE" | "DENY"
+    );
+    let mut starts = vec![0];
+    if !ddl {
+        for i in 1..ws.len() {
+            let (w, depth) = &ws[i];
+            let starter = matches!(
+                w.as_str(),
+                "SELECT" | "INSERT" | "UPDATE" | "DELETE" | "TRUNCATE" | "MERGE"
+            );
+            // `FOR UPDATE`, `ON DUPLICATE KEY UPDATE`, `DO UPDATE`, `THEN DELETE`, ….
+            let clause = matches!(
+                ws[i - 1].0.as_str(),
+                "FOR" | "KEY" | "DO" | "THEN" | "ON" | "OF" | "OR" | "AFTER" | "BEFORE" | "INSTEAD"
+            );
+            if starter && *depth == 0 && !clause {
+                starts.push(i);
+            }
         }
-        _ => None,
     }
+    starts.push(ws.len());
+    let found: Vec<String> = starts
+        .windows(2)
+        .filter_map(|r| unbounded_part(&ws[r[0]..r[1]]))
+        .collect();
+    (!found.is_empty()).then(|| found.join("; "))
 }
 
-/// `UPDATE`/`DELETE` without a top-level `WHERE`, or `TRUNCATE`: what it affects.
-fn sql_unbounded(stmt: &str) -> Option<String> {
-    let ws = words(stmt);
-    let kw = leading_keyword(stmt);
+fn unbounded_part(ws: &[(String, i32)]) -> Option<String> {
+    let kw = ws.first().map(|(w, _)| w.as_str()).unwrap_or("");
     let has_where = ws.iter().any(|(w, d)| w == "WHERE" && *d == 0);
     let after = |key: &str| {
         ws.iter()
@@ -164,7 +98,7 @@ fn sql_unbounded(stmt: &str) -> Option<String> {
             .map(|(w, _)| w.to_ascii_lowercase())
             .unwrap_or_default()
     };
-    match kw.as_str() {
+    match kw {
         "DELETE" if !has_where => Some(format!(
             "DELETE without WHERE deletes every row of {}",
             or_table(after("FROM"))
@@ -407,6 +341,75 @@ const MONGO_READS: &[&str] = &[
     "version",
 ];
 
+/// Database commands that only read, for `db.runCommand(…)`.
+const MONGO_READ_COMMANDS: &[&str] = &[
+    "ping",
+    "buildInfo",
+    "buildinfo",
+    "hello",
+    "isMaster",
+    "ismaster",
+    "hostInfo",
+    "serverStatus",
+    "dbStats",
+    "collStats",
+    "dataSize",
+    "listCollections",
+    "listDatabases",
+    "listIndexes",
+    "listCommands",
+    "connectionStatus",
+    "getCmdLineOpts",
+    "getParameter",
+    "getLog",
+    "whatsmyuri",
+    "usersInfo",
+    "rolesInfo",
+    "replSetGetStatus",
+    "count",
+    "distinct",
+    "find",
+];
+
+/// Whether the command document of `db.runCommand(…)` only reads: its command name (the
+/// first key, or a string argument: `runCommand("ping")`) is a known read. Anything that
+/// does not parse as such counts as a write.
+fn mongo_read_command(args: &str) -> bool {
+    let a = args.trim();
+    let name = if let Some(body) = a.strip_prefix('{') {
+        let body = body.trim_start();
+        let (key, rest) = match body.chars().next() {
+            Some(q @ ('"' | '\'')) => match body[1..].find(q) {
+                Some(end) => (&body[1..1 + end], &body[end + 2..]),
+                None => return false,
+            },
+            _ => {
+                let end = body
+                    .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '$'))
+                    .unwrap_or(body.len());
+                (&body[..end], &body[end..])
+            }
+        };
+        if !rest.trim_start().starts_with(':') {
+            return false;
+        }
+        key
+    } else if let Some(q @ ('"' | '\'')) = a.chars().next() {
+        match a[1..].find(q) {
+            Some(end) if a[end + 2..].trim().is_empty() => &a[1..1 + end],
+            _ => return false,
+        }
+    } else {
+        return false;
+    };
+    is_mongo_read_command(name)
+}
+
+/// Whether a MongoDB database command (the first key of its document) only reads.
+pub fn is_mongo_read_command(name: &str) -> bool {
+    MONGO_READ_COMMANDS.contains(&name)
+}
+
 /// Whether a MongoDB console line may change data.
 pub fn mongo_is_write(text: &str) -> bool {
     let t = text.trim();
@@ -417,7 +420,7 @@ pub fn mongo_is_write(text: &str) -> bool {
         Some(call) if call.method == "aggregate" => {
             call.args.contains("$out") || call.args.contains("$merge")
         }
-        Some(call) if call.method == "runCommand" => !call.args.contains("ping"),
+        Some(call) if call.method == "runCommand" => !mongo_read_command(call.args),
         Some(call) => !MONGO_READS.contains(&call.method),
         None => true,
     }
@@ -456,7 +459,7 @@ pub fn unbounded_change(stmt: &str, dialect: Dialect) -> Option<String> {
                 _ => None,
             }
         }
-        _ => sql_unbounded(stmt),
+        _ => sql_unbounded(stmt, dialect),
     }
 }
 
@@ -469,7 +472,7 @@ pub fn write_kind(stmt: &str, dialect: Dialect) -> Option<String> {
                 .map(|c| format!("{}()", c.method))
                 .unwrap_or_else(|| "this command".into())
         }),
-        _ => sql_write(stmt),
+        _ => classify::write_kind(stmt, dialect),
     }
 }
 
@@ -636,6 +639,27 @@ mod tests {
         assert!(mongo_is_write("db.users.aggregate([{ $out: 'x' }])"));
         assert!(mongo_is_write("db.users.insertOne({a: 1})"));
         assert!(!mongo_is_write("show collections"));
+        // `runCommand` reads only when the command itself is a known read.
+        assert!(mongo_is_write(
+            r#"db.runCommand({drop: "users", comment: "ping"})"#
+        ));
+        assert!(mongo_is_write(
+            r#"db.runCommand({"dropDatabase": 1, "x": "ping"})"#
+        ));
+        assert!(mongo_is_write(
+            "db.runCommand({ /* ping */ drop: 'users' })"
+        ));
+        assert!(mongo_is_write("db.runCommand({ pingx: 1 })"));
+        assert!(mongo_is_write("db.runCommand('drop')"));
+        assert!(mongo_is_write("db.runCommand({ ['ping']: 1 })"));
+        assert!(!mongo_is_write("db.runCommand({ ping: 1 })"));
+        assert!(!mongo_is_write(
+            r#"db.runCommand({"listCollections": 1, filter: {}})"#
+        ));
+        assert!(!mongo_is_write("db.runCommand('ping')"));
+        assert!(!mongo_is_write(
+            "db.runCommand({ dbStats: 1, scale: 1024 })"
+        ));
         assert!(guard("db.users.deleteMany({})", Dialect::Mongo, &prod())
             .confirm
             .unwrap()

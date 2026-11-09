@@ -469,11 +469,24 @@ driver refuses them too — MySQL and PostgreSQL sessions are `READ ONLY`, SQLit
 read-only, ClickHouse gets `readonly=2`, Oracle `SET TRANSACTION READ ONLY`, SQL Server declares
 `ApplicationIntent=ReadOnly`, Redis and MongoDB connections only accept reads.
 
+The console's check reads each statement the way the dialect does — PostgreSQL `E'…'` strings
+and `$$…$$` quoting, MySQL backslash escapes and `/*! … */` comments (which MySQL runs), SQL
+Server `[brackets]`, `GO` batches and statements without `;`, Oracle `q'[…]'`, nested comments —
+and lets through only statements it knows to read: `SELECT`, `WITH`, `VALUES`, `SHOW`,
+`DESCRIBE`, `EXPLAIN` (not `EXPLAIN ANALYZE` of a change), transaction control, read-only
+`PRAGMA`s and `sp_help`-style procedures, and `SET` of harmless session options (`search_path`,
+`NAMES`, `NOCOUNT`, `statement_timeout`, user variables, …). Everything else is refused, such as
+`SET … READ WRITE`, `SET GLOBAL`, `SET ROLE`, `RESET`, `REFRESH`, `ANALYZE`, `FLUSH`, `BACKUP`,
+`RESTORE`, `DENY`, a write anywhere in a statement (`SELECT 1 DROP TABLE t` on SQL Server,
+`SELECT … INTO`, data-modifying CTEs) and functions with side effects (`set_config()`,
+`nextval()`, `OPENQUERY()`). A MongoDB `db.runCommand(…)` counts as a read only when its command
+(the first key) is a read such as `ping`, `dbStats`, `listCollections` or `find`.
+
 **Colour** marks a data source as development (**green**), staging (**yellow**) or production
 (**red**); the tree, its console and table tabs and the console editor are tinted, and the
 console shows a badge. Before running `UPDATE` or `DELETE` without `WHERE`, `TRUNCATE`,
 `FLUSHDB`/`FLUSHALL`, `deleteMany({})`/`updateMany({}, …)` or `drop()` on a **production**
-data source, Forge asks for confirmation:
+data source (also after other statements of a SQL Server batch), Forge asks for confirmation:
 
 ![Production warning](../../screenshots/database-production-warning.png)
 
@@ -526,7 +539,9 @@ Table editors sort and filter **on the server**: Forge builds the `SELECT … WH
 for the data source's dialect (quoting, `LIMIT`/`OFFSET` or `OFFSET … FETCH`) and shows it in the
 status. The typed condition must stay one read-only condition: Forge refuses it when it holds a
 `;`, unbalanced brackets, an unclosed quote or comment, or writes (`DELETE`, `UPDATE`,
-`INSERT`, `DROP`, `SELECT … INTO`, …, also in subqueries).
+`INSERT`, `DROP`, `SELECT … INTO`, …, also in subqueries). Quotes and comments are read as the
+dialect reads them (PostgreSQL `E'\''` and `$$…$$`, MySQL with and without backslash escapes),
+so a `;` cannot hide behind them.
 
 Console results come from arbitrary queries, so header sort and **Filter by value** run
 **locally** on the fetched rows (NULLs first, numbers and decimals numerically).
@@ -705,7 +720,8 @@ into an existing table or a new one:
   **quote**, **encoding** (detected from a byte order mark, else UTF-8, else Windows-1252; or
   choose one), **First row is header**, **Trim whitespace** and **Skip rows**. Quoted fields may
   contain delimiters, line breaks and doubled quotes; rows with missing fields are padded and
-  reported. An empty unquoted field is `NULL`, `""` an empty string.
+  reported. An empty unquoted field is `NULL`, `""` an empty string; in a one-column file a
+  blank line between rows is a `NULL` row.
 - **Columns**: every source column with its **detected type** (integer, decimal, boolean, date,
   date-time or text; values with leading zeros stay text), the **target column** (a column of the
   existing table, matched by name; or a name for the new table) and, for a new table, its SQL
@@ -721,7 +737,8 @@ into an existing table or a new one:
 
 Rows are inserted with multi-row `INSERT` statements per batch (at most 1000 rows per statement
 on SQL Server, `INSERT ALL … SELECT 1 FROM dual` on Oracle; booleans, dates and numbers as
-literals of the dialect). A progress bar shows the rows done; **Cancel** stops after the current
+literals of the dialect; date-times with a zone offset become UTC on Oracle, whose `TIMESTAMP`
+literals have no zone). A progress bar shows the rows done; **Cancel** stops after the current
 batch. Read-only data sources refuse imports; production data sources ask first.
 
 ## Export
@@ -729,7 +746,8 @@ batch. Read-only data sources refuse imports; production data sources ask first.
 **Export Data** (the download icon in a result or table) writes the rows as **CSV**, **JSON**,
 SQL **INSERT** statements for the dialect, a **Markdown** table, or an **Excel** workbook
 (`.xlsx`, with a bold, frozen header row; numbers and booleans stay numbers and booleans).
-**Copy as** puts CSV, JSON, SQL or Markdown on the clipboard.
+**Copy as** puts CSV, JSON, SQL or Markdown on the clipboard. In CSV, `NULL` is an empty field
+and an empty string `""`, so an import of the file gives back the same values.
 
 ## Dump and restore with native tools
 
@@ -748,7 +766,9 @@ file**, the **schemas** (MySQL: databases) and **tables** to include (selected t
 preselected) and the options: **Structure**, **Data**, **Drop objects first** (`--add-drop-table`,
 `--clean --if-exists`), **Create database**, **Single transaction**, **No owner**, the pg_dump
 **format** and parallel **jobs**, and **More arguments**. The **command line** is shown as it
-will run.
+will run; database, table and file names come last after `--`, so a name that starts with `-` is
+not read as an option. `mysqldump` dumps the tables of one database per run (tables of several
+databases are refused), and `mysql` cannot restore a file whose path holds `;` or a line break.
 
 ![pg_dump dialog](../../screenshots/database-dump.png)
 

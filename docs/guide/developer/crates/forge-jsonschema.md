@@ -33,7 +33,7 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
 | `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
-| `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
+| `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline; bodies are streamed up to 16 MB and loopback/private hosts are refused (`private_host`). |
 | `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
 
 ## Main public items
