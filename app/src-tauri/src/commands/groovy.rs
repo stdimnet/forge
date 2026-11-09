@@ -103,32 +103,40 @@ pub struct GroovyStatus {
 
 #[tauri::command]
 pub async fn groovy_status(app: AppHandle) -> Result<GroovyStatus> {
-    blocking(move || {
-        let state = app.state::<AppState>();
-        let backend = state.backend()?;
-        let found = find_groovy(&state, backend.as_ref());
-        let version = found.as_ref().and_then(|(p, _)| {
+    blocking(move || status_of(&app.state::<AppState>())).await
+}
+
+fn status_of(state: &AppState) -> Result<GroovyStatus> {
+    let backend = state.backend()?;
+    let found = find_groovy(state, backend.as_ref());
+    // In Safe Mode a launcher inside the project (`node_modules/.bin/groovy`) does not
+    // run, not even for its version.
+    let version = found
+        .as_ref()
+        .filter(|(p, _)| {
+            state
+                .refuse_project_program(p, "Running the project's Groovy")
+                .is_ok()
+        })
+        .and_then(|(p, _)| {
             let mut cmd = CommandLine::new(p.display().to_string()).args(["--version"]);
             cmd.cwd = backend.info().root.clone();
             capture(backend.as_ref(), &cmd, "", Duration::from_secs(30))
                 .ok()
                 .and_then(|o| launch::parse_version(&format!("{}\n{}", o.stdout, o.stderr)))
         });
-        let gradle_groovy = gradle_groovy_module(&state, backend.as_ref()).is_some();
-        let runner =
-            Runner::parse(&java::setting(&state, "groovy.run.runner")).resolve(gradle_groovy);
-        Ok(GroovyStatus {
-            groovy: found.as_ref().map(|(p, _)| p.display().to_string()),
-            source: found.map(|(_, s)| s.to_string()),
-            version,
-            gradle_groovy,
-            runner: match runner {
-                Runner::Gradle => "gradle".into(),
-                _ => "groovy".into(),
-            },
-        })
+    let gradle_groovy = gradle_groovy_module(state, backend.as_ref()).is_some();
+    let runner = Runner::parse(&java::setting(state, "groovy.run.runner")).resolve(gradle_groovy);
+    Ok(GroovyStatus {
+        groovy: found.as_ref().map(|(p, _)| p.display().to_string()),
+        source: found.map(|(_, s)| s.to_string()),
+        version,
+        gradle_groovy,
+        runner: match runner {
+            Runner::Gradle => "gradle".into(),
+            _ => "groovy".into(),
+        },
     })
-    .await
 }
 
 #[tauri::command]
@@ -220,4 +228,37 @@ pub(crate) fn command_line(
     }
     cmd.env.extend(cfg.env.clone());
     Ok(Some(cmd))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn safe_mode_never_runs_a_project_groovy() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let root = forge_core::paths::canonicalize(dir.path())
+            .unwrap()
+            .join("app");
+        let bin = root.join("node_modules/.bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let marker = dir.path().join("ran");
+        let groovy = bin.join("groovy");
+        std::fs::write(
+            &groovy,
+            format!("#!/bin/sh\ntouch '{}'\n", marker.display()),
+        )
+        .unwrap();
+        std::fs::set_permissions(&groovy, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let state = AppState::for_tests(dir.path().join("trusted-projects.toml"));
+        state.set_workspace(forge_core::Workspace::open(&root).unwrap());
+        assert!(state.safe_mode.is_on());
+        let status = status_of(&state).unwrap();
+        assert!(!marker.exists(), "the project's groovy ran in Safe Mode");
+        if status.groovy.as_deref() == Some(&*groovy.to_string_lossy()) {
+            assert_eq!(status.version, None);
+        }
+    }
 }

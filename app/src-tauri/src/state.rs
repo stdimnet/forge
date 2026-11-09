@@ -297,6 +297,32 @@ impl AppState {
     pub fn require_trusted(&self, what: &str) -> forge_core::Result<()> {
         self.safe_mode.check(what)
     }
+
+    /// `Err` in Safe Mode when `program` lies inside the open project
+    /// ([`forge_trust::runs_project_program`]): a tool found through the project's files (an
+    /// SDK in `local.properties`, `node_modules/.bin`) is the project's code. `what` names the
+    /// refused action.
+    pub fn refuse_project_program(
+        &self,
+        program: &std::path::Path,
+        what: &str,
+    ) -> forge_core::Result<()> {
+        if !self.safe_mode.is_on() {
+            return Ok(());
+        }
+        match self.project_info() {
+            Some(info)
+                if forge_trust::runs_project_program(
+                    &info.root,
+                    &program.to_string_lossy(),
+                    &[],
+                ) =>
+            {
+                Err(ForgeError::Other(forge_trust::refusal(what)))
+            }
+            _ => Ok(()),
+        }
+    }
 }
 
 /// Whether a project opens in Safe Mode: it is not trusted, or it is the host's project of

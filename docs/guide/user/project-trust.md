@@ -74,6 +74,9 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby interpreters inside the project (a `bin/ruby` chosen in the project's settings or found on the `PATH`) | not run, not even for their version |
+| Android: `adb` and the emulator of an SDK inside the project; `sdk.dir` in `local.properties` | not run; `local.properties` is not read for the SDK |
+| Groovy installed in the project (`node_modules/.bin/groovy`) | not run, not even for its version |
 | Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
