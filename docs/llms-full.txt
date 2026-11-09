@@ -1258,8 +1258,8 @@ Right-click a file, a folder or the empty area below the tree:
 | New > File / Directory | Creates a file or folder in the selected folder (or the file's folder). The name may contain `/` to create nested folders, e.g. `app/Models/Order.php`. A new file opens in the editor. |
 | Copy Path/Reference > Absolute Path (`Ctrl+Shift+C`), Path From Project Root, File Name | Copies to the clipboard |
 | Find in Files… | searches the folder (or the project), see [Find in Files](docs/guide/user/search-everywhere.md#find-in-files) |
-| Rename… | Renames the file or folder. Unsaved changes in open tabs are saved first and the tabs follow the new name. |
-| Delete… | Deletes after a confirmation; folders with all their content. This cannot be undone. |
+| Rename… | Renames the file or folder. Unsaved changes in open tabs are saved first and the tabs follow the new name, as do bookmarks, file type overrides, Recent Locations and TODO items. |
+| Delete… | Deletes after a confirmation; folders with all their content. This cannot be undone. Bookmarks and file type overrides of the deleted files are removed. |
 | Reload from Disk | Re-reads the folder |
 
 ![Project view context menu](docs/screenshots/file-menu-new-file.png)
@@ -1333,7 +1333,7 @@ Settings | Editor | General | Editor Tabs:
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | Tab limit (`editor.tabs.limit`) | 10 | Maximum tabs per editor group; `0` keeps every tab. When a new tab goes over the limit, the least recently used tab is closed. |
-| When the tab limit is reached, close non-modified tabs first (`editor.tabs.closeUnmodifiedFirst`) | on | Tabs with unsaved changes are closed last. |
+| When the tab limit is reached, close non-modified tabs first (`editor.tabs.closeUnmodifiedFirst`) | on | Tabs with unsaved changes are closed last. A modified tab that closes is saved first (see [Saving](docs/guide/user/editor.md#saving)). |
 | When the current tab is closed, activate (`editor.tabs.activateOnClose`) | Most recently opened tab | Or the tab on the left / on the right. |
 | Show pin icon on pinned tabs (`editor.tabs.showPinnedIcon`) | on | |
 
@@ -2467,6 +2467,22 @@ System Settings | Autosave): when Forge loses the focus (`system.autosave.onFram
 on by default) and, if enabled, after `system.autosave.idleSeconds` seconds without typing or
 clicking (`system.autosave.onIdle`).
 
+Like PHPStorm, Forge also saves modified files whatever the Autosave settings say, so closing
+never loses an edit:
+
+- **Closing a tab** (the close button, `Ctrl+F4`, a middle click, Close Others, Close All,
+  Close Tabs to the Left/Right, and the tab limit) saves the file when it was its last tab.
+  If the file cannot be written (read-only, disk full), its tab opens again in the background
+  and a notification says why.
+- **Switching or closing the project** (This Window, File | Close Project, opening an SSH, dev
+  container or WSL project, Repair IDE) saves every modified file first.
+- **Closing the window** or exiting Forge saves every modified file.
+
+These saves count as autosave: Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md) run
+only with **Also run on autosave**. When a file cannot be saved before the project or window
+closes, Forge asks: **Cancel** keeps the project (and your edits) open, **Discard and Close**
+closes it anyway.
+
 Saving applies Settings | Editor | General | On Save, like PHPStorm:
 
 | Option | Setting | Default |
@@ -2483,7 +2499,8 @@ imports, Rearrange code, code cleanup and external tools (ESLint, Prettier, PHP 
 Laravel Pint) to an explicit save (`Ctrl+S`), and optionally to autosave.
 
 When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
-the Project view and Git status (`system.syncExternalChanges`).
+the Project view and Git status (`system.syncExternalChanges`). A file with unsaved changes is
+not re-read, and text you type while a file is being re-read is kept: the reload is skipped.
 
 ## Code style
 
@@ -9490,6 +9507,10 @@ Schemes, Code Style, File Types, File and Code Templates, Live Templates, Plugin
 Installed Plugins list). Each group is synced as a whole:
 
 - changed only here → it is sent; changed only on the other computer → it is received;
+- reset to defaults (or its configuration file deleted) on one computer and unchanged on the
+  other → the reset is synced too: the group is reset on the other computer instead of the old
+  values coming back. If the other computer changed the group meanwhile, its change is kept;
+  the installed plugins are never uninstalled by a sync;
 - changed on both since the last sync → the **newer** change wins (last writer wins per
   group). The other version is not lost: a losing local version is saved in
   `<config dir>/forge/settings-sync-backups/<time>/`, a losing shared version in
@@ -16873,7 +16894,11 @@ its data directory (`<data dir>/forge/projects/<project>/shelf`, see
 
 - **Git ▸ Uncommitted Changes ▸ Shelve Changes…** (`ChangesView.Shelve`) lists the local
   changes (new files included) with checkboxes and a **Comment**. **Shelve Changes** saves the
-  ticked files as a patch and rolls them back (new files are removed).
+  ticked files as a patch and rolls them back (new files are removed). The patch keeps the
+  files' bytes exactly, so files in other encodings (Windows-1252, ISO-8859-1) come back
+  unchanged. Forge rolls nothing back unless the saved patch can restore every file; otherwise
+  shelving fails and your changes stay in place. Over a remote connection, files that are not
+  UTF-8 cannot be shelved.
 - **Show Shelf** (`Vcs.Show.Shelf`) opens the **Shelf** tab of the Commit tool window. Expand a
   shelved changelist to see its files; `Ctrl`-click selects several.
 - Toolbar: **Unshelve…** (`ShelveChanges.UnshelveWithDialog`), **Unshelve Silently**,
@@ -33570,7 +33595,7 @@ The model and store behind PHPStorm's Local History ([user guide](docs/guide/use
   `Limits` decide what is recorded (excluded folders, size limit, no binary files).
 - **Storage** (`storage`): `Storage` is implemented in memory (`MemStorage`, used by
   WebAssembly and tests) and on disk (`DiskStorage`, feature `disk`): an append-only
-  `changes.jsonl` (a set written again replaces the earlier line; compacted on load) and
+  `changes.jsonl` (a set written again replaces the earlier line; compacted on load; a torn last line from a crash is skipped, and the next append starts a new line after it) and
   `content/<2 hex>/<hash>`, zlib-compressed and deduplicated by the first 128 bits of the
   SHA-256 of the content.
 - **`LocalHistory`**: `record` (unknown "before" states come from the last recorded state;
@@ -33758,7 +33783,9 @@ The logic behind PHPStorm's File | Invalidate Caches… and File | Manage IDE Se
   removed).
 - **Settings Sync** (`sync`): `local_components` turns the chosen groups into one blob each
   (TOML of the group's keys, or the file; `settingsSync.*` stays local); `decide` compares
-  local, shared and last-synced hashes (one side changed → it wins; both → the newer wins);
+  local, shared and last-synced hashes (one side changed → it wins; both → the newer wins; a
+  group missing on one side that is unchanged on the other since the last sync was removed:
+  `PushRemoval` / `PullRemoval`, applied through `ImportPlan::removed_files` and `Null` values);
   `sync_folder` writes `forge-settings-sync/{sync.json,components/<id>.data}` in the user's
   folder, backs up conflict losers (shared ones in `backups/<ms>/`, local ones in
   `<config dir>/forge/settings-sync-backups/<ms>/`) and returns the groups to apply;
@@ -35580,9 +35607,9 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 | `repo/ops.rs` | Pull/Merge/Rebase with options (`pull_with`, `merge_with`, `rebase_with`), the operation in progress (`operation_state`, via `REBASE_HEAD`/`MERGE_HEAD`/… and the long status, which also drops a stale `REBASE_HEAD`), Continue/Abort/Skip (`operation_action`), `reset_head`, `tag`, `resolve_commit`, `edit_remote`, stash details (`stash_files`, `stash_file`, `stash_clear`, `stash_branch`). |
 | `repo/partial.rs` | Commits with the commit panel's options (`CommitOptions`: amend, sign-off, `--no-verify`, author; `commit_opts`) and partial commits (`commit_files`: the index is saved with `write-tree`, rebuilt from HEAD plus whole files and `hash-object`/`update-index` blobs of the included hunks, committed, then restored), `file_hunks`. |
 | `repo/patches.rs` | Create Patch from local changes (`create_patch`, optionally reversed, project-relative) and Apply Patch (`apply_patch`: what fits in one go, the rest with `--3way` so conflicts reach the resolver; base directory via `--directory`). |
-| `repo/shelve.rs` | Shelve (`changes_patch` incl. untracked files, then roll back), Unshelve (`git apply`, falling back to `--3way` with conflicts for the resolver; partial by file) and `shelf_file` (before/after for Show Diff). |
+| `repo/shelve.rs` | Shelve (`changes_patch` incl. untracked files as raw bytes through `GitExec::exec_bytes`; rolled back only after `git apply -R --check` proves the stored patch restores the files, and refused for files that are not UTF-8 on a text-only transport), Unshelve (`git apply`, falling back to `--3way` with conflicts for the resolver; partial by file) and `shelf_file` (before/after for Show Diff). |
 | `repo/history.rs` | Show History (`file_history`, `--follow` for files), Show History for Selection (`block_history`, `git log -L`), Annotate Revision (`blame_at`) and Compare with Branch on a folder (`changes_since`). |
-| `shelf.rs` | `Shelf`: shelved changelists stored in Forge's per-project data dir (`<id>/changes.json` + `shelved.patch`): list, create, rename, delete, remove files. |
+| `shelf.rs` | `Shelf`: shelved changelists stored in Forge's per-project data dir (`<id>/changes.json` + `shelved.patch`, stored as raw bytes so Windows-1252 and other encodings survive): list, create, rename, delete, remove files. |
 | `status.rs` | Parser for `git status --porcelain=v2 -z --branch`. |
 
 ## Main public items
