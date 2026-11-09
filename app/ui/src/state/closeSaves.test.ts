@@ -18,6 +18,7 @@ import {
   onTabClosed,
   openFile,
   reloadFile,
+  saveAllForClose,
   updateContent,
 } from "./editor";
 
@@ -102,6 +103,19 @@ describe("closing a modified tab", () => {
     expect(tab.content).toBe("edited locked.php\n");
     expect(isDirty(tab)).toBe(true);
     expect(editor.layout.groups.some((g) => g.tabs.includes("locked.php"))).toBe(true);
+    // Before the project closes it is reported as not saved.
+    expect((await saveAllForClose()).map((f) => f.path)).toEqual(["locked.php"]);
+  });
+});
+
+describe("saving before the project closes", () => {
+  it("waits for closing saves and saves the rest", async () => {
+    await openModified("a.php");
+    await openModified("b.php");
+    closeTabIn(activeGroupId(), "a.php");
+    expect(await saveAllForClose()).toEqual([]);
+    expect(text("a.php")).toBe("edited a.php\n");
+    expect(text("b.php")).toBe("edited b.php\n");
   });
 });
 

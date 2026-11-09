@@ -662,6 +662,22 @@ export async function saveAll(trigger: SaveTrigger = "autosave"): Promise<void> 
   await Promise.all(editor.tabs.filter(isDirty).map((t) => saveFile(t.path, trigger)));
 }
 
+/**
+ * Save every modified document before the project closes or the window goes away: waits for
+ * saves already running (tabs that just closed), then saves the rest. Never throws; returns
+ * the files that could not be saved.
+ */
+export async function saveAllForClose(): Promise<{ path: string; error: unknown }[]> {
+  const failed = new Map<string, unknown>();
+  const settle = (path: string, p: Promise<void>) => p.catch((error) => void failed.set(path, error ?? new Error("save failed")));
+  await Promise.all([...pendingSaves].map(([path, p]) => settle(path, p)));
+  failed.clear();
+  await Promise.all(editor.tabs.filter(isDirty).map((t) => settle(t.path, saveFile(t.path, "autosave"))));
+  // A save that failed earlier (a closed tab that reopened) is still modified.
+  for (const t of editor.tabs) if (isDirty(t) && !failed.has(t.path)) failed.set(t.path, new Error("not saved"));
+  return [...failed].map(([path, error]) => ({ path, error }));
+}
+
 /** Re-read an open file from disk after an external change (unless it has unsaved edits). */
 export async function reloadFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
@@ -739,11 +755,16 @@ export function onTabsReset(cb: () => void): () => void {
   return () => resetListeners.delete(cb);
 }
 
-/** Close every tab, e.g. when switching projects. */
+/**
+ * Close every tab, e.g. when switching projects. Modified documents are saved by the
+ * project's `beforeClose` (`features/system/unsaved.ts`) before this runs.
+ */
 export function closeAllTabs(): void {
   generation++;
   closingSaves.clear();
   const closing = [...editor.tabs];
+  const unsaved = closing.filter(isDirty).map((t) => t.path);
+  if (unsaved.length) console.warn("closing the project with unsaved files", unsaved);
   setCustomTabs([]);
   setEditor({ tabs: [], active: null });
   setEditor("layout", reconcile(groups.newLayout()));

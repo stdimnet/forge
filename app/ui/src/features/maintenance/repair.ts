@@ -7,7 +7,7 @@ import { balloonsFor } from "@/keymap";
 import { askChoice } from "@/features/contextMenu/dialogs";
 import { runCommand } from "@/state/commands";
 import { isPluginActive } from "@/state/project";
-import { isRemoteProject, closeWorkspace, openWorkspace, restoreWorkspace, workspace } from "@/state/workspace";
+import { isRemoteProject, closeWorkspace, confirmCloseProject, openWorkspace, restoreWorkspace, workspace } from "@/state/workspace";
 import { maintenanceApi } from "@/ipc/maintenance";
 import { synchronize } from "@/features/system";
 import { refreshAllDirs } from "@/features/project/ProjectView";
@@ -45,6 +45,8 @@ async function reopenProject(): Promise<void> {
     await restoreWorkspace();
     return;
   }
+  // Modified files are saved first (running terminal commands ask).
+  if (!(await confirmCloseProject())) return;
   closeWorkspace();
   await openWorkspace(ws.root, { askTrust: false });
 }
