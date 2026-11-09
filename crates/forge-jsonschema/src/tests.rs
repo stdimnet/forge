@@ -787,6 +787,153 @@ fn openapi_documents_by_content() {
     assert!(mapping::select("config.yaml", "name: x\n", DocKind::Yaml, &[], None).is_none());
 }
 
+const DEPLOYMENT: &str = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n  labels:\n    app: web\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: web\n  template:\n    metadata:\n      labels:\n        app: web\n    spec:\n      containers:\n        - name: web\n          image: nginx:1.27\n          ports:\n            - containerPort: 80\n          resources:\n            limits:\n              cpu: 500m\n              memory: 128Mi\n";
+
+const SERVICE: &str = "apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  type: ClusterIP\n  selector:\n    app: web\n  ports:\n    - port: 80\n      targetPort: http\n";
+
+#[test]
+fn kubernetes_manifests_by_content() {
+    let s = mapping::select("app/deployment.yaml", DEPLOYMENT, DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(
+        (s.name.as_str(), s.uri.as_str(), s.source),
+        (
+            "Kubernetes Deployment (apps/v1)",
+            bundled::KUBERNETES,
+            Source::Builtin
+        )
+    );
+    assert_eq!(
+        bundled_problems(bundled::KUBERNETES, DocKind::Yaml, DEPLOYMENT),
+        Vec::<String>::new()
+    );
+    // A file with several documents: each one is checked against its own kind.
+    let both = format!("{DEPLOYMENT}---\n{SERVICE}");
+    let s = mapping::select("helm/out.yaml", &both, DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(s.name, "Kubernetes: Deployment, Service");
+    assert_eq!(
+        bundled_problems(bundled::KUBERNETES, DocKind::Yaml, &both),
+        Vec::<String>::new()
+    );
+    let bad = format!("{SERVICE}  clusterIp: None\n---\n{DEPLOYMENT}  replica: 3\n");
+    let problems = bundled_problems(bundled::KUBERNETES, DocKind::Yaml, &bad);
+    assert_eq!(
+        problems,
+        vec![
+            "Property 'clusterIp' is not allowed".to_string(),
+            "Property 'replica' is not allowed".to_string()
+        ]
+    );
+    let problems = bundled_problems(
+        bundled::KUBERNETES,
+        DocKind::Yaml,
+        "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: x\ndata:\n  port: 80\n",
+    );
+    assert_eq!(
+        problems,
+        vec!["Incompatible types. Required: string. Actual: integer."]
+    );
+    // JSON manifests too.
+    let json = r#"{"apiVersion": "networking.k8s.io/v1", "kind": "Ingress", "metadata": {"name": "web"}, "spec": {"rules": [{"host": "example.com"}]}}"#;
+    let s = mapping::select("ingress.json", json, DocKind::Json, &[], None).unwrap();
+    assert_eq!(s.name, "Kubernetes Ingress (networking.k8s.io/v1)");
+    assert_eq!(
+        bundled_problems(bundled::KUBERNETES, DocKind::Json, json),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn kubernetes_custom_resources_and_precedence() {
+    // Custom resources and unknown versions have no schema: no selection, no problems.
+    let crd = "apiVersion: cert-manager.io/v1\nkind: Certificate\nmetadata:\n  name: x\nspec:\n  anything: 1\n";
+    assert!(mapping::select("cert.yaml", crd, DocKind::Yaml, &[], None).is_none());
+    assert!(mapping::select(
+        "d.yaml",
+        "apiVersion: apps/v0\nkind: Deployment\n",
+        DocKind::Yaml,
+        &[],
+        None
+    )
+    .is_none());
+    let mixed = format!("{crd}---\n{SERVICE}");
+    let s = mapping::select("all.yaml", &mixed, DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(s.name, "Kubernetes Service (v1)");
+    assert_eq!(
+        bundled_problems(bundled::KUBERNETES, DocKind::Yaml, &mixed),
+        Vec::<String>::new()
+    );
+    // The file's own schema and user mappings win.
+    let inline = format!("# yaml-language-server: $schema=https://example.com/k.json\n{SERVICE}");
+    let s = mapping::select("svc.yaml", &inline, DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(s.source, Source::Inline);
+    let user = vec![UserMapping {
+        name: "Mine".into(),
+        schema: "s.json".into(),
+        files: "svc.yaml".into(),
+        ..Default::default()
+    }];
+    let s = mapping::select("svc.yaml", SERVICE, DocKind::Yaml, &user, None).unwrap();
+    assert_eq!(s.source, Source::User);
+    assert_eq!(mapping::name_of(bundled::KUBERNETES), "Kubernetes");
+    // A user mapping to one definition uses that definition for every document.
+    let one = format!(
+        "{}#/definitions/io.k8s.api.core.v1.Service",
+        bundled::KUBERNETES
+    );
+    let mut r = Registry::new();
+    load_bundled(&mut r, &one);
+    assert!(validate(&r, &one, DocKind::Yaml, DEPLOYMENT)
+        .iter()
+        .any(|p| p.message.contains("'replicas' is not allowed")));
+}
+
+#[test]
+fn kubernetes_helm_templates_are_not_validated() {
+    let tpl = "{{- if .Values.enabled }}\napiVersion: v1\nkind: Service\nmetadata:\n  name: {{ include \"web.fullname\" . }}\nspec:\n  ports:\n    - port: {{ .Values.port }}\n{{- end }}\n";
+    let s = mapping::select("chart/templates/svc.yaml", tpl, DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(s.name, "Kubernetes Service (v1)");
+    assert_eq!(
+        bundled_problems(bundled::KUBERNETES, DocKind::Yaml, tpl),
+        Vec::<String>::new()
+    );
+    // Completion and documentation still work.
+    let mut r = Registry::new();
+    load_bundled(&mut r, bundled::KUBERNETES);
+    let text = tpl.replace("{{- end }}\n", "  sessionAff");
+    let c = complete(&r, bundled::KUBERNETES, DocKind::Yaml, &text, text.len()).unwrap();
+    assert!(
+        c.items.iter().any(|i| i.label == "sessionAffinity"),
+        "{:?}",
+        c.items.iter().map(|i| &i.label).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn kubernetes_completion_hover_and_goto_per_document() {
+    let mut r = Registry::new();
+    load_bundled(&mut r, bundled::KUBERNETES);
+    let text = format!("{SERVICE}---\n{DEPLOYMENT}  strat");
+    let c = complete(&r, bundled::KUBERNETES, DocKind::Yaml, &text, text.len()).unwrap();
+    let labels: Vec<&str> = c.items.iter().map(|i| i.label.as_str()).collect();
+    assert!(labels.contains(&"strategy"), "{labels:?}");
+    let at = SERVICE.find("selector").unwrap() + 2;
+    let h = hover(&r, bundled::KUBERNETES, DocKind::Yaml, &text, at).unwrap();
+    assert!(h.title.starts_with("selector"), "{}", h.title);
+    assert!(
+        h.markdown.contains("Route service traffic"),
+        "{}",
+        h.markdown
+    );
+    let at = text.rfind("replicas").unwrap() + 2;
+    let targets = goto(&r, bundled::KUBERNETES, DocKind::Yaml, &text, at);
+    assert_eq!(targets.len(), 1, "{targets:?}");
+    assert_eq!(
+        targets[0].path,
+        "json-schema://bundled/kubernetes-definitions.json"
+    );
+    assert!(targets[0].preview.contains("\"replicas\""), "{targets:?}");
+}
+
 #[test]
 fn minecraft_plugin_descriptors() {
     let s = mapping::select(

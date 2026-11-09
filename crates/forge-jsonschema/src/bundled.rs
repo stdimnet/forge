@@ -72,6 +72,9 @@ pub const UNITY_ASMREF: &str = concat!(
     "unity-asmref.json"
 );
 
+/// The strict definitions of every Kubernetes object (`kubernetes::VERSION`).
+pub const KUBERNETES: &str = "https://raw.githubusercontent.com/kubenote/kubernetes-schema/v1.34.1/standalone-strict/_definitions.json";
+
 pub const OPENAPI_30: &str = "https://spec.openapis.org/oas/3.0/schema/2021-09-28";
 pub const OPENAPI_31: &str = "https://spec.openapis.org/oas/3.1/schema/2022-10-07";
 
@@ -157,6 +160,10 @@ pub static BUNDLED: &[Bundled] = &[
             "https://json.schemastore.org/gitlab-ci.json",
             "https://gitlab.com/.gitlab-ci.yml"
         ]
+    ),
+    bundled!(
+        "kubernetes-definitions.json",
+        ["https://raw.githubusercontent.com/kubenote/kubernetes-schema/v1.34.1/standalone-strict/_definitions.json"]
     ),
     // Written for Forge (JavaForge's Minecraft plugin support).
     bundled!(
