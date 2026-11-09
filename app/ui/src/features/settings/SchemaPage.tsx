@@ -42,7 +42,11 @@ function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) 
   const commit = async (raw: string) => {
     const id = ++seq;
     const n = parseSettingNumber(raw, props.spec.type);
-    const problem = typeof n === "string" ? n : await settingsApi.validate(props.spec.key, n);
+    // A failed check shows its error on the field instead of an unhandled rejection.
+    const problem =
+      typeof n === "string"
+        ? n
+        : await settingsApi.validate(props.spec.key, n).catch((e: unknown) => String(e).replace(/^Error: /, ""));
     if (id !== seq) return;
     setInvalid(problem);
     if (!problem && typeof n === "number") setDraft(props.spec.key, n);
