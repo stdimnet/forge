@@ -111,6 +111,16 @@ impl AppState {
         state
     }
 
+    /// Empty state (no plugins, no user settings) whose trust decisions live in
+    /// `trust_path`, for tests.
+    #[cfg(test)]
+    pub(crate) fn for_tests(trust_path: PathBuf) -> Self {
+        Self {
+            trust_path: Some(trust_path),
+            ..Self::default()
+        }
+    }
+
     pub fn read_settings(&self) -> std::sync::RwLockReadGuard<'_, Settings> {
         self.settings.read().expect("settings lock poisoned")
     }
