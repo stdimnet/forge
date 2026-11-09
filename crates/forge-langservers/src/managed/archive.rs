@@ -1,6 +1,7 @@
 //! Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip`
 //! builds) into a directory. Entries are checked before anything is written: absolute
-//! paths, `..` components and symlinks pointing outside the destination are refused.
+//! paths, `..` components, symlinks pointing outside the destination and entries that
+//! would be written through a symlink are refused.
 
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
@@ -23,19 +24,34 @@ fn stripped(path: &Path, strip: usize) -> Result<Option<PathBuf>, String> {
     Ok((!out.as_os_str().is_empty()).then_some(out))
 }
 
-/// Resolve `.` and `..` without touching the file system.
-fn normalize(path: &Path) -> PathBuf {
-    let mut out = PathBuf::new();
-    for c in path.components() {
+/// Check that the relative path `rel`, walked component by component from `dest`, stays
+/// inside `dest` and never passes through a symlink that is already on disk. A purely
+/// lexical check is not enough: chained links (`d1 -> .`, `d1/d2 -> ..`) each look harmless,
+/// but a later entry written through them lands outside the destination.
+fn check_inside(dest: &Path, rel: &Path, what: &Path) -> Result<(), String> {
+    let mut stack: Vec<&std::ffi::OsStr> = Vec::new();
+    for c in rel.components() {
         match c {
-            Component::ParentDir => {
-                out.pop();
+            Component::Normal(part) => {
+                stack.push(part);
+                let on_disk: PathBuf = stack.iter().fold(dest.to_path_buf(), |p, s| p.join(s));
+                if std::fs::symlink_metadata(&on_disk).is_ok_and(|m| m.file_type().is_symlink()) {
+                    return Err(format!(
+                        "archive entry goes through a symlink: {}",
+                        what.display()
+                    ));
+                }
             }
             Component::CurDir => {}
-            other => out.push(other.as_os_str()),
+            Component::ParentDir => {
+                if stack.pop().is_none() {
+                    return Err(format!("symlink leaves the archive: {}", what.display()));
+                }
+            }
+            _ => return Err(format!("symlink leaves the archive: {}", what.display())),
         }
     }
-    out
+    Ok(())
 }
 
 /// Unpack a gzip compressed tar archive into `dest`, dropping the first `strip` path
@@ -61,15 +77,18 @@ pub fn extract_tar_gz(bytes: &[u8], dest: &Path, strip: usize) -> Result<(), Str
         if kind.is_hard_link() || kind.is_character_special() || kind.is_block_special() {
             continue;
         }
+        // Neither the entry's parents nor the entry itself may be a symlink written earlier.
+        check_inside(dest, &rel, &path)?;
         if kind.is_symlink() {
             let link = entry
                 .link_name()
                 .map_err(|e| format!("broken archive: {e}"))?
                 .ok_or_else(|| format!("symlink without target: {}", path.display()))?;
-            let parent = target.parent().unwrap_or(dest);
-            if link.is_absolute() || !normalize(&parent.join(&link)).starts_with(normalize(dest)) {
+            if link.is_absolute() {
                 return Err(format!("symlink leaves the archive: {}", path.display()));
             }
+            let parent = rel.parent().unwrap_or(Path::new(""));
+            check_inside(dest, &parent.join(&link), &path)?;
         }
         if let Some(parent) = target.parent() {
             std::fs::create_dir_all(parent)
@@ -243,6 +262,35 @@ pub(crate) mod tests {
             Some("../lib/node_modules/npm/bin/npm-cli.js"),
         );
         extract_tar_gz(&ok, &dest, 1).unwrap();
+    }
+
+    #[test]
+    fn refuses_writing_through_chained_symlinks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dest = tmp.path().join("stage").join("dest");
+        let mut builder = tar::Builder::new(Vec::new());
+        for (path, link) in [("package/d1", "."), ("package/d1/d2", "..")] {
+            let mut header = tar::Header::new_gnu();
+            header.set_entry_type(tar::EntryType::Symlink);
+            header.set_size(0);
+            header.set_mode(0o777);
+            builder.append_link(&mut header, path, link).unwrap();
+        }
+        let mut header = tar::Header::new_gnu();
+        header.set_size(2);
+        header.set_mode(0o644);
+        header.set_entry_type(tar::EntryType::Regular);
+        builder
+            .append_data(&mut header, "package/d2/evil", &b"hi"[..])
+            .unwrap();
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        gz.write_all(&builder.into_inner().unwrap()).unwrap();
+        let tgz = gz.finish().unwrap();
+
+        let err = extract_tar_gz(&tgz, &dest, 1).unwrap_err();
+        assert!(err.contains("symlink"), "{err}");
+        assert!(!tmp.path().join("stage").join("evil").exists());
+        assert!(!tmp.path().join("evil").exists());
     }
 
     #[test]
