@@ -209,12 +209,6 @@ pub fn spawn_local_with_env(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
-    #[cfg(windows)]
-    {
-        // CREATE_NO_WINDOW: console servers (node, .cmd shims, Java) would otherwise open
-        // a console window per server next to the GUI, and closing it kills the server.
-        cmd.creation_flags(0x0800_0000);
-    }
     let mut child = cmd
         .spawn()
         .map_err(|e| ForgeError::Other(spawn_error(command, &program, &cwd, &e)))?;

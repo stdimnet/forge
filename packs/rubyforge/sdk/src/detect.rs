@@ -31,11 +31,6 @@ pub fn system_runner(program: &Path, args: &[String]) -> Option<String> {
     // In Flatpak Ruby runs on the host.
     let mut cmd = forge_hostspawn::host_command(cmd);
     cmd.stdin(std::process::Stdio::null());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000);
-    }
     let out = cmd.output().ok()?;
     out.status
         .success()

@@ -65,12 +65,6 @@ impl Probe for SystemProbe {
             .stdin(std::process::Stdio::null())
             .env("LC_ALL", "C");
         let mut cmd = forge_hostspawn::host_command(cmd);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            // CREATE_NO_WINDOW: no console flashes while Forge probes compilers.
-            cmd.creation_flags(0x0800_0000);
-        }
         let out = cmd.output().ok()?;
         let mut text = String::from_utf8_lossy(&out.stdout).into_owned();
         text.push_str(&String::from_utf8_lossy(&out.stderr));

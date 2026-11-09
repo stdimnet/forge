@@ -83,8 +83,10 @@ fn ps_list() -> Vec<ProcessInfo> {
 
 #[cfg(windows)]
 fn platform_list() -> Vec<ProcessInfo> {
-    std::process::Command::new("tasklist")
-        .args(["/fo", "csv", "/nh", "/v"])
+    let mut cmd = std::process::Command::new("tasklist");
+    cmd.args(["/fo", "csv", "/nh", "/v"]);
+    // No console window flashes while the process list is read.
+    forge_hostspawn::local_command(cmd)
         .output()
         .map(|o| parse_tasklist(&String::from_utf8_lossy(&o.stdout)))
         .unwrap_or_default()

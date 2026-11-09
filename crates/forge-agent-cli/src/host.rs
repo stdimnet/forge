@@ -65,11 +65,6 @@ fn spawn_local(spec: &CommandSpec, cwd: &Path) -> Result<SpawnedAgent> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
-    #[cfg(windows)]
-    {
-        // CREATE_NO_WINDOW: don't flash a console for `claude.cmd`.
-        cmd.creation_flags(0x0800_0000);
-    }
     let mut child = cmd.spawn().map_err(|e| ForgeError::io(&spec.program, e))?;
     let stdin = child.stdin.take().expect("stdin is piped");
     let stdout = child.stdout.take().expect("stdout is piped");

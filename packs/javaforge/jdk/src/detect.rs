@@ -177,9 +177,9 @@ fn windows_registry() -> Vec<PathBuf> {
         r"HKLM\SOFTWARE\Azul Systems\Zulu",
         r"HKLM\SOFTWARE\Microsoft\JDK",
     ] {
-        let output = std::process::Command::new("reg")
-            .args(["query", key, "/s"])
-            .output();
+        let mut reg = std::process::Command::new("reg");
+        reg.args(["query", key, "/s"]);
+        let output = forge_hostspawn::local_command(reg).output();
         if let Ok(o) = output {
             for p in parse_registry(&String::from_utf8_lossy(&o.stdout)) {
                 if !out.contains(&p) {
