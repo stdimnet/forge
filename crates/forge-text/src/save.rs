@@ -53,8 +53,43 @@ pub struct SaveResult {
     pub changed: bool,
 }
 
-/// Apply the on-save cleanup.
+/// The line separator a text uses: `\r\n`, `\r` (only when there is no `\n`) or `\n`.
+fn separator(text: &str) -> &'static str {
+    if text.contains("\r\n") {
+        "\r\n"
+    } else if text.contains('\r') && !text.contains('\n') {
+        "\r"
+    } else {
+        "\n"
+    }
+}
+
+/// `\r\n` and `\r` line ends as `\n`.
+fn to_lf(text: &str) -> String {
+    text.replace("\r\n", "\n").replace('\r', "\n")
+}
+
+/// Apply the on-save cleanup. Texts with `\r\n` or `\r` line ends (files of providers that
+/// keep them, such as scratches and remote files) are cleaned up like `\n` texts and keep
+/// their separator, also in the final newline.
 pub fn prepare_save(req: &SaveRequest) -> SaveResult {
+    let sep = separator(&req.text);
+    if sep == "\n" {
+        return prepare_lf(req);
+    }
+    let lf = SaveRequest {
+        text: to_lf(&req.text),
+        saved: req.saved.as_deref().map(to_lf),
+        ..req.clone()
+    };
+    let out = prepare_lf(&lf).text.replace('\n', sep);
+    SaveResult {
+        changed: out != req.text,
+        text: out,
+    }
+}
+
+fn prepare_lf(req: &SaveRequest) -> SaveResult {
     let text = req.text.as_str();
     let mut out = match req.options.strip_trailing_spaces {
         StripMode::None => text.to_string(),
@@ -198,6 +233,27 @@ mod tests {
         );
         // No saved state: everything counts as modified.
         assert_eq!(save("x  ", None, &[], StripMode::Modified, false), "x");
+    }
+
+    #[test]
+    fn keeps_crlf_and_cr_line_ends() {
+        assert_eq!(
+            save("a  \r\nb\t\r\nc ", None, &[], StripMode::All, true),
+            "a\r\nb\r\nc\r\n"
+        );
+        assert_eq!(save("a \rb", None, &[], StripMode::All, true), "a\rb\r");
+        assert_eq!(save("a\r", None, &[], StripMode::None, true), "a\r");
+        // Only the modified line, found across the separators.
+        assert_eq!(
+            save(
+                "x  \r\ny  ",
+                Some("x  \r\nz"),
+                &[],
+                StripMode::Modified,
+                false
+            ),
+            "x  \r\ny"
+        );
     }
 
     #[test]

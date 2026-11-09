@@ -185,10 +185,11 @@ function SolutionTree(props: { selected: string | null; onSelect: (key: string, 
   );
 }
 
-function place(p: BuildProblem): string {
+/** Where a problem is: `File.cs:1:1` (exported for tests). */
+export function place(p: BuildProblem): string {
   const name = (p.path ?? "").split("/").pop();
   if (!name) return p.origin || p.project?.split("/").pop() || "";
-  return p.line || p.column ? `${name}:${p.line + 1}:${p.column + 1}` : name;
+  return p.located || p.line || p.column ? `${name}:${p.line + 1}:${p.column + 1}` : name;
 }
 
 function reveal(p: BuildProblem): void {

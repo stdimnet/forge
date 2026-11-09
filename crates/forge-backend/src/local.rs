@@ -462,17 +462,40 @@ impl Backend for LocalBackend {
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
         Ok(find_executable(self.root(), names, custom))
     }
+
+    fn find_system_executable(
+        &self,
+        names: &[String],
+        custom: Option<&str>,
+    ) -> Result<Option<PathBuf>> {
+        Ok(find_executable_in(
+            forge_langservers::Detector::system(),
+            names,
+            custom,
+        ))
+    }
 }
 
 /// Find one of `names` like the language server detection does (project `node_modules/.bin`,
 /// `PATH`, npm/nvm/volta, `~/.local/bin`, cargo, go, ...), plus the places agent CLIs install
 /// themselves (`~/.claude/local`, `~/.npm-global/bin`). An existing `custom` file wins.
 pub fn find_executable(root: &Path, names: &[String], custom: Option<&str>) -> Option<PathBuf> {
+    find_executable_in(
+        forge_langservers::Detector::for_project(root),
+        names,
+        custom,
+    )
+}
+
+fn find_executable_in(
+    detector: forge_langservers::Detector,
+    names: &[String],
+    custom: Option<&str>,
+) -> Option<PathBuf> {
     if let Some(c) = custom.map(str::trim).filter(|c| !c.is_empty()) {
         let p = PathBuf::from(c);
         return p.is_file().then_some(p);
     }
-    let detector = forge_langservers::Detector::for_project(root);
     if let Some(found) = names.iter().find_map(|n| detector.find(n)) {
         return Some(found);
     }
@@ -488,6 +511,31 @@ pub fn find_executable(root: &Path, names: &[String], custom: Option<&str>) -> O
 mod tests {
     use super::*;
     use forge_core::FileKind;
+
+    #[cfg(unix)]
+    #[test]
+    fn agent_clis_are_not_taken_from_the_project() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("node_modules/.bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let fake = bin.join("forge-test-agent-cli");
+        std::fs::write(&fake, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let names = ["forge-test-agent-cli".to_string()];
+        // Project tools are found there; agent CLIs are not.
+        assert!(backend.find_executable(&names, None).unwrap().is_some());
+        assert_eq!(backend.find_system_executable(&names, None).unwrap(), None);
+        // Unless the user points at it.
+        let custom = fake.to_string_lossy();
+        assert_eq!(
+            backend
+                .find_system_executable(&names, Some(&custom))
+                .unwrap(),
+            Some(fake.clone())
+        );
+    }
 
     fn entry(path: &str, kind: FileKind, ignored: bool) -> FileEntry {
         FileEntry {

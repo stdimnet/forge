@@ -14,9 +14,16 @@ function inline(text: string, refPrefix: string): string {
     codes.push(`<code>${c}</code>`);
     return `\u0000${codes.length - 1}\u0000`;
   });
+  // Links are set aside like code spans, so emphasis, mentions and references do not run
+  // inside their URLs (`https://x.dev/a_b_c` keeps its underscores).
+  const links: string[] = [];
+  const link = (html: string) => {
+    links.push(html);
+    return `\u0001${links.length - 1}\u0001`;
+  };
   s = s
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
-    .replace(/(^|[\s(])(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g, '$1<a href="$2" target="_blank" rel="noreferrer">$2</a>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_m, text: string, url: string) => link(`<a href="${url}" target="_blank" rel="noreferrer">${text}</a>`))
+    .replace(/(^|[\s(])(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g, (_m, pre: string, url: string) => pre + link(`<a href="${url}" target="_blank" rel="noreferrer">${url}</a>`))
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/__([^_]+)__/g, "<strong>$1</strong>")
     .replace(/(^|[^*\w])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")
@@ -26,7 +33,7 @@ function inline(text: string, refPrefix: string): string {
     .replace(/(^|[\s(])([#!])(\d+)\b/g, (_m, pre: string, sign: string, n: string) =>
       sign === "!" && refPrefix !== "!" ? `${pre}!${n}` : `${pre}<span class="md-ref" data-ref="${n}">${sign}${n}</span>`,
     );
-  return s.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => codes[Number(i)]);
+  return s.replace(/\u0001(\d+)\u0001/g, (_m, i: string) => links[Number(i)]).replace(/\u0000(\d+)\u0000/g, (_m, i: string) => codes[Number(i)]);
 }
 
 export function renderMarkdown(src: string, refPrefix = "#"): string {

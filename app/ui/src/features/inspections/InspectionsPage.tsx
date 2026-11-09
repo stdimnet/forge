@@ -25,6 +25,7 @@ import { scopeEntries } from "@/features/scopes/model";
 import { beginDraft, change, draft, INSPECTIONS_PAGE } from "./draft";
 import { profileText, profileView, selectedProfile, severities, severityName, specOf } from "./model";
 import { t as tr } from "@/i18n";
+import { downloadBlob } from "@/state/download";
 
 const [query, setQuery] = createSignal("");
 const [selected, setSelected] = createSignal<string | null>(null);
@@ -63,12 +64,7 @@ async function exportProfile(format: "xml" | "json"): Promise<void> {
       showBalloon(tr("tools.inspections.profileExported", { name: p.name }), path);
       return;
     }
-    const url = URL.createObjectURL(new Blob([profileText(p, format)], { type: format === "xml" ? "application/xml" : "application/json" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(file, new Blob([profileText(p, format)], { type: format === "xml" ? "application/xml" : "application/json" }));
     showBalloon(tr("tools.inspections.profileExported", { name: p.name }), file);
   } catch (e) {
     showBalloon(tr("common.exportFailed"), e instanceof Error ? e.message : String(e));

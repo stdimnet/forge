@@ -51,7 +51,10 @@ export type { Eol } from "@/ipc/text";
 export function normalizeEol(raw: string): { text: string; eol: Eol } {
   const crlf = (raw.match(/\r\n/g) ?? []).length;
   const lf = (raw.match(/(?<!\r)\n/g) ?? []).length;
-  return { text: raw.replace(/\r\n?/g, "\n"), eol: crlf > lf ? "\r\n" : "\n" };
+  // Classic Mac line ends (scratches, remote files) are kept too.
+  const cr = (raw.match(/\r(?!\n)/g) ?? []).length;
+  const eol: Eol = crlf > lf && crlf >= cr ? "\r\n" : cr > lf && cr > crlf ? "\r" : "\n";
+  return { text: raw.replace(/\r\n?/g, "\n"), eol };
 }
 
 const withEol = (text: string, eol: Eol) => (eol === "\n" ? text : text.replaceAll("\n", eol));

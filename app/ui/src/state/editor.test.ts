@@ -37,6 +37,10 @@ describe("normalizeEol", () => {
     expect(normalizeEol("a\r\nb\r\nc\n").eol).toBe("\r\n");
     expect(normalizeEol("a\nb\nc\r\n").eol).toBe("\n");
   });
+  it("keeps CR-only files (scratches, remote files) as CR", () => {
+    expect(normalizeEol("a\rb\r")).toEqual({ text: "a\nb\n", eol: "\r" });
+    expect(normalizeEol("a\rb\rc\n").eol).toBe("\r");
+  });
 });
 
 /** A disk of raw bytes behind the same Rust text handling as the desktop app. */

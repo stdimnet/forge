@@ -36,16 +36,21 @@ function patch(id: string, p: Partial<ActiveInstall>) {
 /** The installer's error output per install, for the failure balloon. */
 const stderrOf = new Map<string, string[]>();
 
-let listening = false;
-function listen() {
-  if (listening) return;
-  listening = true;
-  void langserversApi.onInstallProgress((p) => patch(p.id, { label: p.label, done: p.done, total: p.total ?? null }));
-  void langserversApi.onInstallOutput((l) => {
-    if (l.stream === "stderr") stderrOf.set(l.id, [...(stderrOf.get(l.id) ?? []), l.line].slice(-20));
-    // Forge's own steps name what happens next; npm's output is too noisy for the status bar.
-    if (l.stream === "info" && !l.line.startsWith("$ ")) patch(l.id, { label: l.line, done: 0, total: null });
+let listening: Promise<unknown> | null = null;
+/** Subscribe to install events; awaited before an install starts, so its first lines arrive. */
+function listen(): Promise<unknown> {
+  listening ??= Promise.all([
+    langserversApi.onInstallProgress((p) => patch(p.id, { label: p.label, done: p.done, total: p.total ?? null })),
+    langserversApi.onInstallOutput((l) => {
+      if (l.stream === "stderr") stderrOf.set(l.id, [...(stderrOf.get(l.id) ?? []), l.line].slice(-20));
+      // Forge's own steps name what happens next; npm's output is too noisy for the status bar.
+      if (l.stream === "info" && !l.line.startsWith("$ ")) patch(l.id, { label: l.line, done: 0, total: null });
+    }),
+  ]).catch((e) => {
+    listening = null;
+    console.warn("install events unavailable", e);
   });
+  return listening;
 }
 
 // ---------- installs ----------
@@ -56,8 +61,9 @@ function listen() {
  */
 export async function installManaged(row: ServerRow): Promise<InstallOutcome | null> {
   const option = managedOption(row);
-  if (!option || installFor(row.id)) return null;
-  listen();
+  if (!option) return null;
+  await listen();
+  if (installFor(row.id)) return null;
   stderrOf.delete(row.id);
   setActive((list) => [...list, { id: row.id, name: row.name, label: `Installing ${row.name}…`, done: 0, total: null }]);
   let outcome: InstallOutcome | null = null;
@@ -104,7 +110,7 @@ export async function checkUpdates(force = false): Promise<void> {
 }
 
 async function updatePackage(name: string): Promise<void> {
-  listen();
+  await listen();
   setActive((list) => [...list, { id: name, name, label: `Updating ${name}…`, done: 0, total: null }]);
   try {
     const outcome = await langserversApi.update(name);

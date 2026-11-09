@@ -36,6 +36,10 @@ pub struct BuildProblem {
     pub end_line: u32,
     #[serde(default)]
     pub end_column: u32,
+    /// The output named a line (and column): `line` 0 and `column` 0 are then `:1:1`, not
+    /// "no position".
+    #[serde(default)]
+    pub located: bool,
     /// The project that reported it, relative to the project root.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub project: String,
@@ -213,6 +217,7 @@ pub fn parse_problem_line(line: &str, root: &str) -> Option<BuildProblem> {
         let (head, rest) = (&l[..at], &l[at + 1..]);
         if let Some((sev, code, msg)) = split_kind(rest) {
             let (message, project) = split_project(&msg);
+            let located = location(head).is_some();
             let (path, nums, origin) = match location(head) {
                 Some((p, n)) => (p, n, String::new()),
                 None => {
@@ -248,6 +253,7 @@ pub fn parse_problem_line(line: &str, root: &str) -> Option<BuildProblem> {
                 column: nums[1],
                 end_line: nums[2],
                 end_column: nums[3],
+                located,
                 project: rel(root, &project),
                 origin,
             });
@@ -359,8 +365,17 @@ mod tests {
             err.message,
             "The name 'inventry' does not exist in the current context"
         );
+        assert!(cs.located);
         let nu = r.problems.iter().find(|p| p.code == "NU1603").unwrap();
         assert_eq!(nu.path, "tests/Bookstore.Tests/Bookstore.Tests.csproj");
+        assert!(!nu.located);
+        // The first character of a file is a position too.
+        let first = parse_problem_line(
+            "/home/anna/Projects/Bookstore/src/A.cs(1,1): error CS1001: Identifier expected [/home/anna/Projects/Bookstore/src/A.csproj]",
+            ROOT,
+        )
+        .unwrap();
+        assert_eq!((first.line, first.column, first.located), (0, 0, true));
         let fs = r.problems.iter().find(|p| p.code == "FS0039").unwrap();
         assert_eq!(
             (

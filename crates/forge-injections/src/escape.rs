@@ -64,7 +64,7 @@ fn decode_escape(kind: LiteralKind, s: &str) -> Option<(Option<char>, usize)> {
                     .take(3)
                     .take_while(|c| (b'0'..=b'7').contains(*c))
                     .count();
-                let v = u32::from_str_radix(&s[1..1 + digits], 8).ok()? & 0xff;
+                let v = digits_value(&s[1..1 + digits], 8).ok()? & 0xff;
                 Some((char::from_u32(v), 1 + digits))
             }
             b'x' => {
@@ -76,7 +76,7 @@ fn decode_escape(kind: LiteralKind, s: &str) -> Option<(Option<char>, usize)> {
                 if digits == 0 {
                     return None;
                 }
-                let v = u32::from_str_radix(&s[2..2 + digits], 16).ok()?;
+                let v = digits_value(&s[2..2 + digits], 16).ok()?;
                 Some((char::from_u32(v), 2 + digits))
             }
             b'u' => braced_unicode(s),
@@ -92,13 +92,13 @@ fn decode_escape(kind: LiteralKind, s: &str) -> Option<(Option<char>, usize)> {
             b'0' if !b.get(2).is_some_and(|c| c.is_ascii_digit()) => simple('\0'),
             b'x' => {
                 let hex = s.get(2..4)?;
-                let v = u32::from_str_radix(hex, 16).ok()?;
+                let v = digits_value(hex, 16).ok()?;
                 Some((char::from_u32(v), 4))
             }
             b'u' if b.get(2) == Some(&b'{') => braced_unicode(s),
             b'u' => {
                 let hex = s.get(2..6)?;
-                let v = u32::from_str_radix(hex, 16).ok()?;
+                let v = digits_value(hex, 16).ok()?;
                 Some((Some(char::from_u32(v).unwrap_or('\u{fffd}')), 6))
             }
             b'\r' if b.get(2) == Some(&b'\n') => Some((None, 3)),
@@ -112,11 +112,20 @@ fn decode_escape(kind: LiteralKind, s: &str) -> Option<(Option<char>, usize)> {
     }
 }
 
+/// The value of digits in `radix` (at most hex); an error for anything else, also the `+` that `from_str_radix`
+/// accepts as a sign (`\x+1` is not an escape).
+fn digits_value(digits: &str, radix: u32) -> Result<u32, ()> {
+    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(());
+    }
+    u32::from_str_radix(digits, radix).map_err(|_| ())
+}
+
 /// `\u{1F600}`.
 fn braced_unicode(s: &str) -> Option<(Option<char>, usize)> {
     let rest = s.get(2..)?.strip_prefix('{')?;
     let close = rest.find('}')?;
-    let v = u32::from_str_radix(&rest[..close], 16).ok()?;
+    let v = digits_value(&rest[..close], 16).ok()?;
     Some((char::from_u32(v), 3 + close + 1))
 }
 
