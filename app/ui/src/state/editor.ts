@@ -214,6 +214,12 @@ export function tabPolicy(): TabPolicy {
 }
 
 /**
+ * Incremented whenever the window's documents belong to another project (`closeAllTabs`):
+ * reads and saves that started for the previous project must not touch the new one.
+ */
+let generation = 0;
+
+/**
  * Store a new layout: documents and custom tabs no group shows any more are closed (close
  * listeners run) and `editor.active` follows the active group.
  */
@@ -365,8 +371,11 @@ export async function openFile(path: string, opts: { group?: number; activate?: 
     ]);
   }
   if (!editor.tabs.some((t) => t.path === path)) {
+    const gen = generation;
     const shared = await sharedTabs?.open(path);
     const file = shared ? undefined : await readText(path);
+    // Another project took the window while reading: the text belongs to the old one.
+    if (gen !== generation) return;
     // Opened twice while reading: keep the first tab.
     if (shared && !editor.tabs.some((t) => t.path === path)) {
       const { content, savedHash } = shared;
@@ -674,6 +683,7 @@ export function onTabsReset(cb: () => void): () => void {
 
 /** Close every tab, e.g. when switching projects. */
 export function closeAllTabs(): void {
+  generation++;
   const closing = [...editor.tabs];
   setCustomTabs([]);
   setEditor({ tabs: [], active: null });
