@@ -17,12 +17,13 @@ use forge_debug::{
     SessionStatus, StepKind,
 };
 use serde_json::{json, Value};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 use tokio::process::Child;
 use tokio::sync::Notify;
 
 use crate::adapter::{AdapterInfo, LaunchRequest, ResolvedLaunch};
 use crate::client::{DapClient, Incoming};
+use crate::codec::next_line_lossy;
 use crate::error::{DapError, DapResult};
 use crate::manager::Inner;
 use crate::protocol::{
@@ -1099,8 +1100,8 @@ impl DapSession {
             let manager = self.manager.clone();
             let id = self.id.clone();
             tokio::spawn(async move {
-                let mut lines = BufReader::new(pipe).lines();
-                while let Ok(Some(line)) = lines.next_line().await {
+                let (mut pipe, mut buf) = (BufReader::new(pipe), Vec::new());
+                while let Ok(Some(line)) = next_line_lossy(&mut pipe, &mut buf).await {
                     if let Some(m) = manager.upgrade() {
                         m.emit(DebugEvent::Output {
                             session_id: id.clone(),

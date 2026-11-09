@@ -37,8 +37,9 @@ const baseName = (p: string) => p.replace(/\\/g, "/").split("/").pop() ?? p;
 export const frameLocation = (f: StackFrame) =>
   f.file ? `${baseName(f.path ?? f.file)}:${f.line}${f.column ? `:${f.column}` : ""}` : (f.module ?? "");
 
-function open(f: StackFrame | undefined) {
-  if (f?.path) void openFileAt(f.path, f.line || 1, f.column ? f.column - 1 : undefined, { flash: true });
+/** Open a frame's location; `openFileAt` takes the 1-based column as reported (exported for tests). */
+export function openFrame(f: StackFrame | undefined) {
+  if (f?.path) void openFileAt(f.path, f.line || 1, f.column || undefined, { flash: true });
 }
 
 /** A few lines around a frame's line, with that line marked. */
@@ -60,7 +61,7 @@ function Preview(props: { frame: StackFrame }) {
   });
   return (
     <Show when={lines().length}>
-      <div class="native-preview" onDblClick={() => open(props.frame)}>
+      <div class="native-preview" onDblClick={() => openFrame(props.frame)}>
         <div class="native-preview-title muted">
           {props.frame.path}:{props.frame.line}
         </div>
@@ -87,7 +88,7 @@ function FrameRow(props: { frame: StackFrame; selected: boolean; onSelect: () =>
       style={{ "padding-left": "52px" }}
       data-native-frame={props.frame.index}
       onClick={props.onSelect}
-      onDblClick={() => open(props.frame)}
+      onDblClick={() => openFrame(props.frame)}
     >
       <span class="native-index muted">#{props.frame.index}</span>
       <span class="native-function">{props.frame.function}</span>
@@ -171,7 +172,7 @@ export function IssueTree(props: { issues: Issue[]; header?: JSX.Element; empty:
                               toggle(expanded, setExpanded, i.id);
                               choose(i, null);
                             }}
-                            onDblClick={() => open(i.location)}
+                            onDblClick={() => openFrame(i.location)}
                           >
                             {expanded().has(i.id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                             <span class="native-icon" style={{ color: i.color }}>

@@ -30,10 +30,12 @@ pub enum Incoming {
     Request(Request),
 }
 
+type Waiters = Arc<Mutex<HashMap<i64, oneshot::Sender<Response>>>>;
+
 pub struct DapClient {
     writer: tokio::sync::Mutex<Writer>,
     seq: AtomicI64,
-    pending: Mutex<HashMap<i64, oneshot::Sender<Response>>>,
+    pending: Waiters,
     closed: AtomicBool,
     timeout: Duration,
     /// Every message in and out is passed here (protocol log), when set.
@@ -44,15 +46,26 @@ pub struct DapClient {
 /// after `configurationDone`).
 pub struct PendingResponse {
     command: String,
+    seq: i64,
     rx: oneshot::Receiver<Response>,
+    /// Where its waiter is registered: removed when the request timed out or was given up.
+    pending: std::sync::Weak<Mutex<HashMap<i64, oneshot::Sender<Response>>>>,
 }
 
 impl PendingResponse {
-    pub async fn wait(self, timeout: Duration) -> DapResult<Value> {
-        match tokio::time::timeout(timeout, self.rx).await {
+    pub async fn wait(mut self, timeout: Duration) -> DapResult<Value> {
+        match tokio::time::timeout(timeout, &mut self.rx).await {
             Ok(Ok(r)) => into_body(r),
             Ok(Err(_)) => Err(DapError::Closed),
-            Err(_) => Err(DapError::Timeout(self.command)),
+            Err(_) => Err(DapError::Timeout(std::mem::take(&mut self.command))),
+        }
+    }
+}
+
+impl Drop for PendingResponse {
+    fn drop(&mut self) {
+        if let Some(pending) = self.pending.upgrade() {
+            pending.lock().expect("pending").remove(&self.seq);
         }
     }
 }
@@ -83,7 +96,7 @@ impl DapClient {
         let client = Arc::new(Self {
             writer: tokio::sync::Mutex::new(writer),
             seq: AtomicI64::new(1),
-            pending: Mutex::new(HashMap::new()),
+            pending: Arc::new(Mutex::new(HashMap::new())),
             closed: AtomicBool::new(false),
             timeout,
             trace,
@@ -180,7 +193,9 @@ impl DapClient {
         }
         Ok(PendingResponse {
             command: command.to_string(),
+            seq,
             rx,
+            pending: Arc::downgrade(&self.pending),
         })
     }
 
@@ -307,6 +322,10 @@ mod tests {
             client.request("threads", Value::Null).await,
             Err(DapError::Timeout(_))
         ));
+        // A request that timed out does not stay registered.
+        assert!(client.pending.lock().unwrap().is_empty());
+        drop(client.send("threads", Value::Null).await.unwrap());
+        assert!(client.pending.lock().unwrap().is_empty());
         let pending = client.send("threads", Value::Null).await.unwrap();
         drop(theirs);
         assert!(matches!(

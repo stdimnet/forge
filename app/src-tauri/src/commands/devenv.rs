@@ -42,8 +42,18 @@ pub struct DevEnvState {
     connections: Mutex<HashMap<String, Arc<StdioConnection>>>,
     project: Mutex<Option<(String, Arc<StdioConnection>)>>,
     next_id: AtomicU64,
-    /// The running build, so it can be cancelled.
-    build: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+    /// The running build (with its number), so it can be cancelled.
+    build: Mutex<Option<(u64, tauri::async_runtime::JoinHandle<()>)>>,
+}
+
+/// Take the value of `slot` when it still belongs to `id`: a build that ended must not take
+/// the handle of the newer build that replaced it, or that one could no longer be cancelled.
+fn take_own<T>(slot: &Mutex<Option<(u64, T)>>, id: u64) -> Option<T> {
+    let mut slot = slot.lock().expect("build lock");
+    match slot.as_ref() {
+        Some((own, _)) if *own == id => slot.take().map(|(_, v)| v),
+        _ => None,
+    }
 }
 
 fn other(e: impl std::fmt::Display) -> ForgeError {
@@ -275,11 +285,12 @@ pub async fn devcontainer_up(
         let result = up::up(&SystemRunner, &cfg, &opts, &log).await;
         let _ = tx.send(result);
     });
-    if let Some(previous) = devenv.build.lock().expect("build lock").replace(task) {
+    let id = devenv.next_id.fetch_add(1, Ordering::Relaxed);
+    if let Some((_, previous)) = devenv.build.lock().expect("build lock").replace((id, task)) {
         previous.abort();
     }
     let result = rx.await;
-    devenv.build.lock().expect("build lock").take();
+    take_own(&devenv.build, id);
     match result {
         Ok(r) => r.map_err(ForgeError::Other),
         Err(_) => Err(other("The build was cancelled")),
@@ -289,7 +300,7 @@ pub async fn devcontainer_up(
 /// Stop the running build (the docker process ends with it).
 #[tauri::command]
 pub fn devcontainer_cancel(devenv: State<'_, DevEnvState>) {
-    if let Some(task) = devenv.build.lock().expect("build lock").take() {
+    if let Some((_, task)) = devenv.build.lock().expect("build lock").take() {
         task.abort();
     }
 }
@@ -727,5 +738,21 @@ pub fn trust_key(host: &RemoteHost, path: &str) -> Option<String> {
         RemoteKind::Ssh => None,
         RemoteKind::DevContainer { source, .. } => Some(forge_trust::local_key(Path::new(source))),
         RemoteKind::Wsl { distro } => Some(forge_trust::normalize(&wsl::unc(distro, path))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_ended_build_leaves_the_newer_build_cancellable() {
+        let slot = Mutex::new(Some((1, "first")));
+        // The second build replaces the first; the first one then ends.
+        *slot.lock().unwrap() = Some((2, "second"));
+        assert_eq!(take_own(&slot, 1), None);
+        assert_eq!(*slot.lock().unwrap(), Some((2, "second")));
+        assert_eq!(take_own(&slot, 2), Some("second"));
+        assert_eq!(*slot.lock().unwrap(), None);
     }
 }

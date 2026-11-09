@@ -9,8 +9,9 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 
+use forge_lsp::framing::next_line_lossy;
 use serde::{Deserialize, Serialize};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio::sync::{mpsc, Notify};
 
@@ -153,8 +154,8 @@ pub async fn run(
     if let Some(out) = child.stdout.take() {
         let tx = tx.clone();
         tokio::spawn(async move {
-            let mut lines = BufReader::new(out).lines();
-            while let Ok(Some(l)) = lines.next_line().await {
+            let (mut out, mut buf) = (BufReader::new(out), Vec::new());
+            while let Ok(Some(l)) = next_line_lossy(&mut out, &mut buf).await {
                 let _ = tx.send((Stream::Stdout, l));
             }
         });
@@ -162,8 +163,8 @@ pub async fn run(
     if let Some(err) = child.stderr.take() {
         let tx = tx.clone();
         tokio::spawn(async move {
-            let mut lines = BufReader::new(err).lines();
-            while let Ok(Some(l)) = lines.next_line().await {
+            let (mut err, mut buf) = (BufReader::new(err), Vec::new());
+            while let Ok(Some(l)) = next_line_lossy(&mut err, &mut buf).await {
                 let _ = tx.send((Stream::Stderr, l));
             }
         });

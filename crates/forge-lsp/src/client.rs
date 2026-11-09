@@ -27,11 +27,11 @@ use lsp_types::{
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncWriteExt, BufReader};
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::config::LspServerConfig;
-use crate::framing;
+use crate::framing::{self, next_line_lossy};
 use crate::launch::{LocalLauncher, ServerLauncher, ServerProcess};
 use crate::log::{explain, LogSource, ServerLog};
 
@@ -402,8 +402,8 @@ impl LspClient {
             let id = client.id().to_string();
             let log = log.clone();
             tokio::spawn(async move {
-                let mut lines = BufReader::new(stderr).lines();
-                while let Ok(Some(line)) = lines.next_line().await {
+                let (mut stderr, mut buf) = (BufReader::new(stderr), Vec::new());
+                while let Ok(Some(line)) = next_line_lossy(&mut stderr, &mut buf).await {
                     tracing::debug!(target: "forge_lsp::stderr", server = %id, "{line}");
                     log.push(LogSource::Stderr, &line);
                 }

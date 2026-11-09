@@ -32,6 +32,7 @@ import {
 import { formatAgo, formatCountdown, formatPairingCode } from "./format";
 import { t } from "@/i18n";
 import { writeClipboard } from "@/features/clipboard/system";
+import { unsubscribeOnCleanup } from "@/state/async";
 
 const PAGE_ID = "tools.browser-companion";
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);
@@ -252,7 +253,7 @@ export function BrowserCompanionPage() {
   // Refresh while a code is shown so a successful pairing appears without reopening.
   const poll = setInterval(() => status()?.pairing && void refetch(), 1500);
   onCleanup(() => clearInterval(poll));
-  void companionApi.onStatus(() => void refetch()).then((un) => onCleanup(un));
+  unsubscribeOnCleanup(companionApi.onStatus(() => void refetch()));
 
   const ranked = createMemo(() => rankIntegrations(profile()));
   const detectedCount = () => ranked().filter((r) => r.detected).length;

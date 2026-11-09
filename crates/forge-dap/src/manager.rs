@@ -15,12 +15,13 @@ use forge_debug::{
     SessionInfo,
 };
 use serde_json::Value;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 
 use crate::adapter::{
     AdapterInfo, AdapterRegistry, DebugAdapterDescriptor, LaunchRequest, ResolvedLaunch,
 };
 use crate::client::{DapClient, Trace};
+use crate::codec::next_line_lossy;
 use crate::error::{DapError, DapResult};
 use crate::protocol::StartDebuggingArgs;
 use crate::session::DapSession;
@@ -138,8 +139,8 @@ impl Inner {
         if let Some(stderr) = conn.stderr {
             let s = Arc::clone(&session);
             tokio::spawn(async move {
-                let mut lines = BufReader::new(stderr).lines();
-                while let Ok(Some(line)) = lines.next_line().await {
+                let (mut stderr, mut buf) = (BufReader::new(stderr), Vec::new());
+                while let Ok(Some(line)) = next_line_lossy(&mut stderr, &mut buf).await {
                     s.note_stderr(line);
                 }
             });

@@ -413,8 +413,13 @@ fn str_arg(args: &Value, name: &str) -> String {
     args[name].as_str().unwrap_or("").to_string()
 }
 
+/// A 1-based line or column argument as a 0-based number (huge values saturate).
 fn u32_arg(args: &Value, name: &str) -> u32 {
-    args[name].as_u64().unwrap_or(1).max(1) as u32 - 1
+    let n = args[name]
+        .as_u64()
+        .unwrap_or(1)
+        .clamp(1, u64::from(u32::MAX));
+    (n - 1) as u32
 }
 
 fn to_json<T: Serialize>(v: T) -> Result<ToolOutput> {
@@ -805,4 +810,19 @@ pub fn stdio_main(args: &[String]) -> Option<i32> {
             1
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn line_and_column_arguments_do_not_overflow() {
+        let args = serde_json::json!({ "a": 4_294_967_296u64, "b": 0, "c": 7, "d": u64::MAX });
+        assert_eq!(u32_arg(&args, "a"), u32::MAX - 1);
+        assert_eq!(u32_arg(&args, "b"), 0);
+        assert_eq!(u32_arg(&args, "c"), 6);
+        assert_eq!(u32_arg(&args, "d"), u32::MAX - 1);
+        assert_eq!(u32_arg(&args, "missing"), 0);
+    }
 }

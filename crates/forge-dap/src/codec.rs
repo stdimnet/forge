@@ -58,11 +58,42 @@ pub async fn read_message<R: AsyncBufRead + Unpin>(r: &mut R) -> DapResult<Optio
     Ok(Some(serde_json::from_slice(&body)?))
 }
 
+/// The next line of a program's output without its line ending, invalid UTF-8 replaced by
+/// U+FFFD (`None` at the end). Unlike `AsyncBufReadExt::lines`, one invalid byte does not
+/// end the reader, which would leave the pipe unread and the program killed by SIGPIPE.
+pub async fn next_line_lossy<R: AsyncBufRead + Unpin>(
+    reader: &mut R,
+    buf: &mut Vec<u8>,
+) -> std::io::Result<Option<String>> {
+    buf.clear();
+    if reader.read_until(b'\n', buf).await? == 0 {
+        return Ok(None);
+    }
+    if buf.last() == Some(&b'\n') {
+        buf.pop();
+        if buf.last() == Some(&b'\r') {
+            buf.pop();
+        }
+    }
+    Ok(Some(String::from_utf8_lossy(buf).into_owned()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
     use tokio::io::BufReader;
+
+    #[tokio::test]
+    async fn output_lines_survive_invalid_utf8() {
+        let mut r = tokio::io::BufReader::new(&b"ok\r\nbad \xff byte\nlast"[..]);
+        let mut buf = Vec::new();
+        let mut lines = Vec::new();
+        while let Some(l) = next_line_lossy(&mut r, &mut buf).await.unwrap() {
+            lines.push(l);
+        }
+        assert_eq!(lines, ["ok", "bad \u{fffd} byte", "last"]);
+    }
 
     #[tokio::test]
     async fn round_trips_messages_with_extra_headers() {
