@@ -144,14 +144,28 @@ pub fn parse_command(line: &str) -> DebugResult<Command> {
     })
 }
 
+/// Longest length prefix accepted: a decimal `usize` plus the NUL.
+const MAX_LENGTH_HEADER: u64 = 21;
+
+/// Largest packet body accepted. The length comes from the peer (any host that can reach
+/// the listener), so it must not size an allocation unchecked. Xdebug truncates values to
+/// `max_data`, so real packets stay far below this.
+pub const MAX_PACKET_LEN: usize = 64 * 1024 * 1024;
+
 /// Read one engine packet (`<len>\0<xml>\0`). `None` at end of stream.
 pub async fn read_packet<R: AsyncBufRead + Unpin>(r: &mut R) -> DebugResult<Option<String>> {
     let mut len_buf = Vec::new();
-    let n = r.read_until(0, &mut len_buf).await?;
+    let n = (&mut *r)
+        .take(MAX_LENGTH_HEADER)
+        .read_until(0, &mut len_buf)
+        .await?;
     if n == 0 {
         return Ok(None);
     }
     if len_buf.last() != Some(&0) {
+        if n as u64 == MAX_LENGTH_HEADER {
+            return Err(DebugError::Protocol("packet length header too long".into()));
+        }
         return Ok(None);
     }
     len_buf.pop();
@@ -159,8 +173,17 @@ pub async fn read_packet<R: AsyncBufRead + Unpin>(r: &mut R) -> DebugResult<Opti
         .ok()
         .and_then(|s| s.trim().parse().ok())
         .ok_or_else(|| DebugError::Protocol("bad packet length".into()))?;
-    let mut body = vec![0u8; len];
-    r.read_exact(&mut body).await?;
+    if len > MAX_PACKET_LEN {
+        return Err(DebugError::Protocol(format!(
+            "packet of {len} bytes exceeds the {MAX_PACKET_LEN} byte limit"
+        )));
+    }
+    // Grow with the bytes that actually arrive instead of trusting the announced length.
+    let mut body = Vec::new();
+    (&mut *r).take(len as u64).read_to_end(&mut body).await?;
+    if body.len() != len {
+        return Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof).into());
+    }
     let mut nul = [0u8; 1];
     r.read_exact(&mut nul).await?;
     Ok(Some(String::from_utf8_lossy(&body).into_owned()))
@@ -526,6 +549,27 @@ mod tests {
             Some("<b>ü</b>")
         );
         assert_eq!(read_packet(&mut r).await.unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn rejects_oversized_packets_without_allocating() {
+        let data = b"1000000000000\0<a/>\0".to_vec();
+        let mut r = tokio::io::BufReader::new(&data[..]);
+        assert!(matches!(
+            read_packet(&mut r).await,
+            Err(DebugError::Protocol(_))
+        ));
+        // A header without a NUL is not buffered without bound.
+        let data = vec![b'9'; 10_000];
+        let mut r = tokio::io::BufReader::new(&data[..]);
+        assert!(matches!(
+            read_packet(&mut r).await,
+            Err(DebugError::Protocol(_))
+        ));
+        // A truncated body is an error, not a short packet.
+        let data = b"10\0<a/>".to_vec();
+        let mut r = tokio::io::BufReader::new(&data[..]);
+        assert!(read_packet(&mut r).await.is_err());
     }
 
     #[test]
