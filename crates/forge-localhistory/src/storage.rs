@@ -78,7 +78,7 @@ pub use disk::DiskStorage;
 mod disk {
     use std::collections::{BTreeMap, HashMap};
     use std::fs;
-    use std::io::{self, Read, Write};
+    use std::io::{self, Read, Seek, SeekFrom, Write};
     use std::path::{Path, PathBuf};
 
     use flate2::read::ZlibDecoder;
@@ -125,8 +125,10 @@ mod disk {
 
     impl Storage for DiskStorage {
         fn load(&mut self) -> io::Result<Vec<ChangeSet>> {
-            let text = match fs::read_to_string(self.log()) {
-                Ok(t) => t,
+            // Bytes, not a string: a line torn inside a multi-byte character must not make the
+            // whole log unreadable.
+            let text = match fs::read(self.log()) {
+                Ok(t) => String::from_utf8_lossy(&t).into_owned(),
                 Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
                 Err(e) => return Err(e),
             };
@@ -151,9 +153,21 @@ mod disk {
             fs::create_dir_all(&self.dir)?;
             let mut f = fs::OpenOptions::new()
                 .create(true)
+                .read(true)
                 .append(true)
                 .open(self.log())?;
-            f.write_all(line(set)?.as_bytes())
+            let mut text = line(set)?;
+            // A torn last line (crash while writing) has no line break: start a new line, or
+            // this set would be glued onto the fragment and fail to parse on every load.
+            if f.seek(SeekFrom::End(0))? > 0 {
+                f.seek(SeekFrom::End(-1))?;
+                let mut last = [0u8];
+                f.read_exact(&mut last)?;
+                if last[0] != b'\n' {
+                    text.insert(0, '\n');
+                }
+            }
+            f.write_all(text.as_bytes())
         }
 
         fn rewrite(&mut self, sets: &[ChangeSet]) -> io::Result<()> {
@@ -262,6 +276,31 @@ mod disk {
             assert_eq!(sets[0].name, "one again");
             s.rewrite(&sets[1..]).unwrap();
             assert_eq!(s.load().unwrap().len(), 1);
+        }
+
+        #[test]
+        fn a_set_appended_after_a_torn_line_survives() {
+            let dir = tempfile::tempdir().unwrap();
+            let mut s = DiskStorage::new(dir.path().join("lh"));
+            s.append(&set(1, "one")).unwrap();
+            let mut f = fs::OpenOptions::new()
+                .append(true)
+                .open(dir.path().join("lh").join(LOG))
+                .unwrap();
+            // Torn inside a multi-byte character, like a crash in the middle of a write.
+            f.write_all(&"{\"id\":2,\"name\":\"\u{e4}".as_bytes()[..17])
+                .unwrap();
+            drop(f);
+            assert_eq!(s.load().unwrap().len(), 1);
+            s.append(&set(3, "three")).unwrap();
+            let sets = s.load().unwrap();
+            assert_eq!(
+                sets.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(),
+                ["one", "three"]
+            );
+            // Compaction keeps it too.
+            s.rewrite(&sets).unwrap();
+            assert_eq!(s.load().unwrap().len(), 2);
         }
 
         #[test]

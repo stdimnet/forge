@@ -665,6 +665,22 @@ System Settings | Autosave): when Forge loses the focus (`system.autosave.onFram
 on by default) and, if enabled, after `system.autosave.idleSeconds` seconds without typing or
 clicking (`system.autosave.onIdle`).
 
+Like PHPStorm, Forge also saves modified files whatever the Autosave settings say, so closing
+never loses an edit:
+
+- **Closing a tab** (the close button, `Ctrl+F4`, a middle click, Close Others, Close All,
+  Close Tabs to the Left/Right, and the tab limit) saves the file when it was its last tab.
+  If the file cannot be written (read-only, disk full), its tab opens again in the background
+  and a notification says why.
+- **Switching or closing the project** (This Window, File | Close Project, opening an SSH, dev
+  container or WSL project, Repair IDE) saves every modified file first.
+- **Closing the window** or exiting Forge saves every modified file.
+
+These saves count as autosave: Settings | Tools | [Actions on Save](actions-on-save.md) run
+only with **Also run on autosave**. When a file cannot be saved before the project or window
+closes, Forge asks: **Cancel** keeps the project (and your edits) open, **Discard and Close**
+closes it anyway.
+
 Saving applies Settings | Editor | General | On Save, like PHPStorm:
 
 | Option | Setting | Default |
@@ -681,7 +697,8 @@ imports, Rearrange code, code cleanup and external tools (ESLint, Prettier, PHP 
 Laravel Pint) to an explicit save (`Ctrl+S`), and optionally to autosave.
 
 When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
-the Project view and Git status (`system.syncExternalChanges`).
+the Project view and Git status (`system.syncExternalChanges`). A file with unsaved changes is
+not re-read, and text you type while a file is being re-read is kept: the reload is skipped.
 
 ## Code style
 

@@ -26,6 +26,7 @@ import {
 import { templatesApi } from "@/ipc/templates";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { closeTab, editor, openFile } from "@/state/editor";
+import { deletePath } from "@/state/pathOps";
 import { refreshDirs } from "@/features/project/ProjectView";
 import { showBalloon } from "@/keymap";
 import { showHint } from "@/features/lsp/hint";
@@ -425,7 +426,7 @@ async function deleteFiles(answer: SafeDeleteAnswer): Promise<void> {
   if (answer.answer.edit.changes.length) await applyAnswer(tr("codeintel.moveRefactorings.safeDeleteName", { name: answer.name }), answer.answer);
   for (const p of answer.paths) {
     try {
-      await workspaceApi.delete(p);
+      await deletePath(p);
     } catch (e) {
       showBalloon(tr("codeintel.moveRefactorings.safeDeleteFailed"), message(e), 6000);
     }

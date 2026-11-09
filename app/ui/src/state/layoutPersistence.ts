@@ -87,14 +87,20 @@ export function applyWindowLayout(saved: ProjectLayout): void {
   }
 }
 
-/** Apply a saved layout; unknown tool windows and files that are gone are skipped. */
-export async function applyLayout(saved: ProjectLayout): Promise<void> {
+/**
+ * Apply a saved layout; unknown tool windows and files that are gone are skipped. Stops as
+ * soon as `stillOpen` says the project it belongs to is no longer the window's project, so its
+ * files never open in the next one (paths are project-relative).
+ */
+export async function applyLayout(saved: ProjectLayout, stillOpen: () => boolean = () => true): Promise<void> {
+  if (!stillOpen()) return;
   applyWindowLayout(saved);
   setLayout("tabs", { ...saved.tabs });
   for (const path of saved.openFiles) {
+    if (!stillOpen()) return;
     await openFile(path, { activate: false }).catch(() => undefined);
   }
-  if (saved.activeFile) activateOpenTab(saved.activeFile);
+  if (saved.activeFile && stillOpen()) activateOpenTab(saved.activeFile);
 }
 
 /**
@@ -135,7 +141,7 @@ createRoot(() => {
         restoring = true;
         try {
           const saved = await projectStateApi.loadLayout().catch(() => null);
-          if (saved && workspace()?.root === root) await applyLayout(saved);
+          if (saved) await applyLayout(saved, () => workspace()?.root === root);
         } finally {
           if (workspace()?.root === root) restoring = false;
         }

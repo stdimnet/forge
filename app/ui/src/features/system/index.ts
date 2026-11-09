@@ -5,7 +5,9 @@
  * - Synchronization: when Forge gets the focus back, open files are re-read from disk and the
  *   project view and Git status refresh (`system.syncExternalChanges`).
  * - Exit: "Confirm Exit" before the main window closes (`system.confirmExit`), then every
- *   file is saved; Cmd+Q (`exitApp`) does the same for all project windows. Installed by the main window only (`installSystemBehaviour`).
+ *   file is saved; Cmd+Q (`exitApp`) does the same for all project windows. A file that
+ *   cannot be saved keeps the window open unless the user discards it (`./unsaved.ts`).
+ *   Installed by the main window only (`installSystemBehaviour`).
  */
 import { createEffect, createRoot, onCleanup } from "solid-js";
 import { isTauri, listen } from "@/ipc";
@@ -17,6 +19,9 @@ import { workspace } from "@/state/workspace";
 import { askConfirmWithCheckbox } from "@/features/contextMenu/dialogs";
 import { showBalloon } from "@/keymap";
 import { t as tr } from "@/i18n";
+import { saveBeforeLeaving } from "./unsaved";
+
+export { saveBeforeLeaving };
 
 /** Save every modified file; failures are reported, never thrown. */
 export async function autosave(): Promise<void> {
@@ -79,7 +84,7 @@ export function installSystemBehaviour(): void {
     void confirmExitOnClose();
     // Another window (or a second project window) asked everyone to exit: save first.
     void listen("app://quit", async () => {
-      await autosave();
+      if (!(await saveBeforeLeaving("window"))) return;
       await windowApi.exit().catch(() => undefined);
     });
   }
@@ -124,6 +129,6 @@ async function confirmExitOnClose(): Promise<void> {
       }
       if (answer.checked) await saveSetting("system.confirmExit", false).catch(() => undefined);
     }
-    await autosave();
+    if (!(await saveBeforeLeaving("window"))) event.preventDefault();
   });
 }

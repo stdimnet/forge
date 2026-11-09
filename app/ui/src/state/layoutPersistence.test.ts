@@ -167,4 +167,25 @@ describe("project layout", () => {
     expect(loads).toBe(1);
     closeWorkspace();
   });
+
+  it("never opens the previous project's files in the next one", async () => {
+    closeAllTabs();
+    // Project A's reads are slow; B takes the window while A's tabs are restored.
+    let release!: () => void;
+    const slow = new Promise<void>((r) => (release = r));
+    registerMock("fs_read_text", async ({ path }) => {
+      if (String(path).startsWith("a/")) await slow;
+      return { text: `// ${path}\n`, eol: "\n", encoding: "UTF-8", bom: false, malformed: false };
+    });
+    registerMock("layout_load", () => empty({ openFiles: ["a/One.php", "a/Two.php", "a/Three.php"], activeFile: "a/Three.php" }));
+    registerMock("layout_save", () => undefined);
+    adoptWorkspace({ name: "a", root: "/projects/a" });
+    await new Promise((r) => setTimeout(r, 20));
+    registerMock("layout_load", () => empty({}));
+    adoptWorkspace({ name: "b", root: "/projects/b" });
+    release();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(editor.tabs.map((t) => t.path)).toEqual([]);
+    closeWorkspace();
+  });
 });

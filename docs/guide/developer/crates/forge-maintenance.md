@@ -35,7 +35,9 @@ The logic behind PHPStorm's File | Invalidate Caches… and File | Manage IDE Se
   removed).
 - **Settings Sync** (`sync`): `local_components` turns the chosen groups into one blob each
   (TOML of the group's keys, or the file; `settingsSync.*` stays local); `decide` compares
-  local, shared and last-synced hashes (one side changed → it wins; both → the newer wins);
+  local, shared and last-synced hashes (one side changed → it wins; both → the newer wins; a
+  group missing on one side that is unchanged on the other since the last sync was removed:
+  `PushRemoval` / `PullRemoval`, applied through `ImportPlan::removed_files` and `Null` values);
   `sync_folder` writes `forge-settings-sync/{sync.json,components/<id>.data}` in the user's
   folder, backs up conflict losers (shared ones in `backups/<ms>/`, local ones in
   `<config dir>/forge/settings-sync-backups/<ms>/`) and returns the groups to apply;

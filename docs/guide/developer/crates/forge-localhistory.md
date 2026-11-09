@@ -20,7 +20,7 @@ The model and store behind PHPStorm's Local History ([user guide](../../user/loc
   `Limits` decide what is recorded (excluded folders, size limit, no binary files).
 - **Storage** (`storage`): `Storage` is implemented in memory (`MemStorage`, used by
   WebAssembly and tests) and on disk (`DiskStorage`, feature `disk`): an append-only
-  `changes.jsonl` (a set written again replaces the earlier line; compacted on load) and
+  `changes.jsonl` (a set written again replaces the earlier line; compacted on load; a torn last line from a crash is skipped, and the next append starts a new line after it) and
   `content/<2 hex>/<hash>`, zlib-compressed and deduplicated by the first 128 bits of the
   SHA-256 of the content.
 - **`LocalHistory`**: `record` (unknown "before" states come from the last recorded state;

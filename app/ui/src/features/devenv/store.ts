@@ -5,7 +5,7 @@
 import { createSignal } from "solid-js";
 import { devcontainerApi, wslApi, type BuildLogLine } from "@/ipc/devenv";
 import type { RecentProject } from "@/ipc/workspace";
-import { adoptRemoteWorkspace, workspace } from "@/state/workspace";
+import { adoptRemoteWorkspace, confirmCloseProject, workspace } from "@/state/workspace";
 import { chooseRemoteFolder, setConnecting } from "@/features/remote/store";
 
 // ---- the Create Dev Container dialog --------------------------------------------------------
@@ -45,6 +45,8 @@ export function listenToBuildLog(): void {
 
 /** Start the agent in a dev container and open its workspace folder. */
 export async function openDevContainer(containerId: string, label: string): Promise<void> {
+  // The open project closes first: its modified files are saved (or the user cancels).
+  if (!(await confirmCloseProject())) return;
   setConnecting({ label, message: `Connecting to ${label}…` });
   try {
     const info = await devcontainerApi.open(containerId);
@@ -69,7 +71,7 @@ export async function openWslProject(distro: string, path?: string): Promise<boo
     (await chooseRemoteFolder(connected.connectionId, connected.label, connected.home, (p) =>
       wslApi.browse(connected.connectionId, p),
     ));
-  if (!folder) {
+  if (!folder || !(await confirmCloseProject())) {
     await wslApi.disconnect(connected.connectionId).catch(() => undefined);
     return false;
   }

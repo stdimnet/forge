@@ -44,7 +44,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
         <div class="welcome-remote-section-title">
           <Server size={15} />
           <span>SSH</span>
-          <button class="btn-primary welcome-remote-new" onClick={() => openNewSshConnection()} data-testid="ssh-new">
+          <button class="btn-primary welcome-remote-new" onClick={() => void openNewSshConnection()} data-testid="ssh-new">
             <Plus size={14} /> {t("tools.remote.newConnection")}
           </button>
         </div>
@@ -63,7 +63,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
             <div class="welcome-remote-empty">
               <Server size={30} class="muted" />
               <p>{t("tools.remote.noRemoteConnectionsYet")}</p>
-              <button class="btn-secondary" onClick={() => openNewSshConnection()}>
+              <button class="btn-secondary" onClick={() => void openNewSshConnection()}>
                 {t("tools.remote.newSshConnectionEllipsis")}
               </button>
             </div>
@@ -89,7 +89,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
                     class="welcome-project"
                     onClick={() => {
                       const { label: _l, hasSecret: _h, ...config } = c;
-                      openNewSshConnection({ config });
+                      void openNewSshConnection({ config });
                     }}
                     title={t("tools.remote.connectTo", { label: c.label })}
                   >
