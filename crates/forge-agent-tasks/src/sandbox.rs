@@ -42,11 +42,6 @@ fn git_with(cwd: &Path, args: &[&str], stdin: Option<&str>) -> Result<String, St
         } else {
             Stdio::null()
         });
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000);
-    }
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("could not run {program}: {e}"))?;

@@ -347,14 +347,6 @@ fn required<'a>(cfg: &'a RunConfiguration, key: &str, label: &str) -> Result<&'a
     }
 }
 
-fn platform_program(name: &str) -> String {
-    if cfg!(windows) {
-        format!("{name}.cmd")
-    } else {
-        name.into()
-    }
-}
-
 /// `php [interpreter options] <file> [arguments]`.
 struct PhpScript;
 impl RunConfigurationKind for PhpScript {
@@ -511,7 +503,9 @@ impl RunConfigurationKind for Artisan {
 /// `php.composer.executable`, empty = `composer`), or `php <path>` for a composer.phar.
 pub fn composer_program(executable: &str, php: &str) -> (String, Vec<String>) {
     match executable.trim() {
-        "" | "composer" => (platform_program("composer"), Vec::new()),
+        // On Windows `composer` is `composer.bat` (Composer-Setup) or `composer.cmd`: the
+        // spawn looks it up through `PATHEXT` (`forge_hostspawn::win`).
+        "" | "composer" => ("composer".to_string(), Vec::new()),
         p if p.to_ascii_lowercase().ends_with(".phar") => {
             let php = match php.trim() {
                 "" => "php",
@@ -579,16 +573,23 @@ impl RunConfigurationKind for ShellScript {
             i => i.to_string(),
         };
         let mut cmd = CommandLine::new(&interpreter).args(split_args(&cfg.interpreter_options));
-        let is_cmd = interpreter.to_ascii_lowercase().ends_with("cmd.exe");
+        // `cmd`, `cmd.exe`, `C:\Windows\System32\CMD.EXE`: never `-c`, which would start an
+        // interactive session that does not end.
+        let is_cmd = forge_hostspawn::win::is_cmd(&interpreter);
         if cfg.option("mode") == "text" {
             let text = required(cfg, "scriptText", "Script text")?;
             cmd = cmd.args([if is_cmd { "/C" } else { "-c" }, text]);
         } else {
             let path = required(cfg, "scriptPath", "Script path")?;
             if is_cmd {
-                cmd = cmd.arg("/C");
+                // Everything after `/C` is one command line for `cmd.exe` (passed verbatim by
+                // the spawn): quote the script path and its arguments for it.
+                let mut argv = vec![path.to_string()];
+                argv.extend(split_args(&cfg.arguments));
+                cmd = cmd.args(["/C".to_string(), forge_hostspawn::win::cmd_line(&argv)]);
+            } else {
+                cmd = cmd.arg(path).args(split_args(&cfg.arguments));
             }
-            cmd = cmd.arg(path).args(split_args(&cfg.arguments));
         }
         let script_dir = Path::new(cfg.option("scriptPath"))
             .parent()
@@ -618,7 +619,8 @@ impl RunConfigurationKind for NpmScript {
             "" => "npm",
             m => m,
         };
-        let mut cmd = CommandLine::new(platform_program(manager)).arg(command);
+        // `npm.cmd`, `pnpm.cmd`/`pnpm.exe`, `bun.exe`: found through `PATHEXT` on Windows.
+        let mut cmd = CommandLine::new(manager).arg(command);
         if command == "run" {
             cmd = cmd.arg(required(cfg, "script", "Script")?);
         }
@@ -973,6 +975,41 @@ mod tests {
             .unwrap();
         assert!(cmd.args.contains(&"scripts/deploy.sh".to_string()));
         assert_eq!(cmd.cwd, PathBuf::from("/proj/scripts"));
+    }
+
+    #[test]
+    fn package_managers_and_composer_keep_their_bare_names() {
+        // No `.cmd` is guessed (#210): Composer-Setup installs `composer.bat`, Bun ships
+        // `bun.exe`. The spawn finds them through `PATHEXT` on Windows.
+        let r = KindRegistry::builtin();
+        assert_eq!(composer_program("", "php").0, "composer");
+        assert_eq!(composer_program("composer", "php").0, "composer");
+        for manager in ["npm", "pnpm", "yarn", "bun"] {
+            let c = cfg("npm", &[("script", "dev"), ("packageManager", manager)]);
+            assert_eq!(r.build(&c, &ctx()).unwrap().program, manager);
+        }
+    }
+
+    #[test]
+    fn cmd_scripts_get_one_command_line() {
+        let r = KindRegistry::builtin();
+        // An interpreter of `cmd` (not only `…cmd.exe`) gets `/C`, never `-c` (#215).
+        for interpreter in ["cmd", "CMD.EXE", r"C:\Windows\System32\cmd.exe"] {
+            let mut c = cfg("shell", &[("mode", "text"), ("scriptText", "echo hi")]);
+            c.interpreter = interpreter.into();
+            assert_eq!(r.build(&c, &ctx()).unwrap().args, ["/C", "echo hi"]);
+        }
+        // A script file with spaces and arguments becomes one quoted line (#208).
+        let mut c = cfg("shell", &[("scriptPath", r"C:\My Scripts\build.bat")]);
+        c.interpreter = "cmd".into();
+        c.arguments = r#"--name "Jane Doe" 50%"#.into();
+        assert_eq!(
+            r.build(&c, &ctx()).unwrap().args,
+            [
+                "/C",
+                r#""C:\My Scripts\build.bat" --name "Jane Doe" "50%%cd:~,%""#
+            ]
+        );
     }
 
     #[test]

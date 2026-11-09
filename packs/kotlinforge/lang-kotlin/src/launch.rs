@@ -126,15 +126,6 @@ fn sh_quote(s: &str) -> String {
     }
 }
 
-/// `cmd.exe` quoting.
-fn cmd_quote(s: &str) -> String {
-    if !s.is_empty() && !s.contains([' ', '"', '&', '|', '<', '>', '^', '%']) {
-        s.to_string()
-    } else {
-        format!("\"{}\"", s.replace('"', "\"\""))
-    }
-}
-
 fn vm_args(app: &KotlinApp) -> Vec<String> {
     let mut out = Vec::new();
     if let Some(port) = app.debug_port {
@@ -241,17 +232,12 @@ pub fn application_command(app: &KotlinApp, runner: Runner) -> Result<KotlinComm
             run.extend(["-cp".into(), app.output_jar.clone(), main.to_string()]);
             run.extend(args);
             if app.windows {
+                // Each step is quoted for `cmd.exe` (spaces, `&`, `%VAR%`); the spawn passes
+                // the line to `cmd /C` verbatim (`forge_hostspawn::win`).
                 let line = format!(
                     "{} && {}",
-                    compile
-                        .iter()
-                        .map(|a| cmd_quote(a))
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                    run.iter()
-                        .map(|a| cmd_quote(a))
-                        .collect::<Vec<_>>()
-                        .join(" ")
+                    forge_hostspawn::win::cmd_line(&compile),
+                    forge_hostspawn::win::cmd_line(&run)
                 );
                 Ok(KotlinCommand {
                     program: "cmd".into(),
@@ -412,9 +398,19 @@ mod tests {
             "kotlinc /p/src/App.kt -include-runtime -d '/tmp/forge kotlin/app.jar' && exec /jdk/bin/java -Xmx256m -cp '/tmp/forge kotlin/app.jar' com.acme.AppKt --port 8080"
         );
         a.windows = true;
+        a.sources = vec![r"C:\Users\Jane Doe\p\App.kt".into()];
+        a.output_jar = r"C:\Users\Jane Doe\AppData\Local\Temp\forge kotlin\app.jar".into();
+        a.java = r"C:\Program Files\Java\bin\java.exe".into();
+        a.arguments = "--name %USERNAME%".into();
         let c = application_command(&a, Runner::Kotlinc).unwrap();
         assert_eq!(c.program, "cmd");
-        assert!(c.args[1].contains("&& /jdk/bin/java"));
+        assert_eq!(c.args[0], "/C");
+        // Paths with spaces are quoted and `%USERNAME%` is passed on, not expanded (#208,
+        // #215).
+        assert_eq!(
+            c.args[1],
+            r#"kotlinc "C:\Users\Jane Doe\p\App.kt" -include-runtime -d "C:\Users\Jane Doe\AppData\Local\Temp\forge kotlin\app.jar" && "C:\Program Files\Java\bin\java.exe" -Xmx256m -cp "C:\Users\Jane Doe\AppData\Local\Temp\forge kotlin\app.jar" com.acme.AppKt --name "%%cd:~,%USERNAME%%cd:~,%""#
+        );
         a.main_class = " ".into();
         assert!(application_command(&a, Runner::Kotlinc).is_err());
         assert_eq!(Runner::Auto.resolve(Some("maven")), Runner::Maven);

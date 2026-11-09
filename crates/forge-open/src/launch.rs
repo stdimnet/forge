@@ -68,7 +68,7 @@ pub fn link_folder(link: &LinkAction) -> Option<PathBuf> {
     if !path.is_absolute() || !path.is_dir() {
         return None;
     }
-    Some(path.canonicalize().unwrap_or(path))
+    Some(forge_core::paths::canonicalize(&path).unwrap_or(path))
 }
 
 fn within(file: &Path, root: &Path) -> bool {
@@ -148,7 +148,7 @@ mod tests {
 
     fn fixture() -> (tempfile::TempDir, PathBuf) {
         let dir = tempfile::tempdir().unwrap();
-        let base = dir.path().canonicalize().unwrap();
+        let base = forge_core::paths::canonicalize(dir.path()).unwrap();
         fs::create_dir_all(base.join("shop/src")).unwrap();
         fs::create_dir_all(base.join("notes")).unwrap();
         fs::write(base.join("shop/src/Cart.php"), "<?php").unwrap();
@@ -256,6 +256,10 @@ mod tests {
         assert_eq!(p.link_projects, vec![base.join("shop")]);
         assert!(p.projects.is_empty());
         assert_eq!(p.links.len(), 1);
+        // The folder keeps its ordinary spelling (no `\\?\` prefix on Windows, #215).
+        let shop = LinkAction::Open(OpenRequest::new(base.join("shop").display().to_string()));
+        let found = link_folder(&shop).unwrap();
+        assert!(!found.to_string_lossy().starts_with(r"\\?\"), "{found:?}");
         // Relative folders in links are not resolved against the current directory.
         let relative = LinkAction::Open(OpenRequest::new("shop"));
         assert_eq!(link_folder(&relative), None);

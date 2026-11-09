@@ -202,11 +202,6 @@ pub async fn run_process(
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .kill_on_drop(true);
-    #[cfg(windows)]
-    {
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        c.creation_flags(CREATE_NO_WINDOW);
-    }
     let child = match c.spawn() {
         Ok(child) => child,
         Err(e) => {

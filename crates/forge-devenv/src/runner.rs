@@ -115,11 +115,6 @@ fn command(program: &str, args: &[String]) -> tokio::process::Command {
     // In Flatpak docker / devcontainer / wsl run on the host.
     let mut cmd: tokio::process::Command = forge_hostspawn::host_command(std_cmd).into();
     cmd.kill_on_drop(true);
-    #[cfg(windows)]
-    {
-        // No console window for docker.exe / wsl.exe.
-        cmd.creation_flags(0x0800_0000);
-    }
     cmd
 }
 

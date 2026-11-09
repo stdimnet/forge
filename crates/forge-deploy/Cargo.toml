@@ -12,6 +12,7 @@ default = ["client"]
 # modules are built (configuration, path mappings, exclusions, options, comparison), e.g.
 # for WebAssembly.
 client = [
+    "dep:forge-core",
     "dep:forge-remote",
     "dep:russh-sftp",
     "dep:suppaftp",
@@ -27,6 +28,7 @@ serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 forge-diff.workspace = true
+forge-core = { workspace = true, optional = true }
 forge-remote = { workspace = true, optional = true }
 # Apache-2.0
 russh-sftp = { version = "3", optional = true }
