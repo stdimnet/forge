@@ -36,7 +36,7 @@ The types are in [`sdk/plugin-api/index.d.ts`](../../../../sdk/plugin-api/index.
 | `id` | lowercase reverse-DNS (`publisher.name`, letters, digits, `-`), at most 64 characters; `forge.*` is reserved |
 | `name` | 1 to 64 characters |
 | `version` | SemVer (`1.2.3`, `1.0.0-beta.1`) |
-| `engines.forge` | SemVer range of Forge versions (`>=0.1.0`, `^1.2`); installing on another version is refused |
+| `engines.forge` | SemVer range of Forge versions (`>=0.1.0`, `^1.2`); installing on another version is refused. Pre-releases of Forge count as their release (`0.1.1-beta.2` as `0.1.1`) |
 | `main` | the UI bundle, a relative `.js` path inside the package |
 | `backend` | reserved: `{ "kind": "wasm", "module" }` or `{ "kind": "process", "command", "args" }`; not run yet (see [Plugin SDK](index.md#what-is-deferred)) |
 | `activationEvents` | when `main` is loaded, see below |
