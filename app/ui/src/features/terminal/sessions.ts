@@ -499,7 +499,7 @@ function handleEvent(id: string, s: Session, e: TerminalEvent): void {
  */
 async function attachExisting(id: string, s: Session, source: TerminalSource): Promise<void> {
   let queued: TerminalEvent[] | null = [];
-  s.unlisten = await terminalApi.onEvent(id, (e) => (queued ? queued.push(e) : handleEvent(id, s, e)));
+  if (!(await listenWhileAlive(id, s, (e) => (queued ? queued.push(e) : handleEvent(id, s, e))))) return;
   try {
     if (source.kind === "collab") {
       s.shared = true;
@@ -521,9 +521,10 @@ async function attachExisting(id: string, s: Session, source: TerminalSource): P
       const r = await terminalApi.attach(id);
       if (r.scrollback) s.term.write(r.scrollback);
     }
-    s.opened = true;
+    if (!openedWhileAlive(id, s)) return;
     s.lastSize = `${s.term.cols}x${s.term.rows}`;
   } catch (err) {
+    if (!isAlive(id, s)) return;
     s.exited = true;
     s.term.write(`\x1b[31mCannot show the terminal: ${String((err as Error)?.message ?? err)}\x1b[0m\r\n`);
   }
@@ -532,8 +533,35 @@ async function attachExisting(id: string, s: Session, source: TerminalSource): P
   for (const e of pending) handleEvent(id, s, e);
 }
 
+/** Whether the tab of `s` is still shown: closing it while its shell starts disposes it. */
+const isAlive = (id: string, s: Session) => sessions.get(id) === s;
+
+/** Listen to the session's events; false (and not listening) when it was disposed meanwhile. */
+async function listenWhileAlive(id: string, s: Session, on: (e: TerminalEvent) => void): Promise<boolean> {
+  const unlisten = await terminalApi.onEvent(id, on);
+  if (!isAlive(id, s)) {
+    unlisten();
+    return false;
+  }
+  s.unlisten = unlisten;
+  return true;
+}
+
+/**
+ * The backend session is open (started or attached). When the tab was closed meanwhile,
+ * `disposeSession` could not close it yet: close it now, so no shell keeps running unowned.
+ */
+function openedWhileAlive(id: string, s: Session): boolean {
+  if (!isAlive(id, s)) {
+    void terminalApi.close(id).catch(() => undefined);
+    return false;
+  }
+  s.opened = true;
+  return true;
+}
+
 async function start(id: string, s: Session, cwd?: string, command?: TerminalProgram, ssh?: SshTarget): Promise<void> {
-  s.unlisten = await terminalApi.onEvent(id, (e) => handleEvent(id, s, e));
+  if (!(await listenWhileAlive(id, s, (e) => handleEvent(id, s, e)))) return;
   const open = () =>
     terminalApi.open({
       id,
@@ -550,11 +578,14 @@ async function start(id: string, s: Session, cwd?: string, command?: TerminalPro
     } catch (err) {
       // An unknown host key: ask like Test Connection does, then connect again.
       if (!ssh || !String(err).includes("not trusted yet") || !(await sshHostKeys(ssh))) throw err;
+      // The tab was closed while the host key was asked about: do not connect.
+      if (!isAlive(id, s)) return;
       await open();
     }
-    s.opened = true;
+    if (!openedWhileAlive(id, s)) return;
     s.lastSize = `${s.term.cols}x${s.term.rows}`;
   } catch (err) {
+    if (!isAlive(id, s)) return;
     s.exited = true;
     const what = ssh ? "Cannot start the SSH session" : "Cannot open the terminal";
     s.term.write(`\x1b[31m${what}: ${String(err)}\x1b[0m\r\n`);
