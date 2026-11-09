@@ -65,22 +65,22 @@ export async function installManaged(row: ServerRow): Promise<InstallOutcome | n
   await listen();
   if (installFor(row.id)) return null;
   stderrOf.delete(row.id);
-  setActive((list) => [...list, { id: row.id, name: row.name, label: `Installing ${row.name}…`, done: 0, total: null }]);
+  setActive((list) => [...list, { id: row.id, name: row.name, label: t("tools.langservers.installing", { name: row.name }), done: 0, total: null }]);
   let outcome: InstallOutcome | null = null;
   try {
     outcome = await langserversApi.install(row.id, option.index);
   } catch (e) {
-    showBalloon(t("tools.langservers.couldNotBeInstalled", { name: row.name }), errorText(e), 0, [{ label: "Retry", run: () => void installManaged(row) }]);
+    showBalloon(t("tools.langservers.couldNotBeInstalled", { name: row.name }), errorText(e), 0, [{ label: t("common.retry"), run: () => void installManaged(row) }]);
   } finally {
     setActive((list) => list.filter((a) => a.id !== row.id));
   }
   if (outcome === "succeeded") {
     await applyServers();
-    showBalloon(`${row.name} installed`, t("tools.langservers.itStartsWithTheNext"), 6000);
+    showBalloon(t("tools.langservers.installed", { name: row.name }), t("tools.langservers.itStartsWithTheNext"), 6000);
   } else if (outcome && outcome !== "cancelled") {
     // Stays until dismissed: an install takes a while and the user may have looked away.
     const detail = failureDetail(outcome.failed.code, stderrOf.get(row.id) ?? []);
-    showBalloon(t("tools.langservers.couldNotBeInstalled", { name: row.name }), detail, 0, [{ label: "Retry", run: () => void installManaged(row) }]);
+    showBalloon(t("tools.langservers.couldNotBeInstalled", { name: row.name }), detail, 0, [{ label: t("common.retry"), run: () => void installManaged(row) }]);
   }
   return outcome;
 }
@@ -100,18 +100,18 @@ export async function checkUpdates(force = false): Promise<void> {
   }
   showBalloon(updates.length === 1 ? t("tools.langservers.languageServerUpdateAvailable") : t("tools.langservers.languageServerUpdatesAvailable"), updateSummary(updates), 0, [
     {
-      label: "Update",
+      label: t("common.update"),
       run: () => {
         for (const u of updates) void updatePackage(u.name);
       },
     },
-    { label: "Not now", run: () => {} },
+    { label: t("tools.langservers.notNow"), run: () => {} },
   ]);
 }
 
 async function updatePackage(name: string): Promise<void> {
   await listen();
-  setActive((list) => [...list, { id: name, name, label: `Updating ${name}…`, done: 0, total: null }]);
+  setActive((list) => [...list, { id: name, name, label: t("tools.langservers.updating", { name }), done: 0, total: null }]);
   try {
     const outcome = await langserversApi.update(name);
     if (outcome === "succeeded") {

@@ -210,10 +210,10 @@ export const createEntry = (folder: boolean, at: string | null = tree.selected) 
   withServer(async (s) => {
     const dir = folderOf(at);
     const name = await askName({
-      title: folder ? "New Directory" : "New File",
-      label: folder ? "Enter new directory name:" : "Enter new file name:",
+      title: folder ? tr("tools.remoteHost.newDirectory") : tr("tools.remoteHost.newFile"),
+      label: folder ? tr("tools.remoteHost.enterNewDirectoryName") : tr("tools.remoteHost.enterNewFileName"),
       initial: "",
-      confirm: "OK",
+      confirm: tr("common.ok"),
     });
     if (!name) return;
     try {
@@ -229,7 +229,12 @@ export const createEntry = (folder: boolean, at: string | null = tree.selected) 
 
 export const renameEntry = (node: RemoteNode) =>
   withServer(async (s) => {
-    const name = await askName({ title: "Rename", label: `Rename ${node.dir ? "directory" : "file"} to:`, initial: node.name, confirm: "Rename" });
+    const name = await askName({
+      title: tr("tools.remoteHost.rename"),
+      label: tr("tools.remoteHost.renameTo", { kind: node.dir ? "directory" : "file" }),
+      initial: node.name,
+      confirm: tr("tools.remoteHost.rename"),
+    });
     if (!name || name === node.name) return;
     try {
       const path = await remoteHostApi.rename(s.id, node.path, name);
@@ -243,9 +248,9 @@ export const renameEntry = (node: RemoteNode) =>
 export const deleteEntry = (node: RemoteNode) =>
   withServer(async (s) => {
     const ok = await askConfirm({
-      title: "Delete",
-      message: `Delete ${node.dir ? "the directory" : ""} ${absolutePath(node.path)} on ${s.name}${node.dir ? " with everything in it" : ""}? This cannot be undone.`,
-      confirm: "Delete",
+      title: tr("common.delete"),
+      message: tr("tools.remoteHost.deleteConfirm", { kind: node.dir ? "directory" : "file", path: absolutePath(node.path), server: s.name }),
+      confirm: tr("common.delete"),
     });
     if (!ok) return;
     try {

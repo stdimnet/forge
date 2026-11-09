@@ -9,6 +9,7 @@ import type { CommandLine, RunConfiguration } from "@/ipc/run";
 import { activeSessionId, launch, setActiveSession } from "@/features/run/runStore";
 import { getSetting } from "@/state/settings";
 import { balloonsFor } from "@/keymap/dispatch";
+import { t } from "@/i18n";
 import { isPluginActive } from "@/state/project";
 
 export const PLUGIN = "forge.cpp";
@@ -62,6 +63,11 @@ export async function refreshCppStatus(refresh = false): Promise<CppStatus | nul
   }
 }
 
+/** The balloon text of a failed CMake configure with `errors` error messages (exported for tests). */
+export function cmakeFailureDetail(errors: number): string {
+  return errors ? t("langs.cpp.cmakeErrorsSeeTheToolWindow", { count: errors }) : t("langs.cpp.seeTheCmakeToolWindow");
+}
+
 /** Reload CMake Project (Reset Cache and Reload Project with `resetCache`). */
 export async function reloadCMake(resetCache = false): Promise<CMakeState | null> {
   await listenOnce();
@@ -71,11 +77,11 @@ export async function reloadCMake(resetCache = false): Promise<CMakeState | null
     const s = await cppApi.reload(resetCache);
     setCmake(s);
     const errors = s.messages.filter((m) => m.severity === "error").length;
-    if (s.status === "failed") showCppBalloon("CMake configure failed", errors ? `${errors} error${errors === 1 ? "" : "s"}: see the CMake tool window` : "See the CMake tool window", 6000);
+    if (s.status === "failed") showCppBalloon(t("langs.cpp.cmakeConfigureFailed"), cmakeFailureDetail(errors), 6000);
     return s;
   } catch (e) {
     setCmake((s) => (s ? { ...s, status: "failed" } : s));
-    showCppBalloon("Cannot reload the CMake project", String(e).replace(/^Error: /, ""), 8000);
+    showCppBalloon(t("langs.cpp.cannotReloadTheCmakeProject"), String(e).replace(/^Error: /, ""), 8000);
     return null;
   }
 }

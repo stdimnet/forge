@@ -16,7 +16,7 @@ const showBalloon = balloonsFor("Run");
 export async function analyzeStackTrace(text: string): Promise<boolean> {
   try {
     const a = await stacktraceApi.analyze(text);
-    openOutputTab({ name: "Stack Trace", type: "stacktrace", lines: a.lines, rerun: () => openAnalyzeDialog(text) });
+    openOutputTab({ name: t("tools.stacktrace.stackTrace"), type: "stacktrace", lines: a.lines, rerun: () => openAnalyzeDialog(text) });
     if (a.frames > 0 && a.resolved === 0) showBalloon(t("tools.stacktrace.noFrameOfTheStack"), t("tools.stacktrace.checkThePathMappingsOf"));
     return true;
   } catch (e) {

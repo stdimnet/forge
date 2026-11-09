@@ -18,7 +18,8 @@ import { Check, ChevronDown, ChevronUp } from "lucide-solid";
 import type { EditorDiagnostic, Severity } from "@/ipc/lsp";
 import { showToolWindow } from "@/state/layout";
 import { countBySeverity, diagnostics as diagnosticsStore, onDiagnostics, severityRank } from "./store";
-import { pluralize, severityIcon, severityLabel } from "./severity";
+import { severityCount, severityIcon } from "./severity";
+import { t } from "@/i18n";
 import { fromLsp, h, iconNode } from "./util";
 
 /** A diagnostic resolved to document offsets. */
@@ -173,7 +174,7 @@ class InspectionWidget implements PluginValue {
     const total = counts.error + counts.warning + counts.weak + counts.grammar + counts.typo;
     if (total === 0) {
       const ok = h("button", "cm-lsp-inspection-ok", iconNode(Check, 14));
-      ok.title = "No problems found";
+      ok.title = t("tools.lsp.noProblemsFound");
       ok.onclick = () => showToolWindow("problems");
       this.dom.append(ok);
       return;
@@ -183,15 +184,15 @@ class InspectionWidget implements PluginValue {
     for (const sev of ["error", "warning", "weak", "grammar", "typo"] as const) {
       if (!counts[sev]) continue;
       summary.append(h("span", `cm-lsp-count sev-${sev}`, iconNode(severityIcon[sev], 13), String(counts[sev])));
-      tips.push(pluralize(counts[sev], severityLabel[sev].toLowerCase()));
+      tips.push(severityCount(sev, counts[sev]));
     }
-    summary.title = `${tips.join(", ")}\nClick to open the Problems tool window`;
+    summary.title = t("tools.lsp.problemsSummaryTooltip", { summary: tips.join(", ") });
     summary.onclick = () => showToolWindow("problems");
     const prev = h("button", "cm-lsp-inspection-nav", iconNode(ChevronUp, 14));
-    prev.title = "Previous Highlighted Error (Shift+F2)";
+    prev.title = t("tools.lsp.previousHighlightedError", { shortcut: "Shift+F2" });
     prev.onclick = () => gotoProblem(this.view, -1);
     const next = h("button", "cm-lsp-inspection-nav", iconNode(ChevronDown, 14));
-    next.title = "Next Highlighted Error (F2)";
+    next.title = t("tools.lsp.nextHighlightedError", { shortcut: "F2" });
     next.onclick = () => gotoProblem(this.view, 1);
     this.dom.append(summary, prev, next);
   }

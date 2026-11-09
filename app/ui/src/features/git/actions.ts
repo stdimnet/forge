@@ -80,7 +80,7 @@ export function confirmRollback(paths: string[]): void {
     onOk: async () => {
       await runGit("Rollback failed", () => withLocalHistory("vcs", "Rollback", () => gitApi.rollback(paths), paths));
       await reloadOpenFiles(paths);
-      notify("success", tr("git.actions.rollback"), tr("tools.git.fileRolledBack", { count: paths.length, value: paths.length > 1 ? "s" : "" }));
+      notify("success", tr("git.actions.rollback"), tr("tools.git.fileRolledBack", { count: paths.length }));
     },
   });
 }
