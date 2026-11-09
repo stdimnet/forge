@@ -263,7 +263,9 @@ fn compare_cells(a: &str, b: &str) -> Ordering {
         _ => {}
     }
     match (ta.parse::<f64>(), tb.parse::<f64>()) {
-        (Ok(x), Ok(y)) => x.partial_cmp(&y).unwrap_or(Ordering::Equal),
+        // A total order: `NaN` cells sort after all numbers instead of equalling each of
+        // them, which breaks the order `sort_by` relies on (and may make it panic).
+        (Ok(x), Ok(y)) => x.total_cmp(&y),
         (Ok(_), Err(_)) => Ordering::Less,
         (Err(_), Ok(_)) => Ordering::Greater,
         _ => ta
@@ -300,6 +302,27 @@ pub fn sort_order(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn nan_cells_have_a_place_in_the_order() {
+        assert_eq!(compare_cells("1", "NaN"), Ordering::Less);
+        assert_eq!(compare_cells("NaN", "2"), Ordering::Greater);
+        assert_eq!(compare_cells("NaN", "NaN"), Ordering::Equal);
+        let rows: Vec<Vec<String>> = (0..200)
+            .map(|i| {
+                let v = if i % 3 == 0 {
+                    "NaN".to_string()
+                } else {
+                    ((i * 37) % 101).to_string()
+                };
+                vec![v]
+            })
+            .collect();
+        let order = sort_order(&rows, 0, false, 0);
+        let values: Vec<&str> = order.iter().map(|&r| rows[r][0].as_str()).collect();
+        let first_nan = values.iter().position(|v| *v == "NaN").unwrap();
+        assert!(values[first_nan..].iter().all(|v| *v == "NaN"));
+    }
 
     #[test]
     fn round_trips_quoting_delimiter_and_final_newline() {

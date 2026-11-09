@@ -1,6 +1,6 @@
 //! Interactive shell sessions on a pseudo terminal, used by the Terminal tool window.
 
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -11,6 +11,7 @@ use forge_core::{ForgeError, Result};
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 
+use crate::queued::QueuedWriter;
 use crate::shell::{default_shell, shell_args};
 use crate::termenv::{terminal_env, utf8_locale_fallback, FOREIGN_TERMINAL_VARS};
 use crate::utf8::Utf8Decoder;
@@ -50,7 +51,8 @@ pub type PtySink = Arc<dyn Fn(PtyEvent) + Send + Sync>;
 /// A running shell on a pseudo terminal.
 pub struct PtySession {
     master: Mutex<Box<dyn MasterPty + Send>>,
-    writer: Mutex<Box<dyn Write + Send>>,
+    /// Input goes through a queue so a shell that does not read never blocks the caller.
+    writer: QueuedWriter,
     killer: Mutex<Box<dyn ChildKiller + Send + Sync>>,
     shell: String,
     pid: Option<u32>,
@@ -152,7 +154,11 @@ impl PtySession {
         let pid = child.process_id();
         let killer = child.clone_killer();
         let mut reader = pair.master.try_clone_reader().map_err(other)?;
-        let writer = pair.master.take_writer().map_err(other)?;
+        let writer = QueuedWriter::spawn(
+            format!("pty-input-{}", pid.unwrap_or(0)),
+            pair.master.take_writer().map_err(other)?,
+        )
+        .map_err(other)?;
         let exited = Arc::new(AtomicBool::new(false));
         let exited_flag = exited.clone();
 
@@ -184,7 +190,7 @@ impl PtySession {
 
         Ok(Self {
             master: Mutex::new(pair.master),
-            writer: Mutex::new(writer),
+            writer,
             killer: Mutex::new(killer),
             shell,
             pid,
@@ -201,11 +207,10 @@ impl PtySession {
         self.pid
     }
 
-    /// Send user input (keystrokes, pasted text) to the shell.
+    /// Send user input (keystrokes, pasted text) to the shell. Never blocks: the input is
+    /// queued and written in order, even while the program in the terminal does not read.
     pub fn write(&self, data: &[u8]) -> Result<()> {
-        let mut w = self.writer.lock().expect("pty writer poisoned");
-        w.write_all(data).map_err(other)?;
-        w.flush().map_err(other)
+        self.writer.write(data).map_err(other)
     }
 
     /// Tell the shell about a new terminal size (SIGWINCH).
@@ -386,6 +391,18 @@ mod tests {
             text.contains("env:xterm-256color:truecolor:Forge:9.9.9:unset"),
             "{text:?}"
         );
+    }
+
+    /// A large paste into a terminal whose program does not read returns at once instead of
+    /// blocking until the terminal's input buffer drains.
+    #[test]
+    fn large_input_does_not_block() {
+        let (s, _rx) = start("/bin/sleep", vec!["30".into()]);
+        let started = std::time::Instant::now();
+        s.write(&vec![b'x'; 1024 * 1024]).unwrap();
+        s.write(b"more").unwrap();
+        assert!(started.elapsed() < Duration::from_secs(5));
+        s.kill().unwrap();
     }
 
     #[test]

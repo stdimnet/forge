@@ -154,7 +154,11 @@ pub fn user_type(d: Dialect, schema: &str, t: &TypeInfo) -> String {
 /// The routine's source, or its header when the catalog does not keep it.
 pub fn routine(d: Dialect, schema: &str, r: &RoutineInfo) -> String {
     let def = r.definition.trim();
-    if def.len() > 6 && def[..6].eq_ignore_ascii_case("create") {
+    if def.len() > 6
+        && def
+            .get(..6)
+            .is_some_and(|w| w.eq_ignore_ascii_case("create"))
+    {
         return format!("{}\n", def.trim_end());
     }
     let kind = if r.kind == "procedure" {
@@ -183,7 +187,11 @@ pub fn routine(d: Dialect, schema: &str, r: &RoutineInfo) -> String {
 
 pub fn trigger(d: Dialect, schema: &str, table: &str, t: &TriggerInfo) -> String {
     let def = t.definition.trim();
-    if def.len() > 6 && def[..6].eq_ignore_ascii_case("create") {
+    if def.len() > 6
+        && def
+            .get(..6)
+            .is_some_and(|w| w.eq_ignore_ascii_case("create"))
+    {
         return format!("{}\n", def.trim_end());
     }
     let mut out = format!(
@@ -332,6 +340,13 @@ mod tests {
             routine(Dialect::Postgres, "public", &r),
             "CREATE FUNCTION \"public\".\"total\"(o bigint) RETURNS numeric LANGUAGE sql\nAS\nSELECT 1\n"
         );
+        // A definition starting with a multi-byte character is not sliced inside it.
+        let r = RoutineInfo {
+            name: "f".into(),
+            definition: "ü€€ body".into(),
+            ..RoutineInfo::default()
+        };
+        assert!(routine(Dialect::Postgres, "public", &r).ends_with("ü€€ body\n"));
         let tr = TriggerInfo {
             name: "t".into(),
             timing: "BEFORE".into(),

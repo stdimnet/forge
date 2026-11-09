@@ -1685,11 +1685,46 @@ pub fn create_key_edits(
 }
 
 /// Apply an edit to the current content of its file (empty for new files).
+/// The catalogue files that create translation `key` (see [`create_key_edits`]) with their
+/// new contents: `(edit, text)`. Each file is read once and its edit applied to exactly the
+/// text it was computed on, so a file that changes in between cannot shift the offset.
+pub fn create_key_files(
+    tr: &Translations,
+    domain: &str,
+    key: &str,
+    locales: &[String],
+    read: &dyn Fn(&str) -> Option<String>,
+) -> Vec<(CatalogueEdit, String)> {
+    let texts = std::cell::RefCell::new(BTreeMap::<String, String>::new());
+    let once = |path: &str| {
+        if let Some(t) = texts.borrow().get(path) {
+            return Some(t.clone());
+        }
+        let t = read(path)?;
+        texts.borrow_mut().insert(path.to_string(), t.clone());
+        Some(t)
+    };
+    let edits = create_key_edits(tr, domain, key, locales, &once);
+    let texts = texts.into_inner();
+    edits
+        .into_iter()
+        .map(|e| {
+            let current = texts.get(&e.path).map_or("", String::as_str);
+            let text = apply_edit(current, &e);
+            (e, text)
+        })
+        .collect()
+}
+
 pub fn apply_edit(current: &str, edit: &CatalogueEdit) -> String {
     if edit.create {
         return edit.insert.clone();
     }
-    let at = edit.offset.min(current.len());
+    // Never inside a character, even for an edit computed on other text.
+    let mut at = edit.offset.min(current.len());
+    while !current.is_char_boundary(at) {
+        at -= 1;
+    }
     let mut s = String::with_capacity(current.len() + edit.insert.len());
     s.push_str(&current[..at]);
     s.push_str(&edit.insert);
@@ -1902,6 +1937,42 @@ mod tests {
         );
         assert_eq!(f[0].text, "You have no orders yet.");
         assert_eq!((f[0].from, f[0].to), (7, 20));
+    }
+
+    #[test]
+    fn created_keys_use_the_text_they_were_computed_on() {
+        let dir = project();
+        let snap = scan_project(dir.path(), &Config::default());
+        let root = dir.path().to_path_buf();
+        // The file shrinks to one multi-byte line after the first read.
+        let reads = std::cell::Cell::new(0);
+        let read = |p: &str| {
+            reads.set(reads.get() + 1);
+            if reads.get() > 1 {
+                return Some("ü: ü\n".repeat(2));
+            }
+            std::fs::read_to_string(root.join(p)).ok()
+        };
+        let files = create_key_files(
+            &snap.translations,
+            "messages",
+            "order.status.shipped",
+            &["en".into()],
+            &read,
+        );
+        assert_eq!(reads.get(), 1);
+        assert!(files[0]
+            .1
+            .contains("        open: \"Open\"\n        shipped: 'order.status.shipped'\n"));
+        // An offset inside a character is moved before it.
+        let edit = CatalogueEdit {
+            path: "x".into(),
+            create: false,
+            offset: 1,
+            insert: "k".into(),
+            line: 0,
+        };
+        assert_eq!(apply_edit("ü", &edit), "kü");
     }
 
     #[test]

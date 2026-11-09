@@ -44,11 +44,13 @@ pub(crate) fn line_indent(text: &str, byte: usize) -> &str {
 }
 
 /// Remove the common leading whitespace of the non-blank lines; blank lines become empty.
+/// Counted in characters, so indentation with multi-byte spaces (NBSP) is not cut inside one.
 pub(crate) fn dedent(lines: &[&str]) -> Vec<String> {
+    let lead = |l: &str| l.chars().take_while(|c| c.is_whitespace()).count();
     let common = lines
         .iter()
         .filter(|l| !l.trim().is_empty())
-        .map(|l| l.len() - l.trim_start().len())
+        .map(|l| lead(l))
         .min()
         .unwrap_or(0);
     lines
@@ -57,7 +59,8 @@ pub(crate) fn dedent(lines: &[&str]) -> Vec<String> {
             if l.trim().is_empty() {
                 String::new()
             } else {
-                l[common..].trim_end().to_string()
+                let at = l.char_indices().nth(common).map_or(l.len(), |(i, _)| i);
+                l[at..].trim_end().to_string()
             }
         })
         .collect()
@@ -92,6 +95,12 @@ pub(crate) fn normalize_indent(template: &str, unit: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dedent_counts_characters() {
+        assert_eq!(dedent(&["\u{a0}a", " b", ""]), ["a", "b", ""]);
+        assert_eq!(dedent(&["    x", "      y"]), ["x", "  y"]);
+    }
 
     #[test]
     fn converts_utf16_offsets() {

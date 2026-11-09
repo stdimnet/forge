@@ -173,8 +173,14 @@ pub fn interpolate(text: &str, env: &BTreeMap<String, String>) -> String {
             let expr = &r[..end];
             let (name, op, default) = match expr.find([':', '-', '?', '+']) {
                 Some(i) => {
-                    let op_len = if expr[i..].starts_with(':') { 2 } else { 1 };
-                    let op_end = (i + op_len).min(expr.len());
+                    // `:-`, `:?`, `:+`; a lone `:` (or one before another character, which
+                    // may be multi-byte) is one byte long.
+                    let op_len = if [":-", ":?", ":+"].iter().any(|o| expr[i..].starts_with(o)) {
+                        2
+                    } else {
+                        1
+                    };
+                    let op_end = i + op_len;
                     (&expr[..i], &expr[i..op_end], &expr[op_end..])
                 }
                 None => (expr, "", ""),
@@ -620,6 +626,14 @@ volumes:
 
     fn env() -> BTreeMap<String, String> {
         parse_env_file("# comment\nMYSQL_VERSION=8.4\nexport APP_PORT=\"8080\"\nEMPTY=\n")
+    }
+
+    #[test]
+    fn interpolation_handles_non_ascii_after_a_colon() {
+        let env = BTreeMap::from([("A".to_string(), "x".to_string())]);
+        assert_eq!(interpolate("${A:€}", &env), "x");
+        assert_eq!(interpolate("${B:-€}", &env), "€");
+        assert_eq!(interpolate("${B:}", &env), "");
     }
 
     #[test]

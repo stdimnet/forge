@@ -115,8 +115,13 @@ pub struct TodoResult {
 pub struct CommentSyntax {
     pub line: &'static [&'static str],
     pub block: &'static [(&'static str, &'static str)],
-    /// String delimiters (their content is never a comment).
+    /// String delimiters (their content is never a comment). `'` and `"` strings end at the
+    /// line break; only `` ` `` strings (template literals, Go raw strings) span lines, so a
+    /// stray apostrophe (`Don't` in inline HTML, YAML `it's`) cannot hide later comments.
     pub strings: &'static [char],
+    /// `'` starts a string only as a character literal (`'x'`, `'\n'`); otherwise it is a
+    /// lifetime or label (`'a`, Rust).
+    pub char_literals: bool,
     /// The whole file is text (plain text, Markdown).
     pub whole: bool,
 }
@@ -125,72 +130,91 @@ const C_LIKE: CommentSyntax = CommentSyntax {
     line: &["//"],
     block: &[("/*", "*/")],
     strings: &['"', '\'', '`'],
+    char_literals: false,
+    whole: false,
+};
+const RUST: CommentSyntax = CommentSyntax {
+    line: &["//"],
+    block: &[("/*", "*/")],
+    strings: &['"', '\''],
+    char_literals: true,
     whole: false,
 };
 const PHP: CommentSyntax = CommentSyntax {
     line: &["//", "#"],
     block: &[("/*", "*/"), ("<!--", "-->")],
     strings: &['"', '\''],
+    char_literals: false,
     whole: false,
 };
 const BLADE: CommentSyntax = CommentSyntax {
     line: &[],
     block: &[("{{--", "--}}"), ("<!--", "-->"), ("/*", "*/")],
     strings: &[],
+    char_literals: false,
     whole: false,
 };
 const TWIG: CommentSyntax = CommentSyntax {
     line: &[],
     block: &[("{#", "#}"), ("<!--", "-->")],
     strings: &[],
+    char_literals: false,
     whole: false,
 };
 const MARKUP: CommentSyntax = CommentSyntax {
     line: &[],
     block: &[("<!--", "-->"), ("/*", "*/")],
     strings: &[],
+    char_literals: false,
     whole: false,
 };
 const CSS: CommentSyntax = CommentSyntax {
     line: &[],
     block: &[("/*", "*/")],
     strings: &['"', '\''],
+    char_literals: false,
     whole: false,
 };
 const SCSS: CommentSyntax = CommentSyntax {
     line: &["//"],
     block: &[("/*", "*/")],
     strings: &['"', '\''],
+    char_literals: false,
     whole: false,
 };
 const HASH: CommentSyntax = CommentSyntax {
     line: &["#"],
     block: &[],
     strings: &['"', '\''],
+    char_literals: false,
     whole: false,
 };
 const INI: CommentSyntax = CommentSyntax {
     line: &["#", ";"],
     block: &[],
     strings: &[],
+    char_literals: false,
     whole: false,
 };
 const SQL: CommentSyntax = CommentSyntax {
     line: &["--", "#"],
     block: &[("/*", "*/")],
     strings: &['\''],
+    char_literals: false,
     whole: false,
 };
 const LUA: CommentSyntax = CommentSyntax {
     line: &["--"],
     block: &[("--[[", "]]")],
     strings: &['"', '\''],
+    char_literals: false,
     whole: false,
 };
 const TEXT: CommentSyntax = CommentSyntax {
     line: &[],
     block: &[],
     strings: &[],
+    char_literals: false,
     whole: true,
 };
 
@@ -215,14 +239,16 @@ impl CommentSyntax {
         Some(match ext {
             "php" | "phtml" | "inc" => PHP,
             "js" | "mjs" | "cjs" | "jsx" | "ts" | "mts" | "cts" | "tsx" | "java" | "kt" | "kts"
-            | "c" | "h" | "cc" | "cpp" | "hpp" | "cs" | "go" | "rs" | "swift" | "dart"
-            | "scala" | "groovy" | "gradle" | "json5" | "jsonc" | "proto" => C_LIKE,
+            | "c" | "h" | "cc" | "cpp" | "hpp" | "cs" | "go" | "swift" | "dart" | "scala"
+            | "groovy" | "gradle" | "json5" | "jsonc" | "proto" => C_LIKE,
             "vue" | "svelte" | "astro" => CommentSyntax {
                 line: &["//"],
                 block: &[("<!--", "-->"), ("/*", "*/")],
                 strings: &[],
+                char_literals: false,
                 whole: false,
             },
+            "rs" => RUST,
             "twig" => TWIG,
             "html" | "htm" | "xml" | "xhtml" | "svg" | "latte" | "tpl" | "smarty" => MARKUP,
             "css" => CSS,
@@ -270,16 +296,24 @@ pub fn comment_ranges(text: &str, syntax: &CommentSyntax) -> Vec<(usize, usize)>
             continue;
         }
         let c = rest.chars().next().unwrap_or(' ');
+        if c == '\'' && syntax.char_literals {
+            i += char_literal_len(rest).unwrap_or(1);
+            continue;
+        }
         if syntax.strings.contains(&c) {
             i += c.len_utf8();
             while i < bytes.len() {
                 let d = text[i..].chars().next().unwrap_or(c);
+                if d == '\n' && c != '`' {
+                    // The line break is not part of the string; `"` and `'` end with the line.
+                    break;
+                }
                 i += d.len_utf8();
                 if d == '\\' {
-                    if let Some(n) = text[i..].chars().next() {
+                    if let Some(n) = text[i..].chars().next().filter(|n| *n != '\n') {
                         i += n.len_utf8();
                     }
-                } else if d == c || (d == '\n' && c != '`' && c != '"' && c != '\'') {
+                } else if d == c {
                     break;
                 }
             }
@@ -288,6 +322,25 @@ pub fn comment_ranges(text: &str, syntax: &CommentSyntax) -> Vec<(usize, usize)>
         i += c.len_utf8();
     }
     out
+}
+
+/// The length of the character literal at the start of `rest` (`'x'`, `'\n'`, `'\u{1F600}'`),
+/// or `None` when the `'` starts a lifetime or label (`'a`, `'outer:`).
+fn char_literal_len(rest: &str) -> Option<usize> {
+    let mut chars = rest.char_indices().skip(1);
+    let (_, first) = chars.next()?;
+    if first == '\n' || first == '\'' {
+        return None;
+    }
+    if first == '\\' {
+        // An escape runs to the closing quote on the same line (`'\''`, `'\x41'`).
+        let body = &rest[2..];
+        let skip = body.chars().next()?.len_utf8();
+        let end = body[skip..].find(['\'', '\n'])? + skip;
+        return (body[end..].starts_with('\'')).then_some(2 + end + 1);
+    }
+    let (at, close) = chars.next()?;
+    (close == '\'').then_some(at + 1)
 }
 
 fn utf16_len(s: &str) -> usize {
@@ -510,6 +563,20 @@ mod tests {
         );
         assert_eq!(scan("NOTES.md", "- TODO write docs")[0].column, 2);
         assert!(scan("logo.png", "TODO").is_empty());
+    }
+
+    #[test]
+    fn quotes_do_not_run_across_lines() {
+        let rust = "fn f<'a>(x: &'a str) -> char {\n    let q = '\\'';\n    'x' // TODO fix\n}\n// FIXME later\n";
+        let items = scan("src/lib.rs", rust);
+        let texts: Vec<_> = items.iter().map(|i| (i.line, i.text.as_str())).collect();
+        assert_eq!(texts, vec![(2, "TODO fix"), (4, "FIXME later")]);
+        let php = "<p>Don't panic</p>\n<?php // TODO: escape\n";
+        assert_eq!(scan("a.php", php)[0].text, "TODO: escape");
+        assert_eq!(scan("c.yml", "title: it's\n# TODO: rename\n")[0].line, 1);
+        // Template literals still span lines.
+        assert!(scan("a.js", "const s = `\n// TODO not a comment\n`;\n").is_empty());
+        assert!(scan("a.js", "const s = '// TODO no';\n").is_empty());
     }
 
     #[test]
