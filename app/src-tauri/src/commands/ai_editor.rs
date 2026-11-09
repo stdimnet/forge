@@ -103,11 +103,11 @@ pub async fn ai_inline_complete(
     }
     let mut request = request;
     request.multiline = setting(&state, COMPLETION_MULTILINE, MultilinePolicy::Auto);
+    let policy = policy(&state).await;
+    // Other open files go along as context only when they may leave the editor too.
+    policy.retain_allowed_context(&mut request.related);
     let ctx = build_context(&request);
-    let verdict =
-        policy(&state)
-            .await
-            .check(&request.path, ctx.language.id(), Feature::InlineCompletion);
+    let verdict = policy.check(&request.path, ctx.language.id(), Feature::InlineCompletion);
     if !verdict.is_allowed() {
         return Ok(skipped(verdict.message().unwrap_or_default()));
     }
