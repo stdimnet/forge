@@ -617,7 +617,7 @@ Audit of the features with per-project state:
 | Terminals (`features/terminal`, `TerminalLifecycle`) | `beforeClose` asks about running commands, `closing` saves the layout and ends the sessions in Rust, `opened` restores the project's tabs (see "Terminal and Run/Debug") |
 | Project tree, Find, Find Usages, inspections, problems, notifications, Safe Mode banner | `closing` handlers (formerly `onProjectSwitch`) |
 | Services (`features/services/store.ts`) | `closing` drops selection, expansion and picked containers; Rust reconfigures the services in `project_opened` |
-| Editor tabs, recent files, navigation history | closed with the project's tabs (`closeAllTabs`, `onTabsReset`) before `closing` |
+| Editor tabs, recent files, navigation history | `beforeClose` (`features/system/unsaved.ts`, order -100) saves every modified document (`saveAllForClose`) and vetoes with a "Discard and Close?" question when one cannot be written; then they close with the project's tabs (`closeAllTabs`, `onTabsReset`) before `closing`. `closeAllTabs` bumps a generation, so reads (`openFile`, `reloadFile`, layout restore) and saves that started for the old project never land in the new one. Every UI path that replaces the project (This Window, Close Project, SSH, dev container, WSL, Repair IDE) asks `beforeClose` first |
 | Run configurations, tool window layout, database connections, debug state, AI chat, bookmarks, TODO, Code With Me session | derive from `workspace()?.root` (they reload in an effect on the root) |
 | Scratches | not project state (scratches belong to the IDE, as in PHPStorm) |
 | Run sessions | keep running after a switch, as before (their consoles name their project) |

@@ -12,7 +12,7 @@ import {
   type SshConfiguration,
 } from "@/ipc/remote";
 import type { RecentProject, WorkspaceInfo } from "@/ipc/workspace";
-import { openRemoteProject } from "@/state/workspace";
+import { confirmCloseProject, openRemoteProject } from "@/state/workspace";
 import { openDialogWindow } from "@/shell/window/dialogs";
 
 export const blankConfig = (): SshConfiguration => ({
@@ -42,7 +42,9 @@ export interface SshDialogResult {
 }
 
 /** File | Remote Development | New SSH Connection… (and the Welcome screen). */
-export function openNewSshConnection(request: Partial<SshDialogRequest> = {}): void {
+export async function openNewSshConnection(request: Partial<SshDialogRequest> = {}): Promise<void> {
+  // The dialog replaces the open project: it closes first (modified files are saved).
+  if (!(await confirmCloseProject())) return;
   const full: SshDialogRequest = { config: request.config ?? blankConfig(), path: request.path, error: request.error };
   void openDialogWindow(SSH_CONNECTION_DIALOG, full);
 }
@@ -168,14 +170,14 @@ export async function openRecentRemote(project: RecentProject): Promise<void> {
   const config: SshConfiguration = saved ?? { ...blankConfig(), host: r.host, port: r.port, user: r.user };
   // Without a stored password the dialog asks for it.
   if (!saved || (saved.auth === "password" && !saved.hasSecret)) {
-    openNewSshConnection({ config, path: r.path });
+    void openNewSshConnection({ config, path: r.path });
     return;
   }
   setConnecting({ label: r.label, message: `Connecting to ${r.label}…` });
   try {
     const result = await connectWithConfirmation(config);
     if ("error" in result) {
-      openNewSshConnection({ config, path: r.path, error: result.error });
+      void openNewSshConnection({ config, path: r.path, error: result.error });
       return;
     }
     await openRemoteProject(result.connectionId, r.path);

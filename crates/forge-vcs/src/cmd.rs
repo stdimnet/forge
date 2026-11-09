@@ -35,9 +35,37 @@ pub struct GitOutput {
     pub stderr: String,
 }
 
+/// Result of a git invocation whose stdout is kept as raw bytes ([`GitExec::exec_bytes`]).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct GitBytesOutput {
+    pub ok: bool,
+    pub stdout: Vec<u8>,
+    pub stderr: String,
+    /// Whether stdin and stdout went through unchanged. `false` when the transport only
+    /// carries text, so bytes that are not UTF-8 were replaced by U+FFFD on the way.
+    pub faithful: bool,
+}
+
 /// Runs git somewhere: on this machine ([`LocalGit`]) or on a remote host.
 pub trait GitExec: Send + Sync {
     fn exec(&self, req: &GitRequest) -> Result<GitOutput>;
+
+    /// Like [`GitExec::exec`], but with raw bytes for stdin and stdout (patches of files that
+    /// are not UTF-8, e.g. Windows-1252 sources). The default goes through the text transport
+    /// and reports `faithful: false`; callers must not rely on bytes that are not UTF-8 then.
+    fn exec_bytes(&self, req: &GitRequest, stdin: Option<&[u8]>) -> Result<GitBytesOutput> {
+        let mut req = req.clone();
+        if let Some(input) = stdin {
+            req.stdin = Some(String::from_utf8_lossy(input).into_owned());
+        }
+        let out = self.exec(&req)?;
+        Ok(GitBytesOutput {
+            ok: out.ok,
+            stdout: out.stdout.into_bytes(),
+            stderr: out.stderr,
+            faithful: false,
+        })
+    }
 }
 
 /// Runs the local `git` binary.
@@ -57,8 +85,26 @@ impl GitExec for LocalGit {
         )?;
         Ok(GitOutput {
             ok: out.ok,
+            stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+            stderr: out.stderr,
+        })
+    }
+
+    fn exec_bytes(&self, req: &GitRequest, stdin: Option<&[u8]>) -> Result<GitBytesOutput> {
+        let args: Vec<&str> = req.args.iter().map(String::as_str).collect();
+        let out = run_local(
+            Path::new(&req.cwd),
+            &args,
+            Run {
+                stdin: stdin.or(req.stdin.as_deref().map(str::as_bytes)),
+                non_interactive: req.non_interactive,
+            },
+        )?;
+        Ok(GitBytesOutput {
+            ok: out.ok,
             stdout: out.stdout,
             stderr: out.stderr,
+            faithful: true,
         })
     }
 }
@@ -122,7 +168,42 @@ pub(crate) fn run_raw(
     })
 }
 
-fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
+/// Run git through `exec`, keeping stdin and stdout as bytes (see [`GitExec::exec_bytes`]).
+pub(crate) fn run_raw_bytes(
+    exec: &dyn GitExec,
+    cwd: &Path,
+    args: &[&str],
+    stdin: Option<&[u8]>,
+) -> Result<GitBytesOutput> {
+    exec.exec_bytes(
+        &GitRequest {
+            cwd: cwd.to_string_lossy().into_owned(),
+            args: args.iter().map(|a| a.to_string()).collect(),
+            stdin: None,
+            non_interactive: false,
+        },
+        stdin,
+    )
+}
+
+impl From<GitBytesOutput> for Output {
+    fn from(out: GitBytesOutput) -> Self {
+        Output {
+            ok: out.ok,
+            stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+            stderr: out.stderr,
+        }
+    }
+}
+
+/// Output of the local git binary; stdout stays raw.
+struct LocalOutput {
+    ok: bool,
+    stdout: Vec<u8>,
+    stderr: String,
+}
+
+fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<LocalOutput> {
     let program = git_binary();
     let mut cmd = Command::new(&program);
     cmd.current_dir(cwd)
@@ -171,9 +252,9 @@ fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
     let out = child
         .wait_with_output()
         .map_err(|e| ForgeError::Other(format!("git: {e}")))?;
-    Ok(Output {
+    Ok(LocalOutput {
         ok: out.status.success(),
-        stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+        stdout: out.stdout,
         stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
     })
 }

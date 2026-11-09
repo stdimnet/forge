@@ -6,6 +6,7 @@ import { registerMock } from "@/ipc";
 import type { EditPlan, WorkspaceEdit } from "@/ipc/codeintel";
 import type { RefactorAnswer, SafeDeleteAnswer, SignatureInfo } from "@/ipc/refactor";
 import { commands } from "@/state/commands";
+import { onPathMoved } from "@/state/editor";
 import { registerView } from "@/editor/views";
 import { canDrop } from "@/features/project/ProjectView";
 import { applyWorkspaceEdit, refactoringHistory } from "./refactoring";
@@ -199,5 +200,22 @@ describe("file operations of a refactoring", () => {
       "conflict",
     );
     expect(calls).toEqual(["rename app/Models -> app/Domain", "apply", "rename app/Domain -> app/Models"]);
+  });
+
+  it("moves bookmarks, overrides and Recent Locations with the files", async () => {
+    const moves: [string, string | null][] = [];
+    const stop = onPathMoved((from, to) => void moves.push([from, to]));
+    registerMock("fs_rename", () => undefined);
+    registerMock("code_apply_edit", () => {
+      throw new Error("conflict");
+    });
+    const edit: WorkspaceEdit = { changes: [{ kind: "delete", path: "app/Domain/x.txt" }] };
+    await applyWorkspaceEdit(edit, { label: "Move", fileOps: [{ kind: "move", from: "app/Models", to: "app/Domain" }] }).catch(() => undefined);
+    stop();
+    // Moved, then moved back when the edit failed.
+    expect(moves).toEqual([
+      ["app/Models", "app/Domain"],
+      ["app/Domain", "app/Models"],
+    ]);
   });
 });

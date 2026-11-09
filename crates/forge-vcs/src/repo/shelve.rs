@@ -6,8 +6,8 @@
 use serde::Serialize;
 
 use super::Repo;
-use crate::cmd::{self, run_raw, Run};
-use crate::patch::{apply_file_patch, join_patch, split_patch, PatchStatus};
+use crate::cmd::{self, run_raw, run_raw_bytes, Run};
+use crate::patch::{apply_file_patch, split_patch, split_patch_bytes, PatchStatus};
 use crate::shelf::{Shelf, ShelvedChangelist};
 use forge_core::{ForgeError, Result};
 
@@ -57,6 +57,13 @@ impl Repo {
     /// [`Repo::changes_patch`], optionally reversed (`git diff -R`, Create Patch's "Reverse
     /// patch").
     pub(super) fn changes_patch_with(&self, paths: &[String], reverse: bool) -> Result<String> {
+        let (patch, _) = self.changes_patch_bytes(paths, reverse)?;
+        Ok(String::from_utf8_lossy(&patch).into_owned())
+    }
+
+    /// [`Repo::changes_patch_with`] as raw bytes, plus whether the git transport kept them
+    /// unchanged ([`crate::GitExec::exec_bytes`]).
+    fn changes_patch_bytes(&self, paths: &[String], reverse: bool) -> Result<(Vec<u8>, bool)> {
         if !self.has_head() {
             return Err(ForgeError::Other(
                 "changes can only be shelved after the first commit".into(),
@@ -81,7 +88,8 @@ impl Repo {
                 }
             }
         }
-        let mut patch = String::new();
+        let mut patch = Vec::new();
+        let mut faithful = true;
         if !tracked.is_empty() {
             let mut args = vec!["--literal-pathspecs", "diff"];
             args.extend(DIFF);
@@ -90,7 +98,12 @@ impl Repo {
             }
             args.extend(["HEAD", "--"]);
             args.extend(tracked.iter().map(String::as_str));
-            patch.push_str(&self.git(&args)?);
+            let out = run_raw_bytes(self.exec.as_ref(), &self.root, &args, None)?;
+            if !out.ok {
+                return Err(cmd::error_from(&args, &out.into()));
+            }
+            faithful &= out.faithful;
+            patch.extend(out.stdout);
         }
         for path in &untracked {
             let mut args = vec!["diff", "--no-index"];
@@ -100,21 +113,51 @@ impl Repo {
             }
             args.extend(["--", "/dev/null", path.as_str()]);
             // Exit code 1 means "differences found".
-            let out = run_raw(self.exec.as_ref(), &self.root, &args, Run::default())?;
-            if !out.stdout.starts_with("diff --git") {
-                return Err(cmd::error_from(&args, &out));
+            let out = run_raw_bytes(self.exec.as_ref(), &self.root, &args, None)?;
+            if !out.stdout.starts_with(b"diff --git") {
+                return Err(cmd::error_from(&args, &out.into()));
             }
-            patch.push_str(&out.stdout);
+            faithful &= out.faithful;
+            patch.extend(out.stdout);
         }
-        Ok(patch)
+        Ok((patch, faithful))
     }
 
     /// Shelve Changes: store the changes of `paths` in the shelf as `name`, then remove them
     /// from the working tree and the index (new files are deleted).
+    ///
+    /// The patch is kept as raw bytes, so files that are not UTF-8 (Windows-1252, Latin-1)
+    /// shelve exactly. Nothing is rolled back unless the stored patch provably restores the
+    /// working tree: a transport that can only carry text refuses such files, and the patch
+    /// must apply in reverse to the files as they are now.
     pub fn shelve(&self, shelf: &Shelf, paths: &[String], name: &str) -> Result<ShelvedChangelist> {
-        let patch = self.changes_patch(paths)?;
-        if patch.trim().is_empty() {
+        let (patch, faithful) = self.changes_patch_bytes(paths, false)?;
+        if patch.trim_ascii().is_empty() {
             return Err(ForgeError::Other("no changes to shelve".into()));
+        }
+        if !faithful {
+            if let Some(f) = split_patch_bytes(&patch)
+                .into_iter()
+                .find(|(f, _)| f.text.contains('\u{FFFD}'))
+            {
+                return Err(ForgeError::Other(format!(
+                    "{} is not UTF-8 and cannot be shelved over this connection",
+                    self.repo_to_ws(&f.0.path)
+                )));
+            }
+        }
+        // The rollback below is only safe when the stored patch can bring the changes back.
+        let check = run_raw_bytes(
+            self.exec.as_ref(),
+            &self.root,
+            &["apply", "-R", "--check", "--whitespace=nowarn", "-"],
+            Some(&patch),
+        )?;
+        if !check.ok {
+            return Err(ForgeError::Other(format!(
+                "the changes could not be shelved safely, nothing was changed ({})",
+                check.stderr.trim()
+            )));
         }
         let branch = self.status()?.branch;
         let cl = shelf.create(name, branch.as_deref(), &patch)?;
@@ -123,8 +166,11 @@ impl Repo {
     }
 
     /// Roll back what `patch` changes: files known to HEAD are restored, new files removed.
-    fn discard(&self, patch: &str) -> Result<()> {
-        let files = split_patch(patch);
+    fn discard(&self, patch: &[u8]) -> Result<()> {
+        let files: Vec<_> = split_patch_bytes(patch)
+            .into_iter()
+            .map(|(f, _)| f)
+            .collect();
         let (added, existing): (Vec<_>, Vec<_>) =
             files.iter().partition(|f| f.status == PatchStatus::Added);
         if !existing.is_empty() {
@@ -171,33 +217,35 @@ impl Repo {
     ) -> Result<String> {
         let wanted: Option<Vec<String>> =
             paths.map(|p| p.iter().map(|p| self.ws_to_repo(p)).collect());
-        let files: Vec<_> = split_patch(&shelf.patch(id)?)
+        let (files, raw): (Vec<_>, Vec<_>) = split_patch_bytes(&shelf.patch_bytes(id)?)
             .into_iter()
-            .filter(|f| match &wanted {
+            .filter(|(f, _)| match &wanted {
                 Some(w) => w.contains(&f.path),
                 None => true,
             })
-            .collect();
+            .unzip();
         if files.is_empty() {
             return Err(ForgeError::Other("nothing to unshelve".into()));
         }
-        let patch = join_patch(&files);
-        let check = run_raw(
+        let patch: Vec<u8> = raw.concat();
+        let check: cmd::Output = run_raw_bytes(
             self.exec.as_ref(),
             &self.root,
             &["apply", "--check", "--whitespace=nowarn", "-"],
-            Run {
-                stdin: Some(patch.as_bytes()),
-                ..Run::default()
-            },
-        )?;
+            Some(&patch),
+        )?
+        .into();
         let added: Vec<&str> = files
             .iter()
             .filter(|f| f.status == PatchStatus::Added)
             .map(|f| f.path.as_str())
             .collect();
         if check.ok {
-            self.git_stdin(&["apply", "--whitespace=nowarn", "-"], &patch)?;
+            let args = ["apply", "--whitespace=nowarn", "-"];
+            let out = run_raw_bytes(self.exec.as_ref(), &self.root, &args, Some(&patch))?;
+            if !out.ok {
+                return Err(cmd::error_from(&args, &out.into()));
+            }
             if !added.is_empty() {
                 // New files come back as added files, like PHPStorm.
                 let mut args = vec!["--literal-pathspecs", "add", "--"];
@@ -205,15 +253,13 @@ impl Repo {
                 self.git(&args)?;
             }
         } else {
-            let merged = run_raw(
+            let merged: cmd::Output = run_raw_bytes(
                 self.exec.as_ref(),
                 &self.root,
                 &["apply", "--3way", "--whitespace=nowarn", "-"],
-                Run {
-                    stdin: Some(patch.as_bytes()),
-                    ..Run::default()
-                },
-            )?;
+                Some(&patch),
+            )?
+            .into();
             if !merged.ok {
                 let conflicted = self
                     .status()

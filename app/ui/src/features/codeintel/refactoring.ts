@@ -18,6 +18,7 @@ import { codeApi, isLibraryPath, type AppliedFile, type FileRename, type Workspa
 import { workspaceApi } from "@/ipc/workspace";
 import { localHistoryApi, withLocalHistory } from "@/ipc/localHistory";
 import { editor, closeTab, isDirty, openFile, saveFile } from "@/state/editor";
+import { deletePath, renamePath } from "@/state/pathOps";
 import { showBalloon } from "@/keymap";
 import { refreshDirs } from "@/features/project/ProjectView";
 import { viewFor } from "@/features/lsp/navigation";
@@ -124,7 +125,7 @@ async function runFileOps(ops: FileOp[], reverse: boolean): Promise<FileRename[]
   const list = reverse ? [...ops].reverse() : ops;
   for (const op of list) {
     if (op.kind === "copy") {
-      if (reverse) await workspaceApi.delete(op.to);
+      if (reverse) await deletePath(op.to);
       else await workspaceApi.copy(op.from, op.to);
       continue;
     }
@@ -132,7 +133,7 @@ async function runFileOps(ops: FileOp[], reverse: boolean): Promise<FileRename[]
     const tabs = editor.tabs.filter((t) => under(t.path, from));
     // Unsaved edits go with the file.
     for (const t of tabs.filter(isDirty)) await saveFile(t.path);
-    await workspaceApi.rename(from, to);
+    await renamePath(from, to);
     for (const t of tabs) moved.push({ from: t.path, to: to + t.path.slice(from.length) });
   }
   if (moved.length) for (const m of moved) closeTab(m.from);

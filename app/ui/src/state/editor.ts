@@ -214,19 +214,75 @@ export function tabPolicy(): TabPolicy {
 }
 
 /**
+ * Incremented whenever the window's documents belong to another project (`closeAllTabs`):
+ * reads and saves that started for the previous project must not touch the new one.
+ */
+let generation = 0;
+
+/** Documents whose last tab closed while they were modified; they go once they are saved. */
+const closingSaves = new Set<string>();
+
+type SaveFailureListener = (path: string, error: unknown) => void;
+const saveFailureListeners = new Set<SaveFailureListener>();
+
+/**
+ * Notified when a modified file could not be saved as its last tab closed. The tab is open
+ * again (in the background), so the edits are not lost.
+ */
+export function onCloseSaveFailed(cb: SaveFailureListener): () => void {
+  saveFailureListeners.add(cb);
+  return () => saveFailureListeners.delete(cb);
+}
+
+/**
+ * A modified document lost its last tab: save it like PHPStorm does (an autosave, so the
+ * Actions on Save run only with "Also run on autosave"), then drop it. A failed save reopens
+ * the tab instead.
+ */
+async function saveClosedDocument(path: string): Promise<void> {
+  closingSaves.add(path);
+  const gen = generation;
+  let failure: unknown = null;
+  try {
+    await saveFile(path, "autosave");
+  } catch (e) {
+    failure = e ?? new Error("save failed");
+  }
+  closingSaves.delete(path);
+  if (gen !== generation) return;
+  const tab = editor.tabs.find((t) => t.path === path);
+  // Opened again meanwhile: it stays.
+  if (!tab || groups.openIds(editor.layout).has(path)) return;
+  if (failure) {
+    showTab(path, undefined, true);
+    saveFailureListeners.forEach((l) => l(path, failure));
+    if (!saveFailureListeners.size) console.warn(`could not save ${path}`, failure);
+    return;
+  }
+  // Changed while it was saved (e.g. by a refactoring): save that too.
+  if (isDirty(tab)) return void saveClosedDocument(path);
+  setEditor("tabs", (tabs) => tabs.filter((t) => t.path !== path));
+  closeListeners.forEach((l) => l(tab));
+}
+
+/**
  * Store a new layout: documents and custom tabs no group shows any more are closed (close
- * listeners run) and `editor.active` follows the active group.
+ * listeners run) and `editor.active` follows the active group. Modified documents are saved
+ * first and stay loaded until they are (`saveClosedDocument`), so closing never loses edits.
  */
 function commitLayout(next: TabLayout): void {
   const open = groups.openIds(next);
-  const closing = editor.tabs.filter((t) => !open.has(t.path));
+  const leaving = editor.tabs.filter((t) => !open.has(t.path));
+  const keep = new Set(leaving.filter((t) => isDirty(t) || closingSaves.has(t.path)).map((t) => t.path));
+  const closing = leaving.filter((t) => !keep.has(t.path));
   if (customTabs().some((t) => !open.has(t.id))) setCustomTabs((tabs) => tabs.filter((t) => open.has(t.id)));
   // `reconcile` keeps the group objects (keyed by id), so editors in unchanged groups stay mounted.
   batch(() => {
     if (next !== editor.layout) setEditor("layout", reconcile(next));
-    if (closing.length) setEditor("tabs", (tabs) => tabs.filter((t) => open.has(t.path)));
+    if (closing.length) setEditor("tabs", (tabs) => tabs.filter((t) => open.has(t.path) || keep.has(t.path)));
     setEditor("active", groups.activeTabId(next));
   });
+  for (const path of keep) if (!closingSaves.has(path)) void saveClosedDocument(path);
   for (const t of closing) closeListeners.forEach((l) => l(t));
 }
 
@@ -365,8 +421,11 @@ export async function openFile(path: string, opts: { group?: number; activate?: 
     ]);
   }
   if (!editor.tabs.some((t) => t.path === path)) {
+    const gen = generation;
     const shared = await sharedTabs?.open(path);
     const file = shared ? undefined : await readText(path);
+    // Another project took the window while reading: the text belongs to the old one.
+    if (gen !== generation) return;
     // Opened twice while reading: keep the first tab.
     if (shared && !editor.tabs.some((t) => t.path === path)) {
       const { content, savedHash } = shared;
@@ -534,6 +593,7 @@ export function saveFile(path: string, trigger: SaveTrigger = "plain"): Promise<
 async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab || !isFileTab(tab)) return;
+  const gen = generation;
   if (tab.shared && sharedTabs) {
     // The host writes the shared document; its save state arrives through the session.
     const content = tab.content;
@@ -572,6 +632,8 @@ async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
     }
   }
   const current = editor.tabs.find((t) => t.path === path);
+  // Another project took the window meanwhile: never write the old text into it.
+  if (gen !== generation) throw new Error(`${path} was not saved: the project was closed`);
   if (!current) return;
   // Typed meanwhile: save what is in the editor now, untouched.
   if (current.content !== original) {
@@ -600,12 +662,33 @@ export async function saveAll(trigger: SaveTrigger = "autosave"): Promise<void> 
   await Promise.all(editor.tabs.filter(isDirty).map((t) => saveFile(t.path, trigger)));
 }
 
+/**
+ * Save every modified document before the project closes or the window goes away: waits for
+ * saves already running (tabs that just closed), then saves the rest. Never throws; returns
+ * the files that could not be saved.
+ */
+export async function saveAllForClose(): Promise<{ path: string; error: unknown }[]> {
+  const failed = new Map<string, unknown>();
+  const settle = (path: string, p: Promise<void>) => p.catch((error) => void failed.set(path, error ?? new Error("save failed")));
+  await Promise.all([...pendingSaves].map(([path, p]) => settle(path, p)));
+  failed.clear();
+  await Promise.all(editor.tabs.filter(isDirty).map((t) => settle(t.path, saveFile(t.path, "autosave"))));
+  // A save that failed earlier (a closed tab that reopened) is still modified.
+  for (const t of editor.tabs) if (isDirty(t) && !failed.has(t.path)) failed.set(t.path, new Error("not saved"));
+  return [...failed].map(([path, error]) => ({ path, error }));
+}
+
 /** Re-read an open file from disk after an external change (unless it has unsaved edits). */
 export async function reloadFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   // Shared tabs follow the disk through the session (the host applies the change).
   if (!tab || !isFileTab(tab) || isDirty(tab) || tab.shared) return;
+  const before = tab.content;
+  const gen = generation;
   const file = await readText(path, tab.encoding === "UTF-8" ? undefined : tab.encoding);
+  // Typed (or saved) while the file was read: the editor's text wins, nothing is replaced.
+  const now = editor.tabs.find((t) => t.path === path);
+  if (gen !== generation || !now || now.content !== before || isDirty(now)) return;
   if (file.text === tab.content && file.eol === tab.eol && file.bom === tab.bom) return;
   setEditor("tabs", (t) => t.path === path, {
     content: file.text,
@@ -672,9 +755,16 @@ export function onTabsReset(cb: () => void): () => void {
   return () => resetListeners.delete(cb);
 }
 
-/** Close every tab, e.g. when switching projects. */
+/**
+ * Close every tab, e.g. when switching projects. Modified documents are saved by the
+ * project's `beforeClose` (`features/system/unsaved.ts`) before this runs.
+ */
 export function closeAllTabs(): void {
+  generation++;
+  closingSaves.clear();
   const closing = [...editor.tabs];
+  const unsaved = closing.filter(isDirty).map((t) => t.path);
+  if (unsaved.length) console.warn("closing the project with unsaved files", unsaved);
   setCustomTabs([]);
   setEditor({ tabs: [], active: null });
   setEditor("layout", reconcile(groups.newLayout()));

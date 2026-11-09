@@ -44,6 +44,24 @@ pub fn split_patch(patch: &str) -> Vec<PatchFile> {
     sections.into_iter().map(describe).collect()
 }
 
+/// [`split_patch`] for a patch kept as raw bytes: each file section with its exact bytes
+/// (files that are not UTF-8 keep their encoding; the [`PatchFile`] text is lossy).
+pub fn split_patch_bytes(patch: &[u8]) -> Vec<(PatchFile, Vec<u8>)> {
+    let mut sections: Vec<Vec<u8>> = Vec::new();
+    for line in patch.split_inclusive(|&b| b == b'\n') {
+        if line.starts_with(b"diff --git ") {
+            sections.push(Vec::new());
+        }
+        if let Some(s) = sections.last_mut() {
+            s.extend_from_slice(line);
+        }
+    }
+    sections
+        .into_iter()
+        .map(|raw| (describe(String::from_utf8_lossy(&raw).into_owned()), raw))
+        .collect()
+}
+
 fn describe(text: String) -> PatchFile {
     let mut status = PatchStatus::Modified;
     let mut binary = false;

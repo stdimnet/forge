@@ -7,7 +7,8 @@
 //! <shelf dir>/<id>/shelved.patch   `git diff --binary --full-index` of the files
 //! ```
 //!
-//! Paths in the store are repository-relative; [`crate::Repo`] converts them for the UI.
+//! Paths in the store are repository-relative; [`crate::Repo`] converts them for the UI. The
+//! patch is stored as raw bytes, so files in other encodings than UTF-8 come back unchanged.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,7 +17,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use forge_core::{ForgeError, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::patch::{split_patch, PatchStatus};
+use crate::patch::{split_patch_bytes, PatchStatus};
 
 /// One shelved file.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -73,10 +74,10 @@ fn check_id(id: &str) -> Result<&str> {
 }
 
 /// The files a patch changes.
-pub fn shelved_files(patch: &str) -> Vec<ShelvedFile> {
-    split_patch(patch)
+pub fn shelved_files(patch: &[u8]) -> Vec<ShelvedFile> {
+    split_patch_bytes(patch)
         .into_iter()
-        .map(|f| ShelvedFile {
+        .map(|(f, _)| ShelvedFile {
             path: f.path,
             status: f.status,
             binary: f.binary,
@@ -118,12 +119,18 @@ impl Shelf {
             .map_err(|e| ForgeError::Other(format!("{}: {e}", file.display())))
     }
 
+    /// The stored patch as text, for showing it (bytes that are not UTF-8 become U+FFFD).
     pub fn patch(&self, id: &str) -> Result<String> {
-        let file = self.folder(id)?.join(PATCH);
-        fs::read_to_string(&file).map_err(|e| ForgeError::io(&file, e))
+        Ok(String::from_utf8_lossy(&self.patch_bytes(id)?).into_owned())
     }
 
-    fn write(&self, cl: &ShelvedChangelist, patch: Option<&str>) -> Result<()> {
+    /// The stored patch exactly as git printed it; use this to apply it.
+    pub fn patch_bytes(&self, id: &str) -> Result<Vec<u8>> {
+        let file = self.folder(id)?.join(PATCH);
+        fs::read(&file).map_err(|e| ForgeError::io(&file, e))
+    }
+
+    fn write(&self, cl: &ShelvedChangelist, patch: Option<&[u8]>) -> Result<()> {
         let folder = self.folder(&cl.id)?;
         fs::create_dir_all(&folder).map_err(|e| ForgeError::io(&folder, e))?;
         if let Some(patch) = patch {
@@ -141,7 +148,7 @@ impl Shelf {
         &self,
         name: &str,
         branch: Option<&str>,
-        patch: &str,
+        patch: &[u8],
     ) -> Result<ShelvedChangelist> {
         let files = shelved_files(patch);
         if files.is_empty() {
@@ -200,15 +207,16 @@ impl Shelf {
     /// Deletes the changelist when nothing is left; returns what remains.
     pub fn remove_files(&self, id: &str, paths: &[String]) -> Result<Option<ShelvedChangelist>> {
         let mut cl = self.get(id)?;
-        let rest: Vec<_> = split_patch(&self.patch(id)?)
+        let rest: Vec<u8> = split_patch_bytes(&self.patch_bytes(id)?)
             .into_iter()
-            .filter(|f| !paths.contains(&f.path))
+            .filter(|(f, _)| !paths.contains(&f.path))
+            .flat_map(|(_, raw)| raw)
             .collect();
         if rest.is_empty() {
             self.delete(id)?;
             return Ok(None);
         }
-        let patch = crate::patch::join_patch(&rest);
+        let patch = rest;
         cl.files = shelved_files(&patch);
         self.write(&cl, Some(&patch))?;
         Ok(Some(cl))
@@ -226,8 +234,8 @@ mod tests {
         let tmp = tempfile::TempDir::new().unwrap();
         let shelf = Shelf::new(tmp.path().join("shelf"));
         assert!(shelf.list().is_empty());
-        let first = shelf.create("  ", Some("main"), PATCH).unwrap();
-        let second = shelf.create("Second", None, PATCH).unwrap();
+        let first = shelf.create("  ", Some("main"), PATCH.as_bytes()).unwrap();
+        let second = shelf.create("Second", None, PATCH.as_bytes()).unwrap();
         assert_ne!(first.id, second.id);
         assert_eq!(first.name, "Changes");
         assert_eq!(first.files.len(), 2);
@@ -259,6 +267,6 @@ mod tests {
         shelf.delete(&second.id).unwrap();
         assert!(shelf.list().is_empty());
         assert!(shelf.get("../escape").is_err());
-        assert!(shelf.create("x", None, "").is_err());
+        assert!(shelf.create("x", None, b"").is_err());
     }
 }
