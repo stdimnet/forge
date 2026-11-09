@@ -208,8 +208,13 @@ pub fn parse(data: &[u8], name: &str, metric_index: Option<usize>) -> Result<Sna
                     metrics.push(m);
                     scales.push(s);
                 }
+                // A later `events:` line changes the number of values: every cost list
+                // follows, so a cost line cannot index past one of them.
                 for f in &mut funcs {
                     f.own.resize(metrics.len(), 0);
+                }
+                for e in edges.values_mut() {
+                    e.1.resize(metrics.len(), 0);
                 }
             }
             "summary" | "totals" => {
@@ -510,5 +515,12 @@ mod tests {
         assert_eq!(f.file, "a.php");
         assert_eq!(f.line, 20);
         assert!(parse(b"hello world", "x", None).is_err());
+    }
+
+    #[test]
+    fn a_later_events_line_resizes_the_call_costs() {
+        let text = "version: 1\nevents: Time\nfl=a.php\nfn=main\n1 5\ncfn=f\ncalls=1 1\n1 3\nevents: Time Memory\nfn=main\ncfn=f\ncalls=1 1\n1 4 8\nfn=f\n1 7 1\n";
+        let s = parse(text.as_bytes(), "x", None).unwrap();
+        assert!(func(&s, "main").1.total >= func(&s, "main").1.own);
     }
 }

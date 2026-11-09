@@ -605,7 +605,8 @@ impl LocalFrameworks {
             } => {
                 let snap = self.symfony(config, false)?;
                 let read = |rel: &str| self.workspace.read_file(rel).ok();
-                let edits = translations::create_key_edits(
+                // Each edit is applied to the text it was computed on.
+                let files = translations::create_key_files(
                     &snap.translations,
                     &domain,
                     &key,
@@ -613,14 +614,8 @@ impl LocalFrameworks {
                     &read,
                 );
                 let mut created = Vec::new();
-                for e in &edits {
-                    let current = if e.create {
-                        String::new()
-                    } else {
-                        self.workspace.read_file(&e.path)?
-                    };
-                    self.workspace
-                        .write_file(&e.path, &translations::apply_edit(&current, e))?;
+                for (e, text) in &files {
+                    self.workspace.write_file(&e.path, text)?;
                     created.push(phpforge_fw_symfony::Location::new(&e.path, e.line, 0));
                 }
                 // The next request sees the new keys.
