@@ -167,4 +167,7 @@ Plugins add their own actions under **Plugins** (and some under Main Menu), for 
 | Symfony: Run Console Command…, Symfony Routes | none |
 | Doctrine Entities, npm tool window, Reload npm Scripts | none |
 
-All of them can be rebound like PHPStorm actions.
+All of them can be rebound like PHPStorm actions. Their default shortcuts are PHPStorm's; a
+bundled keymap that uses the same keys for another action keeps them for that action, so the
+plugin action has no default there (in VS Code `Ctrl+Shift+O` is File Structure, in Eclipse
+Optimize Imports, not Make Everyone Follow You).

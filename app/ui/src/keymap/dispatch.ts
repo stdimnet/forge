@@ -10,6 +10,7 @@ import { commands, runCommand } from "@/state/commands";
 import { DEFAULT_GROUP, logNotification, modeOf, registerNotificationGroup, type NotificationType } from "@/state/notifications";
 import { loadKeymapCore, mouseActionOf, mouseInputOf, resolveKeySync, strokeOfEvent } from "./core";
 import { actionById, startKeymap } from "./store";
+import { t } from "@/i18n";
 
 export interface BalloonAction {
   label: string;
@@ -85,12 +86,12 @@ export async function runAction(actionId: string): Promise<void> {
       await runCommand(cmd, actionId);
     } catch (err) {
       console.error(`action ${actionId} failed`, err);
-      showBalloon(`${actionById(actionId)?.title ?? actionId} failed`, String(err), 2600, undefined, { type: "error" });
+      showBalloon(t("keymap.actionFailed", { action: actionById(actionId)?.title ?? actionId }), String(err), 2600, undefined, { type: "error" });
     }
     return;
   }
   const title = (actionById(actionId)?.title ?? actionId).replace(/…$/, "");
-  showBalloon(`${title} is not available yet`, "This action will arrive with a later Forge update.", 2600, undefined, { log: false });
+  showBalloon(t("keymap.notAvailableYet", { action: title }), t("keymap.arrivesWithLaterUpdate"), 2600, undefined, { log: false });
 }
 
 /** Classify the focused element for context-sensitive bindings. */

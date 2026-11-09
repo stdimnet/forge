@@ -34,14 +34,14 @@ import { toggleTheme } from "@/state/theme";
 import { actionById, installKeymap, migrateLegacyKeymap, runAction, showBalloon } from "@/keymap";
 import { isTauri } from "@/ipc";
 import { dialogBoot } from "@/shell/window/mode";
-import { requestCloseDialog } from "@/shell/window/dialogs";
+import { isDialogOpen, requestCloseDialog } from "@/shell/window/dialogs";
 import { closeThisWindow, exitApp } from "@/features/system";
 import { openSearchEverywhere } from "@/features/search/state";
 import "@/features/search/builtinProviders";
 import { EDITOR_COMMANDS, activeView, runInEditor } from "./editorCommands";
 import { navigateBack, navigateForward, reopenClosedTab } from "./history";
 import { openRecentFiles, recentOpen } from "./RecentFiles";
-import { openSettings } from "@/features/settings/dialogState";
+import { closeSettings, openSettings, SETTINGS_DIALOG } from "@/features/settings/dialogState";
 import { PopupHost } from "./PopupHost";
 import { focusToolWindowContent } from "@/features/accessibility/areas";
 import { t as tr } from "@/i18n";
@@ -220,7 +220,8 @@ action("CopyReference", () => {
 // ---- Appearance & settings
 action("ChangeLaf", toggleTheme);
 action("QuickChangeScheme", toggleTheme);
-action("ShowSettings", () => runAction("settings.open"));
+// Pressed again while the dialog is open (its own window, or in-page in the browser), it closes it.
+action("ShowSettings", () => (isDialogOpen(SETTINGS_DIALOG) ? closeSettings() : runAction("settings.open")));
 registerCommand({ id: "settings.keymap", title: "Keymap Settings", category: "Settings", run: () => openSettings("keymap") });
 
 // ---- Editor actions backed by CodeMirror
