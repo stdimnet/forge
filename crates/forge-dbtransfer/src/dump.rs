@@ -264,6 +264,9 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
         req.program.trim().to_string()
     };
     let mut args: Vec<String> = Vec::new();
+    // Names and files after all options, behind `--`: a name that starts with `-` is not
+    // read as an option.
+    let mut positional: Vec<String> = Vec::new();
     let mut env = BTreeMap::new();
     let host = if target.host.trim().is_empty() {
         "localhost".to_string()
@@ -362,14 +365,31 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
             };
             if req.tables.is_empty() && (dbs.len() > 1 || req.create_database) {
                 args.push("--databases".into());
-                args.extend(dbs);
+                positional.extend(dbs);
             } else {
-                let db = dbs.into_iter().next().unwrap_or_default();
+                let default = dbs.into_iter().next().unwrap_or_default();
+                // `db.table` names the database of the table; mysqldump takes one.
+                let mut table_dbs: Vec<&str> = req
+                    .tables
+                    .iter()
+                    .map(|t| t.rsplit_once('.').map_or(default.as_str(), |(db, _)| db))
+                    .collect();
+                table_dbs.sort_unstable();
+                table_dbs.dedup();
+                if table_dbs.len() > 1 {
+                    return Err(format!(
+                        "mysqldump dumps the tables of one database at a time; the tables are in {}",
+                        table_dbs.join(", ")
+                    ));
+                }
+                let db = table_dbs
+                    .first()
+                    .map_or(default.clone(), |db| db.to_string());
                 if db.is_empty() {
                     return Err("Choose the database to dump".into());
                 }
-                args.push(db);
-                args.extend(req.tables.iter().map(|t| table_name(t).to_string()));
+                positional.push(db);
+                positional.extend(req.tables.iter().map(|t| table_name(t).to_string()));
             }
         }
         (DumpTool::Mysql, _) => {
@@ -379,6 +399,13 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
             mysql_conn(&mut args);
             if !database.is_empty() && !req.create_database {
                 args.push(format!("--database={database}"));
+            }
+            // The client splits `--execute` at `;` and reads `source` up to the line end.
+            if req.file.contains([';', '\n', '\r']) {
+                return Err(
+                    "mysql cannot restore a file whose path contains ; or a line break; rename the file"
+                        .into(),
+                );
             }
             args.push(format!("--execute=source {}", req.file));
         }
@@ -408,7 +435,7 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
             }
             pg_filters(&mut args);
             args.push("--exit-on-error".into());
-            args.push(req.file.clone());
+            positional.push(req.file.clone());
         }
         (DumpTool::Psql, _) => {
             if let Some(p) = password {
@@ -500,6 +527,10 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
         }
     }
     args.extend(split_args(&req.extra)?);
+    if !positional.is_empty() {
+        args.push("--".into());
+        args.extend(positional);
+    }
     Ok(ToolCommand { program, args, env })
 }
 
@@ -550,11 +581,28 @@ mod tests {
                 "--single-transaction",
                 "--routines",
                 "--add-drop-table",
+                "--",
                 "shop",
                 "orders",
                 "users",
             ]
         );
+        // Tables of one other database dump from it; of several, refused.
+        let one = DumpRequest {
+            tables: vec!["crm.leads".into(), "crm.-odd".into()],
+            ..req.clone()
+        };
+        let c = command(&one, &target("mysql")).unwrap();
+        assert!(c
+            .args
+            .ends_with(&["--".into(), "crm".into(), "leads".into(), "-odd".into()]));
+        let mixed = DumpRequest {
+            tables: vec!["crm.leads".into(), "orders".into()],
+            ..req.clone()
+        };
+        assert!(command(&mixed, &target("mysql"))
+            .unwrap_err()
+            .contains("crm, shop"));
         assert_eq!(
             c.env.get("MYSQL_PWD").map(String::as_str),
             Some("s3cret pass")
@@ -571,7 +619,8 @@ mod tests {
         let c = command(&req, &target("mysql")).unwrap();
         assert!(c
             .args
-            .ends_with(&["--databases".into(), "shop".into(), "crm".into()]));
+            .ends_with(&["--".into(), "shop".into(), "crm".into()]));
+        assert!(c.args.contains(&"--databases".to_string()));
         assert!(c.args.contains(&"--no-data".to_string()));
 
         let req = DumpRequest {
@@ -600,6 +649,11 @@ mod tests {
             ]
         );
         no_password_in_args(&c);
+        let semi = DumpRequest {
+            file: "/tmp/a.sql; system rm -rf ~".into(),
+            ..req
+        };
+        assert!(command(&semi, &t).is_err());
     }
 
     #[test]
@@ -655,7 +709,9 @@ mod tests {
         };
         let c = command(&req, &t).unwrap();
         assert_eq!(c.program, "pg_restore");
-        assert_eq!(c.args.last().unwrap(), "/backups/shop.dump");
+        assert!(c
+            .args
+            .ends_with(&["--".into(), "/backups/shop.dump".into()]));
         assert!(c.args.contains(&"--exit-on-error".to_string()));
 
         let req = DumpRequest {

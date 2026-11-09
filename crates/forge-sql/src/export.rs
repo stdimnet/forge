@@ -53,7 +53,12 @@ pub fn export(
             for r in rows {
                 out.push_str(
                     &r.iter()
-                        .map(|v| csv_field(&display(v)))
+                        .map(|v| match v {
+                            // NULL is an empty field, an empty string a quoted one, so a
+                            // round trip keeps them apart.
+                            Value::String(s) if s.is_empty() => "\"\"".to_string(),
+                            v => csv_field(&display(v)),
+                        })
                         .collect::<Vec<_>>()
                         .join(","),
                 );
@@ -146,6 +151,21 @@ mod tests {
         assert_eq!(
             export(ExportFormat::Csv, Dialect::MySql, None, &c, &r),
             "id,name,avatar\n1,\"Ada, \"\"the\"\" first\",\n9007199254740993,Bob,0xFF00\n"
+        );
+    }
+
+    #[test]
+    fn csv_keeps_null_and_empty_strings_apart() {
+        let cols = vec!["a".to_string(), "b".to_string()];
+        assert_eq!(
+            export(
+                ExportFormat::Csv,
+                Dialect::MySql,
+                None,
+                &cols,
+                &[vec![Value::Null, json!("")]]
+            ),
+            "a,b\n,\"\"\n"
         );
     }
 

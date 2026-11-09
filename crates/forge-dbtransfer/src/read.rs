@@ -186,6 +186,9 @@ pub fn parse_csv(
     let mut chars = text.chars().peekable();
     let mut line = 1usize;
     let mut quote_line = 0usize;
+    // Where blank lines were (the record count before them): in a one-column file they are
+    // empty values, not separators.
+    let mut blanks: Vec<usize> = Vec::new();
     let end_field =
         |record: &mut Vec<Option<String>>, field: &mut String, was_quoted: &mut bool| {
             let f = std::mem::take(field);
@@ -226,10 +229,11 @@ pub fn parse_csv(
                 }
                 line += 1;
                 end_field(&mut record, &mut field, &mut was_quoted);
-                // Blank lines are skipped.
+                // Blank lines are skipped (see `blanks`).
                 if !(record.len() == 1 && record[0].is_none()) {
                     records.push(std::mem::take(&mut record));
                 } else {
+                    blanks.push(records.len());
                     record.clear();
                 }
             }
@@ -246,6 +250,16 @@ pub fn parse_csv(
         end_field(&mut record, &mut field, &mut was_quoted);
         if !(record.len() == 1 && record[0].is_none()) {
             records.push(record);
+        }
+    }
+    // One column: a blank line between records is a row with an empty value. Blank lines
+    // before the first and after the last record stay ignored.
+    if !records.is_empty() && records.iter().all(|r| r.len() == 1) {
+        let total = records.len();
+        for at in blanks.into_iter().rev() {
+            if at > 0 && at < total {
+                records.insert(at, vec![None]);
+            }
         }
     }
     (records, warnings)
@@ -492,6 +506,23 @@ mod tests {
         assert_eq!(t.rows[2][2].as_deref(), Some("x\"y"));
         assert_eq!(t.delimiter, Some(','));
         assert_eq!(t.encoding, "UTF-8");
+    }
+
+    #[test]
+    fn one_column_files_keep_empty_values() {
+        let t = csv("name\nAda\n\nBob\n\"\"\n\n");
+        assert_eq!(t.columns, ["name"]);
+        assert_eq!(
+            t.rows,
+            [
+                vec![Some("Ada".into())],
+                vec![None],
+                vec![Some("Bob".into())],
+                vec![Some(String::new())],
+            ]
+        );
+        // With more columns blank lines still separate nothing.
+        assert_eq!(csv("a,b\n1,2\n\n3,4\n").rows.len(), 2);
     }
 
     #[test]

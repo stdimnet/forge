@@ -3,10 +3,12 @@
 //! read-only / production guard, cell values as JavaScript-safe JSON, row change
 //! statements and export.
 
+pub mod classify;
 pub mod dialect;
 pub mod edit;
 pub mod export;
 pub mod guard;
+pub mod lex;
 pub mod split;
 pub mod value;
 
