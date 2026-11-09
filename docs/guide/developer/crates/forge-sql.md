@@ -24,7 +24,9 @@ guard, cell values as JavaScript-safe JSON, row change statements and export.
 | `dialect.rs` | Console dialects: quoting of identifiers and literals, `BEGIN`, paging (`LIMIT`/`OFFSET` or `OFFSET … FETCH`). |
 | `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their key columns (chosen by `forge-dataedit`); `{"$default": true}` sets a column to `DEFAULT`. |
 | `export.rs` | Export a result set as CSV, JSON, SQL `INSERT` statements or a Markdown table. |
-| `guard.rs` | Read-only data sources refuse writes (DML/DDL, Redis write commands, MongoDB write calls); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
+| `classify.rs` | Read-only classification of SQL statements on `lex` tokens: an allowlist of reads (`SELECT`, `WITH`, `SHOW`, `EXPLAIN`, safe `SET` options and `PRAGMA`s, transaction control, `sp_help`), write words anywhere inside (T-SQL batches without `;`, CTEs, `SELECT … INTO`) and side-effect functions; every reading of `lex::variants` must agree. |
+| `guard.rs` | Read-only data sources refuse writes (`classify` for SQL, Redis write commands, MongoDB write calls and `runCommand` by its command name); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
+| `lex.rs` | SQL tokenizer per dialect: `E'…'`, `$tag$…$tag$`, `N'…'`, `q'[…]'`, backslash escapes, `"…"`, `` `…` `` and `[…]` identifiers, nested and MySQL executable comments; `variants` lists the readings that depend on server settings (`NO_BACKSLASH_ESCAPES`, `ANSI_QUOTES`, `standard_conforming_strings`). |
 | `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks, SQLite `CREATE TRIGGER … BEGIN … END` bodies; Redis lines and MongoDB calls. |
 | `value.rs` | Cell values as JSON that survives JavaScript: `null`, booleans, numbers only within ±2^53, everything else (big integers, decimals, dates) as strings, binary data as `{"$hex": "89504e47"}`. |
 
@@ -51,7 +53,8 @@ pub use split::{leading_keyword, split_statements, statement_at, Statement};
 
 ## Tests
 
-7 source files, about 1900 lines; 24 unit tests.
+9 source files, about 3000 lines; 40 unit tests, among them a randomized check that writes
+hidden behind dialect quoting and comments never pass as read-only.
 
 ```sh
 cargo test -p forge-sql

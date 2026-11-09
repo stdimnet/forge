@@ -158,7 +158,9 @@ mappings are listed below them.
 
 Downloads are cached in `<cache dir>/forge/json-schemas/` (see
 [file locations](../reference/file-locations.md)), never in the project, and refreshed once a
-day; offline, the cached copy is used. A schema that cannot be downloaded is retried after five
+day; offline, the cached copy is used. Schemas larger than 16 MB are refused while they
+download, and so are URLs on this machine or a private network (`localhost`, `10.x`,
+`192.168.x`, `.local`, `.internal`, single-label intranet names). A schema that cannot be downloaded is retried after five
 minutes; until then its `$ref`s accept anything.
 
 ## Language servers
