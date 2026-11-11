@@ -337,9 +337,11 @@ export class NotebookController {
     }
     this.set("kernel", { status: "starting", error: undefined, label: this.state.kernel.label || t("langs.jupyter.kernel") });
     try {
-      const started = await jupyterApi.start({ path: this.path });
+      // Listen before the kernel starts, so its first events are not lost.
+      const id = `kernel-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       this.unlisten?.();
-      this.unlisten = await jupyterApi.onEvent(started.id, (e) => this.onEvent(e));
+      this.unlisten = await jupyterApi.onEvent(id, (e) => this.onEvent(e));
+      const started = await jupyterApi.start({ path: this.path, id });
       this.set("kernel", { id: started.id, label: started.label, server: started.server, status: "idle" });
       return started.id;
     } catch (e) {

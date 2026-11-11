@@ -98,7 +98,7 @@ pub fn literal(d: Dialect, kind: ValueKind, v: Option<&str>, empty_as_null: bool
     match kind {
         ValueKind::Integer | ValueKind::Decimal => match numeric(v) {
             Some(n) => n.to_string(),
-            None => d.quote_str(v),
+            None => d.quote_value(v),
         },
         ValueKind::Boolean => {
             let truth = match v.trim().to_ascii_lowercase().as_str() {
@@ -107,7 +107,7 @@ pub fn literal(d: Dialect, kind: ValueKind, v: Option<&str>, empty_as_null: bool
                 _ => None,
             };
             match (truth, d) {
-                (None, _) => d.quote_str(v),
+                (None, _) => d.quote_value(v),
                 (Some(b), Dialect::Postgres | Dialect::MySql | Dialect::ClickHouse) => {
                     if b { "TRUE" } else { "FALSE" }.into()
                 }
@@ -124,7 +124,7 @@ pub fn literal(d: Dialect, kind: ValueKind, v: Option<&str>, empty_as_null: bool
         ValueKind::DateTime if d == Dialect::MySql => {
             d.quote_str(v.trim().replacen('T', " ", 1).trim_end_matches('Z'))
         }
-        _ => d.quote_str(v),
+        _ => d.quote_value(v),
     }
 }
 

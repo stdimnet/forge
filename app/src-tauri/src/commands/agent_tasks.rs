@@ -430,6 +430,7 @@ impl Runner {
                     args: cmd.args.clone(),
                     cwd: cmd.cwd.clone(),
                     env,
+                    stdin_file: None,
                 };
                 run_to_end(backend.clone(), line, timeout, cancel.cancelled()).await
             }

@@ -137,7 +137,7 @@ pub fn sql_literal(dialect: Dialect, v: &Value) -> String {
             _ => if *b { "TRUE" } else { "FALSE" }.into(),
         },
         Value::Number(n) => n.to_string(),
-        Value::String(s) => dialect.quote_str(s),
+        Value::String(s) => dialect.quote_value(s),
         Value::Object(_) if is_default(v) => "DEFAULT".into(),
         Value::Object(_) if as_binary(v).is_some() => {
             let h = hex::encode(as_binary(v).unwrap_or_default());
@@ -149,7 +149,7 @@ pub fn sql_literal(dialect: Dialect, v: &Value) -> String {
                 _ => format!("X'{h}'"),
             }
         }
-        other => dialect.quote_str(&other.to_string()),
+        other => dialect.quote_value(&other.to_string()),
     }
 }
 

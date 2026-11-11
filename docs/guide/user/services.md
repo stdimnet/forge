@@ -99,6 +99,10 @@ Safe Mode.
 
 ![Apply a manifest](../../screenshots/services-kube-apply.png)
 
+The editor also checks manifests against the schema of their Kubernetes object, with
+completion and documentation for every key (see
+[JSON Schema](json-schema.md#kubernetes-manifests)).
+
 ## Kubernetes pods and deployments
 
 - **Container picker**: a pod with several containers (including init containers) shows a

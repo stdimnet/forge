@@ -9,12 +9,16 @@
 //! that are not loaded yet. The `remote` feature adds [`remote::RemoteCache`] for schema
 //! downloads into the user cache dir.
 //!
+//! A file mapped to the Kubernetes definitions ([`kubernetes`]) checks each document against
+//! the schema of its own `apiVersion` / `kind`.
+//!
 //! Offsets in the answers of this module are UTF-16 (CodeMirror positions).
 
 pub mod bundled;
 pub mod complete;
 pub mod format;
 pub mod json;
+pub mod kubernetes;
 pub mod mapping;
 pub mod navigate;
 #[cfg(feature = "remote")]
@@ -73,6 +77,20 @@ pub fn parse(kind: DocKind, text: &str) -> Vec<Node> {
     }
 }
 
+/// The schema document `doc` is checked against: the file's schema, or for Kubernetes
+/// manifests the schema of the document's kind.
+pub fn document_root<'r>(reg: &'r Registry, root_uri: &str, doc: &Node) -> Option<Sch<'r>> {
+    reg.get(&kubernetes::document_root(root_uri, doc)?)
+}
+
+/// Whether document `i` contains template expressions, between the end of the document
+/// before it and the start of the next one (`{{- if … }}` lines around it count).
+fn is_template(text: &str, docs: &[Node], i: usize) -> bool {
+    let from = if i == 0 { 0 } else { docs[i - 1].end };
+    let to = docs.get(i + 1).map_or(text.len(), |d| d.start);
+    text.get(from.min(to)..to).is_some_and(|t| t.contains("{{"))
+}
+
 /// The document containing byte `offset` (the last one starting before it).
 pub fn document_at(docs: &[Node], offset: usize) -> Option<&Node> {
     docs.iter()
@@ -92,13 +110,21 @@ pub struct ProblemOut {
 
 /// Problems of every document of the file against the schema at `root_uri`.
 pub fn validate(reg: &Registry, root_uri: &str, kind: DocKind, text: &str) -> Vec<ProblemOut> {
-    let Some(root) = reg.get(root_uri) else {
-        return Vec::new();
-    };
     let u = Utf16::new(text);
-    parse(kind, text)
-        .iter()
-        .flat_map(|d| validate::validate(reg, root, d))
+    let docs = parse(kind, text);
+    let dispatch = kubernetes::dispatches(root_uri);
+    docs.iter()
+        .enumerate()
+        .flat_map(|(i, d)| {
+            // A Helm chart's template (`{{ … }}`) is no manifest until it is rendered.
+            if dispatch && is_template(text, &docs, i) {
+                return Vec::new();
+            }
+            match document_root(reg, root_uri, d) {
+                Some(root) => validate::validate(reg, root, d),
+                None => Vec::new(),
+            }
+        })
         .map(|p| ProblemOut {
             from: u.of(p.start),
             to: u.of(p.end.max(p.start)),
@@ -125,9 +151,12 @@ pub fn complete(
     text: &str,
     offset: usize,
 ) -> Option<CompletionOut> {
-    let root = reg.get(root_uri)?;
     let byte = text::byte_offset(text, offset);
     let docs = parse(kind, text);
+    let root = match document_at(&docs, byte) {
+        Some(doc) => document_root(reg, root_uri, doc)?,
+        None => reg.get(root_uri)?,
+    };
     let c = complete::complete(reg, root, kind, text, &docs, byte)?;
     let u = Utf16::new(text);
     Some(CompletionOut {
@@ -184,10 +213,10 @@ pub fn hover(
     text: &str,
     offset: usize,
 ) -> Option<HoverOut> {
-    let root = reg.get(root_uri)?;
     let byte = text::byte_offset(text, offset);
     let docs = parse(kind, text);
     let doc = document_at(&docs, byte)?;
+    let root = document_root(reg, root_uri, doc)?;
     let hit = navigate::locate(doc, byte)?;
     let (_, schemas) = hit_schemas(reg, root, doc, &hit);
     let u = Utf16::new(text);
@@ -250,12 +279,12 @@ pub fn goto(
     text: &str,
     offset: usize,
 ) -> Vec<Target> {
-    let Some(root) = reg.get(root_uri) else {
-        return Vec::new();
-    };
     let byte = text::byte_offset(text, offset);
     let docs = parse(kind, text);
     let Some(doc) = document_at(&docs, byte) else {
+        return Vec::new();
+    };
+    let Some(root) = document_root(reg, root_uri, doc) else {
         return Vec::new();
     };
     let Some(hit @ navigate::Hit::Key(..)) = navigate::locate(doc, byte) else {

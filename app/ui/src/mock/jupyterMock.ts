@@ -92,8 +92,8 @@ function assign(k: Kernel, code: string): void {
   }
 }
 
-registerMock("jupyter_kernel_start", () => {
-  const id = `kernel-${++next}`;
+registerMock("jupyter_kernel_start", ({ request }) => {
+  const id = (request as { id?: string } | undefined)?.id || `kernel-${++next}`;
   kernels.set(id, { count: 0, vars: new Map(), timers: [], running: null, busyUntil: 0 });
   setTimeout(() => emit(id, { type: "status", state: "idle" }), 50);
   return { id, label: "Python 3.12 (shop-api)", server: false };

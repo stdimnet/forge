@@ -30,6 +30,10 @@ pub struct CommandLine {
     /// Extra environment variables on top of the inherited environment.
     #[serde(default)]
     pub env: BTreeMap<String, String>,
+    /// A file the program reads as its standard input (`mysql < dump.sql`); the Run console
+    /// then has no input.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdin_file: Option<PathBuf>,
 }
 
 impl CommandLine {
@@ -52,11 +56,16 @@ impl CommandLine {
 
     /// Shell-like display form, e.g. `/usr/bin/php vendor/bin/phpunit --teamcity`.
     pub fn display(&self) -> String {
-        std::iter::once(&self.program)
+        let mut line = std::iter::once(&self.program)
             .chain(&self.args)
             .map(|a| quote_arg(a))
             .collect::<Vec<_>>()
-            .join(" ")
+            .join(" ");
+        if let Some(file) = &self.stdin_file {
+            line.push_str(" < ");
+            line.push_str(&quote_arg(&file.to_string_lossy()));
+        }
+        line
     }
 }
 
@@ -118,8 +127,15 @@ impl RunningProcess {
         // `flatpak-spawn`, which forwards them, and `--watch-bus` ends the host process
         // if `flatpak-spawn` is killed.
         let mut command = forge_hostspawn::host_command(command);
+        let input =
+            match &cmd.stdin_file {
+                Some(file) => Stdio::from(std::fs::File::open(file).map_err(|e| {
+                    ForgeError::Other(format!("cannot read {}: {e}", file.display()))
+                })?),
+                None => Stdio::piped(),
+            };
         command
-            .stdin(Stdio::piped())
+            .stdin(input)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         #[cfg(unix)]
@@ -352,6 +368,24 @@ mod tests {
         p.write_stdin(b"more").unwrap();
         assert!(started.elapsed() < Duration::from_secs(5));
         p.kill(Duration::from_millis(100));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_file_becomes_the_programs_input() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("in;put.txt");
+        std::fs::write(&file, "from the file\n").unwrap();
+        let mut cmd = CommandLine::new("cat");
+        cmd.stdin_file = Some(file.clone());
+        assert_eq!(cmd.display(), format!("cat < '{}'", file.display()));
+        let (p, rx) = run(cmd.clone());
+        assert!(p.write_stdin(b"typed").is_err());
+        let (out, _, exit) = drain(&rx);
+        assert_eq!(out, "from the file\n");
+        assert_eq!(exit, Some((Some(0), None)));
+        cmd.stdin_file = Some(dir.path().join("missing.sql"));
+        assert!(RunningProcess::start(&cmd, Arc::new(|_| {})).is_err());
     }
 
     #[test]

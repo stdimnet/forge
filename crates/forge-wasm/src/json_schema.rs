@@ -217,6 +217,18 @@ mod tests {
             out["answer"]["problems"][0]["message"],
             "Incompatible types. Required: integer. Actual: string."
         );
+        // Kubernetes manifests by content, with the bundled schemas.
+        let req = json!({
+            "path": "app/web.yaml", "language": "yaml",
+            "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  portz: []\n",
+        });
+        let out: serde_json::Value =
+            serde_json::from_str(&json_schema_validate(&req.to_string())).unwrap();
+        assert_eq!(out["answer"]["schema"]["name"], "Kubernetes Service (v1)");
+        assert_eq!(
+            out["answer"]["problems"][0]["message"],
+            "Property 'portz' is not allowed"
+        );
         let out: serde_json::Value = serde_json::from_str(&json_schema_builtins()).unwrap();
         assert_eq!(out[0]["name"], "composer.json");
         assert!(json_schema_read("json-schema://bundled/package.json").contains("\"text\""));
