@@ -147,6 +147,8 @@ export function suspendKeymap(): () => void {
 /**
  * Resolve an event: synchronously in-process when the engine is loaded, otherwise through
  * IPC (then the browser default can no longer be prevented, but the action still runs).
+ * That is the decision for the moments before the engine is loaded: no key is ever swallowed.
+ * A key that is typed or handled by the browser as well is better than one that is lost.
  */
 function resolve(input: KeyInput): Resolution | null {
   const res = resolveKeySync(input);
