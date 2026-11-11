@@ -21384,6 +21384,13 @@ access may change**. By default these are run configurations (`.forge/runConfigu
 `Makefile`, `artisan` and `bin/console`. The patterns work like the excluded files (`!pattern`
 removes a file from the list); changes apply to sessions you start afterwards.
 
+Both lists hold for folders too. A guest cannot delete, rename or move a folder that contains
+a file it does not see or may not change, and cannot move a folder to a place where its files
+would be hidden or protected. Git actions on a folder (stage, commit, rollback of the whole
+project) leave the hidden files out. A file you rename to a hidden name (`.env.example` to
+`.env`) closes in the guests' editors. Laravel code generations from `ide.json` cannot use a
+hidden file as their template, and create only files the guest may create.
+
 ## Settings
 
 Settings | Tools | Code With Me: your name in sessions, the default permission level,

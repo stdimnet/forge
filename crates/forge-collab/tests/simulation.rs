@@ -639,6 +639,28 @@ async fn without_the_link_there_is_no_session_and_no_prompt() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_document_renamed_to_a_hidden_name_closes_for_guests() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    std::fs::write(h.root.join(".env.example"), "APP_KEY=\n").unwrap();
+    let doc = h.host_open(".env.example").await;
+    let alex = h.join("Alex").await;
+    alex.open(".env.example").await.unwrap();
+    std::fs::rename(h.root.join(".env.example"), h.root.join(".env")).unwrap();
+    h.host.on_renamed(".env.example", ".env");
+    let ed = alex.editor.clone();
+    eventually("the document closed for the guest", || {
+        let ed = ed.lock().unwrap();
+        ed.closed.iter().any(|(d, _)| *d == doc) && ed.renamed.is_empty()
+    })
+    .await;
+    // The host goes on editing; nothing of it reaches the guest.
+    h.host_edit(doc, 0, 0, "APP_SECRET=hunter2\n");
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    assert!(!alex.text(doc).contains("hunter2"));
+    assert_eq!(h.host.shared_files()[0].path, ".env");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn renames_and_deletes_follow_the_document() {
     let mut h = Harness::new(Permissions::EDIT_FILES);
     let doc = h.host_open("app/Order.php").await;

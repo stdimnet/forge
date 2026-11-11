@@ -833,17 +833,38 @@ impl HostSession {
                 st.by_path.remove(&old);
                 st.by_path.insert(path.clone(), id);
                 let d = &st.docs[&id];
-                for tx in recipients(&st.guests, d, None) {
-                    out.guests.push((
-                        tx,
-                        HostMessage::DocRenamed {
-                            doc: id,
-                            path: path.clone(),
-                        },
-                    ));
+                // Under its new name the file may be hidden from a guest (`.env.example`
+                // renamed to `.env`): the document closes for that guest.
+                let mut hidden = Vec::new();
+                for who in &d.open_by {
+                    let Some(g) = st.guests.get(who) else {
+                        continue;
+                    };
+                    if g.policy.check_path(&path).is_err() {
+                        hidden.push(*who);
+                        let name = path.rsplit('/').next().unwrap_or(&path);
+                        out.guests.push((
+                            g.tx.clone(),
+                            HostMessage::DocClosed {
+                                doc: id,
+                                reason: format!("{name} is not shared with guests"),
+                            },
+                        ));
+                    } else {
+                        out.guests.push((
+                            g.tx.clone(),
+                            HostMessage::DocRenamed {
+                                doc: id,
+                                path: path.clone(),
+                            },
+                        ));
+                    }
                 }
                 if d.open_by.contains(&ParticipantId::HOST) {
                     out.events.push(HostEvent::DocRenamed { doc: id, path });
+                }
+                for who in hidden {
+                    leave_doc(&mut st, who, id, &mut out);
                 }
             }
             files_changed(&st, &mut out);

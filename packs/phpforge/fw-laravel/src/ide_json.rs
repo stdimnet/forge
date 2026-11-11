@@ -435,6 +435,10 @@ pub struct GeneratedFile {
     /// The file is already there (it is not overwritten).
     #[serde(default)]
     pub exists: bool,
+    /// The project file the content was expanded from (empty: none). Who answers for
+    /// someone else (a Code With Me host for a guest) checks it before the content leaves.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub template: String,
 }
 
 /// The files of a code generation for the class name the user typed (`Orders/Invoice`).
@@ -496,6 +500,7 @@ pub fn generate(
             exists: read(&path).is_some(),
             path,
             content,
+            template: f.template_path.clone(),
         });
     }
     out
