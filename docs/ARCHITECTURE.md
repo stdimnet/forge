@@ -3031,7 +3031,8 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `jupyter_dataframe_query({ frame, query: { sort?, filter?, page?, pageSize? } }) -> { rows,
   rowNumbers, matched, page, pages }`. Kernels: `jupyter_kernel_status({ interpreter? }) ->
   { installed, version?, interpreter, needsServer }`, `jupyter_kernel_start({ request: {
-  path, interpreter?, server?, kernelName? } }) -> { id, label, server }` (refused in Safe
+  path, interpreter?, server?, kernelName?, id? } }) -> { id, label, server }` (the UI picks
+  `id` and listens on `jupyter://<id>` before it starts the kernel; refused in Safe
   Mode; ipykernel with a connection file in `<cache dir>/forge/jupyter`, or a kernel of the
   `jupyter.server.url` server), `jupyter_execute({ id, cellId, code }) -> msgId` (refused in
   Safe Mode), `jupyter_interrupt`, `jupyter_restart` (same id), `jupyter_shutdown`,
