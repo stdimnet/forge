@@ -192,9 +192,19 @@ export function place(p: BuildProblem): string {
   return p.located || p.line || p.column ? `${name}:${p.line + 1}:${p.column + 1}` : name;
 }
 
+/**
+ * What the editor opens for a problem (exported for tests): the project file, or the read-only
+ * library file Rust offers for a file outside the project (an SDK's `.targets`, a package's
+ * source). Nothing for a problem without a file, or with one that does not exist here.
+ */
+export function openTarget(p: BuildProblem): string | undefined {
+  if (!p.path) return undefined;
+  return p.path.startsWith("/") || /^[A-Za-z]:/.test(p.path) ? p.library || undefined : p.path;
+}
+
 function reveal(p: BuildProblem): void {
-  if (!p.path || p.path.startsWith("/") || /^[A-Za-z]:/.test(p.path)) return;
-  void openFileAt(p.path, p.line + 1, p.column + 1);
+  const target = openTarget(p);
+  if (target) void openFileAt(target, p.line + 1, p.column + 1).catch(() => undefined);
 }
 
 function BuildResults(props: { showOutput: boolean }) {

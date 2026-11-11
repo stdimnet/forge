@@ -14369,7 +14369,9 @@ The build runs in the Run tool window. When it finishes, Forge parses the compil
 linker messages in Rust — GCC and Clang (`file:line:col: error: …`, with their notes), MSVC
 (`file(line,col): error C2065: …`) and the linkers (`ld`, `lld`, Apple's `ld`, `link.exe`) —
 and shows them in the **Build** tab of the Problems tool window and as editor diagnostics.
-Notes (candidates, declarations) are nested under their message; a click opens the line.
+Notes (candidates, declarations) are nested under their message; a click opens the line. A
+file outside the project (a system header such as `/usr/include/c++/13/numeric`) opens as a
+read-only library file.
 
 ![Build problems in the Problems tool window](docs/screenshots/cpp-build-problems.png)
 
@@ -14553,7 +14555,9 @@ right, like Rider's.
 - Builds run `dotnet build` in the Run tool window. Their output is parsed in Rust: the
   compiler (C#, F#, VB), NuGet and MSBuild problems, each once, grouped by file, with the
   summary (errors, warnings, time). Click a problem to open its location; the editor shows
-  the same problems (inspection *Build errors and warnings*, source `dotnet-build`).
+  the same problems (inspection *Build errors and warnings*, source `dotnet-build`). A file
+  outside the project (a `.targets` file of the SDK, a file of a NuGet package) opens as a
+  read-only library file.
 - **Build | Build Project** (`Ctrl+F9`) builds the solution in .NET projects; the Build menu
   also has **Build Solution**, **Rebuild Solution**, **Clean Solution**, **Restore NuGet
   Packages** and **Reload Solution**.

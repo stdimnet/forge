@@ -42,6 +42,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::commands::library::LibraryState;
 use crate::commands::lsp::LspState;
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
@@ -447,9 +448,18 @@ pub async fn dotnet_command(
 
 /// The problems, outputs and summary of a build's output (Build tool window, editor).
 #[tauri::command]
-pub fn dotnet_build_problems(output: String, state: State<'_, AppState>) -> Result<BuildReport> {
+pub fn dotnet_build_problems(
+    output: String,
+    state: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
+) -> Result<BuildReport> {
     let root = path_string(&state.project_root()?);
-    Ok(dotnetforge_lang_dotnet::parse_build_output(&output, &root))
+    let mut report = dotnetforge_lang_dotnet::parse_build_output(&output, &root);
+    let remote = state.is_remote();
+    for p in &mut report.problems {
+        p.library = lib.outside_file(&p.path, remote).unwrap_or_default();
+    }
+    Ok(report)
 }
 
 // ---- Templates and new projects ------------------------------------------------------------------

@@ -40,6 +40,7 @@ use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::commands::library::LibraryState;
 use crate::commands::lsp::LspState;
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
@@ -605,6 +606,10 @@ pub async fn cmake_build_command(
 pub struct BuildProblemView {
     /// Project-relative (or absolute outside the project); `None` without a file.
     pub path: Option<String>,
+    /// How the editor opens `path` when it is a file outside the project: a read-only
+    /// `library://file/…` path.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub library: Option<String>,
     pub file: String,
     pub line: u32,
     pub column: u32,
@@ -617,10 +622,20 @@ pub struct BuildProblemView {
     pub notes: Vec<BuildProblemView>,
 }
 
-fn view(p: BuildProblem, resolve: &dyn Fn(&str) -> Option<String>) -> BuildProblemView {
+fn view(
+    p: BuildProblem,
+    resolve: &dyn Fn(&str) -> Option<String>,
+    library: &dyn Fn(&str) -> Option<String>,
+) -> BuildProblemView {
+    let path = resolve(&p.file);
     BuildProblemView {
-        path: resolve(&p.file),
-        notes: p.notes.into_iter().map(|n| view(n, resolve)).collect(),
+        library: path.as_deref().and_then(library),
+        path,
+        notes: p
+            .notes
+            .into_iter()
+            .map(|n| view(n, resolve, library))
+            .collect(),
         file: p.file,
         line: p.line,
         column: p.column,
@@ -643,9 +658,12 @@ pub async fn cpp_build_problems(output: String, app: AppHandle) -> Result<Vec<Bu
         let exists = |p: &str| backend.read_optional(p).ok().flatten().is_some();
         let root_s = path_string(&root);
         let resolve = |f: &str| diagnostics::project_path(f, &root_s, &build_rel, &exists);
+        let lib = app.state::<LibraryState>();
+        let remote = state.is_remote();
+        let library = |path: &str| lib.outside_file(path, remote);
         Ok(diagnostics::parse_build_output(&output)
             .into_iter()
-            .map(|p| view(p, &resolve))
+            .map(|p| view(p, &resolve, &library))
             .collect())
     })
     .await

@@ -27,6 +27,10 @@ pub struct BuildProblem {
     /// (empty for problems without a location, such as `MSBUILD : error`).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub path: String,
+    /// How the editor opens `path` when it is a file outside the project: a read-only
+    /// `library://file/…` path, set by the app (empty otherwise).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub library: String,
     /// 0-based lines and columns (columns count characters, as the compilers do).
     #[serde(default)]
     pub line: u32,
@@ -249,6 +253,7 @@ pub fn parse_problem_line(line: &str, root: &str) -> Option<BuildProblem> {
                 code,
                 message,
                 path: rel(root, &path),
+                library: String::new(),
                 line: nums[0],
                 column: nums[1],
                 end_line: nums[2],

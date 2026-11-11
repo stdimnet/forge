@@ -1853,7 +1853,9 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
 - Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
   (a file outside the project a language server pointed to; only paths handed out by a
-  navigation answer can be read). The UI registers a read-only `FileSystemProvider` for
+  navigation answer can be read, or by `LibraryState::outside_file` for a file a build
+  reported: `BuildProblem.library` of `cpp_build_problems` and `dotnet_build_problems`, which
+  the Problems and Build tool windows open instead of the absolute `path`). The UI registers a read-only `FileSystemProvider` for
   `library://` with a "Read-only library file" banner and breadcrumbs
   `PHP Runtime › Core › Core_c.php › Throwable`. Language server and PHP index editor
   extensions skip library tabs.
