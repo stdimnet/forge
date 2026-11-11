@@ -230,6 +230,7 @@ impl Prepared {
             args: w.args,
             cwd: PathBuf::from(w.cwd),
             env: w.env,
+            stdin_file: None,
         })
     }
 
