@@ -3518,7 +3518,7 @@ Source: docs/guide/user/json-schema.md
 Forge checks JSON and YAML files against a [JSON Schema](https://json-schema.org), like
 PHPStorm: properties a file must have, the types and values it allows, and the documentation
 of every key. Configuration files such as `composer.json`, `package.json`, Compose files and CI
-pipelines work out of the box; for your own formats you map a schema to the files.
+pipelines work out of the box, and so do Kubernetes manifests wherever they are; for your own formats you map a schema to the files.
 
 ![Problems in composer.json](docs/screenshots/json-schema-problems.png)
 
@@ -3603,7 +3603,8 @@ Forge picks the first match:
 2. **The file's own schema**: `"$schema": "…"` at the top level of a JSON file, a `$schema:` key
    or the `# yaml-language-server: $schema=…` modeline in YAML. A relative path is resolved
    against the file's folder; a URL needs [remote schemas](#remote-schemas).
-3. **Built-in mappings**, with schemas bundled with Forge:
+3. **Kubernetes manifests**, by their content (see [below](#kubernetes-manifests)).
+4. **Built-in mappings**, with schemas bundled with Forge:
 
    | Schema | Files |
    | --- | --- |
@@ -3619,10 +3620,31 @@ Forge picks the first match:
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
    | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](docs/guide/user/minecraft.md)) |
    | Minecraft mods | `fabric.mod.json` and mixin configurations (`*.mixins.json`) (schemas written for Forge, see [Minecraft mods](docs/guide/user/minecraft.md#new-project-minecraft-mod)) |
-| Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](docs/guide/user/unity-godot.md#unity-file-types)) |
+   | Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](docs/guide/user/unity-godot.md#unity-file-types)) |
 
-4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
+5. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
    hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
+
+### Kubernetes manifests
+
+A YAML or JSON document with a top-level `apiVersion` and `kind` of a built-in Kubernetes object
+(`apps/v1` `Deployment`, `v1` `Service`, `networking.k8s.io/v1` `Ingress`, …) is checked
+against the schema of that object, in any folder and under any file name: `deployment.yaml`,
+`.k8s/`, `helm/templates/`. In a file with several documents (`---`), each document uses the
+schema of its own kind, so a Deployment and its Service can live in one file.
+
+- The schemas are the strict ones of Kubernetes 1.34 from
+  [kubernetes-schema](https://github.com/kubenote/kubernetes-schema) (Apache-2.0), bundled
+  with Forge: all built-in objects work offline. Strict means that unknown keys are reported
+  (`Property 'replica' is not allowed`).
+- Custom resources (`cert-manager.io/v1` `Certificate`, …) and unknown API versions get no
+  schema and no problems. A file with no built-in object falls through to the next rules.
+- Documents with template expressions (`{{ … }}`, as in Helm charts) are not validated, since
+  they become manifests only when rendered; completion and documentation still work in them.
+- The status bar names the object: `JSON schema: Kubernetes Deployment (apps/v1)`, or
+  `Kubernetes: Deployment, Service` for a file with several kinds.
+
+![A Kubernetes manifest checked against its schema](docs/screenshots/json-schema-kubernetes.png)
 
 ### Status bar
 
@@ -3676,6 +3698,8 @@ minutes; until then its `$ref`s accept anything.
 The JSON and YAML language servers validate with schemas too. While one of them runs for a
 file, Forge leaves problems, completion and hover of that file to the server, so nothing is
 reported twice; the status bar still shows the schema Forge would use.
+yaml-language-server finds Kubernetes manifests by their folder only (`k8s/`, `.k8s/`,
+`kubernetes/`, `deploy/`, `manifests/`); Forge's own support recognizes them anywhere.
 
 
 ---
@@ -20654,6 +20678,10 @@ Safe Mode.
 
 ![Apply a manifest](docs/screenshots/services-kube-apply.png)
 
+The editor also checks manifests against the schema of their Kubernetes object, with
+completion and documentation for every key (see
+[JSON Schema](docs/guide/user/json-schema.md#kubernetes-manifests)).
+
 ## Kubernetes pods and deployments
 
 - **Container picker**: a pod with several containers (including init containers) shows a
@@ -33315,9 +33343,10 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
+| `kubernetes.rs` | Kubernetes manifests by content: the `(apiVersion, kind)` index from the bundled definitions' `x-kubernetes-group-version-kind`, the schema of each document (`document_root`), the status bar name. A file mapped to the whole definitions file checks every document against its own kind; custom resources get no schema. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, Kubernetes manifests by content, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline; bodies are streamed up to 16 MB and loopback/private hosts are refused (`private_host`). |
-| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
+| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI (per document for Kubernetes manifests; documents with `{{ … }}` templates are not validated), `DocKind`, `load_bundled`. |
 
 ## Main public items
 
@@ -33352,6 +33381,9 @@ their refs accept anything.
 `schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
 `tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
 and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
+`kubernetes-definitions.json`, the strict definitions of every Kubernetes 1.34 object from
+kubenote/kubernetes-schema (`v1.34.1/standalone-strict/_definitions.json`, Apache-2.0, about
+216 KB compressed; `kubernetes::VERSION` names the branch);
 Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT). Schemas written for Forge (MIT): the
 Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.json` for
 `fabric.mod.json`, `minecraft-mixins.json` for `*.mixins.json`) and the Unity assembly definitions (`unity-asmdef.json` for
@@ -33366,7 +33398,7 @@ Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.
 
 `cargo test -p forge-jsonschema --features remote`: the parsers, URI resolution, every keyword,
 completion and hover in JSON and YAML, Go to Declaration, mappings and globs, the bundled
-schemas against composer.json, package.json, Compose, GitHub Actions and GitLab CI samples, and
+schemas against composer.json, package.json, Compose, GitHub Actions, GitLab CI and Kubernetes samples (several documents, custom resources, Helm templates), and
 `RemoteCache` against a local HTTP server (no network).
 
 

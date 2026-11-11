@@ -1,7 +1,8 @@
 /**
  * JSON Schema: problems in composer.json, completion and hover from the bundled schemas, a
  * GitHub Actions workflow in YAML, the status bar widget with its schema popup, a bundled
- * schema opened by Go to Declaration and the JSON Schema Mappings settings page.
+ * schema opened by Go to Declaration, a Kubernetes manifest recognized by its content and the
+ * JSON Schema Mappings settings page.
  */
 
 /** @param {import("playwright-core").Page} page @param {string} path */
@@ -154,6 +155,26 @@ export default {
     });
     await page.waitForSelector(".json-schema-page", { timeout: 8000 });
     await page.waitForTimeout(700);
+  },
+
+  "json-schema-kubernetes": async (page) => {
+    await open(page, "k8s/deployment.yaml");
+    await page.evaluate(async () => {
+      const { visibleView } = await import("/src/editor/views.ts");
+      const { activeTab } = await import("/src/state/editor.ts");
+      const view = await visibleView(activeTab().path);
+      const text = view.state.doc.toString();
+      const at = text.indexOf("replicas: 2");
+      view.dispatch({ changes: { from: at, to: at + "replicas".length, insert: "replica" } });
+      const port = text.indexOf("- port: 80") - "replicas".length + "replica".length;
+      view.dispatch({ changes: { from: port, to: port + "- port: 80".length, insert: "- port: http" } });
+    });
+    await page.waitForTimeout(1500);
+    await page.keyboard.press("Alt+Digit6");
+    await page.waitForTimeout(800);
+    await hover(page, "replica:");
+    await page.waitForSelector(".cm-tooltip", { timeout: 5000 }).catch(() => undefined);
+    await page.waitForTimeout(600);
   },
 
   "json-schema-light": async (page) => {

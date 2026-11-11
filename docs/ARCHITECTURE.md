@@ -4068,7 +4068,9 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   input), schema documents and a `Registry` (`$id`, anchors, `$ref` to other files through
   `missing()`), a validator for draft 4–2020-12 with PHPStorm's messages, completion contexts
   and items, hover, Go to Declaration (`At::decl`), mappings (user > `$schema`/modeline >
-  built-in > SchemaStore catalog) and the bundled schemas of the built-in mappings
+  Kubernetes manifests by `apiVersion`/`kind` > built-in > SchemaStore catalog; a file mapped
+  to the bundled Kubernetes definitions checks each document against its own kind,
+  `kubernetes::document_root`) and the bundled schemas of the built-in mappings
   (`schemas/`, licences in `schemas/NOTICE`; compressed by `build.rs`). Answers use UTF-16
   offsets.
 - IPC (`app/ui/src/ipc/jsonSchema.ts`, `commands/json_schema.rs`): `json_schema_validate({ path,

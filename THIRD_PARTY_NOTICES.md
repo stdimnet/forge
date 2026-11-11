@@ -5,6 +5,14 @@ third-party works, each under its own licence. Rust crates from crates.io are li
 licences in `Cargo.lock` / `cargo metadata`; this file names the components whose notices must
 travel with Forge.
 
+## Bundled JSON schemas
+
+The JSON schemas built into `forge-jsonschema` (SchemaStore, OpenAPI, Compose, Composer, GitLab
+CI and the Kubernetes object schemas of
+[kubenote/kubernetes-schema](https://github.com/kubenote/kubernetes-schema), Apache License
+2.0, Copyright (C) 2017 Gareth Rushgrove, Copyright (C) 2017 Yanh Hamon) are listed with their
+licences in `crates/forge-jsonschema/schemas/NOTICE`.
+
 ## php-lsp
 
 The built-in PHP language server (`packs/phpforge/builtin-lsp`), linked into `forge` and

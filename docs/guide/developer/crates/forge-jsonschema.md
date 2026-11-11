@@ -32,9 +32,10 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
+| `kubernetes.rs` | Kubernetes manifests by content: the `(apiVersion, kind)` index from the bundled definitions' `x-kubernetes-group-version-kind`, the schema of each document (`document_root`), the status bar name. A file mapped to the whole definitions file checks every document against its own kind; custom resources get no schema. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, Kubernetes manifests by content, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline; bodies are streamed up to 16 MB and loopback/private hosts are refused (`private_host`). |
-| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
+| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI (per document for Kubernetes manifests; documents with `{{ … }}` templates are not validated), `DocKind`, `load_bundled`. |
 
 ## Main public items
 
@@ -69,6 +70,9 @@ their refs accept anything.
 `schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
 `tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
 and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
+`kubernetes-definitions.json`, the strict definitions of every Kubernetes 1.34 object from
+kubenote/kubernetes-schema (`v1.34.1/standalone-strict/_definitions.json`, Apache-2.0, about
+216 KB compressed; `kubernetes::VERSION` names the branch);
 Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT). Schemas written for Forge (MIT): the
 Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.json` for
 `fabric.mod.json`, `minecraft-mixins.json` for `*.mixins.json`) and the Unity assembly definitions (`unity-asmdef.json` for
@@ -83,5 +87,5 @@ Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.
 
 `cargo test -p forge-jsonschema --features remote`: the parsers, URI resolution, every keyword,
 completion and hover in JSON and YAML, Go to Declaration, mappings and globs, the bundled
-schemas against composer.json, package.json, Compose, GitHub Actions and GitLab CI samples, and
+schemas against composer.json, package.json, Compose, GitHub Actions, GitLab CI and Kubernetes samples (several documents, custom resources, Helm templates), and
 `RemoteCache` against a local HTTP server (no network).
