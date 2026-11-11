@@ -4382,7 +4382,11 @@ TypeScript because a round trip per token would be slower.
   `Backend::watch`. Until it covers the project, `find_in_files` and `find_files` walk the
   directory as before; afterwards the index only narrows the candidate files and `forge-find`
   still reads the lines, so both paths return identical results (test
-  `find_text_matches_a_directory_walk`). New `Backend` methods: `find_symbols(query, types_only,
+  `find_text_matches_a_directory_walk`). Both search text files up to 20 MB
+  (`forge_find::MAX_FILE_SIZE`, equal to `forge_search_core::MAX_CONTENT_BYTES`) and read them
+  through `forge_find::searchable`, which turns UTF-16 with a byte order mark into UTF-8; larger
+  and binary files are listed by name only. An index loaded from the cache answers at once and
+  reports `indexing` until its first refresh has compared it with the disk. New `Backend` methods: `find_symbols(query, types_only,
   limit, skip_extensions)` and `search_status()`; agent calls `FindSymbols` and `SearchStatus`.
   The Classes and Symbols tabs (`core.classes`, `core.symbols`) skip the languages a running
   language server or a pack index (PHP, Lua) already answers. The **Find tool window** (Alt+3,

@@ -17,8 +17,9 @@ pub mod todo;
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 
-/// Files larger than this are skipped (bundles, dumps).
-pub const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
+/// Files larger than this are not searched by content. The same limit as PHPStorm's
+/// `idea.max.content.load.filesize`.
+pub const MAX_FILE_SIZE: u64 = 20 * 1024 * 1024;
 /// Default cap on reported matches.
 pub const DEFAULT_LIMIT: usize = 2000;
 /// Longest line preview sent to the UI.
@@ -646,6 +647,36 @@ pub fn is_binary(bytes: &[u8]) -> bool {
     bytes[..bytes.len().min(8192)].contains(&0)
 }
 
+/// The text of UTF-16 content that starts with a byte order mark (which is left out), or `None`
+/// for anything else. Unpaired surrogates and an odd trailing byte become U+FFFD.
+pub fn decode_utf16(bytes: &[u8]) -> Option<String> {
+    let unit: fn([u8; 2]) -> u16 = match bytes {
+        [0xFF, 0xFE, ..] => u16::from_le_bytes,
+        [0xFE, 0xFF, ..] => u16::from_be_bytes,
+        _ => return None,
+    };
+    let body = &bytes[2..];
+    let whole = body.len() - body.len() % 2;
+    let units = (0..whole).step_by(2).map(|i| unit([body[i], body[i + 1]]));
+    let mut text: String = char::decode_utf16(units)
+        .map(|c| c.unwrap_or(char::REPLACEMENT_CHARACTER))
+        .collect();
+    if whole < body.len() {
+        text.push(char::REPLACEMENT_CHARACTER);
+    }
+    Some(text)
+}
+
+/// A file's content as the bytes a search reads: UTF-16 with a byte order mark is turned into
+/// UTF-8, everything else is kept as it is. `None` for binary content ([`is_binary`]).
+pub fn searchable(bytes: Vec<u8>) -> Option<Vec<u8>> {
+    let bytes = match decode_utf16(&bytes) {
+        Some(text) => text.into_bytes(),
+        None => bytes,
+    };
+    (!is_binary(&bytes)).then_some(bytes)
+}
+
 /// Collects file results up to the request's limit.
 #[derive(Debug)]
 pub struct Collector<'a> {
@@ -959,6 +990,38 @@ mod tests {
         assert_eq!(find_in(&q, [("e.txt", "a\r\nb")]).match_count, 0);
         assert!(is_binary(b"ab\0c"));
         assert!(!is_binary(b"abc"));
+    }
+
+    #[test]
+    fn utf16_with_a_byte_order_mark_is_searchable_text() {
+        let utf16 = |text: &str, le: bool| -> Vec<u8> {
+            let mut out = if le {
+                vec![0xFF, 0xFE]
+            } else {
+                vec![0xFE, 0xFF]
+            };
+            for u in text.encode_utf16() {
+                out.extend(if le { u.to_le_bytes() } else { u.to_be_bytes() });
+            }
+            out
+        };
+        let text = "caf\u{e9} needle \u{1F600}\r\nline two\n";
+        for le in [true, false] {
+            let bytes = utf16(text, le);
+            assert!(is_binary(&bytes));
+            assert_eq!(decode_utf16(&bytes).as_deref(), Some(text));
+            assert_eq!(searchable(bytes), Some(text.as_bytes().to_vec()));
+        }
+        // Broken input is replaced, never a panic.
+        assert_eq!(
+            decode_utf16(&[0xFF, 0xFE, b'a', 0, 0x00, 0xD8, b'b']).as_deref(),
+            Some("a\u{FFFD}\u{FFFD}")
+        );
+        // No byte order mark: not UTF-16. Binary stays binary, also behind a mark.
+        assert_eq!(decode_utf16(b"plain"), None);
+        assert_eq!(searchable(b"plain".to_vec()), Some(b"plain".to_vec()));
+        assert_eq!(searchable(b"a\0b".to_vec()), None);
+        assert_eq!(searchable(vec![0xFF, 0xFE, 0, 0, b'a', 0]), None);
     }
 
     #[test]

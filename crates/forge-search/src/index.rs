@@ -132,9 +132,9 @@ pub(crate) fn load_chunks(
     });
 }
 
-/// The file's bytes, or `None` when it is too big, unreadable or binary (decided from its head,
-/// so large binaries are never read in full).
-fn read_file(root: &Path, s: &Scanned) -> Option<Vec<u8>> {
+/// The file's searchable bytes ([`forge_find::searchable`]), or `None` when it is too big,
+/// unreadable or binary (decided from its head, so large binaries are never read in full).
+pub(crate) fn read_file(root: &Path, s: &Scanned) -> Option<Vec<u8>> {
     if s.size > MAX_CONTENT_BYTES {
         return None;
     }
@@ -144,9 +144,17 @@ fn read_file(root: &Path, s: &Scanned) -> Option<Vec<u8>> {
         .take(BINARY_SNIFF_BYTES)
         .read_to_end(&mut bytes)
         .ok()?;
-    if bytes.contains(&0) {
+    // UTF-16 text is full of NUL bytes: only its decoded form says whether it is binary.
+    let utf16 = bytes.starts_with(&[0xFF, 0xFE]) || bytes.starts_with(&[0xFE, 0xFF]);
+    if !utf16 && bytes.contains(&0) {
         return None;
     }
     file.read_to_end(&mut bytes).ok()?;
-    Some(bytes)
+    forge_find::searchable(bytes)
+}
+
+/// The searchable bytes of the file at `path`, whatever its size; `None` when it is unreadable
+/// or binary.
+pub(crate) fn read_searchable(path: &Path) -> Option<Vec<u8>> {
+    forge_find::searchable(fs::read(path).ok()?)
 }

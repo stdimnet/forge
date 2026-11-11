@@ -100,6 +100,12 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 
 ![Search index in the status bar](../../screenshots/search-index-status.png)
 
+What is searched by content:
+
+- Text files up to **20 MB** (the same limit as PHPStorm). Larger files, and binary files (a NUL byte in the first 8 KB), are found by name only; the tooltip of the search index counts them.
+- **UTF-16** files that start with a byte order mark are read as text, like UTF-8 files. Files in other encodings are searched as UTF-8, so only their ASCII text is matched reliably. Replace in Files changes UTF-8 files only; any other file with a match is listed as skipped.
+- The index is kept between runs. When a project opens, the saved index answers at once while Forge compares it with the disk in the background. Until that has finished, the status bar shows "Indexing", the Find window says **Indexing, results may be incomplete**, and files created, changed or deleted while Forge was closed can be missing or outdated in the results.
+
 - Type the text; results update as you type, one row per matching line with the file name and
   line number. The header counts matches and files.
 - Options next to the field: **Cc** match case, **W** whole words, **.\*** regular expression.

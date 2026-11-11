@@ -379,9 +379,22 @@ fn find_text_matches_a_directory_walk() {
     write(d.path(), "src/Empty.txt", "");
     write(d.path(), "src/NoEol.txt", "needle at the end");
     write(d.path(), "src/Tabs.txt", "\tneedle\t\tneedle\n");
-    let mut big = vec![b'x'; 4 * 1024 * 1024 + 1];
+    let mut big = vec![b'q'; 4 * 1024 * 1024 + 1];
     big.extend_from_slice(b" needle\n");
     write(d.path(), "src/Big.txt", big);
+    let mut huge = vec![b'x'; forge_find::MAX_FILE_SIZE as usize];
+    huge.extend_from_slice(b" needle\n");
+    write(d.path(), "src/Huge.txt", huge);
+    write(
+        d.path(),
+        "src/Utf16Le.txt",
+        utf16("caf\u{e9} needle\r\nstra\u{df}e\n", true),
+    );
+    write(
+        d.path(),
+        "src/Utf16Be.txt",
+        utf16("first\nneedle \u{65e5}\u{672c} end\n", false),
+    );
     write(d.path(), "src/Mixed.txt", "one\rtwo\n\nthree  \n");
     svc.refresh();
     let ws = Workspace::open(d.path()).unwrap();
@@ -477,6 +490,112 @@ fn find_text_matches_a_directory_walk() {
         let indexed = svc.find_text(&case).unwrap();
         assert_eq!(indexed, walked, "{case:?}");
     }
+}
+
+fn utf16(text: &str, little_endian: bool) -> Vec<u8> {
+    let mut out = if little_endian {
+        vec![0xFF, 0xFE]
+    } else {
+        vec![0xFE, 0xFF]
+    };
+    for unit in text.encode_utf16() {
+        out.extend(if little_endian {
+            unit.to_le_bytes()
+        } else {
+            unit.to_be_bytes()
+        });
+    }
+    out
+}
+
+#[test]
+fn large_and_utf16_files_are_searched_by_content() {
+    assert_eq!(
+        forge_find::MAX_FILE_SIZE,
+        forge_search_core::MAX_CONTENT_BYTES
+    );
+    let dir = TempDir::new().unwrap();
+    let mut big = vec![b'x'; 4 * 1024 * 1024 + 1];
+    big.extend_from_slice(b"\nbig needle\n");
+    write(dir.path(), "Big.sql", big);
+    let mut huge = vec![b'x'; forge_find::MAX_FILE_SIZE as usize];
+    huge.extend_from_slice(b"\nhuge needle\n");
+    write(dir.path(), "Huge.sql", huge);
+    write(
+        dir.path(),
+        "Le.txt",
+        utf16("one\r\nthe needle \u{e9}\r\n", true),
+    );
+    write(dir.path(), "Be.txt", utf16("needle\n", false));
+    // A byte order mark does not make binary content text.
+    write(
+        dir.path(),
+        "Bin.dat",
+        [&[0xFF, 0xFE, 0, 0][..], b"needle"].concat(),
+    );
+    let cache_dir = TempDir::new().unwrap();
+    let cache = cache_dir.path().join("cache.bin");
+    let svc = SearchService::open(dir.path(), Some(cache.clone()));
+    svc.refresh();
+
+    let (stats, _) = svc.stats();
+    assert_eq!((stats.content, stats.binary, stats.oversized), (3, 1, 1));
+    let req = forge_find::FindRequest {
+        query: "needle".into(),
+        ..forge_find::FindRequest::default()
+    };
+    let rows = |svc: &SearchService| -> Vec<(String, usize, usize, String)> {
+        let found = svc
+            .find_text_lazy(&req, &std::sync::atomic::AtomicBool::new(false))
+            .unwrap();
+        found
+            .page(0, usize::MAX)
+            .into_iter()
+            .flat_map(|f| {
+                f.matches
+                    .into_iter()
+                    .map(move |m| (f.path.clone(), m.line, m.column, m.text))
+            })
+            .collect()
+    };
+    let expected = [
+        ("Be.txt".to_string(), 0, 0, "needle".to_string()),
+        ("Big.sql".to_string(), 1, 4, "big needle".to_string()),
+        ("Le.txt".to_string(), 1, 4, "the needle \u{e9}".to_string()),
+    ];
+    assert_eq!(rows(&svc), expected);
+    assert_eq!(paths(&svc, &q("needle")), ["Be.txt", "Big.sql", "Le.txt"]);
+
+    // The same from the cache of a later run.
+    drop(svc);
+    let again = SearchService::open(dir.path(), Some(cache));
+    assert_eq!(rows(&again), expected);
+}
+
+#[test]
+fn a_cached_index_is_brought_up_to_date_by_the_first_refresh() {
+    let dir = TempDir::new().unwrap();
+    write(dir.path(), "old.txt", "needle\n");
+    write(dir.path(), "gone.txt", "needle\n");
+    let cache_dir = TempDir::new().unwrap();
+    let cache = cache_dir.path().join("cache.bin");
+    SearchService::open(dir.path(), Some(cache.clone())).refresh();
+
+    // Changes made while Forge was closed.
+    write(dir.path(), "new.txt", "needle\n");
+    fs::remove_file(dir.path().join("gone.txt")).unwrap();
+
+    let svc = SearchService::open(dir.path(), Some(cache));
+    // The cached listing answers at once and says that it is being checked against the disk.
+    assert!(svc.ready());
+    assert!(svc.indexing());
+    assert_eq!(paths(&svc, &q("needle")), ["old.txt"]);
+    assert!(svc.find_in_files(&q("needle")).unwrap().indexing);
+
+    let stats = svc.refresh();
+    assert_eq!((stats.added, stats.removed), (1, 1));
+    assert!(!svc.indexing());
+    assert_eq!(paths(&svc, &q("needle")), ["new.txt", "old.txt"]);
 }
 
 #[test]
