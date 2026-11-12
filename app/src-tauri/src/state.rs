@@ -49,6 +49,16 @@ fn disabled_to_save(registry: &PluginRegistry, saved: &[String]) -> Vec<String> 
         .collect()
 }
 
+/// The `plugins.disabled` list the user stored. Only the user's own layer counts: a
+/// project's `.forge/settings.toml` must not end up in the user settings.
+fn user_disabled_plugins(settings: &Settings) -> Vec<String> {
+    settings
+        .layer_values(SettingsScope::User)
+        .get(DISABLED_PLUGINS_KEY)
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_default()
+}
+
 /// The IDE language setting (`en`, `de`).
 pub const LANGUAGE_KEY: &str = "ide.language";
 
@@ -155,10 +165,7 @@ impl AppState {
 
     /// Persist the ids of currently disabled plugins in the user settings.
     pub fn save_disabled_plugins(&self) -> forge_core::Result<()> {
-        let saved: Vec<String> = self
-            .read_settings()
-            .get_as(DISABLED_PLUGINS_KEY)
-            .unwrap_or_default();
+        let saved = user_disabled_plugins(&self.read_settings());
         let disabled =
             disabled_to_save(&self.plugins.read().expect("plugins lock poisoned"), &saved);
         if let Some(store) = &self.plugin_store {
@@ -425,6 +432,33 @@ mod tests {
         assert!(now.contains(&"forge.xdebug".to_string()));
         assert!(now.contains(&"forge.lua".to_string()));
         assert!(!now.contains(&"forge.go".to_string()));
+    }
+
+    #[test]
+    fn a_project_does_not_decide_the_saved_disabled_plugins() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(project.join(".forge")).unwrap();
+        std::fs::write(
+            Settings::project_path(&project),
+            "[plugins]\ndisabled = [\"forge.go\"]\n",
+        )
+        .unwrap();
+        let mut settings = Settings::new();
+        settings.load_user(dir.path().join("user.toml")).unwrap();
+        settings
+            .set(
+                DISABLED_PLUGINS_KEY,
+                serde_json::json!(["forge.lua"]),
+                SettingsScope::User,
+            )
+            .unwrap();
+        settings.load_project(&project).unwrap();
+        assert_eq!(
+            settings.get_as::<Vec<String>>(DISABLED_PLUGINS_KEY),
+            Some(vec!["forge.go".to_string()])
+        );
+        assert_eq!(user_disabled_plugins(&settings), ["forge.lua"]);
     }
 
     #[test]
