@@ -10,6 +10,11 @@ export interface DialogBoot {
   /** Label of the window that opened the dialog. */
   parent?: string;
   props?: unknown;
+  /**
+   * The window was built ahead of time (`prewarmDialogs`): it loads, stays hidden and gets
+   * its props when the dialog is requested.
+   */
+  parked?: boolean;
 }
 
 declare global {

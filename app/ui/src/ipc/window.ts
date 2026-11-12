@@ -54,6 +54,12 @@ export interface DialogMessageEvent {
   message: unknown;
 }
 
+/** The props of the dialog a window built ahead of time now shows. */
+export interface DialogActivation {
+  window: string;
+  props: unknown;
+}
+
 export const windowApi = {
   /** Select In… › Explorer / Finder / File Manager: show a project file in the system file manager. */
   revealInFileManager: (path: string) => invoke<void>("reveal_in_file_manager", { path }),
@@ -61,13 +67,27 @@ export const windowApi = {
   chrome: (style?: string) => invoke<WindowChrome>("window_chrome", { style: style ?? null }),
   /** Open (or focus) a dialog window owned by the calling window. */
   openDialog: (request: DialogWindowRequest) => invoke<void>("dialog_window_open", { request }),
-  /** Close the calling dialog window, reporting `result` to its parent. */
+  /**
+   * Build the dialog window hidden, so that `openDialog` only has to show it. Does nothing
+   * while the dialog is open or the setting `system.preloadSettings` is off; `refresh`
+   * replaces a window built earlier.
+   */
+  prewarmDialog: (request: DialogWindowRequest, refresh = false) =>
+    invoke<void>("dialog_window_prewarm", { request, refresh }),
+  /**
+   * The calling window was built ahead of time and has loaded: `null` to wait for
+   * `onDialogActivate`, or the props when the dialog was requested meanwhile.
+   */
+  dialogParked: () => invoke<DialogActivation | null>("dialog_window_parked"),
+  /** The dialog of a window built ahead of time was requested. */
+  onDialogActivate: (cb: (e: DialogActivation) => void) => listen<DialogActivation>("dialog://activate", cb),
   /** Exit: every project window saves its files and closes, this one too. */
   quitAll: () => invoke<void>("app_quit_all"),
   /** Leave the process now (the answer to `app://quit`). */
   exit: () => invoke<void>("app_exit"),
   /** The dialog window has rendered; the backend shows it (it is created hidden). */
   dialogReady: () => invoke<void>("dialog_window_ready"),
+  /** Close the calling dialog window, reporting `result` to its parent. */
   closeDialog: (result: unknown) => invoke<void>("dialog_window_close", { result: result ?? null }),
   /** Send a message from the calling dialog window to its parent. */
   messageParent: (message: unknown) => invoke<void>("dialog_window_message", { message: message ?? null }),

@@ -32,6 +32,8 @@ const desktopOnly = () => {
 };
 registerMock("dialog_window_open", desktopOnly);
 registerMock("dialog_window_ready", desktopOnly);
+registerMock("dialog_window_prewarm", desktopOnly);
+registerMock("dialog_window_parked", desktopOnly);
 registerMock("app_quit_all", desktopOnly);
 registerMock("app_exit", desktopOnly);
 registerMock("dialog_window_close", desktopOnly);

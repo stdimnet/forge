@@ -882,6 +882,30 @@ or without Git, for local and remote projects.
   startup checks `isDialogWindow()` (`src/shell/window/mode.ts`). In browser mode dialogs open
   in-page (`DialogHost`) inside the same `WindowFrame`. Small popups stay in-page everywhere.
   Window labels `dialog-*` are listed in `capabilities/default.json`.
+- **Showing a dialog window.** The window is built hidden and shown by `dialog_window_ready`,
+  which `DialogWindowApp` calls from a task once the dialog has mounted (a 10 s fallback in
+  Rust shows a window whose UI never reports). It must not wait for
+  `requestAnimationFrame`: a hidden window runs no animation frames, so the dialog would only
+  appear with the fallback. The window manager maps the window a moment after `show`, so the
+  focus request is repeated until the dialog has the keyboard.
+- **Windows built ahead of time.** A dialog window boots the whole UI (all features, the
+  i18n WebAssembly module, settings), which takes one to two seconds. A definition with
+  `prewarm: true` (Settings) therefore gets its window before it is needed:
+  `startPrewarmingDialogs()` (called by `App` once the workbench is on screen) and
+  `prewarmDialogs(refresh?)` (after the dialog closed, when another project opened, when the
+  setting changes) call `dialog_window_prewarm({ request, refresh })`. Rust builds the window
+  hidden with `__FORGE_DIALOG__.parked = true` and tracks it in
+  `forge_window::ParkedDialogs`; the UI loads, calls `dialog_window_parked()` and mounts
+  nothing. `dialog_window_open` then only places the parked window, registers it as the open
+  dialog and hands it the props: with the event `dialog://activate { window, props }`, or as
+  the answer of `dialog_window_parked` when the request came while the window was still
+  loading. The UI reloads the project and the dialog's data (`prepare`), mounts the dialog
+  and reports ready. The window is destroyed when the dialog closes, like every dialog
+  window, and the next one is built. Parked windows go with their owner window, are replaced
+  when the project changes (`refresh`), and do not exist while the setting
+  `system.preloadSettings` is off or on macOS (a window with a parent is a child window
+  there and would be put on screen with it). A parked window is a second web process and
+  costs its memory (about 260 MB for Settings, measured on Linux).
 
 - **Windows that are not modal.** `registerDialog({ …, modal: false, browserPopup? })` makes a
   dialog definition for windows that do not block their owner: an editor tab in its own

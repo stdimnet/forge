@@ -5,6 +5,7 @@ import { openWorkspace, restoreWorkspace, workspace } from "./state/workspace";
 import { openFile } from "./state/editor";
 import { isTauri } from "./ipc";
 import { drawsControls, trackMaximized } from "./shell/window/chrome";
+import { startPrewarmingDialogs } from "./shell/window/dialogs";
 import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
 import { reportWorkbenchReady } from "./features/updates";
 import { askLaunchTrust } from "./features/trust";
@@ -20,7 +21,15 @@ export function App() {
       await restoreWorkspace();
       // The window is shown (and the splash closed) once the first screen has rendered.
       // The window is still hidden here, so no animation frame would ever run: use a task.
-      setTimeout(() => void reportWorkbenchReady().then(() => askLaunchTrust()), 0);
+      setTimeout(
+        () =>
+          void reportWorkbenchReady().then(() => {
+            // The window is on screen: the Settings window can be built in the background.
+            startPrewarmingDialogs();
+            return askLaunchTrust();
+          }),
+        0,
+      );
       return;
     }
     // In browser mode open the demo project so the IDE is explorable without a backend,

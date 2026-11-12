@@ -435,6 +435,13 @@ In the desktop app the dialog opens as a native window owned by the caller (geom
 in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends with
 `closeDialog(id, result)`. Small popups stay in-page.
 
+A dialog window loads the whole UI before it shows anything, which takes a second or two.
+`prewarm: true` (used by Settings) builds the window hidden while the IDE is idle, so opening
+the dialog only shows it. Such a window boots without props: load what the dialog shows in
+`prepare`, which runs again with the real props when the dialog is requested. It costs the
+memory of a second web process, so use it only for dialogs users open all the time. See
+"Window chrome and dialog windows" in `docs/ARCHITECTURE.md`.
+
 ## Layers
 
 Everything that floats over the IDE stacks in one order. The scale is a set of CSS variables
