@@ -6,6 +6,7 @@ import { invoke } from "@/ipc";
 import { gitApi } from "@/features/git/api";
 import { opsApi } from "@/features/git/opsApi";
 import { operationLabel } from "@/features/git/operation";
+import { mockRepo } from "./gitMock";
 
 describe("browser-mode git dialogs and shelf", () => {
   it("shelves, lists and unshelves changes", async () => {
@@ -44,6 +45,40 @@ describe("browser-mode git dialogs and shelf", () => {
     await expect(opsApi.operationAction("continue")).rejects.toThrow(/merge conflicts/);
     await opsApi.operationAction("abort");
     expect((await opsApi.operationState()).operation).toBeNull();
+  });
+
+  it("updates a branch that is not checked out", async () => {
+    const { state, bySha } = mockRepo;
+    const before = await gitApi.branches();
+    const main = before.local.find((b) => b.name === "main")!;
+    expect(main.current).toBe(false);
+    expect((await opsApi.updateBranch("main")).output).toBe("Already up to date.");
+    // The remote moves on: main is fast-forwarded, the current branch and HEAD stay.
+    const ahead = [...bySha.values()].find((c) => c.parents.includes(main.sha))!.sha;
+    state.remote.set("origin/main", ahead);
+    const { output } = await opsApi.updateBranch("main");
+    expect(output).toBe(`${main.sha.slice(0, 8)}..${ahead.slice(0, 8)}`);
+    const after = await gitApi.branches();
+    expect(after.local.find((b) => b.name === "main")!.sha).toBe(ahead);
+    expect(after.current).toBe(before.current);
+    expect(state.head).toBe(before.local.find((b) => b.current)!.sha);
+    // A branch with commits of its own is never rewritten.
+    state.remote.set("origin/main", main.sha);
+    await expect(opsApi.updateBranch("main")).rejects.toThrow(/commits that are not in its tracked branch/);
+    await expect(opsApi.updateBranch(before.current!)).rejects.toThrow(/is checked out/);
+    await expect(opsApi.updateBranch("bugfix/login-redirect")).rejects.toThrow(/no tracked branch/);
+    state.local.set("main", main.sha);
+  });
+
+  it("pulls a remote branch into the current branch", async () => {
+    const head = mockRepo.state.head;
+    const res = await opsApi.pullInto("origin/release/1.1", false);
+    expect(res.output).toBeTruthy();
+    await expect(opsApi.pullInto("release/1.1", false)).rejects.toThrow(/not a branch of a remote/);
+    await expect(opsApi.pullInto("origin/feature/checkout-flow", true)).rejects.toThrow(/CONFLICT/);
+    expect((await opsApi.operationState()).operation).toBe("rebase");
+    await opsApi.operationAction("abort");
+    expect(mockRepo.ancestors(mockRepo.state.head).has(head)).toBe(true);
   });
 
   it("edits remotes and creates forced tags", async () => {

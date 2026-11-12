@@ -2327,6 +2327,8 @@
   "setting.vcs.git.commit.signOff.title": "Commits mit Sign-off versehen",
   "setting.vcs.git.commit.subjectMaxLength.title": "Länge der Betreffzeile begrenzen",
   "setting.vcs.git.commit.warnOnCrlf.title": "Warnen, wenn CRLF-Zeilentrennzeichen committet werden sollen",
+  "setting.vcs.git.inlineBlame.description": "Am Ende der Zeile mit dem Cursor: wer sie zuletzt geändert hat, wann, und die Commit-Nachricht. „Mit Git Blame annotieren“ funktioniert unabhängig davon.",
+  "setting.vcs.git.inlineBlame.title": "Inline-Blame anzeigen",
   "setting.vcs.git.path.description": "`git` belassen, um das Git aus dem PATH zu verwenden. Remote-Projekte verwenden immer das Git ihres Hosts.",
   "setting.vcs.git.path.title": "Pfad zur Git-Programmdatei",
   "setting.vcs.git.protectedBranches.description": "Branch-Namen oder Muster (`*` als Platzhalter), getrennt durch `;`. Log-Aktionen schreiben nie Commits um, die bereits dorthin gepusht wurden.",

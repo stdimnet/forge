@@ -248,6 +248,9 @@ age; click an entry for the commit details. **Close Annotations** hides it.
 ![Blame](../../screenshots/vcs-blame.png)
 
 The caret line also shows an inline blame hint at its end: "Marlon, 2 days ago • message".
+To hide it, clear **Show inline blame** in **Settings | Version Control | Git**
+(`vcs.git.inlineBlame`, on by default). The setting applies to open editors at once and does
+not affect **Annotate with Git Blame**.
 
 ## Branches
 
@@ -265,7 +268,10 @@ repository it reads **Version Control** and the status bar shows no branch.
   'current'** (the Git log of the commits of the branch that are not in the current branch,
   ready to [cherry-pick](#cherry-pick-revert-and-undo)), **Rebase 'current' onto '…'**,
   **Merge '…' into 'current'** and, for local branches, **Delete** (with "Force delete" for
-  unmerged branches). For a local branch that no worktree has checked out, **New Worktree…**
+  unmerged branches). A local branch that tracks a remote branch also has **Update**, and a
+  remote branch **Pull into 'current' Using Rebase** and **Pull into 'current' Using Merge**
+  (see [Update a branch without checking it out](#update-a-branch-without-checking-it-out) and
+  [Pull into the current branch](#pull-into-the-current-branch)). For a local branch that no worktree has checked out, **New Worktree…**
   creates a [worktree](#worktrees) for it.
 - Branches checked out in another worktree are marked **worktree**; clicking them (or **Open
   Worktree** in their submenu) opens that worktree instead of checking them out.
@@ -316,11 +322,46 @@ Settings | Version Control | Git:
 | Path to Git executable | `vcs.git.path` | `git` (the one on `PATH`; `FORGE_GIT` also overrides it). Remote projects always use the git of their host. |
 | Update method: Merge, Rebase or Branch default (`pull.rebase` of the branch) | `vcs.git.updateMethod` | Merge |
 | Fetch remotes automatically, every n minutes | `vcs.git.autoFetch`, `vcs.git.autoFetchInterval` | on, 10 |
+| Show inline blame: the [blame hint](#blame) at the end of the caret line | `vcs.git.inlineBlame` | on |
 | Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches (`git cherry-pick -x`) | `vcs.git.cherryPickSuffix` | on |
 | Protected branches: names or patterns with `*`, separated by `;`. The Log never rewrites commits pushed to them. | `vcs.git.protectedBranches` | `master;main` |
 
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
+
+### Update a branch without checking it out
+
+**Update** in the submenu of a local branch in **Git Branches** (or **Update Branch…** in Find
+Action, `Git.Branch.Update`) brings a branch that is *not* checked out up to date with the
+branch it tracks: Forge fetches the tracked branch and fast-forwards the local branch to it
+(`git fetch <remote> <branch>:<branch>`). Your working tree, the current branch and uncommitted
+changes are not touched, so `main` can be updated while you keep working on a feature branch.
+
+![Update a branch that is not checked out](../../screenshots/git-branch-update.png)
+
+- The result is a balloon: "Updated main" with the old and new revision, or "Already up to
+  date".
+- Only fast-forwards are made. When the branch has commits that are not in its tracked branch,
+  Forge reports that and changes nothing: check the branch out and use **Update Project…**
+  there.
+- **Update** is offered for local branches that track a branch and are not checked out in
+  another [worktree](#worktrees). For the current branch, **Update** runs **Update Project…**.
+
+### Pull into the current branch
+
+**Pull into 'current' Using Merge** and **Pull into 'current' Using Rebase** in the submenu of
+a remote branch in **Git Branches** fetch that branch and merge it into the current branch, or
+rebase the current branch onto it (`git pull --no-rebase|--rebase <remote> <branch>`), without
+opening the Pull dialog.
+
+![Pull into the current branch](../../screenshots/git-pull-into.png)
+
+- Find Action has both as **Pull into Current Using Merge…** (`Git.Branch.Pull.WithMerge`) and
+  **Pull into Current Using Rebase…** (`Git.Branch.Pull.WithRebase`); they ask for the remote
+  branch first. You can give them shortcuts in **Settings | Keymap**.
+- Conflicts open the [Conflicts dialog](#merge-conflicts), as for every merge or rebase; the
+  operation can be continued or aborted from the **Git** menu.
+- The working tree before the pull is kept in Local History.
 
 ## Pull, merge and rebase
 
@@ -524,6 +565,13 @@ The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit grap
 [Worktrees](#worktrees) tab and a **Console** tab with the git commands Forge ran.
 
 ![Git log](../../screenshots/vcs-log.png)
+
+The window is compact, like PHPStorm's: the tabs (**Log**, **Worktrees**, history tabs) are in
+the tool window header next to the **Git** title instead of in a row of their own, there is one
+slim toolbar with the filters, and the commits, branches and changed files use 22 px rows. At
+its default height the window shows the toolbar and a handful of commits:
+
+![Compact Git tool window](../../screenshots/git-tool-window-compact.png)
 
 - Filter by text or hash, branch, user, date and paths; **Show all branches**. Click
   **HEAD (Current Branch)** in the branches pane to see only the current branch.

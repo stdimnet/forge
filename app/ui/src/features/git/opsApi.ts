@@ -87,6 +87,10 @@ export interface ShelfFileContents extends FileContents {
 
 export const opsApi = {
   pull: (options: PullOptions) => invoke<RemoteResult>("git_pull_with", { options }),
+  /** Pull a remote branch (`origin/main`) into the current branch, using merge or rebase. */
+  pullInto: (branch: string, rebase: boolean) => invoke<RemoteResult>("git_pull_into", { branch, rebase }),
+  /** Fetch and fast-forward a local branch that is not checked out. */
+  updateBranch: (name: string) => invoke<RemoteResult>("git_update_branch", { name }),
   merge: (options: MergeOptions) => invoke<string>("git_merge_with", { options }),
   rebase: (options: RebaseOptions) => invoke<string>("git_rebase_with", { options }),
   operationState: () => invoke<OperationState>("git_operation_state"),
