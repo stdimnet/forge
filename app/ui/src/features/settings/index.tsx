@@ -7,8 +7,10 @@ import { EditorView, highlightWhitespace } from "@codemirror/view";
 import { registerCommand } from "@/state/commands";
 import { registerSettingsPage, type SettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
-import { loadSettings } from "@/state/settings";
-import { registerDialog } from "@/shell/window/dialogs";
+import { createEffect, createRoot, on } from "solid-js";
+import { getSetting, loadSettings } from "@/state/settings";
+import { onProject } from "@/state/projectLifecycle";
+import { prewarmDialogs, registerDialog } from "@/shell/window/dialogs";
 import {
   closeSettings,
   openSettings,
@@ -29,6 +31,9 @@ import "./settings.css";
 import { t } from "@/i18n";
 
 export { openSettings, openSettingsForNewProjects, closeSettings };
+
+/** Build the Settings window ahead of time, so it opens at once. */
+const PRELOAD_SETTING = "system.preloadSettings";
 
 type SchemaPageDef = Omit<SettingsPage, "component">;
 
@@ -84,6 +89,8 @@ registerDialog<SettingsDialogProps, SettingsDialogResult>({
   minWidth: 640,
   minHeight: 420,
   component: SettingsDialog,
+  // Its window is built ahead of time, so Settings opens at once (`system.preloadSettings`).
+  prewarm: true,
   prepare: () => loadSettings(),
   // Changes reach every window through `settings://changed`; the plugin list and the
   // setting layers are reloaded here.
@@ -98,6 +105,11 @@ registerDialog<SettingsDialogProps, SettingsDialogResult>({
 registerEditorExtension(() => highlightWhitespace());
 // Soft wraps apply to files opened after the change.
 registerEditorExtension(({ path }) => (softWrapFor(path) ? EditorView.lineWrapping : null));
+
+// The window built ahead of time shows the project it was loaded for, and exists only
+// while the setting is on (the backend reads it).
+onProject("opened", () => prewarmDialogs(true), { name: "settings.prewarm" });
+createRoot(() => createEffect(on(() => getSetting<boolean>(PRELOAD_SETTING, true), () => prewarmDialogs(), { defer: true })));
 
 applySettingsToDocument();
 void loadSettings().catch((e) => console.error("settings could not be loaded", e));

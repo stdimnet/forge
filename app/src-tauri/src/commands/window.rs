@@ -5,6 +5,10 @@
 //! parent focuses the dialog, like a modal dialog. Closing reports the dialog's result to the
 //! parent window (`dialog://closed`), and the dialog's last geometry is remembered in
 //! `<config dir>/forge/dialog-windows.json`. Pure logic lives in `forge-window`.
+//!
+//! A dialog window boots the whole UI, which takes a second or more. The Settings window is
+//! therefore built hidden ahead of time (`dialog_window_prewarm`, "parked"): opening it hands
+//! the parked window its props (`dialog://activate`) and shows it.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -13,8 +17,8 @@ use std::time::{Duration, Instant};
 
 use forge_core::{ForgeError, Result};
 use forge_window::{
-    detect_desktop, dialog_id, dialog_label, place_dialog, ButtonLayout, DialogStates, Os, Rect,
-    Size, SystemLayouts, WindowChrome,
+    detect_desktop, dialog_id, dialog_label, place_dialog, Activation, Booted, ButtonLayout,
+    DialogStates, Os, ParkedDialogs, Rect, Size, SystemLayouts, WindowChrome,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -34,6 +38,18 @@ const CLOSE_REQUESTED_EVENT: &str = "dialog://close-requested";
 const CLOSED_EVENT: &str = "dialog://closed";
 /// Sent to the parent window by `dialog_window_message`: `{ id, message }`.
 const MESSAGE_EVENT: &str = "dialog://message";
+/// Sent to a parked dialog window when its dialog is requested: `{ window, props }`.
+const ACTIVATE_EVENT: &str = "dialog://activate";
+/// Setting: build the Settings window ahead of time, so it opens at once.
+pub const PRELOAD_SETTING_KEY: &str = "system.preloadSettings";
+/// How long a prewarm waits for a closing window to give up its label.
+const LABEL_FREE_TIMEOUT: Duration = Duration::from_secs(5);
+/// When a dialog window that was just shown is asked again to take the focus.
+const FOCUS_RETRIES: [Duration; 3] = [
+    Duration::from_millis(40),
+    Duration::from_millis(120),
+    Duration::from_millis(400),
+];
 /// A dialog that did not answer a close request within this time is closed anyway.
 const CLOSE_GRACE: Duration = Duration::from_secs(3);
 /// A dialog window is shown at the latest this long after it was created, even if its UI
@@ -61,6 +77,11 @@ pub struct DialogWindowsState {
     /// first window is still being created must not build another window with the same
     /// label: Tauri would then drop the label of the window that stays (#227).
     opening: Mutex<HashSet<String>>,
+    /// Hidden windows built ahead of time that wait for their dialog to be requested.
+    parked: Mutex<ParkedDialogs>,
+    /// Held while a window is built ahead of time, until it is parked: a request for the
+    /// dialog waits for it instead of finding a window it cannot use yet.
+    prewarming: Mutex<()>,
     states: Mutex<Option<DialogStates>>,
 }
 
@@ -97,6 +118,17 @@ impl DialogWindowsState {
             state: self,
             label: label.to_string(),
         })
+    }
+
+    fn with_parked<T>(&self, f: impl FnOnce(&mut ParkedDialogs) -> T) -> T {
+        f(&mut self.parked.lock().expect("parked dialogs lock poisoned"))
+    }
+
+    fn is_open(&self, label: &str) -> bool {
+        self.open
+            .lock()
+            .expect("dialogs lock poisoned")
+            .contains_key(label)
     }
 
     fn with_states<T>(&self, f: impl FnOnce(&mut DialogStates) -> T) -> T {
@@ -248,7 +280,7 @@ pub fn window_set_zoom(window: WebviewWindow, factor: f64) -> Result<()> {
 
 // ---- dialog windows ----------------------------------------------------------------------
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DialogWindowRequest {
     /// Registered dialog id (`settings`, `run-configurations`, …).
@@ -279,6 +311,16 @@ struct DialogBoot<'a> {
     id: &'a str,
     parent: &'a str,
     props: &'a Value,
+    /// Built ahead of time: the UI boots, reports with `dialog_window_parked` and stays
+    /// hidden until its dialog is requested.
+    parked: bool,
+}
+
+/// The props of the dialog a parked window now shows.
+#[derive(Debug, Clone, Serialize)]
+pub struct DialogActivation {
+    window: String,
+    props: Value,
 }
 
 /// Payloads carry the label of the window they are meant for (`window`), so a window can
@@ -336,29 +378,13 @@ impl WindowGeometry for WebviewWindow {
     }
 }
 
-/// Open (or focus) the dialog window for `request.id`, owned by the calling window.
-#[tauri::command]
-pub async fn dialog_window_open(
-    app: AppHandle,
-    window: WebviewWindow,
-    request: DialogWindowRequest,
-    dialogs: State<'_, DialogWindowsState>,
-    state: State<'_, AppState>,
-) -> Result<()> {
-    let label = dialog_label(&request.id)
-        .ok_or_else(|| err(format!("invalid dialog id {:?}", request.id)))?;
-    if let Some(existing) = app.get_webview_window(&label) {
-        let _ = existing.unminimize();
-        existing.set_focus().map_err(err)?;
-        return Ok(());
-    }
-    // Already being opened (the user asked twice while the first window is created): that
-    // window shows itself when its UI is ready.
-    let Some(_reservation) = dialogs.reserve(&label) else {
-        return Ok(());
-    };
-    let parent = window;
-    let chrome = chrome_for(&setting(&state));
+/// Where a dialog of `parent` opens: its rectangle and minimum size in physical pixels, and
+/// the scale factor.
+fn dialog_placement(
+    parent: &WebviewWindow,
+    request: &DialogWindowRequest,
+    dialogs: &DialogWindowsState,
+) -> (Rect, Size, f64) {
     let scale = parent.scale_factor().unwrap_or(1.0);
     let px = |logical: u32| (logical as f64 * scale).round() as u32;
     let default = Size {
@@ -369,7 +395,7 @@ pub async fn dialog_window_open(
         width: px(request.min_width.unwrap_or(request.width.min(480))),
         height: px(request.min_height.unwrap_or(request.height.min(320))),
     };
-    let parent_rect = outer_rect(&parent).unwrap_or(Rect::new(0, 0, default.width, default.height));
+    let parent_rect = outer_rect(parent).unwrap_or(Rect::new(0, 0, default.width, default.height));
     let monitors: Vec<Rect> = parent
         .available_monitors()
         .unwrap_or_default()
@@ -386,18 +412,33 @@ pub async fn dialog_window_open(
         .collect();
     let remembered = dialogs.with_states(|s| s.get(&request.id));
     let rect = place_dialog(parent_rect, default, min, remembered, &monitors);
+    (rect, min, scale)
+}
 
+/// Build the hidden window of a dialog of `parent`. A parked window gets its props later.
+fn build_dialog_window(
+    app: &AppHandle,
+    label: &str,
+    parent: &WebviewWindow,
+    request: &DialogWindowRequest,
+    parked: bool,
+    state: &AppState,
+    dialogs: &DialogWindowsState,
+) -> Result<(WebviewWindow, Rect)> {
+    let chrome = chrome_for(&setting(state));
+    let (rect, min, scale) = dialog_placement(parent, request, dialogs);
     let boot = DialogBoot {
         id: &request.id,
         parent: parent.label(),
         props: &request.props,
+        parked,
     };
     let init = format!(
         "window.__FORGE_DIALOG__ = {};",
         serde_json::to_string(&boot).map_err(err)?
     );
     let url = WebviewUrl::App(format!("index.html?dialog={}", request.id).into());
-    let builder = WebviewWindowBuilder::new(&app, &label, url)
+    let builder = WebviewWindowBuilder::new(app, label, url)
         .title(&request.title)
         .decorations(chrome.native)
         .resizable(true)
@@ -407,13 +448,29 @@ pub async fn dialog_window_open(
         .min_inner_size(min.width as f64 / scale, min.height as f64 / scale)
         .initialization_script(&init);
     let builder = if request.modal {
-        builder.parent(&parent).map_err(err)?
+        builder.parent(parent).map_err(err)?
     } else {
         builder
     };
     let dialog = builder.build().map_err(err)?;
+    let _ = dialog.set_size(PhysicalSize::new(rect.width, rect.height));
+    let _ = dialog.set_position(PhysicalPosition::new(rect.x, rect.y));
+    Ok((dialog, rect))
+}
+
+/// `dialog` is the open dialog of `parent` from now on. It stays hidden until its UI has
+/// rendered (`dialog_window_ready`); showing it earlier would put an empty native window on
+/// screen while the frontend boots. If the UI never reports, it is shown after a timeout so
+/// the dialog cannot get lost.
+fn register_open(
+    dialogs: &DialogWindowsState,
+    dialog: &WebviewWindow,
+    parent: &WebviewWindow,
+    request: &DialogWindowRequest,
+    rect: Rect,
+) {
     dialogs.open.lock().expect("dialogs lock poisoned").insert(
-        label.clone(),
+        dialog.label().to_string(),
         OpenDialog {
             id: request.id.clone(),
             parent: parent.label().to_string(),
@@ -424,11 +481,6 @@ pub async fn dialog_window_open(
             geometry: Some(rect),
         },
     );
-    let _ = dialog.set_size(PhysicalSize::new(rect.width, rect.height));
-    let _ = dialog.set_position(PhysicalPosition::new(rect.x, rect.y));
-    // The window stays hidden until its UI has rendered (`dialog_window_ready`); showing it
-    // now would put an empty native window on screen while the frontend boots. If the UI
-    // never reports, it is shown after a timeout so the dialog cannot get lost.
     let fallback = dialog.clone();
     std::thread::spawn(move || {
         std::thread::sleep(DIALOG_READY_TIMEOUT);
@@ -438,7 +490,169 @@ pub async fn dialog_window_open(
     if request.modal {
         let _ = parent.set_enabled(false);
     }
+}
+
+/// Open (or focus) the dialog window for `request.id`, owned by the calling window.
+#[tauri::command]
+pub async fn dialog_window_open(
+    app: AppHandle,
+    window: WebviewWindow,
+    request: DialogWindowRequest,
+    dialogs: State<'_, DialogWindowsState>,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    let label = dialog_label(&request.id)
+        .ok_or_else(|| err(format!("invalid dialog id {:?}", request.id)))?;
+    drop(dialogs.prewarming.lock().expect("prewarm lock poisoned"));
+    if let Some(existing) = app.get_webview_window(&label) {
+        // Built ahead of time: hand it the props; its UI shows it.
+        if let Some(activation) = dialogs.with_parked(|p| p.activate(&label, request.props.clone()))
+        {
+            activate_parked(&app, &existing, &window, &request, activation, &dialogs);
+            return Ok(());
+        }
+        // A parked window that was requested stays hidden until its UI has loaded.
+        if dialogs.is_open(&label) && existing.is_visible().unwrap_or(true) {
+            let _ = existing.unminimize();
+            existing.set_focus().map_err(err)?;
+        }
+        return Ok(());
+    }
+    // Already being opened (the user asked twice while the first window is created): that
+    // window shows itself when its UI is ready.
+    let Some(_reservation) = dialogs.reserve(&label) else {
+        return Ok(());
+    };
+    let (dialog, rect) =
+        build_dialog_window(&app, &label, &window, &request, false, &state, &dialogs)?;
+    register_open(&dialogs, &dialog, &window, &request, rect);
     Ok(())
+}
+
+/// The parked window `dialog` becomes the open dialog of `parent`: placed like a new dialog
+/// window, with the title of this request. It was built for the main window and stays
+/// attached to it when another window asks for the dialog.
+fn activate_parked(
+    app: &AppHandle,
+    dialog: &WebviewWindow,
+    parent: &WebviewWindow,
+    request: &DialogWindowRequest,
+    activation: Activation,
+    dialogs: &DialogWindowsState,
+) {
+    let (rect, _, _) = dialog_placement(parent, request, dialogs);
+    let _ = dialog.set_title(&request.title);
+    let _ = dialog.set_size(PhysicalSize::new(rect.width, rect.height));
+    let _ = dialog.set_position(PhysicalPosition::new(rect.x, rect.y));
+    register_open(dialogs, dialog, parent, request, rect);
+    if let Activation::Send(props) = activation {
+        let payload = DialogActivation {
+            window: dialog.label().to_string(),
+            props,
+        };
+        if let Err(e) = app.emit_to(dialog.label(), ACTIVATE_EVENT, payload) {
+            tracing::warn!("cannot activate the parked dialog window: {e}");
+            let _ = dialog.show();
+        }
+    }
+}
+
+/// Parked windows are not built on macOS: a window with a parent is attached to it as a
+/// child window there, which puts it on screen with its parent.
+fn can_park() -> bool {
+    !cfg!(target_os = "macos")
+}
+
+/// Build the dialog window for `request.id` hidden, so that `dialog_window_open` only has to
+/// show it (setting `system.preloadSettings`). Call it while the IDE is idle and again after
+/// the dialog closed; `refresh` replaces a parked window (the project changed). Does nothing
+/// while the dialog is open.
+#[tauri::command]
+pub async fn dialog_window_prewarm(
+    app: AppHandle,
+    window: WebviewWindow,
+    request: DialogWindowRequest,
+    refresh: Option<bool>,
+) -> Result<()> {
+    let label = dialog_label(&request.id)
+        .ok_or_else(|| err(format!("invalid dialog id {:?}", request.id)))?;
+    let refresh = refresh.unwrap_or(false);
+    // Building a window takes a while; the caller does not wait for it.
+    std::thread::spawn(move || {
+        if let Err(e) = prewarm(&app, &window, &label, &request, refresh) {
+            tracing::warn!("cannot prepare the {} window: {e}", request.id);
+        }
+    });
+    Ok(())
+}
+
+fn prewarm(
+    app: &AppHandle,
+    owner: &WebviewWindow,
+    label: &str,
+    request: &DialogWindowRequest,
+    refresh: bool,
+) -> Result<()> {
+    let dialogs = app.state::<DialogWindowsState>();
+    let state = app.state::<AppState>();
+    let wanted = can_park()
+        && state
+            .read_settings()
+            .get_as::<bool>(PRELOAD_SETTING_KEY)
+            .unwrap_or(true);
+    // Switched off, or to be replaced: the parked window goes.
+    if (refresh || !wanted) && dialogs.with_parked(|p| p.is_parked(label) && p.remove(label)) {
+        if let Some(parked) = app.get_webview_window(label) {
+            let _ = parked.destroy();
+        }
+    }
+    if !wanted {
+        return Ok(());
+    }
+    // A window that is closing keeps its label for a moment.
+    let waiting = Instant::now();
+    while app.get_webview_window(label).is_some() {
+        let in_use = dialogs.is_open(label) || dialogs.with_parked(|p| p.is_parked(label));
+        if in_use || waiting.elapsed() > LABEL_FREE_TIMEOUT {
+            return Ok(());
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    if app.get_webview_window(owner.label()).is_none() {
+        return Ok(());
+    }
+    let _building = dialogs.prewarming.lock().expect("prewarm lock poisoned");
+    let Some(_reservation) = dialogs.reserve(label) else {
+        return Ok(());
+    };
+    let request = DialogWindowRequest {
+        props: Value::Null,
+        ..request.clone()
+    };
+    let (window, _) = build_dialog_window(app, label, owner, &request, true, &state, &dialogs)?;
+    dialogs.with_parked(|p| p.park(label, owner.label()));
+    // The owner closed meanwhile: nothing is left to open the dialog.
+    if app.get_webview_window(owner.label()).is_none() {
+        dialogs.with_parked(|p| p.remove(label));
+        let _ = window.destroy();
+    }
+    Ok(())
+}
+
+/// The UI of a parked dialog window has loaded: `null` to stay hidden until the dialog is
+/// requested (`dialog://activate`), or the props when it was requested meanwhile.
+#[tauri::command]
+pub fn dialog_window_parked(
+    window: Window,
+    dialogs: State<'_, DialogWindowsState>,
+) -> Option<DialogActivation> {
+    match dialogs.with_parked(|p| p.booted(window.label())) {
+        Booted::Wait => None,
+        Booted::Activate(props) => Some(DialogActivation {
+            window: window.label().to_string(),
+            props,
+        }),
+    }
 }
 
 /// Open a dialog window without a parent (the LightEdit window): not modal, with a taskbar
@@ -503,6 +717,7 @@ pub fn open_standalone(
         id,
         parent: "",
         props: &Value::Object(Default::default()),
+        parked: false,
     };
     let init = format!(
         "window.__FORGE_DIALOG__ = {};",
@@ -540,11 +755,27 @@ pub fn open_standalone(
     Ok(window)
 }
 
+/// A window that was just shown is put on screen by the window manager a moment later, and a
+/// focus request that arrives before that is lost: the dialog would open without the
+/// keyboard. Ask again until it has the focus.
+fn focus_when_mapped(window: WebviewWindow) {
+    std::thread::spawn(move || {
+        for wait in FOCUS_RETRIES {
+            std::thread::sleep(wait);
+            if !window.is_visible().unwrap_or(false) || window.is_focused().unwrap_or(true) {
+                return;
+            }
+            let _ = window.set_focus();
+        }
+    });
+}
+
 /// The dialog window's UI has rendered: show it.
 #[tauri::command]
 pub fn dialog_window_ready(app: AppHandle, window: WebviewWindow) -> Result<()> {
     window.show().map_err(err)?;
     window.set_focus().map_err(err)?;
+    focus_when_mapped(window.clone());
     // Forge started for a file: the LightEdit window is the first window, the splash closes.
     crate::startup::window_ready(&app, window.label());
     Ok(())
@@ -625,7 +856,19 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
                     .map(|(l, _)| l.clone())
                     .collect()
             };
-            for child in owned.iter().filter_map(|l| app.get_webview_window(l)) {
+            // So do the windows built ahead of time for it.
+            let parked = dialogs.with_parked(|p| {
+                let labels = p.waiting_for(&label);
+                for parked in &labels {
+                    p.remove(parked);
+                }
+                labels
+            });
+            for child in owned
+                .iter()
+                .chain(&parked)
+                .filter_map(|l| app.get_webview_window(l))
+            {
                 let _ = child.destroy();
             }
             super::project_windows::stop();
@@ -682,6 +925,7 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             }
         }
         WindowEvent::Destroyed => {
+            dialogs.with_parked(|p| p.remove(&label));
             let Some(entry) = dialogs
                 .open
                 .lock()

@@ -127,6 +127,7 @@ Page id `system`.
 | `system.autosave.onIdle` | bool | `false` | user | Autosave | Save files if the IDE is idle |
 | `system.autosave.idleSeconds` | int (1–600) | `15` | user | Autosave | Idle time (seconds) |
 | `system.syncExternalChanges` | bool | `true` | user | Synchronization | Synchronize external changes when switching to the IDE window |
+| `system.preloadSettings` | bool | `true` | user | Performance | Keep the Settings window ready in the background — Settings opens at once, because its window is loaded ahead of time and kept hidden. This uses more memory. Turn it off to load the window when you open Settings. |
 
 ### Appearance & Behavior | Notifications
 

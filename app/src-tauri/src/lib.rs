@@ -1290,6 +1290,8 @@ pub fn run() {
             startup::splash_state,
             startup::startup_workbench_ready,
             commands::window::dialog_window_open,
+            commands::window::dialog_window_prewarm,
+            commands::window::dialog_window_parked,
             commands::window::dialog_window_ready,
             commands::window::dialog_window_close,
             commands::window::dialog_window_message,

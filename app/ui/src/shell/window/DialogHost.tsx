@@ -2,7 +2,7 @@
  * Renders dialogs: in-page over a backdrop (`DialogHost`, browser mode) or as the whole page
  * of a dialog window (`DialogWindowApp`, `?dialog=<id>`).
  */
-import { createEffect, createResource, For, onMount, Show } from "solid-js";
+import { createEffect, createResource, createSignal, For, onMount, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { isTauri } from "@/ipc";
 import { windowApi } from "@/ipc/window";
@@ -56,24 +56,34 @@ export function DialogHost() {
   return <For each={inPageDialogs()}>{(d) => <InPage dialog={d} />}</For>;
 }
 
-/** The page of a dialog window: the frame with only that dialog in it. */
+/**
+ * The page of a dialog window: the frame with only that dialog in it. A window built ahead of
+ * time (`boot.parked`) loads everything, reports with `dialogParked` and mounts the dialog
+ * when it is requested.
+ */
 export function DialogWindowApp(props: { boot: DialogBoot }) {
   const id = props.boot.id;
   const def = dialogDef(id);
-  const dialogProps = props.boot.props ?? {};
-  const [ready] = createResource(async () => {
+  /** The props of the dialog on screen; a parked window has none until it is requested. */
+  const [dialogProps, setDialogProps] = createSignal<unknown>(props.boot.parked ? undefined : (props.boot.props ?? {}));
+  const load = async (p: unknown): Promise<true> => {
     // The project the IDE window has open (project-scoped settings, run configurations).
     // A standalone window (LightEdit) has no project.
-    if (def?.standalone) return prepare(id, dialogProps);
+    if (def?.standalone) return prepare(id, p);
     if (isTauri()) await restoreWorkspace().catch(() => undefined);
     else await openWorkspace("demo").catch(() => undefined);
-    return prepare(id, dialogProps);
-  });
-  if (def) document.title = dialogTitle(def, dialogProps);
-  // The window is created hidden; show it once the dialog is on screen.
+    return prepare(id, p);
+  };
+  const [ready] = createResource(dialogProps, load);
   createEffect(() => {
-    if (!isTauri() || (def && !ready())) return;
-    requestAnimationFrame(() => void windowApi.dialogReady().catch(() => undefined));
+    if (def) document.title = dialogTitle(def, dialogProps() ?? {});
+  });
+  // The window is created hidden; show it once the dialog is on screen. A hidden window
+  // runs no animation frames, so this must be a task: `requestAnimationFrame` would only
+  // fire after the backend's fallback had shown the window (10 s later).
+  createEffect(() => {
+    if (!isTauri() || dialogProps() === undefined || (def && !ready())) return;
+    setTimeout(() => void windowApi.dialogReady().catch(() => undefined), 0);
   });
   onMount(() => {
     trackMaximized();
@@ -82,13 +92,27 @@ export function DialogWindowApp(props: { boot: DialogBoot }) {
     if (!isTauri() && window.opener) window.addEventListener("pagehide", () => requestCloseDialog(id));
     if (!isTauri()) return;
     void windowLabel().then((me) => windowApi.onCloseRequested((e) => e.window === me && requestCloseDialog(id)));
+    if (props.boot.parked) void park();
   });
+  /** Load what the dialog shows while nobody waits for it, then wait for the request. */
+  const park = async () => {
+    const me = await windowLabel();
+    await load({});
+    try {
+      // Listen first: a request between the two calls arrives as the event.
+      await windowApi.onDialogActivate((e) => e.window === me && setDialogProps(() => e.props ?? {}));
+      const requested = await windowApi.dialogParked();
+      if (requested) setDialogProps(() => requested.props ?? {});
+    } catch (e) {
+      console.warn(`dialog "${id}" cannot wait for its request`, e);
+    }
+  };
   return (
     <Show when={def} fallback={<div class="wf-missing">Unknown dialog "{id}"</div>}>
       {(d) => (
-        <WindowFrame title={dialogTitle(d(), dialogProps)} onRequestClose={() => requestCloseDialog(id)}>
-          <Show when={ready()}>
-            <Dynamic component={d().component} props={dialogProps} />
+        <WindowFrame title={dialogTitle(d(), dialogProps() ?? {})} onRequestClose={() => requestCloseDialog(id)}>
+          <Show when={dialogProps() !== undefined && ready()}>
+            <Dynamic component={d().component} props={dialogProps()} />
           </Show>
         </WindowFrame>
       )}

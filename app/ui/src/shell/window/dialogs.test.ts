@@ -10,9 +10,12 @@ import {
   notifyDialogOpener,
   onDialogCancel,
   openDialogWindow,
+  prewarmDialogs,
   registerDialog,
   requestCloseDialog,
+  resetDialogPrewarming,
   setDialogWindowMode,
+  startPrewarmingDialogs,
 } from "./dialogs";
 
 const Empty = () => null;
@@ -24,7 +27,10 @@ function dialog(id: string, extra: Partial<Parameters<typeof registerDialog>[0]>
   return { onClosed, onMessage };
 }
 
-afterEach(() => setDialogWindowMode(false));
+afterEach(() => {
+  setDialogWindowMode(false);
+  resetDialogPrewarming();
+});
 
 describe("in-page dialogs (browser mode)", () => {
   it("opens, closes with a result and runs onClosed in the opener", async () => {
@@ -151,5 +157,57 @@ describe("dialog windows (desktop)", () => {
     await expect(openDialogWindow("t-fail")).resolves.toBeNull();
     expect(isDialogOpen("t-fail")).toBe(false);
     spy.mockRestore();
+  });
+});
+
+describe("dialog windows built ahead of time (desktop)", () => {
+  const prewarmed = () => {
+    const requests: { id: string; refresh: boolean; props: unknown }[] = [];
+    registerMock("dialog_window_prewarm", (args) => {
+      const request = args.request as { id: string; props: unknown };
+      if (request.id.startsWith("t-warm")) requests.push({ id: request.id, refresh: args.refresh as boolean, props: request.props });
+    });
+    return requests;
+  };
+
+  it("builds the windows of `prewarm` dialogs once the IDE window has rendered", async () => {
+    dialog("t-warm", { prewarm: true });
+    dialog("t-cold");
+    const requests = prewarmed();
+    setDialogWindowMode(true);
+    // Not while the IDE window itself is starting.
+    prewarmDialogs();
+    await Promise.resolve();
+    expect(requests).toEqual([]);
+
+    startPrewarmingDialogs();
+    await vi.waitFor(() => expect(requests).toEqual([{ id: "t-warm", refresh: false, props: {} }]));
+    // Another project: the window built for the old one is replaced.
+    prewarmDialogs(true);
+    await vi.waitFor(() => expect(requests[1]).toEqual({ id: "t-warm", refresh: true, props: {} }));
+  });
+
+  it("builds the next window when the dialog has closed", async () => {
+    dialog("t-warm-again", { prewarm: true });
+    const requests = prewarmed();
+    setDialogWindowMode(true);
+    registerMock("dialog_window_open", () => undefined);
+    startPrewarmingDialogs();
+    await vi.waitFor(() => expect(requests.filter((r) => r.id === "t-warm-again")).toHaveLength(1));
+
+    const done = openDialogWindow("t-warm-again");
+    await vi.waitFor(() => expect(isDialogOpen("t-warm-again")).toBe(true));
+    await new Promise((r) => setTimeout(r, 0));
+    emitMock("dialog://closed", { window: "main", id: "t-warm-again", result: null });
+    await done;
+    await vi.waitFor(() => expect(requests.filter((r) => r.id === "t-warm-again")).toHaveLength(2));
+  });
+
+  it("builds nothing in browser mode", async () => {
+    dialog("t-warm-browser", { prewarm: true });
+    const requests = prewarmed();
+    startPrewarmingDialogs();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(requests).toEqual([]);
   });
 });

@@ -750,6 +750,16 @@ group = "system"
 section = "Synchronization"
 order = 20
 
+[[contributions.settings]]
+key = "system.preloadSettings"
+title = "Keep the Settings window ready in the background"
+description = "Settings opens at once, because its window is loaded ahead of time and kept hidden. This uses more memory. Turn it off to load the window when you open Settings."
+type = "bool"
+default = true
+group = "system"
+section = "Performance"
+order = 30
+
 # ---- Appearance & Behavior > System Settings > Language -----------------------------
 
 [[contributions.settings]]

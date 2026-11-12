@@ -7,6 +7,7 @@
 //!   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 //! - [`geometry`]: where a dialog window opens (centered on its parent, or where the user left
 //!   it) and the remembered size and position of every dialog.
+//! - [`prewarm`]: dialog windows built ahead of time (the Settings window), so they open at once.
 //! - [`light_edit`]: the tabs of the LightEdit window (files opened without a project).
 //! - [`reveal`]: the commands that show a file in the system file manager.
 //! - [`projects`]: the registry of running project windows (one Forge instance each), Next /
@@ -20,6 +21,7 @@ pub mod chrome;
 pub mod desktop;
 pub mod geometry;
 pub mod light_edit;
+pub mod prewarm;
 pub mod projects;
 pub mod reveal;
 
@@ -29,6 +31,7 @@ pub use chrome::{
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
 pub use light_edit::{LightEditFile, LightEditSnapshot, LightEditTabs, LIGHT_EDIT_ID};
+pub use prewarm::{Activation, Booted, ParkedDialogs};
 pub use projects::{
     control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo,
     ProjectWindows,

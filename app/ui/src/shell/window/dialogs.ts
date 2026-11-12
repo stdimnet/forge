@@ -16,6 +16,10 @@
  * Small popups (Find Action, completion, context menus, balloons) stay in-page and do not use
  * this API.
  *
+ * A dialog window loads the whole UI before it can show anything. A definition with
+ * `prewarm` (Settings) has its window built hidden while the IDE is idle
+ * (`startPrewarmingDialogs`, `prewarmDialogs`), so opening it only shows it.
+ *
  * Windows that are not modal (`modal: false`: an editor tab or a tool window in its own
  * window) use the same API. Several of them can be open at once: their ids are
  * `<definition id>--<key>` (`editor--2`, `toolwindow--terminal`) and resolve to the
@@ -51,6 +55,11 @@ export interface DialogDef<P = Record<string, unknown>, R = unknown> {
   modal?: boolean;
   /** Browser mode: open as a browser popup window instead of in-page (not modal only). */
   browserPopup?: boolean;
+  /**
+   * Desktop app: build the window hidden ahead of time, so the dialog opens at once. The
+   * window boots without props and gets them when the dialog is requested.
+   */
+  prewarm?: boolean;
   /**
    * A window of its own, not opened by a project window (the LightEdit window): it does not
    * show the project the IDE window has open.
@@ -137,6 +146,50 @@ function finish(id: string, result: unknown): void {
   } finally {
     p.resolve(result);
   }
+  // Its window is gone: build the next one.
+  if (dialogDef(id)?.prewarm) prewarmDialogs();
+}
+
+const request = (id: string, def: AnyDef, props: unknown) => ({
+  id,
+  title: dialogTitle(def, props),
+  width: def.width,
+  height: def.height,
+  minWidth: def.minWidth,
+  minHeight: def.minHeight,
+  props,
+  modal: def.modal ?? true,
+});
+
+let prewarming = false;
+
+/**
+ * The IDE window has rendered: from now on the windows of the dialogs marked `prewarm` are
+ * built ahead of time. Before that they would compete with the IDE's own start.
+ */
+export function startPrewarmingDialogs(): void {
+  prewarming = true;
+  prewarmDialogs();
+}
+
+/**
+ * Build the windows of the dialogs marked `prewarm` (desktop app, IDE window only); the
+ * backend skips a dialog that is open or has its window already. `refresh` replaces the
+ * windows built earlier: they loaded what no longer applies (another project).
+ */
+export function prewarmDialogs(refresh = false): void {
+  if (!prewarming || !windowMode || dialogBoot()) return;
+  for (const def of defs.values()) {
+    if (!def.prewarm) continue;
+    void windowApi.prewarmDialog(request(def.id, def, {}), refresh).catch((e) => {
+      console.warn(`dialog "${def.id}" could not be prepared`, e);
+    });
+  }
+}
+
+/** Tests: forget that the IDE window has rendered. */
+export function resetDialogPrewarming(): void {
+  prewarming = false;
 }
 
 /**
@@ -148,19 +201,9 @@ export function openDialogWindow<R = unknown>(id: string, props: object = {}): P
   if (!def) return Promise.reject(new Error(`unknown dialog "${id}"`));
   // This window already is that dialog.
   if (dialogBoot()?.id === id) return Promise.resolve(null);
-  const request = {
-    id,
-    title: dialogTitle(def, props),
-    width: def.width,
-    height: def.height,
-    minWidth: def.minWidth,
-    minHeight: def.minHeight,
-    props,
-    modal: def.modal ?? true,
-  };
   const existing = pending.get(id);
   if (existing) {
-    if (windowMode) void windowApi.openDialog(request).catch(() => undefined);
+    if (windowMode) void windowApi.openDialog(request(id, def, props)).catch(() => undefined);
     else popups.get(id)?.focus();
     return existing.promise as Promise<R | null>;
   }
@@ -170,7 +213,7 @@ export function openDialogWindow<R = unknown>(id: string, props: object = {}): P
   setOpenIds((ids) => [...ids, id]);
   if (windowMode) {
     void ensureListeners()
-      .then(() => windowApi.openDialog(request))
+      .then(() => windowApi.openDialog(request(id, def, props)))
       .catch((e) => {
         console.error(`dialog "${id}" could not be opened`, e);
         finish(id, null);

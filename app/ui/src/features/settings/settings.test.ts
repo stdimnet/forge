@@ -67,3 +67,11 @@ describe("applying settings", () => {
     expect(fontStack("", "monospace")).toBe("monospace");
   });
 });
+
+describe("the Settings dialog window", () => {
+  it("can be kept ready in the background, which the user can turn off (#244)", async () => {
+    // The hidden window costs memory (see `prewarm` in shell/window/dialogs.ts).
+    const spec = (await settingsApi.schema()).find((s) => s.key === "system.preloadSettings");
+    expect(spec).toMatchObject({ type: "bool", default: true, group: "system" });
+  });
+});

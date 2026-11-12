@@ -291,6 +291,7 @@ Settings | Appearance & Behavior | System Settings:
 | Save files if the IDE is switched to a different application | `system.autosave.onFrameDeactivation` | saves all modified files when Forge loses the focus |
 | Save files if the IDE is idle, idle time | `system.autosave.onIdle`, `system.autosave.idleSeconds` | saves after that many seconds without typing or clicking |
 | Synchronize external changes when switching to the IDE window | `system.syncExternalChanges` | re-reads open files changed on disk and refreshes the Project view and Git status |
+| Keep the Settings window ready in the background | `system.preloadSettings` | Settings opens at once: Forge loads its window ahead of time and keeps it hidden. The hidden window uses memory (a few hundred megabytes); turn the option off to load the window only when you open Settings, which takes a second or two. Has no effect on macOS, where the window is always loaded on demand. |
 
 Every option in the Settings dialog applies; the [settings reference](../reference/settings.md)
 lists them all.
