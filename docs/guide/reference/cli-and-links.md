@@ -23,6 +23,8 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | `forge --line 12 --column 3 src/App.tsx` | JetBrains style; short `-l`, `-c` |
 | `forge src/App.tsx 12 3` | `launch-editor` style: numbers after a file are its line and column |
 | `forge 'forge://open?file=…&line=…'` | a link (treated like a link from a web page) |
+| `forge --packs phpforge,webforge …` / `--packs=none` / `--packs all` | load only the core and these packs in this session (see [Starting Forge with some packs](../user/plugins-and-packs.md#starting-forge-with-some-packs)) |
+| `phpforge …`, `webforge …`, … | Forge started under a pack's name (a link or a copy of the program): the same as `forge --packs <name>` |
 
 - Relative paths are resolved against the current directory. Arguments that name nothing on
   disk are skipped with a warning (in the log). Empty or blank arguments (`forge ""`, for
@@ -31,7 +33,8 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 - `file:///…` URLs are accepted as the path they name (file managers launching `%U`).
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
-  (single instance) and the new process exits.
+  (single instance) and the new process exits. The running window keeps its packs: `--packs`
+  and a pack's name only count for the process that starts Forge.
 - Files given on the command line are **trusted**: they open without a confirmation, also
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).

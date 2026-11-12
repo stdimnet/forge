@@ -14,6 +14,7 @@ tags: [environment, variables, reference]
 | Variable | Effect |
 | --- | --- |
 | `FORGE_NEW_WINDOW` | set by Forge when it starts another project window (Open Project › New Window): the instance skips the single-instance hand-over, the splash and the update check; it is removed from the environment at once, so terminals do not inherit it |
+| `FORGE_PACKS` | the packs to load, as `--packs` takes them (`phpforge,webforge`, `none`, `all`); the option wins over it, and it wins over the program name. Forge sets it for the project windows it starts, so they keep the session's packs (see [Starting Forge with some packs](../user/plugins-and-packs.md#starting-forge-with-some-packs)) |
 | `FORGE_GIT` | git executable to use instead of `git` on the `PATH` (e.g. a bundled git on Windows) |
 | `FORGE_REMOTE_AGENT_DIR` | folder with the remote agent binaries (`forge-remote-agent-<arch>-linux[.gz]`), searched before the bundle's `agents/` folder |
 | `FORGE_AGENT_LOG` | log filter of the remote agent on the host (e.g. `debug`); the agent logs to stderr |

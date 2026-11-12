@@ -40,6 +40,47 @@ Inactive plugins hide their tool windows, status bar widgets and editor features
 types fall back to the bundled ones (in a non-Symfony project `config/services.yaml` is plain
 YAML).
 
+## Starting Forge with some packs
+
+`forge` loads every pack. To get an IDE for one stack, start Forge under the pack's name or
+with the `--packs` option; the plugins of the other packs are then off for that session:
+
+| Start | Loads |
+| --- | --- |
+| `forge` | every pack |
+| `phpforge`, `webforge`, `pyforge`, `goforge`, `rustforge`, `rubyforge`, `javaforge`, `kotlinforge`, `cforge`, `dotnetforge`, `luaforge` | the core and that pack |
+| `forge --packs phpforge,webforge` | the core and the packs listed |
+| `forge --packs none` | the core alone: no language packs |
+| `forge --packs all` | every pack, also when started under a pack's name |
+
+- **Names** are links to or copies of the Forge program. On Linux and macOS:
+  `ln -s "$(command -v forge)" ~/.local/bin/phpforge`. On Windows copy `forge.exe` to
+  `phpforge.exe` in the same folder, or put the option into a shortcut:
+  `forge.exe --packs phpforge`. A link to an AppImage works the same way. Upper and lower
+  case do not matter, and a name that is no pack starts the usual Forge.
+- The option wins over the `FORGE_PACKS` environment variable (the same list), which wins
+  over the name.
+- **Always loaded:** the core plugins (Git, Terminal, Run/Debug, Database, AI, …),
+  ConfigForge and ScriptForge (YAML, JSON, `.env`, Bash, …), the plugins you installed from
+  the Marketplace or from disk, and whatever a loaded plugin depends on (`kotlinforge` also
+  loads Java). PHPForge, PyForge, RubyForge, JavaForge and DotNetForge also load
+  **HTML, CSS & JavaScript** for their templates; add `webforge` for React, Vue.js, Angular
+  and the JavaScript tools.
+- The selection belongs to the session, not to your settings: plugins you disabled stay
+  disabled, and starting `phpforge` does not disable anything for `forge`. Project windows
+  opened from the session and a restart keep its packs.
+- Forge runs once: while it is open, starting it under another name hands the files and
+  folders to the open window, which keeps its packs.
+
+![Plugins when Forge was started as phpforge](../../screenshots/settings-plugins-launch-profile.png)
+
+**Settings | Plugins** names the packs of the session above the list. The plugins of the other
+packs are unchecked and cannot be switched there; their details say
+"Not part of the packs Forge was started with".
+
+Forge is one program either way: the packs are not separate downloads, and a session with
+fewer packs does not take less disk space.
+
 ## Settings | Plugins
 
 ![Plugins](../../screenshots/settings-plugins.png)
