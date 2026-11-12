@@ -10,18 +10,27 @@ const fake = vi.hoisted(() => {
     apply: () => any,
     construct: () => any,
   });
+  const terminals: Terminal[] = [];
   class Terminal {
     options: Record<string, unknown> = {};
     cols = 80;
     rows = 24;
     element = undefined;
+    /** The terminal sends `data` to its shell (a typed key, a reply to a query). */
+    send: (data: string) => void = () => undefined;
+    // The addons are fakes of this class too: only the terminal itself gets a listener.
+    onData = (listener: (data: string) => void) => ((this.send = listener), terminals.push(this), any);
+    /** Saved output is parsed later; `flushWrites` runs the callbacks like xterm.js does. */
+    written: (() => void)[] = [];
+    write = (_data: string, done?: () => void) => void (done && this.written.push(done));
+    flushWrites = () => this.written.splice(0).forEach((done) => done());
     constructor() {
       return new Proxy(this, {
         get: (t, p) => (p in t ? t[p as keyof Terminal] : any),
       });
     }
   }
-  return { any, Terminal };
+  return { any, Terminal, terminals };
 });
 vi.mock("@xterm/xterm", () => ({ Terminal: fake.Terminal }));
 vi.mock("@xterm/addon-fit", () => ({ FitAddon: fake.Terminal }));
@@ -37,6 +46,7 @@ const api = vi.hoisted(() => ({
   opening: [] as { resolve: (v: unknown) => void }[],
   open: vi.fn(),
   close: vi.fn(),
+  write: vi.fn(),
   unlisten: vi.fn(),
 }));
 
@@ -50,15 +60,16 @@ vi.mock("@/ipc/terminal", async (orig) => ({
       return new Promise((resolve) => api.opening.push({ resolve }));
     },
     close: (id: string) => (api.close(id), Promise.resolve()),
-    write: () => Promise.resolve(),
+    write: (...args: unknown[]) => (api.write(...args), Promise.resolve()),
     resize: () => Promise.resolve(),
   },
 }));
 
-const { attachSession, disposeSession } = await import("./sessions");
+const { attachSession, disposeSession, setRestoredHistory } = await import("./sessions");
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 afterEach(() => {
+  fake.terminals.length = 0;
   api.listening.length = 0;
   api.opening.length = 0;
   vi.clearAllMocks();
@@ -96,5 +107,51 @@ describe("terminal sessions closed while they start", () => {
     await flush();
     disposeSession("t3");
     expect(api.close).toHaveBeenCalledWith("t3");
+  });
+});
+
+describe("what the terminal sends before its shell is open", () => {
+  /** Start a tab up to the point where `terminal_open` is under way. */
+  async function starting(id: string) {
+    attachSession(id, document.createElement("div"));
+    api.listening[0].resolve(api.unlisten);
+    await flush();
+    return fake.terminals[fake.terminals.length - 1];
+  }
+
+  it("reaches the shell once it is open, in order", async () => {
+    const term = await starting("e1");
+    // fish asks for the Primary Device Attributes right away; the reply must not be lost.
+    term.send("\x1b[?1;2c");
+    term.send("ls");
+    expect(api.write).not.toHaveBeenCalled();
+    api.opening[0].resolve({});
+    await flush();
+    expect(api.write.mock.calls).toEqual([["e1", "\x1b[?1;2c" + "ls"]]);
+    term.send("\r");
+    expect(api.write).toHaveBeenLastCalledWith("e1", "\r");
+    disposeSession("e1");
+  });
+
+  it("is dropped when the tab closes first", async () => {
+    const term = await starting("e2");
+    term.send("\x1b[?1;2c");
+    disposeSession("e2");
+    api.opening[0].resolve({});
+    await flush();
+    expect(api.write).not.toHaveBeenCalled();
+  });
+
+  it("leaves out replies to the questions in restored output", async () => {
+    setRestoredHistory("e3", "\x1b[0c$ make\r\n");
+    const term = await starting("e3");
+    // The saved output of the old shell asked too; that reply is not for the new shell.
+    term.send("\x1b[?1;2c");
+    term.flushWrites();
+    term.send("\x1b[?1;2c");
+    api.opening[0].resolve({});
+    await flush();
+    expect(api.write.mock.calls).toEqual([["e3", "\x1b[?1;2c"]]);
+    disposeSession("e3");
   });
 });
