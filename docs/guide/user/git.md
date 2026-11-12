@@ -248,6 +248,9 @@ age; click an entry for the commit details. **Close Annotations** hides it.
 ![Blame](../../screenshots/vcs-blame.png)
 
 The caret line also shows an inline blame hint at its end: "Marlon, 2 days ago • message".
+To hide it, clear **Show inline blame** in **Settings | Version Control | Git**
+(`vcs.git.inlineBlame`, on by default). The setting applies to open editors at once and does
+not affect **Annotate with Git Blame**.
 
 ## Branches
 
@@ -316,6 +319,7 @@ Settings | Version Control | Git:
 | Path to Git executable | `vcs.git.path` | `git` (the one on `PATH`; `FORGE_GIT` also overrides it). Remote projects always use the git of their host. |
 | Update method: Merge, Rebase or Branch default (`pull.rebase` of the branch) | `vcs.git.updateMethod` | Merge |
 | Fetch remotes automatically, every n minutes | `vcs.git.autoFetch`, `vcs.git.autoFetchInterval` | on, 10 |
+| Show inline blame: the [blame hint](#blame) at the end of the caret line | `vcs.git.inlineBlame` | on |
 | Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches (`git cherry-pick -x`) | `vcs.git.cherryPickSuffix` | on |
 | Protected branches: names or patterns with `*`, separated by `;`. The Log never rewrites commits pushed to them. | `vcs.git.protectedBranches` | `master;main` |
 

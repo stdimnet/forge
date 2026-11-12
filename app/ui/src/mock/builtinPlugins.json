@@ -2987,6 +2987,16 @@
           "order": 3
         },
         {
+          "key": "vcs.git.inlineBlame",
+          "title": "Show inline blame",
+          "description": "At the end of the line with the caret: who last changed it, when, and the commit message. Annotate with Git Blame works either way.",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.git",
+          "project": false,
+          "order": 4
+        },
+        {
           "key": "vcs.git.commit.subjectMaxLength",
           "title": "Limit subject line length",
           "type": "int",

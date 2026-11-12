@@ -2327,6 +2327,8 @@
   "setting.vcs.git.commit.signOff.title": "Sign-off commits",
   "setting.vcs.git.commit.subjectMaxLength.title": "Limit subject line length",
   "setting.vcs.git.commit.warnOnCrlf.title": "Warn if CRLF line separators are about to be committed",
+  "setting.vcs.git.inlineBlame.description": "At the end of the line with the caret: who last changed it, when, and the commit message. Annotate with Git Blame works either way.",
+  "setting.vcs.git.inlineBlame.title": "Show inline blame",
   "setting.vcs.git.path.description": "Leave as `git` to use the one on PATH. Remote projects always use the git of their host.",
   "setting.vcs.git.path.title": "Path to Git executable",
   "setting.vcs.git.protectedBranches.description": "Branch names or patterns (`*` wildcards) separated by `;`. Log actions never rewrite commits that are already pushed to them.",
