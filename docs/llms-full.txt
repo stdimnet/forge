@@ -17080,6 +17080,13 @@ The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit grap
 
 ![Git log](docs/screenshots/vcs-log.png)
 
+The window is compact, like PHPStorm's: the tabs (**Log**, **Worktrees**, history tabs) are in
+the tool window header next to the **Git** title instead of in a row of their own, there is one
+slim toolbar with the filters, and the commits, branches and changed files use 22 px rows. At
+its default height the window shows the toolbar and a handful of commits:
+
+![Compact Git tool window](docs/screenshots/git-tool-window-compact.png)
+
 - Filter by text or hash, branch, user, date and paths; **Show all branches**. Click
   **HEAD (Current Branch)** in the branches pane to see only the current branch.
 - Select a commit to see its changed files; open their diffs from there. `Ctrl+click` and
