@@ -9986,6 +9986,47 @@ Inactive plugins hide their tool windows, status bar widgets and editor features
 types fall back to the bundled ones (in a non-Symfony project `config/services.yaml` is plain
 YAML).
 
+## Starting Forge with some packs
+
+`forge` loads every pack. To get an IDE for one stack, start Forge under the pack's name or
+with the `--packs` option; the plugins of the other packs are then off for that session:
+
+| Start | Loads |
+| --- | --- |
+| `forge` | every pack |
+| `phpforge`, `webforge`, `pyforge`, `goforge`, `rustforge`, `rubyforge`, `javaforge`, `kotlinforge`, `cforge`, `dotnetforge`, `luaforge` | the core and that pack |
+| `forge --packs phpforge,webforge` | the core and the packs listed |
+| `forge --packs none` | the core alone: no language packs |
+| `forge --packs all` | every pack, also when started under a pack's name |
+
+- **Names** are links to or copies of the Forge program. On Linux and macOS:
+  `ln -s "$(command -v forge)" ~/.local/bin/phpforge`. On Windows copy `forge.exe` to
+  `phpforge.exe` in the same folder, or put the option into a shortcut:
+  `forge.exe --packs phpforge`. A link to an AppImage works the same way. Upper and lower
+  case do not matter, and a name that is no pack starts the usual Forge.
+- The option wins over the `FORGE_PACKS` environment variable (the same list), which wins
+  over the name.
+- **Always loaded:** the core plugins (Git, Terminal, Run/Debug, Database, AI, …),
+  ConfigForge and ScriptForge (YAML, JSON, `.env`, Bash, …), the plugins you installed from
+  the Marketplace or from disk, and whatever a loaded plugin depends on (`kotlinforge` also
+  loads Java). PHPForge, PyForge, RubyForge, JavaForge and DotNetForge also load
+  **HTML, CSS & JavaScript** for their templates; add `webforge` for React, Vue.js, Angular
+  and the JavaScript tools.
+- The selection belongs to the session, not to your settings: plugins you disabled stay
+  disabled, and starting `phpforge` does not disable anything for `forge`. Project windows
+  opened from the session and a restart keep its packs.
+- Forge runs once: while it is open, starting it under another name hands the files and
+  folders to the open window, which keeps its packs.
+
+![Plugins when Forge was started as phpforge](docs/screenshots/settings-plugins-launch-profile.png)
+
+**Settings | Plugins** names the packs of the session above the list. The plugins of the other
+packs are unchecked and cannot be switched there; their details say
+"Not part of the packs Forge was started with".
+
+Forge is one program either way: the packs are not separate downloads, and a session with
+fewer packs does not take less disk space.
+
 ## Settings | Plugins
 
 ![Plugins](docs/screenshots/settings-plugins.png)
@@ -26146,6 +26187,8 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 | `forge --line 12 --column 3 src/App.tsx` | JetBrains style; short `-l`, `-c` |
 | `forge src/App.tsx 12 3` | `launch-editor` style: numbers after a file are its line and column |
 | `forge 'forge://open?file=…&line=…'` | a link (treated like a link from a web page) |
+| `forge --packs phpforge,webforge …` / `--packs=none` / `--packs all` | load only the core and these packs in this session (see [Starting Forge with some packs](docs/guide/user/plugins-and-packs.md#starting-forge-with-some-packs)) |
+| `phpforge …`, `webforge …`, … | Forge started under a pack's name (a link or a copy of the program): the same as `forge --packs <name>` |
 
 - Relative paths are resolved against the current directory. Arguments that name nothing on
   disk are skipped with a warning (in the log). Empty or blank arguments (`forge ""`, for
@@ -26154,7 +26197,8 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
 - `file:///…` URLs are accepted as the path they name (file managers launching `%U`).
 - Other options starting with `-` are ignored.
 - If Forge is already running, the arguments are handed to the running window
-  (single instance) and the new process exits.
+  (single instance) and the new process exits. The running window keeps its packs: `--packs`
+  and a pack's name only count for the process that starts Forge.
 - Files given on the command line are **trusted**: they open without a confirmation, also
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).
@@ -26490,6 +26534,7 @@ Source: docs/guide/reference/environment-variables.md
 | Variable | Effect |
 | --- | --- |
 | `FORGE_NEW_WINDOW` | set by Forge when it starts another project window (Open Project › New Window): the instance skips the single-instance hand-over, the splash and the update check; it is removed from the environment at once, so terminals do not inherit it |
+| `FORGE_PACKS` | the packs to load, as `--packs` takes them (`phpforge,webforge`, `none`, `all`); the option wins over it, and it wins over the program name. Forge sets it for the project windows it starts, so they keep the session's packs (see [Starting Forge with some packs](docs/guide/user/plugins-and-packs.md#starting-forge-with-some-packs)) |
 | `FORGE_GIT` | git executable to use instead of `git` on the `PATH` (e.g. a bundled git on Windows) |
 | `FORGE_REMOTE_AGENT_DIR` | folder with the remote agent binaries (`forge-remote-agent-<arch>-linux[.gz]`), searched before the bundle's `agents/` folder |
 | `FORGE_AGENT_LOG` | log filter of the remote agent on the host (e.g. `debug`); the agent logs to stderr |
@@ -34458,6 +34503,7 @@ only on this crate, never on app internals.
 | --- | --- |
 | `contributions.rs` | Contribution types: everything a plugin can add to the IDE. |
 | `lifecycle` | Re-exports the project lifecycle of `forge_core::lifecycle` (`ProjectLifecycle`, `ProjectLifecycleBus`, `Objection`, …) for packs whose Rust services follow the window's project; the desktop app subscribes them (`app/src-tauri/src/lifecycle.rs`). |
+| `profile.rs` | Launch profiles: which packs a Forge process loads (`phpforge`, `--packs …`, `FORGE_PACKS`). Detection from the command line, the environment and the program name, and which plugins a profile turns off. |
 | `registry.rs` | The plugin registry: which plugins are installed, which are enabled, and lookups over the contributions of the enabled ones. |
 | `settings_model.rs` | The model behind the Settings dialog (Ctrl+Alt+S): the page tree built from registered pages, search over pages, settings and plugins, and highlighting of search hits. The UI sends what it shows and renders the answer; this module decides what matches. |
 
@@ -34465,6 +34511,7 @@ only on this crate, never on app internals.
 
 ```rust
 pub use contributions::*;
+pub use profile::{LaunchProfile, ProfileView};
 pub use registry::{PluginDescriptor, PluginInfo, PluginRegistry};
 pub struct PluginManifest { … }
 pub trait Plugin: Send + Sync { … }

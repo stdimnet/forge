@@ -5,6 +5,7 @@ use forge_core::{ForgeError, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::contributions::*;
+use crate::profile::{self, LaunchProfile, PluginFacts, ProfileView};
 use crate::{Plugin, PluginManifest};
 
 /// A plugin as declared in a manifest file: metadata plus contributions.
@@ -58,6 +59,8 @@ pub struct PluginInfo {
 pub struct PluginRegistry {
     /// Plugins in registration order (the order the UI lists them in).
     plugins: Vec<PluginInfo>,
+    /// The launch profile and the plugins it turned off (`apply_profile`).
+    profile: ProfileView,
 }
 
 impl PluginRegistry {
@@ -110,9 +113,43 @@ impl PluginRegistry {
         self.get(id).is_some_and(|p| p.enabled)
     }
 
+    /// Apply the launch profile: turn off the plugins of the packs it leaves out. They stay
+    /// off until the process ends ([`PluginRegistry::set_enabled`] refuses them). Call it
+    /// once, after the plugins are registered.
+    pub fn apply_profile(&mut self, profile: &LaunchProfile) -> &ProfileView {
+        let facts: Vec<PluginFacts> = self
+            .plugins
+            .iter()
+            .map(|p| PluginFacts {
+                id: p.manifest.id.clone(),
+                pack: p.manifest.pack.clone(),
+                depends: p.manifest.depends.clone(),
+                required: p.manifest.required,
+            })
+            .collect();
+        self.profile = profile::resolve(profile, &facts);
+        for p in &mut self.plugins {
+            if self.profile.hidden.contains(&p.manifest.id) {
+                p.enabled = false;
+            }
+        }
+        &self.profile
+    }
+
+    /// The launch profile of this process (every pack unless one was applied).
+    pub fn profile(&self) -> &ProfileView {
+        &self.profile
+    }
+
+    /// Whether the launch profile turned the plugin off.
+    pub fn is_hidden(&self, id: &str) -> bool {
+        self.profile.hidden.iter().any(|h| h == id)
+    }
+
     /// Enable or disable a plugin. Enabling also enables its dependencies; disabling also
     /// disables plugins that depend on it (transitively). Required plugins cannot be
-    /// disabled. Returns the ids whose state changed.
+    /// disabled, and plugins the launch profile turned off cannot be enabled. Returns the
+    /// ids whose state changed.
     pub fn set_enabled(&mut self, id: &str, enabled: bool) -> Result<Vec<String>> {
         let plugin = self
             .get(id)
@@ -127,6 +164,13 @@ impl PluginRegistry {
         } else {
             self.closure(id, |p| self.dependents_of(&p.manifest.id))
         };
+        if enabled {
+            if let Some(hidden) = affected.iter().find(|a| self.is_hidden(a)) {
+                return Err(ForgeError::Other(format!(
+                    "plugin `{hidden}` is not part of the packs Forge was started with"
+                )));
+            }
+        }
         if !enabled {
             if let Some(req) = affected
                 .iter()
@@ -444,6 +488,44 @@ mod tests {
         .unwrap();
         assert_eq!(many.len(), 2);
         assert_eq!(many[0].contributions.commands[0].id, "x");
+    }
+
+    #[test]
+    fn a_launch_profile_turns_other_packs_off_for_good() {
+        let mut r = registry();
+        let mut lua = descriptor("forge.lua-tools", &[], "");
+        lua.manifest.pack = "luaforge".into();
+        r.register_descriptor(lua).unwrap();
+        let mut needs_lua = descriptor("forge.php-lua", &["forge.lua-tools"], "");
+        needs_lua.manifest.pack = "thirdParty".into();
+        r.register_descriptor(needs_lua).unwrap();
+        r.set_enabled("forge.php-lua", false).unwrap();
+        assert!(r.profile().all);
+
+        // The third-party plugin keeps what it depends on, so nothing of luaforge is hidden
+        // by a profile that loads it; without it the pack goes.
+        let view = r.apply_profile(&LaunchProfile::parse("phpforge")).clone();
+        assert!(view.hidden.is_empty());
+        r.unregister("forge.php-lua");
+        let view = r.apply_profile(&LaunchProfile::parse("phpforge")).clone();
+        assert_eq!(view.packs, ["phpforge"]);
+        assert_eq!(view.hidden, ["forge.lua-tools"]);
+        assert!(r.is_hidden("forge.lua-tools"));
+        assert!(!r.is_enabled("forge.lua-tools"));
+        assert!(r.is_enabled("forge.laravel"));
+
+        let err = r.set_enabled("forge.lua-tools", true).unwrap_err();
+        assert!(err.to_string().contains("forge.lua-tools"), "{err}");
+        assert!(!r.is_enabled("forge.lua-tools"));
+        // The other plugins are switched as before.
+        assert_eq!(
+            r.set_enabled("forge.php", false).unwrap(),
+            ["forge.php", "forge.laravel"]
+        );
+        assert_eq!(
+            r.set_enabled("forge.laravel", true).unwrap(),
+            ["forge.php", "forge.laravel"]
+        );
     }
 
     struct RustPlugin;

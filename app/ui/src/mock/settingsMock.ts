@@ -6,6 +6,7 @@
 import { emitMock, registerMock } from "@/ipc";
 import {
   SETTINGS_CHANGED_EVENT,
+  type LaunchProfile,
   type PluginInfo,
   type SettingsScope,
   type SettingSpec,
@@ -16,7 +17,11 @@ import builtinPlugins from "./builtinPlugins.json";
 
 // Commands wait for the WebAssembly build, so validation below can call it synchronously.
 let wasm: ForgeWasm | undefined;
-const ready = forgeWasm().then((w) => (wasm = w));
+const ready = forgeWasm().then((w) => {
+  wasm = w;
+  applyLaunchProfile(w);
+  return w;
+});
 
 const STORAGE_KEY = "forge.mock.settings.user";
 const DISABLED_KEY = "plugins.disabled";
@@ -96,6 +101,22 @@ export function setSetting(key: string, value: SettingValue | null, scope: Setti
 
 const byId = (id: string) => plugins.find((p) => p.id === id);
 
+/**
+ * `?packs=phpforge,webforge` (or `none`) starts browser mode like `forge --packs …`: the
+ * plugins of the other packs are off and cannot be enabled. The same Rust code decides
+ * which (`forge_plugin_api::profile::resolve`).
+ */
+let launchProfile: LaunchProfile = { all: true, packs: [], hidden: [], unknown: [] };
+function applyLaunchProfile(w: ForgeWasm): void {
+  const spec = typeof location !== "undefined" ? new URLSearchParams(location.search).get("packs") : null;
+  if (!spec) return;
+  launchProfile = callWasmSync<LaunchProfile>(w.plugins_launch_profile, {
+    spec,
+    plugins: plugins.map(({ id, pack, depends, required }) => ({ id, pack, depends, required })),
+  });
+  for (const p of plugins) if (launchProfile.hidden.includes(p.id)) p.enabled = false;
+}
+
 /** The registry itself, for the third-party plugin mock (installs add entries). */
 export const mockPluginRegistry = (): PluginInfo[] => plugins;
 
@@ -120,6 +141,8 @@ export function setPluginEnabled(id: string, enabled: boolean): string[] {
     const p = byId(affected[i]);
     for (const n of p ? next(p) : []) if (!affected.includes(n) && byId(n)) affected.push(n);
   }
+  const hidden = enabled ? affected.find((a) => launchProfile.hidden.includes(a)) : undefined;
+  if (hidden) throw new Error(`plugin \`${hidden}\` is not part of the packs Forge was started with`);
   const changed: string[] = [];
   for (const p of plugins) {
     if (affected.includes(p.id) && p.enabled !== enabled) {
@@ -127,7 +150,10 @@ export function setPluginEnabled(id: string, enabled: boolean): string[] {
       changed.push(p.id);
     }
   }
-  setSetting(DISABLED_KEY, plugins.filter((p) => !p.enabled).map((p) => p.id), "user");
+  // Plugins the launch profile turned off keep what the stored list says about them.
+  const saved = (layers.user[DISABLED_KEY] as string[] | undefined) ?? [];
+  const disabled = plugins.filter((p) => (launchProfile.hidden.includes(p.id) ? saved.includes(p.id) : !p.enabled));
+  setSetting(DISABLED_KEY, disabled.map((p) => p.id), "user");
   return changed;
 }
 
@@ -157,6 +183,10 @@ registerMock("settings_schema", async () => {
 registerMock("plugins_list", async () => {
   await ready;
   return wasm ? callWasmSync<PluginInfo[]>(wasm.i18n_localize_plugins, plugins) : structuredClone(plugins);
+});
+registerMock("launch_profile", async () => {
+  await ready;
+  return structuredClone(launchProfile);
 });
 registerMock("settings_search", async ({ request }) => callWasm((await ready).settings_search, request));
 registerMock("settings_validate", async ({ key, value }) => {

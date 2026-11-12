@@ -2,7 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    // `phpforge`, `forge --packs phpforge,webforge`: the packs this process loads.
+    let args = forge_app_lib::init_launch_profile(std::env::args().collect());
     // `forge --php-lsp --stdio`: the built-in PHP language server (php-lsp), started by Forge
     // itself in its own process. Otherwise this registers it for the PHP pack.
     if let Some(code) = phpforge_builtin_lsp::main_hook(&args) {

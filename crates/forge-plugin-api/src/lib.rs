@@ -9,6 +9,7 @@
 
 pub mod contributions;
 pub mod l10n;
+pub mod profile;
 pub mod registry;
 pub mod settings_model;
 
@@ -25,6 +26,7 @@ pub mod lifecycle {
 use serde::{Deserialize, Serialize};
 
 pub use contributions::*;
+pub use profile::{LaunchProfile, ProfileView};
 pub use registry::{PluginDescriptor, PluginInfo, PluginRegistry};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

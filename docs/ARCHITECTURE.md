@@ -31,6 +31,19 @@ app/ui/            SolidJS UI
   (`<root>/.forge/settings.toml`), keyed by dotted names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
   `plugins_list`, `plugin_set_enabled`; changes are emitted as `settings://changed`. In the UI read
   them with `getSetting(key)` from `src/state/settings.ts`.
+- Launch profiles (`forge_plugin_api::profile`): a process started as `phpforge` (program
+  name), with `--packs <list>` or with `FORGE_PACKS` loads the base packs (core, configforge,
+  scriptforge), the named packs, third-party and required plugins, the companions of the
+  packs (`COMPANIONS`) and their dependencies. `main` calls `plugins::init_launch_profile`
+  first: it detects the profile (flag > environment > name; `ARGV0` in an AppImage), exports
+  it as `FORGE_PACKS` (inherited by project windows and a restart) and strips the flag from
+  the launch arguments. `AppState::new` applies it with `PluginRegistry::apply_profile`: the
+  other plugins are disabled and `set_enabled` refuses them. The profile is no setting:
+  `state::disabled_to_save` keeps the stored `plugins.disabled` entries of hidden plugins
+  as they were. IPC: `launch_profile() -> ProfileView { all, packs, hidden, unknown }`
+  (`settingsState.launchProfile`; Settings | Plugins shows a note and locks hidden plugins).
+  Browser mode: `?packs=phpforge` through the same Rust code (`forge-wasm`:
+  `plugins_launch_profile`).
 - Feature crates (`forge-lsp`, `forge-vcs`, `forge-forges`, `forge-ai`, `forge-agent-cli`, ...) are plain libraries
   with their own tests; `app/src-tauri` wires them to IPC.
 - IPC commands live in `app/src-tauri/src/commands/<area>.rs`, are registered in `lib.rs`, and

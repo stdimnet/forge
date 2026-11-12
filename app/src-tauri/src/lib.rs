@@ -15,6 +15,8 @@ use tauri_plugin_deep_link::DeepLinkExt;
 
 /// `forge --mcp-stdio`: the stdio proxy to the running Forge's MCP server (for clients that
 /// only start stdio servers). Returns the exit code, or `None` for other arguments.
+pub use plugins::init_launch_profile;
+
 pub fn mcp_stdio_main(args: &[String]) -> Option<i32> {
     commands::mcp::stdio_main(args)
 }
@@ -39,7 +41,8 @@ pub fn run() {
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
     if !commands::project_windows::is_secondary() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            let args = argv
+            // The packs a second launch asks for do not change this instance.
+            let args = forge_plugin_api::profile::strip_args(argv)
                 .into_iter()
                 .skip(1)
                 .filter(|a| !a.starts_with("forge:"));
@@ -303,6 +306,7 @@ pub fn run() {
             commands::flatpak::flatpak_status,
             commands::settings::settings_schema,
             commands::settings::plugins_list,
+            commands::settings::launch_profile,
             commands::third_party::plugins_installed,
             commands::third_party::plugin_inspect,
             commands::third_party::plugin_install_file,
