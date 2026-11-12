@@ -148,6 +148,23 @@ pub fn pull_args(o: &PullOptions) -> Result<Vec<String>, String> {
     Ok(args)
 }
 
+/// "Update" of a local branch that is not checked out: `fetch <remote> <merge>:refs/heads/<name>`.
+/// Without `+` git only fast-forwards the branch and rejects the fetch when it has diverged.
+/// `merge` is the branch's `branch.<name>.merge` (a full ref name on the remote).
+pub fn update_branch_args(remote: &str, merge: &str, name: &str) -> Result<Vec<String>, String> {
+    check_name("remote", remote)?;
+    check_name("branch", merge)?;
+    check_name("branch", name)?;
+    if merge.starts_with('+') || merge.contains(':') || name.contains(':') {
+        return Err(format!("invalid branch: {merge:?}"));
+    }
+    Ok(vec![
+        "fetch".into(),
+        remote.into(),
+        format!("{merge}:refs/heads/{name}"),
+    ])
+}
+
 /// `merge [options] <branch>…`.
 pub fn merge_args(o: &MergeOptions) -> Result<Vec<String>, String> {
     if o.branches.iter().all(|b| b.trim().is_empty()) {
@@ -311,6 +328,18 @@ mod tests {
             s(&pull_args(&PullOptions::default()).unwrap()),
             "pull --no-edit --no-rebase"
         );
+    }
+
+    #[test]
+    fn update_branch_arguments() {
+        assert_eq!(
+            s(&update_branch_args("origin", "refs/heads/main", "main").unwrap()),
+            "fetch origin refs/heads/main:refs/heads/main"
+        );
+        // A forced or redirected refspec is never built from a branch name.
+        assert!(update_branch_args("origin", "+refs/heads/main", "main").is_err());
+        assert!(update_branch_args("origin", "refs/heads/main", "a:b").is_err());
+        assert!(update_branch_args("origin", "-f", "main").is_err());
     }
 
     #[test]

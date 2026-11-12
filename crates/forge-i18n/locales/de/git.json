@@ -569,5 +569,11 @@
   "git.stashShelfPanels.renameShelvedChangelist": "Zurückgestellte Änderungsliste umbenennen",
   "git.stashShelfPanels.showDiff": "Diff anzeigen ({shortcut})",
   "git.stashShelfPanels.unshelve": "Wiederherstellen…",
-  "git.stashShelfPanels.unshelveSilently": "Ohne Rückfrage wiederherstellen"
+  "git.stashShelfPanels.unshelveSilently": "Ohne Rückfrage wiederherstellen",
+  "git.actions.updateOfNameFailed": "Aktualisieren von {name} fehlgeschlagen",
+  "git.actions.branchNameUpdated": "{name} aktualisiert",
+  "git.actions.branchIsUpToDate": "Bereits aktuell",
+  "git.actions.couldNotLoadBranches": "Branches konnten nicht geladen werden",
+  "git.actions.updateBranch": "Branch aktualisieren",
+  "git.actions.noOtherBranchTracks": "Kein anderer lokaler Branch verfolgt einen Remote-Branch"
 }

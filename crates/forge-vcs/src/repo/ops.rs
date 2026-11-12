@@ -11,8 +11,8 @@ use super::{check_rev, parse_rebase_status, RemoteResult, Repo};
 use crate::cmd::{self, run_raw, Run};
 use crate::log::{parse_name_status, ChangedFile};
 use crate::ops::{
-    merge_args, pull_args, rebase_args, reset_args, tag_args, MergeOptions, OperationAction,
-    PullOptions, RebaseOptions, ResetMode, TagOptions,
+    merge_args, pull_args, rebase_args, reset_args, tag_args, update_branch_args, MergeOptions,
+    OperationAction, PullOptions, RebaseOptions, ResetMode, TagOptions,
 };
 use forge_core::{ForgeError, Result};
 
@@ -78,6 +78,61 @@ impl Repo {
         let args = pull_args(options).map_err(invalid)?;
         let refs: Vec<&str> = args.iter().map(String::as_str).collect();
         self.git_remote(&refs)
+    }
+
+    /// "Update" on a local branch that is not checked out: fetches its tracked branch and
+    /// fast-forwards the local branch to it, without touching the working tree. Fails when
+    /// the branch has no tracked branch, is checked out (here or in another worktree) or has
+    /// commits of its own, which would need a merge or rebase. Reports `<old>..<new>` (short
+    /// hashes) or "Already up to date.".
+    pub fn update_branch(&self, name: &str) -> Result<RemoteResult> {
+        check_rev(name)?;
+        if !self.has_branch(name) {
+            return Err(ForgeError::Other(format!("no local branch '{name}'")));
+        }
+        let current = self
+            .git(&["symbolic-ref", "--short", "-q", "HEAD"])
+            .ok()
+            .map(|s| s.trim().to_string());
+        if current.as_deref() == Some(name) {
+            return Err(ForgeError::Other(format!(
+                "'{name}' is checked out: use Update Project"
+            )));
+        }
+        let remote = self.config_value(&format!("branch.{name}.remote"));
+        let merge = self.config_value(&format!("branch.{name}.merge"));
+        let (Some(remote), Some(merge)) = (remote, merge) else {
+            return Err(ForgeError::Other(format!("'{name}' has no tracked branch")));
+        };
+        let args = update_branch_args(&remote, &merge, name).map_err(invalid)?;
+        let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        let tip = || self.resolve_commit(&format!("refs/heads/{name}"));
+        let before = tip();
+        self.git_remote(&refs).map_err(|e| {
+            if e.to_string().contains("non-fast-forward") {
+                ForgeError::Other(format!(
+                    "'{name}' has commits that are not in its tracked branch. Check it out and update it there."
+                ))
+            } else {
+                e
+            }
+        })?;
+        // git's fetch report lists every ref it touched; the UI only needs the branch's move.
+        let short = |sha: &Option<String>| {
+            sha.as_deref()
+                .unwrap_or_default()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        };
+        let after = tip();
+        Ok(RemoteResult {
+            output: if before == after {
+                "Already up to date.".into()
+            } else {
+                format!("{}..{}", short(&before), short(&after))
+            },
+        })
     }
 
     /// Merge… with the options of the Merge dialog. Returns git's report.

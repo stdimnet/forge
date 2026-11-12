@@ -3,8 +3,9 @@ import { editor } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
 import { showToolWindow } from "@/state/layout";
 import { gitApi, type StatusEntry } from "./api";
+import { opsApi } from "./opsApi";
 import { notify, reloadOpenFiles, repositoryChanged, runGit, status } from "./store";
-import { setBranchesOpen, setDiffRequest, setInputDialog } from "./overlays";
+import { setBranchesOpen, setChooserDialog, setDiffRequest, setInputDialog } from "./overlays";
 import { runMerging } from "./conflicts";
 import { withLocalHistory } from "@/ipc/localHistory";
 import { t as tr } from "@/i18n";
@@ -98,6 +99,29 @@ export async function updateProject(): Promise<void> {
     await reloadOpenFiles();
     notify("success", tr("git.actions.projectUpdated"), res.output.split("\n")[0] || tr("tools.git.allFilesAreUpTo"));
   }
+}
+
+/**
+ * "Update" on a local branch that is not checked out: fetch its tracked branch and fast-forward
+ * the local branch, without switching to it. A branch with commits of its own is refused.
+ */
+export async function updateBranch(name: string): Promise<void> {
+  setBranchesOpen(false);
+  const res = await runGit(tr("git.actions.updateOfNameFailed", { name }), () => opsApi.updateBranch(name));
+  if (res) notify("success", tr("git.actions.branchNameUpdated", { name }), res.output === "Already up to date." ? tr("git.actions.branchIsUpToDate") : res.output);
+}
+
+/** Find Action ▸ "Update Branch…": pick a local branch that is not checked out and tracks a branch. */
+export async function updateBranchDialog(): Promise<void> {
+  const branches = await runGit(tr("git.actions.couldNotLoadBranches"), () => gitApi.branches());
+  if (!branches) return;
+  setChooserDialog({
+    title: tr("git.actions.updateBranch"),
+    empty: tr("git.actions.noOtherBranchTracks"),
+    okLabel: tr("git.branchesPopup.update"),
+    items: branches.local.filter((b) => !b.current && !b.worktree && b.upstream).map((b) => ({ id: b.name, label: b.name, detail: b.upstream ?? "" })),
+    onOk: (item) => updateBranch(item.id),
+  });
 }
 
 export async function fetchAll(): Promise<void> {

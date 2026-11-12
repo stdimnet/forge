@@ -29,6 +29,7 @@ import {
   openCommitWindow,
   push,
   rebaseOnto,
+  updateBranch,
   updateProject,
 } from "./actions";
 import { t as tr } from "@/i18n";
@@ -152,6 +153,8 @@ export function BranchesPopup() {
           null,
           { label: tr("git.branchesPopup.rebaseCurOntoName", { cur, name: b.name }), run: () => void rebaseOnto(b.name) },
           { label: tr("git.branchesPopup.mergeNameIntoCur", { name: b.name, cur }), run: () => void mergeIntoCurrent(b.name) },
+          // A local branch that tracks a branch is fast-forwarded without checking it out.
+          ...(!h.row.remote && !b.worktree && b.upstream ? [null, { label: tr("git.branchesPopup.update"), run: () => void updateBranch(b.name) }] : []),
           ...(h.row.remote || b.worktree ? [] : [null, { label: tr("git.branchesPopup.delete"), run: () => deleteBranch(b.name), danger: true }]),
         ];
     const rect = root.getBoundingClientRect();

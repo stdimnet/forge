@@ -335,5 +335,6 @@
   "action.SingleJumpToCursorAction": "Jump to cursor",
   "action.CurrentLeadUnfollowAction": "Unfollow current lead",
   "action.ForceOthersToFollowAction": "Make Everyone Follow You",
-  "action.CWMHostOpenSettingsAction": "Open Code With Me Settings"
+  "action.CWMHostOpenSettingsAction": "Open Code With Me Settings",
+  "action.Git.Branch.Update": "Update Branch…"
 }

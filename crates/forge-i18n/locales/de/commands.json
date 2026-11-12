@@ -335,5 +335,6 @@
   "action.SingleJumpToCursorAction": "Zum Cursor springen",
   "action.CurrentLeadUnfollowAction": "Aktuellem Leiter nicht mehr folgen",
   "action.ForceOthersToFollowAction": "Alle folgen Ihnen lassen",
-  "action.CWMHostOpenSettingsAction": "Code-With-Me-Einstellungen öffnen"
+  "action.CWMHostOpenSettingsAction": "Code-With-Me-Einstellungen öffnen",
+  "action.Git.Branch.Update": "Branch aktualisieren…"
 }

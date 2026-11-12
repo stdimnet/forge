@@ -34,6 +34,16 @@ pub async fn git_pull_with(
     mutate(&app, &state, move |r| r.pull_with(&options)).await
 }
 
+/// Branches popup ▸ "Update" on a local branch that is not checked out (fetch + fast-forward).
+#[tauri::command]
+pub async fn git_update_branch(
+    name: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<RemoteResult> {
+    mutate(&app, &state, move |r| r.update_branch(&name)).await
+}
+
 /// Git ▸ Merge… with the dialog's branches and options.
 #[tauri::command]
 pub async fn git_merge_with(

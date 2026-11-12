@@ -59,6 +59,23 @@ registerMock("git_pull_with", async ({ options }) => {
   return { output: "Already up to date." };
 });
 
+// "Update" on a local branch that is not checked out: fast-forward to its tracked branch.
+registerMock("git_update_branch", async ({ name }) => {
+  const n = String(name);
+  await delay(300);
+  const local = state.local.get(n);
+  if (!local) throw new Error(`no local branch '${n}'`);
+  if (n === state.current) throw new Error(`'${n}' is checked out: use Update Project`);
+  const upstream = state.upstream.get(n);
+  const target = upstream ? state.remote.get(upstream) : undefined;
+  if (!upstream || !target) throw new Error(`'${n}' has no tracked branch`);
+  if (local === target) return { output: "Already up to date." };
+  if (!mockRepo.ancestors(target).has(local)) throw new Error(`'${n}' has commits that are not in its tracked branch. Check it out and update it there.`);
+  state.local.set(n, target);
+  changed();
+  return { output: `${local.slice(0, 8)}..${target.slice(0, 8)}` };
+});
+
 registerMock("git_merge_with", async ({ options }) => {
   const o = options as { branches: string[]; ffOnly?: boolean; squash?: boolean; noFf?: boolean };
   if (!o.branches.length) throw new Error("choose the branch to merge");

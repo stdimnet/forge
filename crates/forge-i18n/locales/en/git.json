@@ -569,5 +569,11 @@
   "git.stashShelfPanels.renameShelvedChangelist": "Rename Shelved Changelist",
   "git.stashShelfPanels.showDiff": "Show Diff ({shortcut})",
   "git.stashShelfPanels.unshelve": "Unshelve…",
-  "git.stashShelfPanels.unshelveSilently": "Unshelve Silently"
+  "git.stashShelfPanels.unshelveSilently": "Unshelve Silently",
+  "git.actions.updateOfNameFailed": "Update of {name} failed",
+  "git.actions.branchNameUpdated": "Updated {name}",
+  "git.actions.branchIsUpToDate": "Already up to date",
+  "git.actions.couldNotLoadBranches": "Could not load branches",
+  "git.actions.updateBranch": "Update Branch",
+  "git.actions.noOtherBranchTracks": "No other local branch tracks a remote branch"
 }

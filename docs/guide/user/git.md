@@ -268,7 +268,8 @@ repository it reads **Version Control** and the status bar shows no branch.
   'current'** (the Git log of the commits of the branch that are not in the current branch,
   ready to [cherry-pick](#cherry-pick-revert-and-undo)), **Rebase 'current' onto '…'**,
   **Merge '…' into 'current'** and, for local branches, **Delete** (with "Force delete" for
-  unmerged branches). For a local branch that no worktree has checked out, **New Worktree…**
+  unmerged branches). A local branch that tracks a remote branch also has **Update**
+  (see [Update a branch without checking it out](#update-a-branch-without-checking-it-out)). For a local branch that no worktree has checked out, **New Worktree…**
   creates a [worktree](#worktrees) for it.
 - Branches checked out in another worktree are marked **worktree**; clicking them (or **Open
   Worktree** in their submenu) opens that worktree instead of checking them out.
@@ -325,6 +326,24 @@ Settings | Version Control | Git:
 
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
+
+### Update a branch without checking it out
+
+**Update** in the submenu of a local branch in **Git Branches** (or **Update Branch…** in Find
+Action, `Git.Branch.Update`) brings a branch that is *not* checked out up to date with the
+branch it tracks: Forge fetches the tracked branch and fast-forwards the local branch to it
+(`git fetch <remote> <branch>:<branch>`). Your working tree, the current branch and uncommitted
+changes are not touched, so `main` can be updated while you keep working on a feature branch.
+
+![Update a branch that is not checked out](../../screenshots/git-branch-update.png)
+
+- The result is a balloon: "Updated main" with the old and new revision, or "Already up to
+  date".
+- Only fast-forwards are made. When the branch has commits that are not in its tracked branch,
+  Forge reports that and changes nothing: check the branch out and use **Update Project…**
+  there.
+- **Update** is offered for local branches that track a branch and are not checked out in
+  another [worktree](#worktrees). For the current branch, **Update** runs **Update Project…**.
 
 ## Pull, merge and rebase
 
