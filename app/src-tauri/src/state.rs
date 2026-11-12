@@ -31,6 +31,24 @@ pub struct AppState {
     pub plugin_store: Option<forge_plugins::PluginStore>,
 }
 
+/// The value of `plugins.disabled` for the registry's state. Plugins the launch profile
+/// turned off are not the user's choice: they keep what `saved` (the stored list) says, so
+/// `phpforge` does not disable the other packs for `forge`.
+fn disabled_to_save(registry: &PluginRegistry, saved: &[String]) -> Vec<String> {
+    registry
+        .list()
+        .iter()
+        .filter(|p| {
+            if registry.is_hidden(&p.manifest.id) {
+                saved.contains(&p.manifest.id)
+            } else {
+                !p.enabled
+            }
+        })
+        .map(|p| p.manifest.id.clone())
+        .collect()
+}
+
 /// The IDE language setting (`en`, `de`).
 pub const LANGUAGE_KEY: &str = "ide.language";
 
@@ -97,6 +115,12 @@ impl AppState {
                 tracing::warn!("cannot disable plugin {id}: {e}");
             }
         }
+        // `phpforge`, `--packs …`: the other packs are off for this process, whatever the
+        // settings say.
+        let profile = registry.apply_profile(&plugins::launch_profile());
+        if !profile.unknown.is_empty() {
+            tracing::warn!("unknown packs ignored: {}", profile.unknown.join(", "));
+        }
         drop(registry);
         // The IDE language (Settings | Appearance & Behavior | System Settings | Language)
         // applies to Rust-originated text from the start.
@@ -131,15 +155,12 @@ impl AppState {
 
     /// Persist the ids of currently disabled plugins in the user settings.
     pub fn save_disabled_plugins(&self) -> forge_core::Result<()> {
-        let disabled: Vec<String> = self
-            .plugins
-            .read()
-            .expect("plugins lock poisoned")
-            .list()
-            .iter()
-            .filter(|p| !p.enabled)
-            .map(|p| p.manifest.id.clone())
-            .collect();
+        let saved: Vec<String> = self
+            .read_settings()
+            .get_as(DISABLED_PLUGINS_KEY)
+            .unwrap_or_default();
+        let disabled =
+            disabled_to_save(&self.plugins.read().expect("plugins lock poisoned"), &saved);
         if let Some(store) = &self.plugin_store {
             let registry = self.plugins.read().expect("plugins lock poisoned");
             for p in registry
@@ -381,6 +402,29 @@ mod tests {
                 label: "Robert (workstation)".into(),
             }),
         }
+    }
+
+    #[test]
+    fn a_launch_profile_does_not_change_the_saved_disabled_plugins() {
+        let mut registry = plugins::builtin_registry().unwrap();
+        // The user turned Lua and Git off; then Forge starts as `phpforge`.
+        let saved = vec!["forge.lua".to_string(), "forge.git".to_string()];
+        for id in &saved {
+            registry.set_enabled(id, false).unwrap();
+        }
+        let before = disabled_to_save(&registry, &[]);
+        registry.apply_profile(&forge_plugin_api::LaunchProfile::parse("phpforge"));
+        assert!(registry.is_hidden("forge.lua") && registry.is_hidden("forge.go"));
+        assert!(registry.is_enabled("forge.laravel") && registry.is_enabled("forge.web"));
+        assert!(!registry.is_enabled("forge.go"));
+        assert_eq!(disabled_to_save(&registry, &saved), before);
+
+        // Disabling a plugin of the profile is saved; the hidden packs stay as they were.
+        registry.set_enabled("forge.xdebug", false).unwrap();
+        let now = disabled_to_save(&registry, &saved);
+        assert!(now.contains(&"forge.xdebug".to_string()));
+        assert!(now.contains(&"forge.lua".to_string()));
+        assert!(!now.contains(&"forge.go".to_string()));
     }
 
     #[test]
