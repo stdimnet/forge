@@ -166,6 +166,21 @@ export interface PluginInfo {
   contributions: Contributions;
 }
 
+/**
+ * The packs this Forge process loads (`forge_plugin_api::profile`): everything for `forge`,
+ * the core plus some packs when it was started as `phpforge` or with `--packs …`.
+ */
+export interface LaunchProfile {
+  /** Every pack is loaded. */
+  all: boolean;
+  /** The packs asked for, without the base packs (core, ConfigForge, ScriptForge). */
+  packs: string[];
+  /** Ids of the plugins that are off for this process and cannot be enabled. */
+  hidden: string[];
+  /** Names asked for that are no pack. */
+  unknown: string[];
+}
+
 export interface SettingsSnapshot {
   /** Effective values (defaults < user < settings for new projects < project). */
   values: Record<string, SettingValue>;
@@ -244,6 +259,7 @@ export const settingsApi = {
     invoke<void>("settings_set", { key, value, scope }),
   schema: () => invoke<SettingSpec[]>("settings_schema"),
   plugins: () => invoke<PluginInfo[]>("plugins_list"),
+  launchProfile: () => invoke<LaunchProfile>("launch_profile"),
   /** Search the Settings dialog (page tree, matches, highlights). */
   search: (request: SettingsSearchRequest) => invoke<SettingsSearchResponse>("settings_search", { request }),
   /** The problem with a value for `key`, or null when it is valid. */

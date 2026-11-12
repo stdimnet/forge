@@ -692,3 +692,7 @@
   background: var(--accent-soft);
   font-size: var(--fs-small);
 }
+/* The note about the packs Forge was started with sits above the list. */
+.plugins-profile-note {
+  margin: 0 0 10px;
+}
