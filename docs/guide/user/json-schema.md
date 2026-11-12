@@ -1,8 +1,8 @@
 ---
 title: JSON Schema
-description: Validation, completion, documentation and Go to Declaration from JSON schemas in JSON, JSON5/JSONC and YAML files — built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors, fabric.mod.json and mixin configurations, and Unity assembly definitions, $schema in the file, user mappings, the status bar widget and remote schemas from SchemaStore.
+description: Validation, completion, documentation and Go to Declaration from JSON schemas in JSON, JSON5/JSONC and YAML files — built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors, fabric.mod.json and mixin configurations, and Unity assembly definitions, Kubernetes manifests recognized by their content, $schema in the file, user mappings, the status bar widget and remote schemas from SchemaStore.
 order: 28
-tags: [editor, json, yaml, json schema, schemastore, composer.json, package.json, docker compose, github actions, gitlab ci, inspections, completion]
+tags: [editor, json, yaml, json schema, schemastore, composer.json, package.json, docker compose, github actions, gitlab ci, kubernetes, helm, inspections, completion]
 ---
 
 # JSON Schema
@@ -10,7 +10,7 @@ tags: [editor, json, yaml, json schema, schemastore, composer.json, package.json
 Forge checks JSON and YAML files against a [JSON Schema](https://json-schema.org), like
 PHPStorm: properties a file must have, the types and values it allows, and the documentation
 of every key. Configuration files such as `composer.json`, `package.json`, Compose files and CI
-pipelines work out of the box; for your own formats you map a schema to the files.
+pipelines work out of the box, and so do Kubernetes manifests wherever they are; for your own formats you map a schema to the files.
 
 ![Problems in composer.json](../../screenshots/json-schema-problems.png)
 
@@ -95,7 +95,8 @@ Forge picks the first match:
 2. **The file's own schema**: `"$schema": "…"` at the top level of a JSON file, a `$schema:` key
    or the `# yaml-language-server: $schema=…` modeline in YAML. A relative path is resolved
    against the file's folder; a URL needs [remote schemas](#remote-schemas).
-3. **Built-in mappings**, with schemas bundled with Forge:
+3. **Kubernetes manifests**, by their content (see [below](#kubernetes-manifests)).
+4. **Built-in mappings**, with schemas bundled with Forge:
 
    | Schema | Files |
    | --- | --- |
@@ -111,10 +112,31 @@ Forge picks the first match:
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
    | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](minecraft.md)) |
    | Minecraft mods | `fabric.mod.json` and mixin configurations (`*.mixins.json`) (schemas written for Forge, see [Minecraft mods](minecraft.md#new-project-minecraft-mod)) |
-| Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](unity-godot.md#unity-file-types)) |
+   | Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](unity-godot.md#unity-file-types)) |
 
-4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
+5. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
    hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
+
+### Kubernetes manifests
+
+A YAML or JSON document with a top-level `apiVersion` and `kind` of a built-in Kubernetes object
+(`apps/v1` `Deployment`, `v1` `Service`, `networking.k8s.io/v1` `Ingress`, …) is checked
+against the schema of that object, in any folder and under any file name: `deployment.yaml`,
+`.k8s/`, `helm/templates/`. In a file with several documents (`---`), each document uses the
+schema of its own kind, so a Deployment and its Service can live in one file.
+
+- The schemas are the strict ones of Kubernetes 1.34 from
+  [kubernetes-schema](https://github.com/kubenote/kubernetes-schema) (Apache-2.0), bundled
+  with Forge: all built-in objects work offline. Strict means that unknown keys are reported
+  (`Property 'replica' is not allowed`).
+- Custom resources (`cert-manager.io/v1` `Certificate`, …) and unknown API versions get no
+  schema and no problems. A file with no built-in object falls through to the next rules.
+- Documents with template expressions (`{{ … }}`, as in Helm charts) are not validated, since
+  they become manifests only when rendered; completion and documentation still work in them.
+- The status bar names the object: `JSON schema: Kubernetes Deployment (apps/v1)`, or
+  `Kubernetes: Deployment, Service` for a file with several kinds.
+
+![A Kubernetes manifest checked against its schema](../../screenshots/json-schema-kubernetes.png)
 
 ### Status bar
 
@@ -168,3 +190,5 @@ minutes; until then its `$ref`s accept anything.
 The JSON and YAML language servers validate with schemas too. While one of them runs for a
 file, Forge leaves problems, completion and hover of that file to the server, so nothing is
 reported twice; the status bar still shows the schema Forge would use.
+yaml-language-server finds Kubernetes manifests by their folder only (`k8s/`, `.k8s/`,
+`kubernetes/`, `deploy/`, `manifests/`); Forge's own support recognizes them anywhere.

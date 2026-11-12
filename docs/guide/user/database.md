@@ -573,6 +573,11 @@ Edits, new rows, deleted rows, `NULL` and `DEFAULT` stay **pending** until you *
 **Revert** drops them. **Preview Pending Changes** (the list icon next to Submit) shows the
 statements Forge will run, generated for the dialect:
 
+On MySQL and MariaDB, a value with a backslash is written as
+`CONCAT('C:', CHAR(92 USING utf8mb4), 'dir')` in the statements Forge generates (submitted
+edits, imports, copied `INSERT`s). A plain literal would be read differently by servers that run
+with `NO_BACKSLASH_ESCAPES`; this form means the same in both modes.
+
 ![Pending changes with the DML preview](../../screenshots/data-editor-pending-dml.png)
 
 Rows are identified by the **primary key**; a table without one uses a **unique key whose columns
@@ -756,7 +761,7 @@ restore tools, **installed by you** (Forge does not ship them):
 
 | Data source | Dump | Restore |
 | --- | --- | --- |
-| MySQL, MariaDB | `mysqldump` | `mysql` (`source <file>`) |
+| MySQL, MariaDB | `mysqldump` | `mysql` (`mysql < <file>`) |
 | PostgreSQL | `pg_dump` (plain, custom, directory or tar) | `pg_restore` (custom, directory, tar) or `psql` (plain SQL) |
 | SQLite | `sqlite3 .dump` / `.schema` | `sqlite3 .read` |
 | SQL Server | `sqlcmd` `BACKUP DATABASE … TO DISK` | `sqlcmd -i script.sql`, or `RESTORE DATABASE` for a `.bak` |

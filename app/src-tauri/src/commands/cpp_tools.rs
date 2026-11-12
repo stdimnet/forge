@@ -250,6 +250,7 @@ pub(crate) fn wrap(
         args,
         cwd: cmd.cwd,
         env: cmd.env,
+        stdin_file: cmd.stdin_file,
     };
     Ok((
         wrapped,

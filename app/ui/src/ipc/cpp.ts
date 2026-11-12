@@ -171,6 +171,8 @@ export type BuildAction = "build" | "rebuild" | "clean";
 export interface BuildProblem {
   /** Project-relative, absolute outside the project, or null. */
   path?: string | null;
+  /** How the editor opens `path` when it is a file outside the project (read-only). */
+  library?: string | null;
   file: string;
   /** 1-based; 0 when unknown. */
   line: number;

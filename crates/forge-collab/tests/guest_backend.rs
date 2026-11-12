@@ -396,6 +396,8 @@ async fn paths_outside_the_project_are_refused() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn symlinks_cannot_be_used_to_leave_the_project_or_reach_hidden_files() {
     let mut w = World::new(FULL);
+    std::os::unix::fs::symlink("../outside/planted.txt", w.root.join("dangling")).unwrap();
+    std::os::unix::fs::symlink(".env.local", w.root.join("dangling_env")).unwrap();
     let g = w.join("Alex").await;
     // Reading: a link to a file outside, a folder outside, a hidden file and .git.
     for path in [
@@ -433,6 +435,12 @@ async fn symlinks_cannot_be_used_to_leave_the_project_or_reach_hidden_files() {
         .is_err());
     assert!(g.on(|b| b.rename("leak.txt", "leaked.txt")).await.is_err());
     assert!(g.on(|b| b.delete("link_out/secret.txt")).await.is_err());
+    // A link whose target does not exist yet: writing through it would create the target.
+    for path in ["dangling", "dangling_env"] {
+        assert!(g.on(move |b| b.write_file(path, "planted")).await.is_err());
+        assert!(g.on(move |b| b.create_file(path)).await.is_err());
+    }
+    assert!(!w.root.join(".env.local").exists());
     // The files outside are untouched and nothing was planted.
     assert_eq!(
         std::fs::read_to_string(w.outside.join("secret.txt")).unwrap(),
@@ -616,6 +624,75 @@ async fn a_folder_with_hidden_files_cannot_be_deleted_by_a_guest() {
     g.on(|b| b.delete("tmp")).await.unwrap();
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_folder_with_hidden_or_protected_files_cannot_be_moved_by_a_guest() {
+    let mut w = World::new(EDIT);
+    std::fs::create_dir_all(w.root.join(".husky")).unwrap();
+    std::fs::write(w.root.join(".husky/pre-commit"), "#!/bin/sh\n").unwrap();
+    std::fs::create_dir_all(w.root.join("tools/hooks")).unwrap();
+    std::fs::write(w.root.join("tools/hooks/pre-commit"), "#!/bin/sh\n").unwrap();
+    let g = w.join("Alex").await;
+    // Moving the folder would take `config/master.key` out of its exclude pattern.
+    let err = g.on(|b| b.rename("config", "conf")).await.unwrap_err();
+    assert!(err.to_string().contains("not shared"), "{err}");
+    assert!(w.root.join("config/master.key").exists());
+    // A protected hook cannot be moved out of its folder pattern, changed and moved back.
+    let err = g.on(|b| b.rename(".husky", "h")).await.unwrap_err();
+    assert!(err.to_string().contains("Full access"), "{err}");
+    assert!(w.root.join(".husky/pre-commit").exists());
+    // Nor can a folder be moved to where its files would be protected or hidden.
+    let err = g.on(|b| b.rename("tools/hooks", ".husky2")).await;
+    assert!(err.is_ok(), "a plain name is fine: {err:?}");
+    g.on(|b| b.rename(".husky2", "tools/hooks")).await.unwrap();
+    std::fs::remove_dir_all(w.root.join(".husky")).unwrap();
+    let err = g
+        .on(|b| b.rename("tools/hooks", ".husky"))
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("Full access"), "{err}");
+    std::fs::create_dir_all(w.root.join("dsrc")).unwrap();
+    std::fs::write(w.root.join("dsrc/dataSources.toml"), "plain here\n").unwrap();
+    let err = g.on(|b| b.rename("dsrc", ".forge")).await.unwrap_err();
+    assert!(err.to_string().contains("would not be shared"), "{err}");
+    assert!(w.root.join("dsrc/dataSources.toml").exists());
+    // Deleting a folder deletes its protected files too.
+    std::fs::create_dir_all(w.root.join("pkg")).unwrap();
+    std::fs::write(w.root.join("pkg/composer.json"), "{}").unwrap();
+    let err = g.on(|b| b.delete("pkg")).await.unwrap_err();
+    assert!(err.to_string().contains("Full access"), "{err}");
+    assert!(w.root.join("pkg/composer.json").exists());
+    // A folder of plain files moves.
+    g.on(|b| b.rename("app/Http", "app/Web")).await.unwrap();
+    assert!(w.root.join("app/Web/Order.php").exists());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn hidden_hits_do_not_use_up_a_guests_search_limit() {
+    let mut w = World::new(READ);
+    // `.env` sorts first and has more hits than the limit.
+    std::fs::write(w.root.join(".env"), "NEEDLE=1\nNEEDLE=2\nNEEDLE=3\n").unwrap();
+    std::fs::write(
+        w.root.join("app/Http/Order.php"),
+        "<?php // NEEDLE\n// NEEDLE\n",
+    )
+    .unwrap();
+    let g = w.join("Alex").await;
+    let found = g
+        .on(|b| {
+            b.find_in_files(&FindRequest {
+                query: "NEEDLE".into(),
+                limit: 1,
+                ..FindRequest::default()
+            })
+        })
+        .await
+        .unwrap();
+    let paths: Vec<&str> = found.files.iter().map(|f| f.path.as_str()).collect();
+    assert_eq!(paths, ["app/Http/Order.php"]);
+    assert_eq!(found.match_count, 1);
+    assert!(found.truncated);
+}
+
 // ---- git ------------------------------------------------------------------------------
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -750,6 +827,69 @@ async fn git_actions_need_full_access_and_use_the_hosts_repository() {
         })
         .await
         .is_err());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn git_actions_on_a_folder_leave_hidden_files_alone() {
+    let mut w = World::new(FULL);
+    // An untracked secret next to the tracked, changed `.env`.
+    std::fs::write(w.root.join("app/server.pem"), "PRIVATE KEY\n").unwrap();
+    std::fs::write(w.root.join("app/Http/New.php"), "<?php\n").unwrap();
+    let g = w.join("Alex").await;
+    let staged = |root: &Path| {
+        let out = Command::new("git")
+            .current_dir(root)
+            .args(["diff", "--cached", "--name-only"])
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    };
+    for spec in [".", "app"] {
+        g.call(HostCall::GitAction(GitAction::Stage {
+            paths: vec![spec.into()],
+        }))
+        .await
+        .unwrap();
+        let names = staged(&w.root);
+        assert!(names.contains("app/Models/User.php"), "{spec}: {names}");
+        assert!(names.contains("app/Http/New.php"), "{spec}: {names}");
+        assert!(!names.contains(".env"), "{spec}: {names}");
+        assert!(!names.contains("server.pem"), "{spec}: {names}");
+    }
+    // The host staged its own change to the hidden file: a guest's commit of the project
+    // folder does not take it along.
+    git(&w.root, &["add", "-f", ".env"]);
+    g.call(HostCall::GitAction(GitAction::Commit {
+        message: "Guest commit".into(),
+        amend: false,
+        paths: vec![".".into()],
+    }))
+    .await
+    .unwrap();
+    let out = Command::new("git")
+        .current_dir(&w.root)
+        .args(["show", "--name-only", "--format=", "HEAD"])
+        .output()
+        .unwrap();
+    let committed = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert!(committed.contains("app/Models/User.php"), "{committed}");
+    assert!(!committed.contains(".env"), "{committed}");
+    // Restoring the project folder keeps the host's change to the hidden file.
+    std::fs::write(w.root.join("app/Models/User.php"), "<?php // edited\n").unwrap();
+    g.call(HostCall::GitAction(GitAction::RestoreFromHead {
+        paths: vec![".".into()],
+    }))
+    .await
+    .unwrap();
+    assert_eq!(
+        std::fs::read_to_string(w.root.join("app/Models/User.php")).unwrap(),
+        "<?php\nclass User { }\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(w.root.join(".env")).unwrap(),
+        "APP_KEY=base64:rotated\n"
+    );
+    assert!(staged(&w.root).contains(".env"), "still staged by the host");
 }
 
 // ---- the hostile guest ----------------------------------------------------------------
@@ -1310,6 +1450,59 @@ async fn frameworks_never_run_project_code_for_guests_and_do_not_leak_env_values
     let text = String::from_utf8_lossy(&reply).into_owned();
     assert!(!text.contains("hunter2"), "{text}");
     assert!(!text.contains("topsecret"), "{text}");
+    // An `ide.json` generation cannot read a hidden file as its template, and cannot create
+    // a file the guest may not create.
+    std::fs::create_dir_all(w.root.join("stubs")).unwrap();
+    std::fs::write(w.root.join("stubs/dto.stub"), "<?php // ${CLASS}\n").unwrap();
+    std::fs::write(
+        w.root.join("ide.json"),
+        r#"{"codeGenerations": [
+            {"id": "leak", "name": "Leak", "files": [{"name": "Leak.txt", "template": {"path": ".env"}}]},
+            {"id": "make", "name": "Make", "files": [{"name": "Makefile", "template": {"path": "/stubs/dto.stub"}}]},
+            {"id": "dto", "name": "DTO", "files": [{"name": "${INPUT_CLASS}.txt", "template": {"path": "/stubs/dto.stub"}}]}
+        ]}"#,
+    )
+    .unwrap();
+    w.host.set_permissions(EDIT);
+    let generate = |id: &str, write: bool| {
+        g.call(HostCall::Framework(FrameworkCall::LaravelGenerate {
+            id: id.into(),
+            input: "Invoice".into(),
+            write,
+        }))
+    };
+    let mut ready = false;
+    for _ in 0..100 {
+        if let Ok(bytes) = generate("dto", false).await {
+            if String::from_utf8_lossy(&bytes).contains("Invoice") {
+                ready = true;
+                break;
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert!(ready, "the generation from ide.json is known");
+    for write in [false, true] {
+        let r = generate("leak", write).await;
+        assert!(
+            r.is_err(),
+            "{:?}",
+            r.map(|b| String::from_utf8_lossy(&b).into_owned())
+        );
+    }
+    assert!(!w.root.join("Leak.txt").exists());
+    assert!(
+        generate("make", false).await.is_ok(),
+        "a preview is harmless"
+    );
+    let err = generate("make", true).await.unwrap_err();
+    assert!(err.contains("Full access"), "{err}");
+    assert!(!w.root.join("Makefile").exists());
+    generate("dto", true).await.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(w.root.join("Invoice.txt")).unwrap(),
+        "<?php // Invoice.txt\n"
+    );
     // Hostile framework settings are refused.
     let r = g
         .call(HostCall::Framework(FrameworkCall::Symfony {

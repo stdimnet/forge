@@ -1853,7 +1853,9 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
 - Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
   (a file outside the project a language server pointed to; only paths handed out by a
-  navigation answer can be read). The UI registers a read-only `FileSystemProvider` for
+  navigation answer can be read, or by `LibraryState::outside_file` for a file a build
+  reported: `BuildProblem.library` of `cpp_build_problems` and `dotnet_build_problems`, which
+  the Problems and Build tool windows open instead of the absolute `path`). The UI registers a read-only `FileSystemProvider` for
   `library://` with a "Read-only library file" banner and breadcrumbs
   `PHP Runtime › Core › Core_c.php › Throwable`. Language server and PHP index editor
   extensions skip library tabs.
@@ -3031,7 +3033,8 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `jupyter_dataframe_query({ frame, query: { sort?, filter?, page?, pageSize? } }) -> { rows,
   rowNumbers, matched, page, pages }`. Kernels: `jupyter_kernel_status({ interpreter? }) ->
   { installed, version?, interpreter, needsServer }`, `jupyter_kernel_start({ request: {
-  path, interpreter?, server?, kernelName? } }) -> { id, label, server }` (refused in Safe
+  path, interpreter?, server?, kernelName?, id? } }) -> { id, label, server }` (the UI picks
+  `id` and listens on `jupyter://<id>` before it starts the kernel; refused in Safe
   Mode; ipykernel with a connection file in `<cache dir>/forge/jupyter`, or a kernel of the
   `jupyter.server.url` server), `jupyter_execute({ id, cellId, code }) -> msgId` (refused in
   Safe Mode), `jupyter_interrupt`, `jupyter_restart` (same id), `jupyter_shutdown`,
@@ -4068,7 +4071,9 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   input), schema documents and a `Registry` (`$id`, anchors, `$ref` to other files through
   `missing()`), a validator for draft 4–2020-12 with PHPStorm's messages, completion contexts
   and items, hover, Go to Declaration (`At::decl`), mappings (user > `$schema`/modeline >
-  built-in > SchemaStore catalog) and the bundled schemas of the built-in mappings
+  Kubernetes manifests by `apiVersion`/`kind` > built-in > SchemaStore catalog; a file mapped
+  to the bundled Kubernetes definitions checks each document against its own kind,
+  `kubernetes::document_root`) and the bundled schemas of the built-in mappings
   (`schemas/`, licences in `schemas/NOTICE`; compressed by `build.rs`). Answers use UTF-16
   offsets.
 - IPC (`app/ui/src/ipc/jsonSchema.ts`, `commands/json_schema.rs`): `json_schema_validate({ path,
@@ -4382,7 +4387,11 @@ TypeScript because a round trip per token would be slower.
   `Backend::watch`. Until it covers the project, `find_in_files` and `find_files` walk the
   directory as before; afterwards the index only narrows the candidate files and `forge-find`
   still reads the lines, so both paths return identical results (test
-  `find_text_matches_a_directory_walk`). New `Backend` methods: `find_symbols(query, types_only,
+  `find_text_matches_a_directory_walk`). Both search text files up to 20 MB
+  (`forge_find::MAX_FILE_SIZE`, equal to `forge_search_core::MAX_CONTENT_BYTES`) and read them
+  through `forge_find::searchable`, which turns UTF-16 with a byte order mark into UTF-8; larger
+  and binary files are listed by name only. An index loaded from the cache answers at once and
+  reports `indexing` until its first refresh has compared it with the disk. New `Backend` methods: `find_symbols(query, types_only,
   limit, skip_extensions)` and `search_status()`; agent calls `FindSymbols` and `SearchStatus`.
   The Classes and Symbols tabs (`core.classes`, `core.symbols`) skip the languages a running
   language server or a pack index (PHP, Lua) already answers. The **Find tool window** (Alt+3,

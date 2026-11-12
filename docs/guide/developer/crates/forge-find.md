@@ -45,7 +45,10 @@ pub struct FindResult { … }
 pub struct FileMask { … }
 pub fn glob_match(glob: &str, text: &str) -> bool { … }
 pub struct Finder { … }
+pub const MAX_FILE_SIZE: u64; // 20 MB: larger files are not searched by content
 pub fn is_binary(bytes: &[u8]) -> bool { … }
+pub fn decode_utf16(bytes: &[u8]) -> Option<String> { … } // UTF-16 with a byte order mark
+pub fn searchable(bytes: Vec<u8>) -> Option<Vec<u8>> { … } // what a search reads; None = binary
 pub struct Collector<'a> { … }
 pub fn find_in<'t>(
 pub mod todo; // TodoRequest, TodoPattern, TodoItem, TodoFile, TodoResult, TodoScanner,

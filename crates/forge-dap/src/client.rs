@@ -182,21 +182,21 @@ impl DapClient {
         let seq = self.seq.fetch_add(1, Ordering::SeqCst);
         let (tx, rx) = oneshot::channel();
         self.pending.lock().expect("pending").insert(seq, tx);
+        // Made before the write: dropping it removes the waiter, also when the write fails or
+        // this future is dropped while the adapter is not reading.
+        let response = PendingResponse {
+            command: command.to_string(),
+            seq,
+            rx,
+            pending: Arc::downgrade(&self.pending),
+        };
         let message = Message::Request(Request {
             seq,
             command: command.to_string(),
             arguments,
         });
-        if let Err(e) = self.write(&message).await {
-            self.pending.lock().expect("pending").remove(&seq);
-            return Err(e);
-        }
-        Ok(PendingResponse {
-            command: command.to_string(),
-            seq,
-            rx,
-            pending: Arc::downgrade(&self.pending),
-        })
+        self.write(&message).await?;
+        Ok(response)
     }
 
     /// Send a request and wait for its body (bounded by the client timeout).
@@ -332,5 +332,18 @@ mod tests {
             pending.wait(Duration::from_secs(5)).await,
             Err(DapError::Closed)
         ));
+    }
+
+    #[tokio::test]
+    async fn a_request_given_up_while_it_is_written_does_not_stay_registered() {
+        // The adapter does not read, so a request larger than the pipe never finishes writing.
+        let (ours, _theirs) = duplex(64);
+        let (r, w) = tokio::io::split(ours);
+        let (client, _incoming) =
+            DapClient::spawn(BufReader::new(r), Box::new(w), Duration::from_secs(5), None);
+        let big = json!({ "expression": "x".repeat(4096) });
+        let sent = tokio::time::timeout(Duration::from_millis(50), client.send("evaluate", big));
+        assert!(sent.await.is_err());
+        assert!(client.pending.lock().unwrap().is_empty());
     }
 }

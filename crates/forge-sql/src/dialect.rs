@@ -46,6 +46,34 @@ impl Dialect {
         }
     }
 
+    /// A string as a value expression (in `VALUES`, `SET` and `WHERE`; not where the grammar
+    /// wants a plain literal, like `COMMENT`). Same as [`Dialect::quote_str`], except for MySQL
+    /// strings with a backslash: whether `\\` in a literal is one backslash or two depends on
+    /// the server's `NO_BACKSLASH_ESCAPES` mode, so the backslashes are written as
+    /// `CHAR(92 USING utf8mb4)`, which reads the same in both modes.
+    pub fn quote_value(self, s: &str) -> String {
+        if self != Dialect::MySql || !s.contains('\\') {
+            return self.quote_str(s);
+        }
+        let mut parts: Vec<String> = Vec::new();
+        let mut rest = s;
+        while !rest.is_empty() {
+            let run = rest.len() - rest.trim_start_matches('\\').len();
+            if run > 0 {
+                parts.push(format!("CHAR({} USING utf8mb4)", vec!["92"; run].join(",")));
+                rest = &rest[run..];
+            } else {
+                let end = rest.find('\\').unwrap_or(rest.len());
+                parts.push(self.quote_str(&rest[..end]));
+                rest = &rest[end..];
+            }
+        }
+        match parts.len() {
+            1 => parts.remove(0),
+            _ => format!("CONCAT({})", parts.join(", ")),
+        }
+    }
+
     /// `schema.table`, leaving the schema out for SQLite's `main`.
     pub fn qualified(self, schema: &str, table: &str) -> String {
         if schema.is_empty() || (self == Dialect::Sqlite && schema == "main") {
@@ -102,6 +130,23 @@ mod tests {
         assert_eq!(Dialect::SqlServer.quote_str("it's"), "N'it''s'");
         assert_eq!(Dialect::ClickHouse.quote_ident("t"), "`t`");
         assert_eq!(Dialect::Oracle.qualified("HR", "EMP"), "\"HR\".\"EMP\"");
+    }
+
+    #[test]
+    fn mysql_values_with_backslashes_do_not_depend_on_the_sql_mode() {
+        let q = |s: &str| Dialect::MySql.quote_value(s);
+        assert_eq!(q("it's"), "'it''s'");
+        assert_eq!(q("\\"), "CHAR(92 USING utf8mb4)");
+        assert_eq!(
+            q("C:\\dir\\\\it's"),
+            "CONCAT('C:', CHAR(92 USING utf8mb4), 'dir', CHAR(92,92 USING utf8mb4), 'it''s')"
+        );
+        assert_eq!(q("a\\"), "CONCAT('a', CHAR(92 USING utf8mb4))");
+        // Other servers have one reading of a literal.
+        assert_eq!(Dialect::Postgres.quote_value("a\\b"), "'a\\b'");
+        assert_eq!(Dialect::ClickHouse.quote_value("a\\b"), "'a\\\\b'");
+        // Printed by the function above and run against MySQL 8.0 with and without
+        // NO_BACKSLASH_ESCAPES: every value came back unchanged in both modes.
     }
 
     #[test]

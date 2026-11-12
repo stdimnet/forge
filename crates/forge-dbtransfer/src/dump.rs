@@ -170,16 +170,24 @@ pub struct ToolCommand {
     pub args: Vec<String>,
     /// Environment on top of the inherited one (the password lives here).
     pub env: BTreeMap<String, String>,
+    /// A file the tool reads as its standard input (`mysql < dump.sql`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdin_file: Option<String>,
 }
 
 impl ToolCommand {
     /// The command line as shown in the Run tool window (the environment is not shown).
     pub fn display(&self) -> String {
-        std::iter::once(&self.program)
+        let mut line = std::iter::once(&self.program)
             .chain(&self.args)
             .map(|a| shell_quote(a))
             .collect::<Vec<_>>()
-            .join(" ")
+            .join(" ");
+        if let Some(file) = &self.stdin_file {
+            line.push_str(" < ");
+            line.push_str(&shell_quote(file));
+        }
+        line
     }
 }
 
@@ -268,6 +276,7 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
     // read as an option.
     let mut positional: Vec<String> = Vec::new();
     let mut env = BTreeMap::new();
+    let mut stdin_file = None;
     let host = if target.host.trim().is_empty() {
         "localhost".to_string()
     } else {
@@ -400,14 +409,9 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
             if !database.is_empty() && !req.create_database {
                 args.push(format!("--database={database}"));
             }
-            // The client splits `--execute` at `;` and reads `source` up to the line end.
-            if req.file.contains([';', '\n', '\r']) {
-                return Err(
-                    "mysql cannot restore a file whose path contains ; or a line break; rename the file"
-                        .into(),
-                );
-            }
-            args.push(format!("--execute=source {}", req.file));
+            // The client reads the dump from its standard input: its `source` command
+            // cannot take every path (it ends at a `;`).
+            stdin_file = Some(req.file.clone());
         }
         (DumpTool::PgDump, _) => {
             if let Some(p) = password {
@@ -531,7 +535,12 @@ pub fn command(req: &DumpRequest, target: &DumpTarget) -> Result<ToolCommand, St
         args.push("--".into());
         args.extend(positional);
     }
-    Ok(ToolCommand { program, args, env })
+    Ok(ToolCommand {
+        program,
+        args,
+        env,
+        stdin_file,
+    })
 }
 
 #[cfg(test)]
@@ -643,17 +652,22 @@ mod tests {
                 "--user=forge",
                 "--ssl-mode=REQUIRED",
                 "--database=shop",
-                "--execute=source /tmp/all.sql",
                 "--force",
                 "--default-character-set=utf8mb4",
             ]
         );
+        assert_eq!(c.stdin_file.as_deref(), Some("/tmp/all.sql"));
+        assert!(c.display().ends_with(" < /tmp/all.sql"), "{}", c.display());
         no_password_in_args(&c);
+        // The file is the client's input, never part of a client command: any path works
+        // (checked against mysql 8.0: `source` ends at a `;`, standard input does not).
         let semi = DumpRequest {
             file: "/tmp/a.sql; system rm -rf ~".into(),
             ..req
         };
-        assert!(command(&semi, &t).is_err());
+        let c = command(&semi, &t).unwrap();
+        assert!(!c.args.iter().any(|a| a.contains("system")), "{:?}", c.args);
+        assert_eq!(c.stdin_file.as_deref(), Some("/tmp/a.sql; system rm -rf ~"));
     }
 
     #[test]

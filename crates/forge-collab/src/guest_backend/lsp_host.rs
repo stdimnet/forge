@@ -175,6 +175,8 @@ pub async fn answer(manager: &LspManager, req: LspRequest) -> Result<Vec<u8>, St
                 h.path = relative(&root, Path::new(&h.path));
             }
             forge_lsp::model::retain_project_symbols(&mut hits, include_non_project);
+            // And what the asking guest may not see.
+            hits.retain(|h| req.policy.check_path(&h.path).is_ok());
             hits.truncate(500);
             json(&hits)
         }

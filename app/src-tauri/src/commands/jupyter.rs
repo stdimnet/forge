@@ -143,6 +143,11 @@ pub struct KernelRequest {
     /// Kernel spec on the server (empty = the server's default).
     #[serde(default)]
     pub kernel_name: Option<String>,
+    /// The kernel's id, chosen by the caller so that it can listen on `jupyter://<id>` before
+    /// the kernel starts and misses none of its first events (letters, digits and `-`);
+    /// empty = Forge picks one.
+    #[serde(default)]
+    pub id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -351,7 +356,16 @@ pub async fn jupyter_kernel_start(
     state: State<'_, AppState>,
     kernels: State<'_, JupyterState>,
 ) -> Result<KernelStarted> {
-    let id = format!("kernel-{}", kernels.next.fetch_add(1, Ordering::SeqCst) + 1);
+    let id = match request.id.as_deref().filter(|id| !id.is_empty()) {
+        Some(id) => {
+            let plain = id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+            if !plain || kernels.kernels.lock().expect("kernels").contains_key(id) {
+                return Err(ForgeError::Other(format!("invalid kernel id: {id}")));
+            }
+            id.to_string()
+        }
+        None => format!("kernel-{}", kernels.next.fetch_add(1, Ordering::SeqCst) + 1),
+    };
     let kernel = start(&id, request, &app, &state).await?;
     let started = KernelStarted {
         id: id.clone(),

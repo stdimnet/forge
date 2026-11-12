@@ -12,13 +12,14 @@ use serde::{Deserialize, Serialize};
 use crate::symbols::{self, RawSymbol, SymbolHit, SymbolTable};
 use crate::trigram;
 
-const FORMAT_VERSION: u32 = 6;
+const FORMAT_VERSION: u32 = 7;
 /// Independent postings maps of the head, so one batch is inserted by several threads at once.
 const SHARDS: usize = 16;
 const SEGMENT_FILES: u32 = 16_384;
 const MAX_SEGMENTS: usize = 48;
-/// Larger files are listed by name but never searched by content.
-pub const MAX_CONTENT_BYTES: u64 = 4 * 1024 * 1024;
+/// Larger files are listed by name but never searched by content. The same limit as PHPStorm's
+/// `idea.max.content.load.filesize`.
+pub const MAX_CONTENT_BYTES: u64 = 20 * 1024 * 1024;
 const BINARY_SNIFF_BYTES: usize = 8192;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -818,6 +818,7 @@ pub(crate) fn on_target(
             args: w.args,
             cwd: std::path::PathBuf::from(w.cwd),
             env: w.env,
+            stdin_file: None,
         },
         path_mappings: mapper
             .pairs()

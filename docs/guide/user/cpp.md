@@ -157,7 +157,9 @@ The build runs in the Run tool window. When it finishes, Forge parses the compil
 linker messages in Rust — GCC and Clang (`file:line:col: error: …`, with their notes), MSVC
 (`file(line,col): error C2065: …`) and the linkers (`ld`, `lld`, Apple's `ld`, `link.exe`) —
 and shows them in the **Build** tab of the Problems tool window and as editor diagnostics.
-Notes (candidates, declarations) are nested under their message; a click opens the line.
+Notes (candidates, declarations) are nested under their message; a click opens the line. A
+file outside the project (a system header such as `/usr/include/c++/13/numeric`) opens as a
+read-only library file.
 
 ![Build problems in the Problems tool window](../../screenshots/cpp-build-problems.png)
 

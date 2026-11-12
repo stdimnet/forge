@@ -44,6 +44,9 @@ const MAX_READ: u64 = 16 * 1024 * 1024;
 const MAX_ANSWER: usize = MAX_HOST_FRAME - 1024 * 1024;
 const MAX_FIND_LIMIT: usize = 10_000;
 const MAX_WALK: usize = 100_000;
+/// The exclude pathspecs added to a git action may take this many bytes of its command line
+/// (Windows allows about 32 000 characters in all).
+const MAX_GIT_EXCLUDES: usize = 16_000;
 const CALL_TIMEOUT: Duration = Duration::from_secs(120);
 const GIT_NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
 
@@ -54,6 +57,9 @@ pub struct LspRequest {
     /// The current text of the file the query is about: the shared document, or the file on
     /// disk. The host's servers are synchronized with it before the query runs.
     pub text: Option<String>,
+    /// The asking guest's rules: results that are cut to a limit (workspace symbols) drop
+    /// what the guest may not see first, so hidden files do not take the visible ones' places.
+    pub policy: Policy,
 }
 
 /// What the host application provides to answer guests beyond the project's files: its
@@ -482,6 +488,14 @@ impl<'a> Gate<'a> {
             match existing.canonicalize() {
                 Ok(real) => break real,
                 Err(_) => {
+                    // A link whose target does not exist (yet): writing to it would create
+                    // the target, wherever it is.
+                    if existing
+                        .symlink_metadata()
+                        .is_ok_and(|m| m.file_type().is_symlink())
+                    {
+                        return Err(outside());
+                    }
                     let name = existing.file_name().ok_or_else(outside)?.to_os_string();
                     tail.push(name);
                     if !existing.pop() {
@@ -517,44 +531,78 @@ impl<'a> Gate<'a> {
         }
     }
 
-    /// Whether anything below a folder is hidden from the guest (deleting the folder would
-    /// destroy files the guest cannot see).
-    fn hides_content(&self, rel: &str) -> bool {
+    /// Every file and folder below the folder `rel`, as project-relative paths (nothing for
+    /// a file, or for a project the host itself reaches over SSH). Links are listed, not
+    /// followed. A folder too large to list is refused.
+    fn below(&self, rel: &str) -> Result<Vec<String>, String> {
+        let mut out = Vec::new();
         let Some(root) = &self.root else {
-            return false;
+            return Ok(out);
         };
         let Ok(abs) = self.backend.resolve(rel) else {
-            return false;
+            return Ok(out);
         };
+        if !abs.symlink_metadata().is_ok_and(|m| m.is_dir()) {
+            return Ok(out);
+        }
         let mut stack = vec![abs];
-        let mut seen = 0;
         while let Some(dir) = stack.pop() {
             let Ok(read) = std::fs::read_dir(&dir) else {
                 continue;
             };
             for e in read.flatten() {
-                seen += 1;
-                if seen > MAX_WALK {
-                    return true;
+                if out.len() >= MAX_WALK {
+                    return Err("The folder is too large to be changed by a guest.".into());
                 }
                 let path = e.path();
                 let Ok(rest) = path.strip_prefix(root) else {
                     continue;
                 };
-                let rel = rest
-                    .components()
-                    .map(|c| c.as_os_str().to_string_lossy())
-                    .collect::<Vec<_>>()
-                    .join("/");
-                if self.policy.check_path(&rel).is_err() {
-                    return true;
-                }
+                out.push(
+                    rest.components()
+                        .map(|c| c.as_os_str().to_string_lossy())
+                        .collect::<Vec<_>>()
+                        .join("/"),
+                );
                 if e.file_type().is_ok_and(|t| t.is_dir()) {
                     stack.push(path);
                 }
             }
         }
-        false
+        Ok(out)
+    }
+
+    /// Deleting or moving the folder `rel` changes everything in it: nothing below it may be
+    /// hidden from the guest (the guest would destroy or move files it cannot see), and the
+    /// guest must be allowed to change each file (protected files need Full access).
+    /// `moved_to` is the folder's new path: there every file must still be visible and
+    /// changeable, since the patterns are matched against the path (`config/master.key`,
+    /// `.husky/`).
+    fn check_folder(&self, rel: &str, moved_to: Option<&str>) -> Result<(), String> {
+        for inner in self.below(rel)? {
+            if !self.allowed(&inner) {
+                return Err(match moved_to {
+                    None => "The folder contains files that are not shared with guests, so it cannot be deleted.",
+                    Some(_) => "The folder contains files that are not shared with guests, so it cannot be renamed or moved.",
+                }
+                .into());
+            }
+            self.policy
+                .check_write_path(&inner)
+                .map_err(|d| d.to_string())?;
+            if let Some(to) = moved_to {
+                let target = format!("{to}{}", &inner[rel.len()..]);
+                if !self.allowed(&target) {
+                    return Err(format!(
+                        "\"{target}\" would not be shared with guests, so the folder cannot be renamed or moved there."
+                    ));
+                }
+                self.policy
+                    .check_write_path(&target)
+                    .map_err(|d| d.to_string())?;
+            }
+        }
+        Ok(())
     }
 
     fn keep<T>(&self, items: Vec<T>, path: impl Fn(&T) -> &str) -> Vec<T> {
@@ -613,16 +661,12 @@ impl<'a> Gate<'a> {
             HostCall::Rename { from, to } => {
                 self.verify(&from)?;
                 self.verify(&to)?;
+                self.check_folder(&from, Some(&to))?;
                 enc(&b.rename(&from, &to).map_err(e)?)
             }
             HostCall::Delete { path } => {
                 self.verify(&path)?;
-                if self.hides_content(&path) {
-                    return Err(
-                        "The folder contains files that are not shared with guests, so it cannot be deleted."
-                            .into(),
-                    );
-                }
+                self.check_folder(&path, None)?;
                 enc(&b.delete(&path).map_err(e)?)
             }
             HostCall::FindFiles {
@@ -641,9 +685,12 @@ impl<'a> Gate<'a> {
                 if !req.directory.is_empty() {
                     self.verify(&req.directory)?;
                 }
-                req.limit = req.limit.min(MAX_FIND_LIMIT);
+                // Hits in hidden files are dropped afterwards, so search up to the largest
+                // limit and cut to the guest's own: hidden hits must not use it up.
+                let limit = req.limit.min(MAX_FIND_LIMIT);
+                req.limit = MAX_FIND_LIMIT;
                 let mut result = b.find_in_files(&req).map_err(e)?;
-                self.filter_find(&mut result);
+                self.filter_find(&mut result, limit);
                 enc(&result)
             }
             HostCall::Detect => enc(&b.detect_project().map_err(e)?),
@@ -661,17 +708,26 @@ impl<'a> Gate<'a> {
         }
     }
 
-    /// Drop the hits in hidden files and count again, so the totals do not betray them.
-    fn filter_find(&self, result: &mut forge_core::search::FindResult) {
-        let truncated = result.truncated;
+    /// Drop the hits in hidden files, keep at most `limit` matches and count again, so the
+    /// totals do not betray the hidden ones.
+    fn filter_find(&self, result: &mut forge_core::search::FindResult, limit: usize) {
+        let mut truncated = result.truncated;
         result.files.retain(|f| self.allowed(&f.path));
-        result.match_count = result
-            .files
-            .iter()
-            .flat_map(|f| &f.matches)
-            .map(|m| m.ranges.len().max(1))
-            .sum();
-        result.truncated = truncated && result.match_count > 0;
+        let mut count = 0;
+        for f in &mut result.files {
+            let before = f.matches.len();
+            f.matches.retain(|m| {
+                let fits = count < limit;
+                if fits {
+                    count += m.ranges.len().max(1);
+                }
+                fits
+            });
+            truncated |= f.matches.len() < before;
+        }
+        result.files.retain(|f| !f.matches.is_empty());
+        result.match_count = count;
+        result.truncated = truncated && count > 0;
     }
 
     fn php(&self, call: PhpCall) -> Result<Vec<u8>, String> {
@@ -908,10 +964,52 @@ impl<'a> Gate<'a> {
                 }
                 call
             }
+            FrameworkCall::LaravelGenerate { id, input, write } => {
+                return self.laravel_generate(id, input, write);
+            }
             other => other,
         };
         let bytes = self.backend.framework(call).map_err(|e| self.msg(e))?;
         scrub_msgpack(&bytes, self.policy)
+    }
+}
+
+impl Gate<'_> {
+    /// An `ide.json` code generation. The guest can write `ide.json`, so nothing in it is
+    /// trusted: a template is a project file the guest could also read, the files it creates
+    /// are ones the guest may create, and the host's backend only computes them (the gate
+    /// writes them itself).
+    fn laravel_generate(&self, id: String, input: String, write: bool) -> Result<Vec<u8>, String> {
+        use phpforge_fw_laravel::ide_json::GeneratedFile;
+        let call = FrameworkCall::LaravelGenerate {
+            id,
+            input,
+            write: false,
+        };
+        let bytes = self.backend.framework(call).map_err(|e| self.msg(e))?;
+        let files: Vec<GeneratedFile> = rmp_serde::from_slice(&bytes).map_err(|e| e.to_string())?;
+        let denied = |d: crate::permissions::Denied| d.to_string();
+        for f in &files {
+            // `ide.json` writes template paths with a leading slash.
+            let template = f.template.trim_start_matches('/');
+            if !template.is_empty() {
+                self.policy.check_path(template).map_err(denied)?;
+                self.verify(template)?;
+            }
+            self.policy.check_path(&f.path).map_err(denied)?;
+            self.verify(&f.path)?;
+            if write && !f.exists {
+                self.policy.check_write_path(&f.path).map_err(denied)?;
+            }
+        }
+        if write {
+            for f in files.iter().filter(|f| !f.exists) {
+                self.backend
+                    .write_file(&f.path, &f.content)
+                    .map_err(|e| self.msg(e))?;
+            }
+        }
+        scrub_msgpack(&enc(&files)?, self.policy)
     }
 }
 
@@ -1009,6 +1107,8 @@ fn run_git(
         allowed: &allowed,
     };
     let refuse = |p: &str| format!("\"{p}\" is not a path in the project");
+    // Pathspecs that keep hidden files out of an action on a folder.
+    let mut excludes: Vec<String> = Vec::new();
     match &call {
         GitCall::Query(q) => {
             let specs: Vec<&String> = match q {
@@ -1048,12 +1148,58 @@ fn run_git(
                     return Err(refuse(p));
                 }
             }
+            // A folder (the project itself, or any visible one) may hold files the guest
+            // does not see: `add -A .` would stage an untracked `.env`, `restore .` would
+            // revert the host's changes to it. Every file git could touch through these
+            // pathspecs is listed, and the hidden ones are excluded by name.
+            if !specs.is_empty() {
+                let mut args: Vec<String> = [
+                    "ls-files",
+                    "-z",
+                    "--cached",
+                    "--others",
+                    "--exclude-standard",
+                    "--",
+                ]
+                .map(String::from)
+                .to_vec();
+                args.extend(specs.iter().cloned());
+                let listed = exec
+                    .exec(&GitRequest {
+                        cwd: top.to_string_lossy().into_owned(),
+                        args,
+                        stdin: None,
+                        non_interactive: false,
+                    })
+                    .map_err(|e| gate.msg(e))?;
+                if !listed.ok {
+                    return Err(gate.msg(listed.stderr));
+                }
+                let mut size = 0;
+                for p in listed.stdout.split('\0').filter(|p| !p.is_empty()) {
+                    if vis.path(p) {
+                        continue;
+                    }
+                    let spec = format!(":(exclude,literal){p}");
+                    size += spec.len() + 1;
+                    if size > MAX_GIT_EXCLUDES {
+                        return Err(
+                            "Too many files in these folders are not shared with guests. Choose the files instead of their folder."
+                                .into(),
+                        );
+                    }
+                    excludes.push(spec);
+                }
+                excludes.dedup();
+            }
         }
     }
-    let (args, stdin, non_interactive) = match &call {
+    let (mut args, stdin, non_interactive) = match &call {
         GitCall::Query(q) => (q.to_args(), q.stdin(), false),
         GitCall::Action(a) => (a.to_args(), a.stdin(), a.non_interactive()),
     };
+    // The actions with pathspecs end with them (after `--`).
+    args.extend(excludes);
     let mut out = exec
         .exec(&GitRequest {
             cwd: top.to_string_lossy().into_owned(),
@@ -1202,7 +1348,13 @@ impl HostSession {
             }
             _ => None,
         };
-        let reply = services.lsp(LspRequest { query, text }).await?;
+        let reply = services
+            .lsp(LspRequest {
+                query,
+                text,
+                policy: policy.clone(),
+            })
+            .await?;
         scrub_json(&reply, policy)
     }
 

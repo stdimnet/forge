@@ -150,6 +150,7 @@ fn command_line(
         args: inv.args,
         cwd: backend.info().root.clone(),
         env: inv.env,
+        stdin_file: None,
     };
     let Some(interp) = through else {
         return Ok(Built {

@@ -3518,7 +3518,7 @@ Source: docs/guide/user/json-schema.md
 Forge checks JSON and YAML files against a [JSON Schema](https://json-schema.org), like
 PHPStorm: properties a file must have, the types and values it allows, and the documentation
 of every key. Configuration files such as `composer.json`, `package.json`, Compose files and CI
-pipelines work out of the box; for your own formats you map a schema to the files.
+pipelines work out of the box, and so do Kubernetes manifests wherever they are; for your own formats you map a schema to the files.
 
 ![Problems in composer.json](docs/screenshots/json-schema-problems.png)
 
@@ -3603,7 +3603,8 @@ Forge picks the first match:
 2. **The file's own schema**: `"$schema": "…"` at the top level of a JSON file, a `$schema:` key
    or the `# yaml-language-server: $schema=…` modeline in YAML. A relative path is resolved
    against the file's folder; a URL needs [remote schemas](#remote-schemas).
-3. **Built-in mappings**, with schemas bundled with Forge:
+3. **Kubernetes manifests**, by their content (see [below](#kubernetes-manifests)).
+4. **Built-in mappings**, with schemas bundled with Forge:
 
    | Schema | Files |
    | --- | --- |
@@ -3619,10 +3620,31 @@ Forge picks the first match:
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
    | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](docs/guide/user/minecraft.md)) |
    | Minecraft mods | `fabric.mod.json` and mixin configurations (`*.mixins.json`) (schemas written for Forge, see [Minecraft mods](docs/guide/user/minecraft.md#new-project-minecraft-mod)) |
-| Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](docs/guide/user/unity-godot.md#unity-file-types)) |
+   | Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](docs/guide/user/unity-godot.md#unity-file-types)) |
 
-4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
+5. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
    hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
+
+### Kubernetes manifests
+
+A YAML or JSON document with a top-level `apiVersion` and `kind` of a built-in Kubernetes object
+(`apps/v1` `Deployment`, `v1` `Service`, `networking.k8s.io/v1` `Ingress`, …) is checked
+against the schema of that object, in any folder and under any file name: `deployment.yaml`,
+`.k8s/`, `helm/templates/`. In a file with several documents (`---`), each document uses the
+schema of its own kind, so a Deployment and its Service can live in one file.
+
+- The schemas are the strict ones of Kubernetes 1.34 from
+  [kubernetes-schema](https://github.com/kubenote/kubernetes-schema) (Apache-2.0), bundled
+  with Forge: all built-in objects work offline. Strict means that unknown keys are reported
+  (`Property 'replica' is not allowed`).
+- Custom resources (`cert-manager.io/v1` `Certificate`, …) and unknown API versions get no
+  schema and no problems. A file with no built-in object falls through to the next rules.
+- Documents with template expressions (`{{ … }}`, as in Helm charts) are not validated, since
+  they become manifests only when rendered; completion and documentation still work in them.
+- The status bar names the object: `JSON schema: Kubernetes Deployment (apps/v1)`, or
+  `Kubernetes: Deployment, Service` for a file with several kinds.
+
+![A Kubernetes manifest checked against its schema](docs/screenshots/json-schema-kubernetes.png)
 
 ### Status bar
 
@@ -3676,6 +3698,8 @@ minutes; until then its `$ref`s accept anything.
 The JSON and YAML language servers validate with schemas too. While one of them runs for a
 file, Forge leaves problems, completion and hover of that file to the server, so nothing is
 reported twice; the status bar still shows the schema Forge would use.
+yaml-language-server finds Kubernetes manifests by their folder only (`k8s/`, `.k8s/`,
+`kubernetes/`, `deploy/`, `manifests/`); Forge's own support recognizes them anywhere.
 
 
 ---
@@ -4471,6 +4495,12 @@ the Project view's context menu) searches the text of every project file.
 The status bar shows the size of the search index ("272,700 files", or "Indexing" while it builds or refreshes). Hover it for how many files are searched by content, how many binary or oversized files are listed by name only, and when the index was last updated.
 
 ![Search index in the status bar](docs/screenshots/search-index-status.png)
+
+What is searched by content:
+
+- Text files up to **20 MB** (the same limit as PHPStorm). Larger files, and binary files (a NUL byte in the first 8 KB), are found by name only; the tooltip of the search index counts them.
+- **UTF-16** files that start with a byte order mark are read as text, like UTF-8 files. Files in other encodings are searched as UTF-8, so only their ASCII text is matched reliably. Replace in Files changes UTF-8 files only; any other file with a match is listed as skipped.
+- The index is kept between runs. When a project opens, the saved index answers at once while Forge compares it with the disk in the background. Until that has finished, the status bar shows "Indexing", the Find window says **Indexing, results may be incomplete**, and files created, changed or deleted while Forge was closed can be missing or outdated in the results.
 
 - Type the text; results update as you type, one row per matching line with the file name and
   line number. The header counts matches and files.
@@ -14363,7 +14393,9 @@ The build runs in the Run tool window. When it finishes, Forge parses the compil
 linker messages in Rust — GCC and Clang (`file:line:col: error: …`, with their notes), MSVC
 (`file(line,col): error C2065: …`) and the linkers (`ld`, `lld`, Apple's `ld`, `link.exe`) —
 and shows them in the **Build** tab of the Problems tool window and as editor diagnostics.
-Notes (candidates, declarations) are nested under their message; a click opens the line.
+Notes (candidates, declarations) are nested under their message; a click opens the line. A
+file outside the project (a system header such as `/usr/include/c++/13/numeric`) opens as a
+read-only library file.
 
 ![Build problems in the Problems tool window](docs/screenshots/cpp-build-problems.png)
 
@@ -14547,7 +14579,9 @@ right, like Rider's.
 - Builds run `dotnet build` in the Run tool window. Their output is parsed in Rust: the
   compiler (C#, F#, VB), NuGet and MSBuild problems, each once, grouped by file, with the
   summary (errors, warnings, time). Click a problem to open its location; the editor shows
-  the same problems (inspection *Build errors and warnings*, source `dotnet-build`).
+  the same problems (inspection *Build errors and warnings*, source `dotnet-build`). A file
+  outside the project (a `.targets` file of the SDK, a file of a NuGet package) opens as a
+  read-only library file.
 - **Build | Build Project** (`Ctrl+F9`) builds the solution in .NET projects; the Build menu
   also has **Build Solution**, **Rebuild Solution**, **Clean Solution**, **Restore NuGet
   Packages** and **Reload Solution**.
@@ -19975,6 +20009,11 @@ Edits, new rows, deleted rows, `NULL` and `DEFAULT` stay **pending** until you *
 **Revert** drops them. **Preview Pending Changes** (the list icon next to Submit) shows the
 statements Forge will run, generated for the dialect:
 
+On MySQL and MariaDB, a value with a backslash is written as
+`CONCAT('C:', CHAR(92 USING utf8mb4), 'dir')` in the statements Forge generates (submitted
+edits, imports, copied `INSERT`s). A plain literal would be read differently by servers that run
+with `NO_BACKSLASH_ESCAPES`; this form means the same in both modes.
+
 ![Pending changes with the DML preview](docs/screenshots/data-editor-pending-dml.png)
 
 Rows are identified by the **primary key**; a table without one uses a **unique key whose columns
@@ -20158,7 +20197,7 @@ restore tools, **installed by you** (Forge does not ship them):
 
 | Data source | Dump | Restore |
 | --- | --- | --- |
-| MySQL, MariaDB | `mysqldump` | `mysql` (`source <file>`) |
+| MySQL, MariaDB | `mysqldump` | `mysql` (`mysql < <file>`) |
 | PostgreSQL | `pg_dump` (plain, custom, directory or tar) | `pg_restore` (custom, directory, tar) or `psql` (plain SQL) |
 | SQLite | `sqlite3 .dump` / `.schema` | `sqlite3 .read` |
 | SQL Server | `sqlcmd` `BACKUP DATABASE … TO DISK` | `sqlcmd -i script.sql`, or `RESTORE DATABASE` for a `.bak` |
@@ -20653,6 +20692,10 @@ Console of pods. Reading the cluster (the tree, logs, Inspection, port forwards)
 Safe Mode.
 
 ![Apply a manifest](docs/screenshots/services-kube-apply.png)
+
+The editor also checks manifests against the schema of their Kubernetes object, with
+completion and documentation for every key (see
+[JSON Schema](docs/guide/user/json-schema.md#kubernetes-manifests)).
 
 ## Kubernetes pods and deployments
 
@@ -21355,6 +21398,13 @@ access may change**. By default these are run configurations (`.forge/runConfigu
 `.forge/settings.toml`, `.vscode/`, `.idea/`, `.husky/`, `composer.json`, `package.json`,
 `Makefile`, `artisan` and `bin/console`. The patterns work like the excluded files (`!pattern`
 removes a file from the list); changes apply to sessions you start afterwards.
+
+Both lists hold for folders too. A guest cannot delete, rename or move a folder that contains
+a file it does not see or may not change, and cannot move a folder to a place where its files
+would be hidden or protected. Git actions on a folder (stage, commit, rollback of the whole
+project) leave the hidden files out. A file you rename to a hidden name (`.env.example` to
+`.env`) closes in the guests' editors. Laravel code generations from `ide.json` cannot use a
+hidden file as their template, and create only files the guest may create.
 
 ## Settings
 
@@ -32880,7 +32930,10 @@ pub struct FindResult { … }
 pub struct FileMask { … }
 pub fn glob_match(glob: &str, text: &str) -> bool { … }
 pub struct Finder { … }
+pub const MAX_FILE_SIZE: u64; // 20 MB: larger files are not searched by content
 pub fn is_binary(bytes: &[u8]) -> bool { … }
+pub fn decode_utf16(bytes: &[u8]) -> Option<String> { … } // UTF-16 with a byte order mark
+pub fn searchable(bytes: Vec<u8>) -> Option<Vec<u8>> { … } // what a search reads; None = binary
 pub struct Collector<'a> { … }
 pub fn find_in<'t>(
 pub mod todo; // TodoRequest, TodoPattern, TodoItem, TodoFile, TodoResult, TodoScanner,
@@ -33315,9 +33368,10 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
+| `kubernetes.rs` | Kubernetes manifests by content: the `(apiVersion, kind)` index from the bundled definitions' `x-kubernetes-group-version-kind`, the schema of each document (`document_root`), the status bar name. A file mapped to the whole definitions file checks every document against its own kind; custom resources get no schema. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, Kubernetes manifests by content, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline; bodies are streamed up to 16 MB and loopback/private hosts are refused (`private_host`). |
-| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
+| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI (per document for Kubernetes manifests; documents with `{{ … }}` templates are not validated), `DocKind`, `load_bundled`. |
 
 ## Main public items
 
@@ -33352,6 +33406,9 @@ their refs accept anything.
 `schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
 `tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
 and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
+`kubernetes-definitions.json`, the strict definitions of every Kubernetes 1.34 object from
+kubenote/kubernetes-schema (`v1.34.1/standalone-strict/_definitions.json`, Apache-2.0, about
+216 KB compressed; `kubernetes::VERSION` names the branch);
 Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT). Schemas written for Forge (MIT): the
 Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.json` for
 `fabric.mod.json`, `minecraft-mixins.json` for `*.mixins.json`) and the Unity assembly definitions (`unity-asmdef.json` for
@@ -33366,7 +33423,7 @@ Minecraft plugin descriptors, the Minecraft mod metadata (`minecraft-fabric-mod.
 
 `cargo test -p forge-jsonschema --features remote`: the parsers, URI resolution, every keyword,
 completion and hover in JSON and YAML, Go to Declaration, mappings and globs, the bundled
-schemas against composer.json, package.json, Compose, GitHub Actions and GitLab CI samples, and
+schemas against composer.json, package.json, Compose, GitHub Actions, GitLab CI and Kubernetes samples (several documents, custom resources, Helm templates), and
 `RemoteCache` against a local HTTP server (no network).
 
 

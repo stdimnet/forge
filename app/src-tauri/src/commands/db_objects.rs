@@ -370,6 +370,7 @@ pub async fn db_dump_start(
         args: tool.args,
         cwd,
         env: tool.env,
+        stdin_file: tool.stdin_file.map(Into::into),
     };
     // The SSH tunnel stays open until the tool exits.
     let tunnel = Arc::new(Mutex::new(tunnel));

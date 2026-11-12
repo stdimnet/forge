@@ -147,6 +147,8 @@ export interface BuildProblem {
   code: string;
   message: string;
   path?: string;
+  /** How the editor opens `path` when it is a file outside the project (read-only). */
+  library?: string;
   /** 0-based. */
   line: number;
   column: number;

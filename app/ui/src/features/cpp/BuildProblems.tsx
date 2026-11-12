@@ -73,9 +73,20 @@ export async function publishBuildOutput(output: string, exitCode: number | null
   }
 }
 
+/**
+ * What the editor opens for a problem (exported for tests): the project file, or the read-only
+ * library file Rust offers for a file outside the project (a system header). Nothing for a
+ * problem without a file, or with one that does not exist here.
+ */
+export function openTarget(p: BuildProblem): string | undefined {
+  if (!p.path) return undefined;
+  return inProject(p) ? p.path : p.library || undefined;
+}
+
 function reveal(p: BuildProblem): void {
-  if (p.path && p.line) void openFileAt(p.path, p.line, p.column || 1);
-  else if (p.path && inProject(p)) void openFileAt(p.path);
+  const target = openTarget(p);
+  if (!target) return;
+  void (p.line ? openFileAt(target, p.line, p.column || 1) : openFileAt(target)).catch(() => undefined);
 }
 
 function Row(props: { p: BuildProblem; depth: number }) {

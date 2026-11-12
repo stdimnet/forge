@@ -38,6 +38,8 @@ pub struct SourceFile {
     pub text: String,
 }
 
+/// Larger files are not scanned for TODO comments.
+const TODO_MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 /// Hard cap on files visited per query so huge trees stay responsive.
 const MAX_WALKED_FILES: usize = 200_000;
 
@@ -82,7 +84,8 @@ impl Workspace {
     }
 
     /// Find in Files: search the text of every file in scope (`.gitignore`/`.ignore` and the
-    /// excluded folders respected; binary and huge files skipped). An invalid query is
+    /// excluded folders respected; binary files and files over [`forge_find::MAX_FILE_SIZE`]
+    /// skipped, UTF-16 with a byte order mark decoded). An invalid query is
     /// reported in [`FindResult::error`].
     pub fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         let finder = match forge_find::Finder::new(req) {
@@ -102,6 +105,7 @@ impl Workspace {
         let mut collector = forge_find::Collector::new(&finder);
         self.walk_text_files(
             &start,
+            forge_find::MAX_FILE_SIZE,
             |rel| finder.wants(rel),
             |rel, text| {
                 collector.add(rel, text);
@@ -138,14 +142,14 @@ impl Workspace {
                     let Ok(abs) = self.resolve(rel) else { continue };
                     if !scanner.wants(rel)
                         || !std::fs::metadata(&abs)
-                            .is_ok_and(|m| m.is_file() && m.len() <= forge_find::MAX_FILE_SIZE)
+                            .is_ok_and(|m| m.is_file() && m.len() <= TODO_MAX_FILE_SIZE)
                     {
                         continue;
                     }
                     let Ok(bytes) = std::fs::read(&abs) else {
                         continue;
                     };
-                    if !forge_find::is_binary(&bytes) {
+                    if let Some(bytes) = forge_find::searchable(bytes) {
                         collector.add(rel, &String::from_utf8_lossy(&bytes));
                     }
                 }
@@ -154,6 +158,7 @@ impl Workspace {
                 let root = self.root().to_path_buf();
                 self.walk_text_files(
                     &root,
+                    TODO_MAX_FILE_SIZE,
                     |rel| scanner.wants(rel),
                     |rel, text| {
                         collector.add(rel, text);
@@ -166,10 +171,12 @@ impl Workspace {
     }
 
     /// Visit the text files under `start` that `wants` accepts (`.gitignore`/`.ignore` and the
-    /// excluded folders respected, binary and huge files skipped) until `visit` returns false.
+    /// excluded folders respected, binary files and files over `max_size` skipped) until `visit`
+    /// returns false.
     fn walk_text_files(
         &self,
         start: &std::path::Path,
+        max_size: u64,
         wants: impl Fn(&str) -> bool,
         mut visit: impl FnMut(&str, &str) -> bool,
     ) {
@@ -184,19 +191,15 @@ impl Workspace {
                 continue;
             }
             let rel = self.relative(entry.path());
-            if !wants(&rel)
-                || entry
-                    .metadata()
-                    .is_ok_and(|m| m.len() > forge_find::MAX_FILE_SIZE)
-            {
+            if !wants(&rel) || entry.metadata().is_ok_and(|m| m.len() > max_size) {
                 continue;
             }
             let Ok(bytes) = std::fs::read(entry.path()) else {
                 continue;
             };
-            if forge_find::is_binary(&bytes) {
+            let Some(bytes) = forge_find::searchable(bytes) else {
                 continue;
-            }
+            };
             if !visit(&rel, &String::from_utf8_lossy(&bytes)) {
                 break;
             }

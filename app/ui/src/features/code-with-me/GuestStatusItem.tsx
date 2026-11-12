@@ -4,7 +4,7 @@
  * "Reconnecting…" while a dropped connection is being restored. Clicking it shows the session
  * (host, project, permission, connection, relay) with Leave Session.
  */
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { TriangleAlert, Users } from "lucide-solid";
 import type { ConnectionPath } from "@/ipc/collab";
 import { collabApi } from "@/ipc/collab";
@@ -44,7 +44,15 @@ export function GuestStatusItem() {
   const detail = () => guestStatusDetail(path(), latency());
   const host = () => workspace()?.collab?.host ?? session().hostLabel ?? t("tools.codeWithMe.hostFallback");
   let el: HTMLDivElement | undefined;
-  const measure = () => (isReconnecting() ? setLatency(null) : void collabApi.ping().then(setLatency, () => setLatency(null)));
+  // Only the newest ping counts, and none that was sent before the connection dropped.
+  let pings = 0;
+  const measure = () => {
+    const mine = ++pings;
+    if (isReconnecting()) return setLatency(null);
+    const done = (ms: number | null) => mine === pings && setLatency(isReconnecting() ? null : ms);
+    void collabApi.ping().then(done, () => done(null));
+  };
+  createEffect(() => isReconnecting() && measure());
   const reconnecting = () => (isReconnecting() ? connectionLabel(session().connection) : null);
   onMount(() => {
     measure();

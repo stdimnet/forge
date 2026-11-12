@@ -190,6 +190,19 @@ impl LibraryState {
         }
     }
 
+    /// The UI path of `path` when it is an absolute path to a file outside the project that a
+    /// tool reported (a system header or an SDK file in build output): it opens read-only, as
+    /// a library file. `None` for project-relative paths and, on this machine, for paths that
+    /// are not a file; a remote project's files are only known to its host.
+    pub fn outside_file(&self, path: &str, remote: bool) -> Option<String> {
+        let p = Path::new(path);
+        let drive = path.as_bytes().get(1) == Some(&b':');
+        if !(path.starts_with('/') || drive || p.is_absolute()) {
+            return None;
+        }
+        (remote || p.is_file()).then(|| self.grant(p))
+    }
+
     /// The UI path of a file outside the project a navigation answer points to; it may be
     /// read with `library_read` from now on.
     pub fn grant(&self, abs: &Path) -> String {
@@ -295,6 +308,31 @@ mod tests {
         assert_eq!(
             stub_path("Core/Core_c.php"),
             "library://php-stubs/Core/Core_c.php"
+        );
+    }
+
+    #[test]
+    fn files_outside_the_project_reported_by_a_build_can_be_opened() {
+        let dir = tempfile::tempdir().unwrap();
+        let header = dir.path().join("numeric.h");
+        std::fs::write(&header, "int x;\n").unwrap();
+        let abs = header.to_string_lossy().replace('\\', "/");
+        let lib = LibraryState::default();
+        assert_eq!(
+            lib.outside_file(&abs, false),
+            Some(format!("library://file/{abs}"))
+        );
+        assert!(lib.granted.lock().unwrap().contains(&header));
+        // Project-relative paths, folders and missing files are not library files.
+        assert_eq!(lib.outside_file("src/main.cpp", false), None);
+        assert_eq!(lib.outside_file(&dir.path().to_string_lossy(), false), None);
+        let missing = format!("{abs}.missing");
+        assert_eq!(lib.outside_file(&missing, false), None);
+        assert!(!lib.granted.lock().unwrap().contains(Path::new(&missing)));
+        // A remote project's host is asked when the file is read.
+        assert_eq!(
+            lib.outside_file("/usr/include/stdio.h", true).as_deref(),
+            Some("library://file//usr/include/stdio.h")
         );
     }
 

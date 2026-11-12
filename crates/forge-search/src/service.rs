@@ -102,7 +102,10 @@ impl SearchService {
             index: RwLock::new(index),
             generation: AtomicU64::new(0),
             gate: Mutex::new(()),
-            indexing: AtomicBool::new(false),
+            // A cached index answers searches at once, but it may miss what changed while Forge
+            // was closed: it counts as being indexed until the first refresh has compared it
+            // with the disk, so results are marked as possibly incomplete until then.
+            indexing: AtomicBool::new(ready),
             ready: AtomicBool::new(ready),
             last_refresh_ms: AtomicU64::new(0),
             watcher: Mutex::new(None),
@@ -138,6 +141,8 @@ impl SearchService {
         self.ready.load(Ordering::Relaxed)
     }
 
+    /// Whether the index is being brought in line with the disk. True from the start for an
+    /// index loaded from the cache, until its first [`SearchService::refresh`] has finished.
     pub fn indexing(&self) -> bool {
         self.indexing.load(Ordering::Relaxed)
     }
@@ -311,7 +316,7 @@ impl SearchService {
         let mut outcome = forge_search_core::run(
             &index,
             &compiled,
-            |path| std::fs::read(self.root.join(path)).ok(),
+            |path| index::read_searchable(&self.root.join(path)),
             || self.generation.load(Ordering::Relaxed) != mine,
         );
         outcome.indexing = self.indexing.load(Ordering::Relaxed);
@@ -375,10 +380,7 @@ impl SearchService {
                 if found.load(Ordering::Relaxed) >= limit || cancel.load(Ordering::Relaxed) {
                     return None;
                 }
-                let bytes = std::fs::read(self.root.join(path)).ok()?;
-                if forge_find::is_binary(&bytes) {
-                    return None;
-                }
+                let bytes = index::read_searchable(&self.root.join(path))?;
                 let utf8 = std::str::from_utf8(&bytes).is_ok();
                 let ranges = match &prefilter {
                     Some(re) if utf8 => {
@@ -501,8 +503,8 @@ impl SearchService {
     }
 
     fn read_text(&self, rel: &str) -> Option<String> {
-        let bytes = std::fs::read(self.root.join(rel)).ok()?;
-        (!forge_find::is_binary(&bytes)).then(|| String::from_utf8_lossy(&bytes).into_owned())
+        let bytes = index::read_searchable(&self.root.join(rel))?;
+        Some(String::from_utf8_lossy(&bytes).into_owned())
     }
 
     /// "Go to File" over the indexed paths, ranked like `Workspace::find_files`.

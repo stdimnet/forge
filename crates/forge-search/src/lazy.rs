@@ -180,7 +180,7 @@ impl FoundText {
         skip: usize,
         take: usize,
     ) -> Vec<LineMatch> {
-        let Ok(bytes) = std::fs::read(self.root.join(path)) else {
+        let Some(bytes) = crate::index::read_searchable(&self.root.join(path)) else {
             return Vec::new();
         };
         let text = String::from_utf8_lossy(&bytes);

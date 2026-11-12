@@ -505,7 +505,7 @@ command = "yaml-language-server"
 args = ["--stdio"]
 homepage = "https://github.com/redhat-developer/yaml-language-server"
 license = "MIT"
-note = "Schemas for GitHub Actions, docker-compose and Kubernetes manifests (in k8s/, kubernetes/, deploy/ or manifests/)."
+note = "Schemas for GitHub Actions, docker-compose and Kubernetes manifests (in k8s/, .k8s/, kubernetes/, deploy/ or manifests/)."
 install = [
   { tool = "npm", command = ["npm", "install", "-g", "yaml-language-server"] },
   { tool = "brew", command = ["brew", "install", "yaml-language-server"], platforms = ["macos", "linux"] },
@@ -530,7 +530,12 @@ schemaStore = { enable = true, url = "https://www.schemastore.org/api/json/catal
 "https://json.schemastore.org/github-workflow.json" = ".github/workflows/*.{yml,yaml}"
 "https://json.schemastore.org/github-action.json" = ["action.yml", "action.yaml"]
 "https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json" = ["docker-compose*.yml", "docker-compose*.yaml", "compose.yml", "compose.yaml"]
-"kubernetes" = ["k8s/**/*.yaml", "k8s/**/*.yml", "kubernetes/**/*.yaml", "deploy/**/*.yaml", "manifests/**/*.yaml"]
+# The server picks Kubernetes schemas by path only; Forge's own JSON Schema support (used while
+# this server is not running) recognizes manifests anywhere by their apiVersion and kind.
+"kubernetes" = [
+  "k8s/**/*.{yaml,yml}", ".k8s/**/*.{yaml,yml}", "kubernetes/**/*.{yaml,yml}",
+  "deploy/**/*.{yaml,yml}", "manifests/**/*.{yaml,yml}",
+]
 "https://json.schemastore.org/gitlab-ci.json" = ".gitlab-ci.yml"
 
 [[server]]

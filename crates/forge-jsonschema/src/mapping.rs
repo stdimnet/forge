@@ -5,11 +5,13 @@
 //!    schemas off for its files,
 //! 2. the file's own `"$schema"` (JSON), `$schema:` key or
 //!    `# yaml-language-server: $schema=…` modeline (YAML),
-//! 3. Forge's built-in mappings (composer.json, package.json, tsconfig, ESLint, Prettier,
+//! 3. Kubernetes manifests, by content: documents with a top-level `apiVersion` and `kind`
+//!    of a built-in Kubernetes object (see [`crate::kubernetes`]),
+//! 4. Forge's built-in mappings (composer.json, package.json, tsconfig, ESLint, Prettier,
 //!    Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors in
 //!    `src/main/resources`, `fabric.mod.json` and mixin configurations of Minecraft mods,
 //!    Unity assembly definitions) with bundled schemas,
-//! 4. the SchemaStore catalog, when remote schemas are allowed.
+//! 5. the SchemaStore catalog, when remote schemas are allowed.
 
 use serde::{Deserialize, Serialize};
 
@@ -231,6 +233,9 @@ fn content_builtin(text: &str) -> Option<(&'static str, &'static str)> {
 
 /// The name the status bar shows for a schema URI.
 pub fn name_of(uri: &str) -> String {
+    if crate::kubernetes::dispatches(uri) {
+        return "Kubernetes".to_string();
+    }
     if let Some((name, _)) = CONTENT_BUILTINS
         .iter()
         .find(|(_, u)| bundled::find(uri).is_some_and(|b| b.uri() == *u))
@@ -430,6 +435,25 @@ pub fn mapping_uri(schema: &str) -> String {
     uri::project(&s.replace('\\', "/"))
 }
 
+/// A Kubernetes manifest: the whole definitions file, so that each document is checked
+/// against its own kind (`crate::document_root`).
+fn kubernetes(text: &str, kind: crate::DocKind) -> Option<Selection> {
+    // Cheap check before parsing the file.
+    if !text.contains("apiVersion") || !text.contains("kind") {
+        return None;
+    }
+    let types = crate::kubernetes::detect_all(&crate::parse(kind, text));
+    if types.is_empty() {
+        return None;
+    }
+    Some(Selection {
+        name: crate::kubernetes::name(&types),
+        uri: crate::kubernetes::DEFINITIONS.to_string(),
+        source: Source::Builtin,
+        version: None,
+    })
+}
+
 pub fn select(
     path: &str,
     text: &str,
@@ -464,6 +488,9 @@ pub fn select(
             source: Source::Inline,
             version: None,
         });
+    }
+    if let Some(sel) = kubernetes(text, kind) {
+        return Some(sel);
     }
     if let Some(b) = BUILTINS
         .iter()

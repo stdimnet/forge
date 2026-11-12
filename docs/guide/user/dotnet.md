@@ -86,7 +86,9 @@ right, like Rider's.
 - Builds run `dotnet build` in the Run tool window. Their output is parsed in Rust: the
   compiler (C#, F#, VB), NuGet and MSBuild problems, each once, grouped by file, with the
   summary (errors, warnings, time). Click a problem to open its location; the editor shows
-  the same problems (inspection *Build errors and warnings*, source `dotnet-build`).
+  the same problems (inspection *Build errors and warnings*, source `dotnet-build`). A file
+  outside the project (a `.targets` file of the SDK, a file of a NuGet package) opens as a
+  read-only library file.
 - **Build | Build Project** (`Ctrl+F9`) builds the solution in .NET projects; the Build menu
   also has **Build Solution**, **Rebuild Solution**, **Clean Solution**, **Restore NuGet
   Packages** and **Reload Solution**.

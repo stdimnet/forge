@@ -136,6 +136,8 @@ export interface KernelRequest {
   /** A Jupyter server URL (empty: the `jupyter.server.url` setting). */
   server?: string;
   kernelName?: string;
+  /** The kernel's id (letters, digits, `-`): listen on it with `onEvent` before starting. */
+  id?: string;
 }
 
 export interface KernelStarted {
