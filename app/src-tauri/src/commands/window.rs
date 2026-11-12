@@ -950,6 +950,9 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             {
                 let _ = parent.set_enabled(true);
                 let _ = parent.set_focus();
+                // A window that was disabled lost the keyboard focus of its content: without
+                // this, shortcuts do nothing until the user clicks into the window.
+                let _ = parent.as_ref().set_focus();
             }
             if entry.parent.is_empty() {
                 return;
