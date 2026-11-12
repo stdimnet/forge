@@ -37,6 +37,7 @@ describe("Git Branches popup: branch submenu", () => {
     const update = vi.spyOn(opsApi, "updateBranch").mockResolvedValue({ output: "Already up to date." });
     const rows = await submenu("main");
     expect(labels(rows)).toContain("Update");
+    expect(labels(rows).some((l) => l?.startsWith("Pull into"))).toBe(false);
     row(rows, "Update").click();
     await vi.waitFor(() => expect(update).toHaveBeenCalledWith("main"));
   });
@@ -45,5 +46,28 @@ describe("Git Branches popup: branch submenu", () => {
     const rows = await submenu("bugfix/login-redirect");
     expect(labels(rows)).toContain("Checkout");
     expect(labels(rows)).not.toContain("Update");
+  });
+
+  it("offers Pull into the current branch for a remote branch, using rebase or merge", async () => {
+    const pull = vi.spyOn(opsApi, "pullInto").mockResolvedValue({ output: "Already up to date." });
+    const rows = await submenu("origin/main");
+    const names = labels(rows);
+    const rebase = "Pull into 'feature/order-totals' Using Rebase";
+    const merge = "Pull into 'feature/order-totals' Using Merge";
+    expect(names).toContain(rebase);
+    expect(names).toContain(merge);
+    // Like PHPStorm: after Rebase/Merge, rebase first; a remote branch has no Update or Delete.
+    expect(names.indexOf(rebase)).toBeLessThan(names.indexOf(merge));
+    expect(names).not.toContain("Update");
+    expect(names).not.toContain("Delete");
+    row(rows, merge).click();
+    await vi.waitFor(() => expect(pull).toHaveBeenCalledWith("origin/main", false));
+  });
+
+  it("pulls using rebase", async () => {
+    const pull = vi.spyOn(opsApi, "pullInto").mockResolvedValue({ output: "" });
+    const rows = await submenu("origin/release/1.1");
+    row(rows, "Pull into 'feature/order-totals' Using Rebase").click();
+    await vi.waitFor(() => expect(pull).toHaveBeenCalledWith("origin/release/1.1", true));
   });
 });

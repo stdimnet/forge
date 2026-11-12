@@ -70,6 +70,17 @@ describe("browser-mode git dialogs and shelf", () => {
     state.local.set("main", main.sha);
   });
 
+  it("pulls a remote branch into the current branch", async () => {
+    const head = mockRepo.state.head;
+    const res = await opsApi.pullInto("origin/release/1.1", false);
+    expect(res.output).toBeTruthy();
+    await expect(opsApi.pullInto("release/1.1", false)).rejects.toThrow(/not a branch of a remote/);
+    await expect(opsApi.pullInto("origin/feature/checkout-flow", true)).rejects.toThrow(/CONFLICT/);
+    expect((await opsApi.operationState()).operation).toBe("rebase");
+    await opsApi.operationAction("abort");
+    expect(mockRepo.ancestors(mockRepo.state.head).has(head)).toBe(true);
+  });
+
   it("edits remotes and creates forced tags", async () => {
     await opsApi.editRemote("origin", "upstream", "git@example.com:acme/shop.git");
     expect((await gitApi.remotes()).map((r) => r.name)).toContain("upstream");

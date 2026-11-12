@@ -34,6 +34,17 @@ pub async fn git_pull_with(
     mutate(&app, &state, move |r| r.pull_with(&options)).await
 }
 
+/// Branches popup ▸ "Pull into 'current' Using Merge / Rebase" on a remote branch.
+#[tauri::command]
+pub async fn git_pull_into(
+    branch: String,
+    rebase: bool,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<RemoteResult> {
+    mutate(&app, &state, move |r| r.pull_into_current(&branch, rebase)).await
+}
+
 /// Branches popup ▸ "Update" on a local branch that is not checked out (fetch + fast-forward).
 #[tauri::command]
 pub async fn git_update_branch(

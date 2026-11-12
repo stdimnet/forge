@@ -148,6 +148,34 @@ pub fn pull_args(o: &PullOptions) -> Result<Vec<String>, String> {
     Ok(args)
 }
 
+/// Split a remote-tracking branch name (`origin/feature/x`) into its remote and the branch on
+/// that remote. Remote names may contain slashes, so the longest configured remote wins.
+pub fn split_remote_branch<'a>(name: &'a str, remotes: &[String]) -> Option<(&'a str, &'a str)> {
+    remotes
+        .iter()
+        .filter_map(|r| {
+            let branch = name.strip_prefix(r.as_str())?.strip_prefix('/')?;
+            (!branch.is_empty()).then(|| (&name[..r.len()], branch))
+        })
+        .max_by_key(|(remote, _)| remote.len())
+}
+
+/// "Pull into 'main' Using Merge / Rebase" of a remote branch:
+/// `pull --no-edit --rebase|--no-rebase <remote> <branch>`.
+pub fn pull_into_args(remote: &str, branch: &str, rebase: bool) -> Result<Vec<String>, String> {
+    check_name("remote", remote)?;
+    check_name("branch", branch)?;
+    Ok([
+        "pull",
+        "--no-edit",
+        if rebase { "--rebase" } else { "--no-rebase" },
+        remote,
+        branch,
+    ]
+    .map(String::from)
+    .to_vec())
+}
+
 /// "Update" of a local branch that is not checked out: `fetch <remote> <merge>:refs/heads/<name>`.
 /// Without `+` git only fast-forwards the branch and rejects the fetch when it has diverged.
 /// `merge` is the branch's `branch.<name>.merge` (a full ref name on the remote).
@@ -328,6 +356,37 @@ mod tests {
             s(&pull_args(&PullOptions::default()).unwrap()),
             "pull --no-edit --no-rebase"
         );
+    }
+
+    #[test]
+    fn remote_branch_names() {
+        let remotes = vec!["origin".to_string(), "origin/fork".to_string()];
+        assert_eq!(
+            split_remote_branch("origin/feature/x", &remotes),
+            Some(("origin", "feature/x"))
+        );
+        // The longest remote name wins.
+        assert_eq!(
+            split_remote_branch("origin/fork/main", &remotes),
+            Some(("origin/fork", "main"))
+        );
+        assert_eq!(split_remote_branch("upstream/main", &remotes), None);
+        assert_eq!(split_remote_branch("origin/", &remotes), None);
+        assert_eq!(split_remote_branch("originmain", &remotes), None);
+    }
+
+    #[test]
+    fn pull_into_arguments() {
+        assert_eq!(
+            s(&pull_into_args("origin", "feature/x", true).unwrap()),
+            "pull --no-edit --rebase origin feature/x"
+        );
+        assert_eq!(
+            s(&pull_into_args("origin", "main", false).unwrap()),
+            "pull --no-edit --no-rebase origin main"
+        );
+        assert!(pull_into_args("--upload-pack=x", "main", false).is_err());
+        assert!(pull_into_args("origin", "", false).is_err());
     }
 
     #[test]

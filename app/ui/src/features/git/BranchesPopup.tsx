@@ -27,6 +27,7 @@ import {
   mergeIntoCurrent,
   newBranchDialog,
   openCommitWindow,
+  pullInto,
   push,
   rebaseOnto,
   updateBranch,
@@ -155,6 +156,13 @@ export function BranchesPopup() {
           { label: tr("git.branchesPopup.mergeNameIntoCur", { name: b.name, cur }), run: () => void mergeIntoCurrent(b.name) },
           // A local branch that tracks a branch is fast-forwarded without checking it out.
           ...(!h.row.remote && !b.worktree && b.upstream ? [null, { label: tr("git.branchesPopup.update"), run: () => void updateBranch(b.name) }] : []),
+          ...(h.row.remote
+            ? [
+                null,
+                { label: tr("git.branchesPopup.pullIntoCurUsingRebase", { cur }), run: () => void pullInto(b.name, true) },
+                { label: tr("git.branchesPopup.pullIntoCurUsingMerge", { cur }), run: () => void pullInto(b.name, false) },
+              ]
+            : []),
           ...(h.row.remote || b.worktree ? [] : [null, { label: tr("git.branchesPopup.delete"), run: () => deleteBranch(b.name), danger: true }]),
         ];
     const rect = root.getBoundingClientRect();

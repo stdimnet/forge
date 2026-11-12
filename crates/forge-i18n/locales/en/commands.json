@@ -336,5 +336,7 @@
   "action.CurrentLeadUnfollowAction": "Unfollow current lead",
   "action.ForceOthersToFollowAction": "Make Everyone Follow You",
   "action.CWMHostOpenSettingsAction": "Open Code With Me Settings",
-  "action.Git.Branch.Update": "Update Branch…"
+  "action.Git.Branch.Update": "Update Branch…",
+  "action.Git.Branch.Pull.WithMerge": "Pull into Current Using Merge…",
+  "action.Git.Branch.Pull.WithRebase": "Pull into Current Using Rebase…"
 }

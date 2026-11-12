@@ -11,8 +11,9 @@ use super::{check_rev, parse_rebase_status, RemoteResult, Repo};
 use crate::cmd::{self, run_raw, Run};
 use crate::log::{parse_name_status, ChangedFile};
 use crate::ops::{
-    merge_args, pull_args, rebase_args, reset_args, tag_args, update_branch_args, MergeOptions,
-    OperationAction, PullOptions, RebaseOptions, ResetMode, TagOptions,
+    merge_args, pull_args, pull_into_args, rebase_args, reset_args, split_remote_branch, tag_args,
+    update_branch_args, MergeOptions, OperationAction, PullOptions, RebaseOptions, ResetMode,
+    TagOptions,
 };
 use forge_core::{ForgeError, Result};
 
@@ -76,6 +77,19 @@ impl Repo {
     /// Pull… with the options of the Pull dialog.
     pub fn pull_with(&self, options: &PullOptions) -> Result<RemoteResult> {
         let args = pull_args(options).map_err(invalid)?;
+        let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        self.git_remote(&refs)
+    }
+
+    /// "Pull into 'current' Using Merge / Rebase" on a remote branch (`origin/feature/x`):
+    /// fetches that branch and merges it into, or rebases the current branch onto, it.
+    pub fn pull_into_current(&self, remote_branch: &str, rebase: bool) -> Result<RemoteResult> {
+        check_rev(remote_branch)?;
+        let remotes = self.remotes()?;
+        let (remote, branch) = split_remote_branch(remote_branch, &remotes).ok_or_else(|| {
+            ForgeError::Other(format!("'{remote_branch}' is not a branch of a remote"))
+        })?;
+        let args = pull_into_args(remote, branch, rebase).map_err(invalid)?;
         let refs: Vec<&str> = args.iter().map(String::as_str).collect();
         self.git_remote(&refs)
     }

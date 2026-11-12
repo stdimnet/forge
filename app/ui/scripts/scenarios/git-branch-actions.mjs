@@ -1,6 +1,6 @@
 /**
- * Git Branches popup: Update on a local branch that is not checked out; and the compact Git
- * tool window (tabs in the header).
+ * Git Branches popup: Update on a local branch that is not checked out, Pull into the current
+ * branch on a remote branch; and the compact Git tool window (tabs in the header).
  */
 const run = (page, id) => page.evaluate((cmd) => window.__forgeRunCommand(cmd), id);
 
@@ -17,6 +17,10 @@ const scenarios = {
   "git-branch-update": async (page) => {
     await submenuOf(page, "main");
     await page.waitForSelector(".branch-submenu .popup-label:text-is('Update')");
+  },
+  "git-pull-into": async (page) => {
+    await submenuOf(page, "origin/main");
+    await page.waitForSelector(".branch-submenu .popup-row:has-text('Using Merge')");
   },
   "git-tool-window-compact": async (page) => {
     await run(page, "git.log");

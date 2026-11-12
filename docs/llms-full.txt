@@ -16819,8 +16819,10 @@ repository it reads **Version Control** and the status bar shows no branch.
   'current'** (the Git log of the commits of the branch that are not in the current branch,
   ready to [cherry-pick](#cherry-pick-revert-and-undo)), **Rebase 'current' onto '…'**,
   **Merge '…' into 'current'** and, for local branches, **Delete** (with "Force delete" for
-  unmerged branches). A local branch that tracks a remote branch also has **Update**
-  (see [Update a branch without checking it out](#update-a-branch-without-checking-it-out)). For a local branch that no worktree has checked out, **New Worktree…**
+  unmerged branches). A local branch that tracks a remote branch also has **Update**, and a
+  remote branch **Pull into 'current' Using Rebase** and **Pull into 'current' Using Merge**
+  (see [Update a branch without checking it out](#update-a-branch-without-checking-it-out) and
+  [Pull into the current branch](#pull-into-the-current-branch)). For a local branch that no worktree has checked out, **New Worktree…**
   creates a [worktree](#worktrees) for it.
 - Branches checked out in another worktree are marked **worktree**; clicking them (or **Open
   Worktree** in their submenu) opens that worktree instead of checking them out.
@@ -16895,6 +16897,22 @@ changes are not touched, so `main` can be updated while you keep working on a fe
   there.
 - **Update** is offered for local branches that track a branch and are not checked out in
   another [worktree](#worktrees). For the current branch, **Update** runs **Update Project…**.
+
+### Pull into the current branch
+
+**Pull into 'current' Using Merge** and **Pull into 'current' Using Rebase** in the submenu of
+a remote branch in **Git Branches** fetch that branch and merge it into the current branch, or
+rebase the current branch onto it (`git pull --no-rebase|--rebase <remote> <branch>`), without
+opening the Pull dialog.
+
+![Pull into the current branch](docs/screenshots/git-pull-into.png)
+
+- Find Action has both as **Pull into Current Using Merge…** (`Git.Branch.Pull.WithMerge`) and
+  **Pull into Current Using Rebase…** (`Git.Branch.Pull.WithRebase`); they ask for the remote
+  branch first. You can give them shortcuts in **Settings | Keymap**.
+- Conflicts open the [Conflicts dialog](#merge-conflicts), as for every merge or rebase; the
+  operation can be continued or aborted from the **Git** menu.
+- The working tree before the pull is kept in Local History.
 
 ## Pull, merge and rebase
 

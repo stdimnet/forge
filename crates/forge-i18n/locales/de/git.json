@@ -573,7 +573,15 @@
   "git.actions.updateOfNameFailed": "Aktualisieren von {name} fehlgeschlagen",
   "git.actions.branchNameUpdated": "{name} aktualisiert",
   "git.actions.branchIsUpToDate": "Bereits aktuell",
+  "git.actions.pullOfNameFailed": "Pull von {name} fehlgeschlagen",
+  "git.actions.pullNameIntoCur": "Pull von {name} in {cur}",
+  "git.actions.pulledNameIntoCur": "{name} per Pull in {cur} übernommen",
+  "git.actions.rebasedCurOntoName": "{cur} auf {name} rebased",
   "git.actions.couldNotLoadBranches": "Branches konnten nicht geladen werden",
   "git.actions.updateBranch": "Branch aktualisieren",
-  "git.actions.noOtherBranchTracks": "Kein anderer lokaler Branch verfolgt einen Remote-Branch"
+  "git.actions.noOtherBranchTracks": "Kein anderer lokaler Branch verfolgt einen Remote-Branch",
+  "git.actions.noRemoteBranches": "Keine Remote-Branches",
+  "git.actions.pull": "Pull",
+  "git.branchesPopup.pullIntoCurUsingRebase": "Pull in ''{cur}'' per Rebase",
+  "git.branchesPopup.pullIntoCurUsingMerge": "Pull in ''{cur}'' per Merge"
 }

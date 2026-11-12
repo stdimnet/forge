@@ -59,6 +59,17 @@ registerMock("git_pull_with", async ({ options }) => {
   return { output: "Already up to date." };
 });
 
+// "Pull into 'current' Using Merge / Rebase" on a remote branch of the demo repository.
+registerMock("git_pull_into", async ({ branch, rebase }) => {
+  const name = String(branch);
+  await delay(400);
+  if (!state.remote.has(name)) throw new Error(`'${name}' is not a branch of a remote`);
+  if (isConflictRev(name) && rebase) return startRebaseConflict(CONFLICT_BRANCH);
+  const output = rebase ? await invoke<string>("git_rebase", { onto: name }) : await invoke<string>("git_merge", { rev: name });
+  changed();
+  return { output };
+});
+
 // "Update" on a local branch that is not checked out: fast-forward to its tracked branch.
 registerMock("git_update_branch", async ({ name }) => {
   const n = String(name);

@@ -111,6 +111,20 @@ export async function updateBranch(name: string): Promise<void> {
   if (res) notify("success", tr("git.actions.branchNameUpdated", { name }), res.output === "Already up to date." ? tr("git.actions.branchIsUpToDate") : res.output);
 }
 
+/** "Pull into 'current' Using Merge / Rebase" on a remote branch (`origin/main`). */
+export async function pullInto(name: string, rebase: boolean): Promise<void> {
+  setBranchesOpen(false);
+  const cur = status()?.branch ?? "HEAD";
+  const res = await runMerging(tr("git.actions.pullOfNameFailed", { name }), () =>
+    withLocalHistory("vcs", tr("git.actions.pullNameIntoCur", { name, cur }), () => opsApi.pullInto(name, rebase)),
+  );
+  if (res) {
+    await reloadOpenFiles();
+    const title = rebase ? tr("git.actions.rebasedCurOntoName", { name, cur }) : tr("git.actions.pulledNameIntoCur", { name, cur });
+    notify("success", title, res.output.split("\n")[0] || tr("tools.git.allFilesAreUpTo"));
+  }
+}
+
 /** Find Action ▸ "Update Branch…": pick a local branch that is not checked out and tracks a branch. */
 export async function updateBranchDialog(): Promise<void> {
   const branches = await runGit(tr("git.actions.couldNotLoadBranches"), () => gitApi.branches());
@@ -121,6 +135,20 @@ export async function updateBranchDialog(): Promise<void> {
     okLabel: tr("git.branchesPopup.update"),
     items: branches.local.filter((b) => !b.current && !b.worktree && b.upstream).map((b) => ({ id: b.name, label: b.name, detail: b.upstream ?? "" })),
     onOk: (item) => updateBranch(item.id),
+  });
+}
+
+/** Find Action ▸ "Pull into Current Using Merge… / Rebase…": pick the remote branch to pull. */
+export async function pullIntoDialog(rebase: boolean): Promise<void> {
+  const branches = await runGit(tr("git.actions.couldNotLoadBranches"), () => gitApi.branches());
+  if (!branches) return;
+  const cur = branches.current ?? "HEAD";
+  setChooserDialog({
+    title: rebase ? tr("git.branchesPopup.pullIntoCurUsingRebase", { cur }) : tr("git.branchesPopup.pullIntoCurUsingMerge", { cur }),
+    empty: tr("git.actions.noRemoteBranches"),
+    okLabel: tr("git.actions.pull"),
+    items: branches.remote.map((b) => ({ id: b.name, label: b.name, detail: b.subject })),
+    onOk: (item) => pullInto(item.id, rebase),
   });
 }
 

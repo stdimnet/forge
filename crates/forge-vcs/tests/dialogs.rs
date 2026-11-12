@@ -414,6 +414,64 @@ fn subjects(dir: &Path, rev: &str) -> Vec<String> {
 }
 
 #[test]
+fn pull_a_remote_branch_into_the_current_branch() {
+    let (_tmp, me, other) = remote_fixture();
+    sh(&other, &["checkout", "-q", "-b", "feature/x"]);
+    write(&other, "x.txt", "x\n");
+    commit_all(&other, "Feature work");
+    sh(&other, &["push", "-q", "origin", "feature/x"]);
+    sh(&me, &["fetch", "-q", "origin"]);
+    write(&me, "mine.txt", "mine\n");
+    commit_all(&me, "Local work");
+    let repo = open(&me);
+
+    // Using Merge: a merge commit on main, the working tree has the feature's file.
+    repo.pull_into_current("origin/feature/x", false).unwrap();
+    assert!(me.join("x.txt").exists());
+    assert!(head_subject(&me).starts_with("Merge branch 'feature/x'"));
+    assert_eq!(sh(&me, &["branch", "--show-current"]).trim(), "main");
+
+    // Using Rebase: new remote commits end up below the local ones, without a merge commit.
+    sh(&me, &["reset", "-q", "--hard", "HEAD~1"]);
+    write(&other, "y.txt", "y\n");
+    commit_all(&other, "More feature work");
+    sh(&other, &["push", "-q", "origin", "feature/x"]);
+    // The remote-tracking branch is stale: the pull fetches the branch itself.
+    repo.pull_into_current("origin/feature/x", true).unwrap();
+    assert_eq!(
+        subjects(&me, "HEAD"),
+        [
+            "Local work",
+            "More feature work",
+            "Feature work",
+            "Initial commit"
+        ]
+    );
+
+    // Not a remote branch, or an option instead of a name: refused before git runs.
+    assert!(repo.pull_into_current("feature/x", false).is_err());
+    assert!(repo.pull_into_current("--upload-pack=x", false).is_err());
+}
+
+#[test]
+fn pull_into_the_current_branch_stops_on_conflicts() {
+    let (_tmp, me, other) = remote_fixture();
+    write(&other, "a.txt", "remote\n");
+    commit_all(&other, "Remote edit");
+    sh(&other, &["push", "-q", "origin", "main"]);
+    write(&me, "a.txt", "local\n");
+    commit_all(&me, "Local edit");
+    let repo = open(&me);
+    assert!(repo.pull_into_current("origin/main", false).is_err());
+    assert_eq!(
+        repo.operation_state().unwrap().operation,
+        Some(OngoingOperation::Merge)
+    );
+    repo.operation_action(OperationAction::Abort).unwrap();
+    assert_eq!(head_subject(&me), "Local edit");
+}
+
+#[test]
 fn update_a_branch_that_is_not_checked_out() {
     let (_tmp, me, other) = remote_fixture();
     sh(&me, &["checkout", "-q", "-b", "feature"]);
