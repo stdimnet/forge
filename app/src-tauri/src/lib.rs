@@ -507,6 +507,8 @@ pub fn run() {
             commands::git::git_resolve_merge,
             commands::git::git_crlf_files,
             commands::git_ops::git_pull_with,
+            commands::git_ops::git_pull_into,
+            commands::git_ops::git_update_branch,
             commands::git_ops::git_merge_with,
             commands::git_ops::git_rebase_with,
             commands::git_ops::git_operation_state,

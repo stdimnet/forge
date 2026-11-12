@@ -3,7 +3,8 @@
  * - change markers in the gutter comparing the buffer with HEAD (added / modified / deleted),
  *   clickable for Rollback and Show Diff;
  * - "Annotate with Git Blame" gutter left of the line numbers, colored by commit age;
- * - inline blame hint at the end of the caret line ("Marlon, 2 days ago • message");
+ * - inline blame hint at the end of the caret line ("Marlon, 2 days ago • message"), unless
+ *   "Show inline blame" is off in Settings | Version Control | Git;
  * - while the Commit tool window is open, checkboxes that include single change hunks in the
  *   next commit (partial commits, `partialGutter.ts`).
  */
@@ -35,6 +36,7 @@ import { partialCommitGutter, viewHunks } from "./partialGutter";
 import { moveToChangelistDialog } from "./changesDialogs";
 import { t as tr } from "@/i18n";
 import { latestOnly } from "@/state/async";
+import { getSetting } from "@/state/settings";
 
 // ---- shared per-view git data ---------------------------------------------------------
 
@@ -46,7 +48,8 @@ interface BlameState {
   maxTime: number;
 }
 
-const setBlameEffect = StateEffect.define<Blame | null>();
+/** Exported for the tests. */
+export const setBlameEffect = StateEffect.define<Blame | null>();
 
 const blameField = StateField.define<BlameState | null>({
   create: () => null,
@@ -220,7 +223,14 @@ class InlineBlameWidget extends WidgetType {
   }
 }
 
+/** Settings | Version Control | Git | Show inline blame. */
+export const inlineBlameEnabled = (): boolean => getSetting<boolean>("vcs.git.inlineBlame", true);
+
+/** Redraws the inline blame hint after the "Show inline blame" setting changed. */
+const refreshInlineBlameEffect = StateEffect.define<null>();
+
 function inlineBlameDecorations(view: EditorView): DecorationSet {
+  if (!inlineBlameEnabled()) return Decoration.none;
   const st = view.state.field(blameField, false) ?? null;
   if (!st) return Decoration.none;
   const line = view.state.doc.lineAt(view.state.selection.main.head);
@@ -233,16 +243,32 @@ function inlineBlameDecorations(view: EditorView): DecorationSet {
 const inlineBlame = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+    private disposed = false;
+    private dispose = () => {};
     constructor(view: EditorView) {
       this.decorations = inlineBlameDecorations(view);
+      // The setting applies to open editors at once. Never dispatch during an update.
+      createRoot((d) => {
+        this.dispose = d;
+        createEffect(
+          on(inlineBlameEnabled, () => setTimeout(() => this.disposed || view.dispatch({ effects: refreshInlineBlameEffect.of(null) })), { defer: true }),
+        );
+      });
     }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.selectionSet || u.transactions.some((t) => t.effects.some((e) => e.is(setBlameEffect))))
+      if (u.docChanged || u.selectionSet || u.transactions.some((t) => t.effects.some((e) => e.is(setBlameEffect) || e.is(refreshInlineBlameEffect))))
         this.decorations = inlineBlameDecorations(u.view);
+    }
+    destroy() {
+      this.disposed = true;
+      this.dispose();
     }
   },
   { decorations: (v) => v.decorations },
 );
+
+/** The blame data of a view and the inline hint drawn from it. Exported for the tests. */
+export const inlineBlameExtension: Extension = [blameField, inlineBlame];
 
 // ---- controller plugin: fetches HEAD/blame and reacts to app state ---------------------
 
@@ -420,7 +446,10 @@ function controller(path: string, blameCompartment: Compartment, partialCompartm
         if (!disposed && current()) view.dispatch({ effects: setHeadEffect.of(null) });
       }
     };
+    // Blame is only computed when something shows it: the inline hint or the annotations.
+    const wantsBlame = () => !!atRevision || inlineBlameEnabled() || annotated().has(path);
     const fetchBlame = async () => {
+      if (!wantsBlame()) return;
       const current = blames.begin();
       try {
         const blame = atRevision
@@ -460,6 +489,8 @@ function controller(path: string, blameCompartment: Compartment, partialCompartm
           { defer: true },
         ),
       );
+      // Switched on while the file is open: the blame was skipped so far.
+      createEffect(on(wantsBlame, (wanted) => wanted && setTimeout(() => disposed || view.state.field(blameField, false) || void fetchBlame()), { defer: true }));
       createEffect(
         on(fileReload, (r) => {
           if (!r || r.path !== path) return;

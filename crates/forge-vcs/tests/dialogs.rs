@@ -386,6 +386,167 @@ fn pull_with_options_from_a_local_remote() {
         .is_err());
 }
 
+/// A bare remote with `main` (pushed from the clone `me`, whose `main` tracks it) and a second
+/// clone `other` to push more work from.
+fn remote_fixture() -> (TempDir, std::path::PathBuf, std::path::PathBuf) {
+    let tmp = TempDir::new().unwrap();
+    let remote = tmp.path().join("remote.git");
+    let me = tmp.path().join("me");
+    let other = tmp.path().join("other");
+    fs::create_dir_all(&remote).unwrap();
+    sh(&remote, &["init", "-q", "--bare"]);
+    sh(tmp.path(), &["clone", "-q", remote.to_str().unwrap(), "me"]);
+    write(&me, "a.txt", "1\n");
+    commit_all(&me, "Initial commit");
+    sh(&me, &["push", "-q", "-u", "origin", "main"]);
+    sh(
+        tmp.path(),
+        &["clone", "-q", remote.to_str().unwrap(), "other"],
+    );
+    (tmp, me, other)
+}
+
+fn subjects(dir: &Path, rev: &str) -> Vec<String> {
+    sh(dir, &["log", "--format=%s", rev])
+        .lines()
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn pull_a_remote_branch_into_the_current_branch() {
+    let (_tmp, me, other) = remote_fixture();
+    sh(&other, &["checkout", "-q", "-b", "feature/x"]);
+    write(&other, "x.txt", "x\n");
+    commit_all(&other, "Feature work");
+    sh(&other, &["push", "-q", "origin", "feature/x"]);
+    sh(&me, &["fetch", "-q", "origin"]);
+    write(&me, "mine.txt", "mine\n");
+    commit_all(&me, "Local work");
+    let repo = open(&me);
+
+    // Using Merge: a merge commit on main, the working tree has the feature's file.
+    repo.pull_into_current("origin/feature/x", false).unwrap();
+    assert!(me.join("x.txt").exists());
+    assert!(head_subject(&me).starts_with("Merge branch 'feature/x'"));
+    assert_eq!(sh(&me, &["branch", "--show-current"]).trim(), "main");
+
+    // Using Rebase: new remote commits end up below the local ones, without a merge commit.
+    sh(&me, &["reset", "-q", "--hard", "HEAD~1"]);
+    write(&other, "y.txt", "y\n");
+    commit_all(&other, "More feature work");
+    sh(&other, &["push", "-q", "origin", "feature/x"]);
+    // The remote-tracking branch is stale: the pull fetches the branch itself.
+    repo.pull_into_current("origin/feature/x", true).unwrap();
+    assert_eq!(
+        subjects(&me, "HEAD"),
+        [
+            "Local work",
+            "More feature work",
+            "Feature work",
+            "Initial commit"
+        ]
+    );
+
+    // Not a remote branch, or an option instead of a name: refused before git runs.
+    assert!(repo.pull_into_current("feature/x", false).is_err());
+    assert!(repo.pull_into_current("--upload-pack=x", false).is_err());
+}
+
+#[test]
+fn pull_into_the_current_branch_stops_on_conflicts() {
+    let (_tmp, me, other) = remote_fixture();
+    write(&other, "a.txt", "remote\n");
+    commit_all(&other, "Remote edit");
+    sh(&other, &["push", "-q", "origin", "main"]);
+    write(&me, "a.txt", "local\n");
+    commit_all(&me, "Local edit");
+    let repo = open(&me);
+    assert!(repo.pull_into_current("origin/main", false).is_err());
+    assert_eq!(
+        repo.operation_state().unwrap().operation,
+        Some(OngoingOperation::Merge)
+    );
+    repo.operation_action(OperationAction::Abort).unwrap();
+    assert_eq!(head_subject(&me), "Local edit");
+}
+
+#[test]
+fn update_a_branch_that_is_not_checked_out() {
+    let (_tmp, me, other) = remote_fixture();
+    sh(&me, &["checkout", "-q", "-b", "feature"]);
+    write(&me, "wip.txt", "uncommitted\n");
+    write(&other, "b.txt", "b\n");
+    commit_all(&other, "Remote work");
+    sh(&other, &["push", "-q", "origin", "main"]);
+    let repo = open(&me);
+
+    // main is fast-forwarded to the remote; the checked out branch and its files stay.
+    assert_eq!(subjects(&me, "main"), ["Initial commit"]);
+    let old = sh(&me, &["rev-parse", "main"]);
+    let report = repo.update_branch("main").unwrap().output;
+    let new = sh(&me, &["rev-parse", "main"]);
+    assert_eq!(report, format!("{}..{}", &old[..8], &new[..8]));
+    assert_eq!(subjects(&me, "main"), ["Remote work", "Initial commit"]);
+    assert_eq!(subjects(&me, "origin/main"), subjects(&me, "main"));
+    assert_eq!(sh(&me, &["branch", "--show-current"]).trim(), "feature");
+    assert_eq!(read(&me, "wip.txt"), "uncommitted\n");
+    assert!(!me.join("b.txt").exists());
+    assert_eq!(
+        repo.update_branch("main").unwrap().output,
+        "Already up to date."
+    );
+
+    // The current branch, a branch without a tracked branch and unknown names are refused.
+    let err = repo.update_branch("feature").unwrap_err().to_string();
+    assert!(err.contains("is checked out"), "{err}");
+    sh(&me, &["branch", "untracked-branch"]);
+    let err = repo
+        .update_branch("untracked-branch")
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("has no tracked branch"), "{err}");
+    assert!(repo.update_branch("nope").is_err());
+    assert!(repo.update_branch("--force").is_err());
+}
+
+#[test]
+fn update_never_rewrites_a_diverged_branch() {
+    let (_tmp, me, other) = remote_fixture();
+    write(&me, "mine.txt", "mine\n");
+    commit_all(&me, "Unpushed work");
+    sh(&me, &["checkout", "-q", "-b", "feature"]);
+    write(&other, "b.txt", "b\n");
+    commit_all(&other, "Remote work");
+    sh(&other, &["push", "-q", "origin", "main"]);
+    let repo = open(&me);
+
+    let err = repo.update_branch("main").unwrap_err().to_string();
+    assert!(
+        err.contains("has commits that are not in its tracked branch"),
+        "{err}"
+    );
+    assert_eq!(subjects(&me, "main"), ["Unpushed work", "Initial commit"]);
+}
+
+#[test]
+fn update_refuses_a_branch_checked_out_in_another_worktree() {
+    let (tmp, me, other) = remote_fixture();
+    sh(&me, &["checkout", "-q", "-b", "feature"]);
+    let wt = tmp.path().join("wt");
+    sh(
+        &me,
+        &["worktree", "add", "-q", wt.to_str().unwrap(), "main"],
+    );
+    write(&other, "b.txt", "b\n");
+    commit_all(&other, "Remote work");
+    sh(&other, &["push", "-q", "origin", "main"]);
+
+    assert!(open(&me).update_branch("main").is_err());
+    assert_eq!(subjects(&me, "main"), ["Initial commit"]);
+    assert!(!wt.join("b.txt").exists());
+}
+
 #[test]
 fn reset_modes() {
     let tmp = fixture();

@@ -12,6 +12,7 @@ import type { FileEntry } from "@/ipc/workspace";
 import { showToolWindow } from "@/state/layout";
 import { CommitTabs, CommitToolWindow } from "./StashShelfPanels";
 import { GitLogPanel } from "./GitLogPanel";
+import { GitTabs } from "./FileHistoryPanel";
 import { GitOverlays } from "./GitOverlays";
 import { gitEditorExtensions, showChangeMarker } from "./editorGit";
 import { editor } from "@/state/editor";
@@ -67,6 +68,8 @@ registerToolWindow({
   order: 60,
   shortcut: "Alt+9",
   component: GitLogPanel,
+  // Tabs next to the title, like PHPStorm: no separate tab row below the header.
+  headerContent: GitTabs,
 });
 
 registerEditorExtension(({ path }) => gitEditorExtensions(path));

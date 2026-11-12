@@ -1,5 +1,7 @@
 /**
- * Git tool window (Alt+9), Log tab: branches | commit graph | details. Commits are selected
+ * Git tool window (Alt+9), Log tab: branches | commit graph | details. The tabs (Log,
+ * Worktrees, history tabs) are in the tool window header (`GitTabs`), so the window has a
+ * single compact toolbar row. Commits are selected
  * with click, Ctrl+click and Shift+click; the context menu holds the Log actions
  * (`logActions.ts`).
  */
@@ -23,7 +25,7 @@ import { revision, status } from "./store";
 import { layoutGraph, type GraphRow } from "./graph";
 import { fullDate, logDate } from "./format";
 import { checkout, fetchAll, showCommitDiff } from "./actions";
-import { GitTabs, HistoryTabs } from "./FileHistoryPanel";
+import { HistoryTabs } from "./FileHistoryPanel";
 import { activeGitTab, setActiveGitTab } from "./history";
 import { goToRelative, openLogMenu, setLogView } from "./logActions";
 import { showToolWindow } from "@/state/layout";
@@ -32,8 +34,9 @@ import { SignatureIcon, signatureLabel } from "./signature";
 import { t as tr } from "@/i18n";
 
 const PAGE = 200;
-const LANE = 14;
-const ROW = 26;
+// Compact rows like PHPStorm's Log; keep in sync with `.log-row` in git.css.
+const LANE = 12;
+const ROW = 22;
 
 const [filterRev, setFilterRev] = createSignal<string | null>(null);
 const [filterText, setFilterText] = createSignal("");
@@ -72,13 +75,13 @@ function Graph(props: { row: GraphRow; width: number }) {
             x1 === x2
               ? `M${x1} ${y1}L${x2} ${y2}`
               : `M${x1} ${y1}C${x1} ${(y1 + y2) / 2} ${x2} ${(y1 + y2) / 2} ${x2} ${y2}`;
-          return <path d={d} stroke={`var(--graph-${l.color % 7})`} stroke-width="1.6" fill="none" />;
+          return <path d={d} stroke={`var(--graph-${l.color % 7})`} stroke-width="1.5" fill="none" />;
         }}
       </For>
       <circle
         cx={x(props.row.lane)}
         cy={ROW / 2}
-        r="4"
+        r="3.5"
         fill={`var(--graph-${props.row.color % 7})`}
         stroke="var(--bg-panel)"
         stroke-width="1.5"
@@ -328,7 +331,6 @@ export function GitLogPanel() {
 
   return (
     <div class="git-panel">
-      <GitTabs />
       <div class="git-log" classList={{ hidden: activeGitTab() !== "log" }}>
         <BranchTree branches={branches()} />
         <div class="log-main">

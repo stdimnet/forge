@@ -323,7 +323,12 @@ app/ui/            SolidJS UI
 - Git menu dialogs and the shelf (`forge_vcs::ops`, `repo/ops.rs`, `repo/shelve.rs`,
   `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogHost.tsx`,
   `StashShelfPanels.tsx`, `operation.ts`): `git_pull_with({ options: { remote, branches, rebase?,
-  ffOnly?, noFf?, squash?, noCommit?, noVerify? } }) -> { output }`, `git_merge_with({ options: {
+  ffOnly?, noFf?, squash?, noCommit?, noVerify? } }) -> { output }`, `git_pull_into({ branch,
+  rebase }) -> { output }` (branches popup: pull a remote branch such as `origin/main` into the
+  current branch; Rust splits remote and branch with `ops::split_remote_branch`),
+  `git_update_branch({ name }) -> { output }` (branches popup ▸ Update on a local branch that is
+  not checked out: `git fetch <remote> <merge ref>:refs/heads/<name>`, fast-forward only),
+  `git_merge_with({ options: {
   branches, noFf?, ffOnly?, squash?, message?, noCommit?, allowUnrelatedHistories?, noVerify? }
   }) -> string`, `git_rebase_with({ options: { onto, from?, branch?, root?, rebaseMerges?,
   keepEmpty?, updateRefs? } }) -> string` (incompatible options are rejected in Rust; conflicts
