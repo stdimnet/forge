@@ -10,6 +10,7 @@
 
 mod blame;
 mod branch;
+pub mod branch_tree;
 pub mod changelists;
 pub mod clone;
 #[cfg(feature = "git")]
@@ -35,6 +36,7 @@ pub mod worktree;
 
 pub use blame::{parse_blame, Blame, BlameCommit};
 pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches, REF_FORMAT};
+pub use branch_tree::{BranchNode, BranchNodeKind};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use history::{
     parse_block_history, parse_file_history, BlockRevision, FileRevision, HistoryQuery,

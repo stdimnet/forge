@@ -100,7 +100,8 @@ bundled scheme in `forge-colorscheme` (`Bundled`).
 
 `pnpm a11y:audit` runs [axe-core](https://github.com/dequelabs/axe-core) (MPL-2.0, a
 development dependency only, never bundled) in Chromium and exits with 1 on a serious or
-critical violation (`--report` only prints, `--json=file` writes the results). Add a screen to
+critical violation (`--report` only prints, `--json=file` writes the results,
+`--screens=git-branches,git-log` audits only those screens). Add a screen to
 `SCREENS` in `scripts/a11y-audit.mjs` when you add a major dialog or tool window. The keyboard
 flow fails on any mouse event; extend it when a feature adds a keyboard path users depend on.
 

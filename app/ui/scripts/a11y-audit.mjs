@@ -2,7 +2,7 @@
  * Accessibility audit: runs axe-core (https://github.com/dequelabs/axe-core) in Chromium against
  * browser mode on the main screens and a few dialogs, for every theme listed in THEMES.
  *
- * Usage: pnpm dev &  then  pnpm a11y:audit [--themes=dark,high-contrast] [--json=out.json]
+ * Usage: pnpm dev &  then  pnpm a11y:audit [--themes=dark,high-contrast] [--screens=commit,git-log] [--json=out.json]
  * Exit code 1 when a serious or critical violation is found (use --report to only print).
  * FORGE_URL / CHROMIUM_PATH override the defaults like in scripts/screenshots.mjs.
  */
@@ -19,6 +19,8 @@ const executablePath =
 const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1];
 const reportOnly = process.argv.includes("--report");
 const themes = (arg("themes") ?? "dark").split(",");
+/** `--screens=git-log,commit` audits only those screens. */
+const only = arg("screens")?.split(",");
 
 const run = (page, id) => page.evaluate((cmd) => window.__forgeRunCommand(cmd), id);
 
@@ -71,6 +73,18 @@ const SCREENS = {
     await page.waitForTimeout(200);
     return undefined;
   },
+  "git-branches": async (page) => {
+    await run(page, "git.branches");
+    await page.waitForSelector(".branches-popup .branch-folder");
+    await page.keyboard.press("ArrowDown");
+    return ".branches-popup";
+  },
+  "git-log": async (page) => {
+    await run(page, "git.log");
+    await page.waitForSelector(".log-row");
+    await page.click(".log-branches .tree-row[aria-expanded=false]");
+    return ".log-branches";
+  },
   rename: async (page) => {
     await projectView(page);
     await page.click('.project-tree .tree-row[data-path="composer.json"]');
@@ -113,6 +127,7 @@ const browser = await chromium.launch({ executablePath });
 const results = [];
 for (const theme of themes) {
   for (const [name, steps] of Object.entries(SCREENS)) {
+    if (only && !only.includes(name)) continue;
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     // The theme setting (browser mode keeps the user settings in localStorage).

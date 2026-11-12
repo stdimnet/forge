@@ -3,6 +3,8 @@
 
 use serde::Serialize;
 
+use crate::branch_tree::{local_branch_tree, remote_branch_tree, BranchNode};
+
 pub const REF_FORMAT: &str = "--format=%(refname)%1f%(objectname)%1f%(upstream:short)%1f%(upstream:track,nobracket)%1f%(committerdate:unix)%1f%(HEAD)%1f%(worktreepath)%1f%(contents:subject)";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -33,6 +35,19 @@ pub struct Branches {
     pub tags: Vec<BranchInfo>,
     /// Recently checked out local branches, most recent first (excluding the current one).
     pub recent: Vec<String>,
+    /// `local` grouped into folders at each `/` (see [`crate::branch_tree`]).
+    pub local_tree: Vec<BranchNode>,
+    /// `remote` grouped below the remotes, then into folders.
+    pub remote_tree: Vec<BranchNode>,
+}
+
+impl Branches {
+    /// Build `local_tree` and `remote_tree`; `remotes` are the configured remote names.
+    pub fn group(&mut self, remotes: &[String]) {
+        self.local_tree =
+            local_branch_tree(self.local.iter().map(|b| (b.name.as_str(), b.current)));
+        self.remote_tree = remote_branch_tree(self.remote.iter().map(|b| b.name.as_str()), remotes);
+    }
 }
 
 pub fn parse_refs(out: &str) -> Branches {
@@ -72,6 +87,7 @@ pub fn parse_refs(out: &str) -> Branches {
             b.tags.push(info);
         }
     }
+    b.group(&[]);
     b
 }
 
@@ -140,6 +156,12 @@ mod tests {
         assert_eq!(b.remote.len(), 1);
         assert_eq!(b.remote[0].name, "origin/main");
         assert_eq!(b.tags[0].name, "v1.0");
+        // Grouped by prefix: the folder `feature` first, then `main`; `origin` > `main`.
+        assert_eq!(b.local_tree[0].label, "feature");
+        assert_eq!(b.local_tree[0].children[0].path, "feature/x");
+        assert_eq!(b.local_tree[1].path, "main");
+        assert_eq!(b.remote_tree[0].label, "origin");
+        assert_eq!(b.remote_tree[0].children[0].path, "origin/main");
     }
 
     #[test]

@@ -16814,7 +16814,8 @@ repository it reads **Version Control** and the status bar shows no branch.
 
 - At the top: **Update Project…** (`Ctrl+T`), **Commit…** (`Ctrl+K`), **Push…**
   (`Ctrl+Shift+K`), **New Branch…** and **Checkout Tag or Revision…**.
-- **Local** and **Remote** branches with a search field ("Search for branches and actions").
+- **Recent**, **Local** and **Remote** branches with a search field ("Search for branches and
+  actions"). Local and remote branches are [grouped into folders](#branch-folders).
 - A branch's submenu: for the current branch **New Branch from '…'…**, **Push…** and
   **Update**; for other branches **Checkout**, **New Branch from '…'…**, **Compare with
   'current'** (the Git log of the commits of the branch that are not in the current branch,
@@ -16829,6 +16830,40 @@ repository it reads **Version Control** and the status bar shows no branch.
   Worktree** in their submenu) opens that worktree instead of checking them out.
 
 **New Branch…** asks for the name and whether to check it out.
+
+### Branch folders
+
+Branch names are grouped into folders at each `/`, like PHPStorm's **Group By Directory**:
+`feature/…`, `feat/…` and `bugfix/…` each get their own folder instead of one long list.
+
+![Branches grouped into folders](docs/screenshots/git-branches-folders.png)
+
+- Nested prefixes nest: `feat/ui/tabs` is the branch `tabs` in `feat` > `ui`. Branches without
+  a `/` stay at the top level.
+- Remote branches are grouped below their remote first: `origin` > `feat` > `launch-profiles`.
+- On every level the folders come first, then the branches; the current branch leads the
+  branches. Names are sorted without regard to case, numbers by value (`release/1.9` before
+  `release/1.10`).
+- Folders start closed, except the folders of the current branch and the remotes. What you
+  open or close is remembered until you close the window.
+- **Recent** stays a flat list of full names.
+- Mouse: click a folder to open or close it. Keyboard: `Down` / `Up` move through the rows
+  from the search field, `Right` opens a folder (and then goes to its first branch), `Left`
+  closes it (or goes to the folder a branch is in), `Home` / `End` jump to the first and last
+  row, `Enter` opens or closes a folder, checks out a branch or runs an action.
+- The search also finds branches in closed folders: while you type, only the matching branches
+  are shown, in their folders, which are all open. `Enter` checks out the first branch found.
+  The folder names are part of the branch name, so `feat/` finds every branch in `feat`.
+- A branch in a folder has the same submenu as before (Checkout, Update, Pull into, …).
+
+![Search in folders](docs/screenshots/git-branches-folders-search.png)
+
+The gear button next to the search field has **Group By Directory**. Switch it off to get the
+flat lists of full names back. The option is the setting `vcs.git.branches.groupByDirectory`
+(**Group branches by directory** in **Settings | Version Control | Git**, on by default) and
+also applies to the branches tree of the [Log](#log).
+
+![Group By Directory](docs/screenshots/git-branches-settings.png)
 
 ![Branch in another worktree](docs/screenshots/git-branches-worktree.png)
 
@@ -16875,6 +16910,7 @@ Settings | Version Control | Git:
 | Update method: Merge, Rebase or Branch default (`pull.rebase` of the branch) | `vcs.git.updateMethod` | Merge |
 | Fetch remotes automatically, every n minutes | `vcs.git.autoFetch`, `vcs.git.autoFetchInterval` | on, 10 |
 | Show inline blame: the [blame hint](#blame) at the end of the caret line | `vcs.git.inlineBlame` | on |
+| Group branches by directory: [folders](#branch-folders) in the Branches popup and the Git tool window | `vcs.git.branches.groupByDirectory` | on |
 | Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches (`git cherry-pick -x`) | `vcs.git.cherryPickSuffix` | on |
 | Protected branches: names or patterns with `*`, separated by `;`. The Log never rewrites commits pushed to them. | `vcs.git.protectedBranches` | `master;main` |
 
@@ -17127,6 +17163,14 @@ its default height the window shows the toolbar and a handful of commits:
 
 - Filter by text or hash, branch, user, date and paths; **Show all branches**. Click
   **HEAD (Current Branch)** in the branches pane to see only the current branch.
+- The branches pane on the left is a tree: **Local**, **Remote** (one node per remote) and
+  **Tags**, with the branches grouped into [folders](#branch-folders) like in the Branches
+  popup (`origin` > `feat` > `launch-profiles`). Click a branch to filter the log by it,
+  double-click to check it out, click a folder to open or close it. With the keyboard:
+  `Up` / `Down`, `Home` / `End`, `Right` / `Left` to open and close, `Enter` to filter by the
+  branch. Without **Group By Directory** the branches are listed by their full names.
+
+  ![Branch folders in the Log](docs/screenshots/git-log-branch-folders.png)
 - Select a commit to see its changed files; open their diffs from there. `Ctrl+click` and
   `Shift+click` select several commits; `Up`/`Down` move the selection, `Left`/`Right` go to the
   child / parent commit.
@@ -24639,6 +24683,7 @@ Page id `vcs.git`.
 | `vcs.git.autoFetch` | bool | `true` | user |  | Fetch remotes automatically — In the background, for repositories whose branch has an upstream. Failures are ignored. |
 | `vcs.git.autoFetchInterval` | int (1–240) | `10` | user |  | Fetch every (minutes) |
 | `vcs.git.inlineBlame` | bool | `true` | user |  | Show inline blame — At the end of the line with the caret: who last changed it, when, and the commit message. Annotate with Git Blame works either way. |
+| `vcs.git.branches.groupByDirectory` | bool | `true` | user |  | Group branches by directory — In the Branches popup and the Git tool window: branches whose names contain a slash are shown in folders (feat/ui/tabs in feat > ui). Search still finds branches in collapsed folders. |
 | `vcs.git.commit.subjectMaxLength` | int (20–200) | `72` | user | Commit Message Inspections | Limit subject line length |
 | `vcs.git.commit.blankLineAfterSubject` | bool | `true` | user | Commit Message Inspections | Require blank line between subject and body |
 | `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user | Commit Message Inspections | Right margin for body (columns) |
@@ -29420,7 +29465,8 @@ bundled scheme in `forge-colorscheme` (`Bundled`).
 
 `pnpm a11y:audit` runs [axe-core](https://github.com/dequelabs/axe-core) (MPL-2.0, a
 development dependency only, never bundled) in Chromium and exits with 1 on a serious or
-critical violation (`--report` only prints, `--json=file` writes the results). Add a screen to
+critical violation (`--report` only prints, `--json=file` writes the results,
+`--screens=git-branches,git-log` audits only those screens). Add a screen to
 `SCREENS` in `scripts/a11y-audit.mjs` when you add a major dialog or tool window. The keyboard
 flow fails on any mouse event; extend it when a feature adds a keyboard path users depend on.
 
@@ -35808,6 +35854,7 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 | --- | --- |
 | `blame.rs` | Parser for `git blame --porcelain`. |
 | `branch.rs` | Branches and tags from `git for-each-ref`, plus recently checked out branches from the reflog. |
+| `branch_tree.rs` | Branches grouped into folders at each `/` ("Group By Directory"): `local_branch_tree` and `remote_branch_tree` (one node per remote, remote names may contain slashes) build `BranchNode` trees, folders first, then branches with the current one leading, names in natural order. `Branches` carries them as `local_tree` / `remote_tree`; browser mode builds them with `vcs_branch_tree` (`forge-wasm`). Pure. |
 | `changelists.rs` | `Changelists`: the changelist model of the Commit tool window (lists, active list, file → list, moved hunks → list): `sync` with the status, `create`/`edit`/`delete`/`set_active`/`ensure`, `move_files`, `move_hunks`, `normalize_file`, `view`. Pure (also WebAssembly). |
 | `cmd.rs` | Running the `git` executable. No shell is involved: arguments are passed as-is, so paths with spaces or quotes need no escaping on any platform. |
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
@@ -35834,6 +35881,7 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 ```rust
 pub use blame::{parse_blame, Blame, BlameCommit};
 pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
+pub use branch_tree::{BranchNode, BranchNodeKind};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use history::{parse_block_history, parse_file_history, BlockRevision, FileRevision, HistoryQuery};
 pub use log::{…};
