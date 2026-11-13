@@ -557,10 +557,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* The fill is opaque, so a pill reads the same on a plain, hovered and selected row. theme/contrast.ts
+   checks each --ref-* color on this fill. */
 .ref-local,
 .ref-head {
   color: var(--ref-local);
-  background: color-mix(in srgb, var(--ref-local) 12%, transparent);
+  background: color-mix(in srgb, var(--ref-local) 12%, var(--bg-panel));
 }
 .ref-local.current,
 .ref-head {
@@ -568,11 +570,11 @@
 }
 .ref-remote {
   color: var(--ref-remote);
-  background: color-mix(in srgb, var(--ref-remote) 12%, transparent);
+  background: color-mix(in srgb, var(--ref-remote) 12%, var(--bg-panel));
 }
 .ref-tag {
   color: var(--ref-tag);
-  background: color-mix(in srgb, var(--ref-tag) 12%, transparent);
+  background: color-mix(in srgb, var(--ref-tag) 12%, var(--bg-panel));
 }
 .log-details {
   border-left: 1px solid var(--border);

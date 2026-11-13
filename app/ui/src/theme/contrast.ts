@@ -78,6 +78,8 @@ export interface TokenPair {
   fg: string;
   bg: string;
   kind: PairKind;
+  /** Share of `fg` mixed into `bg` first: a pill whose fill is a tint of its text color. */
+  tint?: number;
 }
 
 /** Minimum ratio of a pair kind at a level. */
@@ -89,6 +91,12 @@ export const TEXT_BACKGROUNDS = ["--bg-app", "--bg-toolbar", "--bg-panel", "--bg
 
 /** Text colors used for content that must be readable (not disabled or decorative). */
 export const TEXT_TOKENS = ["--fg", "--fg-strong", "--fg-muted"];
+
+/** Branch and tag names in the Git log: text on a fill tinted with its own color (`.ref-pill`). */
+export const REF_TOKENS = ["--ref-local", "--ref-remote", "--ref-tag"];
+
+/** Share of the ref color in a ref pill's fill; the rest is `--bg-panel` (git.css). */
+export const REF_PILL_TINT = 0.12;
 
 /** Syntax token colors, checked on the editor background. */
 export const SYNTAX_TOKENS = [
@@ -126,6 +134,8 @@ export function themePairs(level: "AA" | "AAA" = "AA"): TokenPair[] {
     pairs.push({ fg, bg: "--bg-panel", kind: "text" });
   // File names keep their VCS color on the selected row.
   for (const fg of ["--vcs-modified", "--vcs-added", "--vcs-untracked", "--vcs-deleted"]) pairs.push({ fg, bg: "--bg-active", kind: "text" });
+  // Ref pills in the Git log: their fill does not change with the row's state.
+  for (const fg of REF_TOKENS) pairs.push({ fg, bg: "--bg-panel", kind: "text", tint: REF_PILL_TINT });
   // UI parts: input borders, the focus ring (accent) and the accent as an icon color.
   if (level === "AAA") {
     pairs.push({ fg: "--border-strong", bg: "--bg-panel", kind: "ui" });
@@ -157,9 +167,10 @@ export function checkTheme(tokens: Map<string, string>, level: "AA" | "AAA", pai
   const out: PairResult[] = [];
   const editor = resolve(tokens, "--bg-editor", [0, 0, 0]) ?? [0, 0, 0];
   for (const p of pairs) {
-    const bg = resolve(tokens, p.bg, editor);
-    const fg = bg && resolve(tokens, p.fg, bg);
-    if (!bg || !fg) continue;
+    const plain = resolve(tokens, p.bg, editor);
+    const fg = plain && resolve(tokens, p.fg, plain);
+    if (!plain || !fg) continue;
+    const bg = p.tint ? composite([...fg, p.tint], plain) : plain;
     const ratio = contrastRatio(fg, bg);
     const min = required(p.kind, level);
     out.push({ ...p, ratio, min, ok: ratio >= min - 0.005 });

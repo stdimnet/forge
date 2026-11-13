@@ -29445,7 +29445,8 @@ title and shortcuts (and the other PHPStorm keymap's shortcut from the keymap sn
 Theme tokens live in `app/ui/src/theme/theme.css`. `src/theme/contrast.test.ts` (part of
 `pnpm test`) computes WCAG contrast ratios for the token pairs in `theme/contrast.ts`
 (`themePairs`): text tokens on every background, syntax colors on the editor, secondary text,
-status and VCS colors, also on the selected row, and the accent button. The normal themes must
+status and VCS colors, also on the selected row, the accent button, and the branch and tag pills
+of the Git log on their tinted fill (a pair with `tint`). The normal themes must
 reach AA (4.5:1 for text), the `high-contrast*` themes AAA (7:1) plus visible borders. Only the
 Solarized palette has documented exceptions. A new token that text is drawn with belongs in
 `themePairs`.
