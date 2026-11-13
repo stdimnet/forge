@@ -30,6 +30,7 @@ only on this crate, never on app internals.
 | --- | --- |
 | `contributions.rs` | Contribution types: everything a plugin can add to the IDE. |
 | `lifecycle` | Re-exports the project lifecycle of `forge_core::lifecycle` (`ProjectLifecycle`, `ProjectLifecycleBus`, `Objection`, …) for packs whose Rust services follow the window's project; the desktop app subscribes them (`app/src-tauri/src/lifecycle.rs`). |
+| `profile.rs` | Launch profiles: which packs a Forge process loads (`phpforge`, `--packs …`, `FORGE_PACKS`). Detection from the command line, the environment and the program name, and which plugins a profile turns off. |
 | `registry.rs` | The plugin registry: which plugins are installed, which are enabled, and lookups over the contributions of the enabled ones. |
 | `settings_model.rs` | The model behind the Settings dialog (Ctrl+Alt+S): the page tree built from registered pages, search over pages, settings and plugins, and highlighting of search hits. The UI sends what it shows and renders the answer; this module decides what matches. |
 
@@ -37,6 +38,7 @@ only on this crate, never on app internals.
 
 ```rust
 pub use contributions::*;
+pub use profile::{LaunchProfile, ProfileView};
 pub use registry::{PluginDescriptor, PluginInfo, PluginRegistry};
 pub struct PluginManifest { … }
 pub trait Plugin: Send + Sync { … }

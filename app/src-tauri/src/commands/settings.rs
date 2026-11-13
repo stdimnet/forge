@@ -6,7 +6,7 @@ use tauri::State;
 
 use forge_core::{ForgeError, Result, SettingsScope};
 use forge_plugin_api::settings_model::{self, SearchRequest, SearchResponse, ValidateRequest};
-use forge_plugin_api::{PluginInfo, SettingSpec};
+use forge_plugin_api::{PluginInfo, ProfileView, SettingSpec};
 
 use crate::state::AppState;
 
@@ -102,6 +102,18 @@ pub fn plugins_list(state: State<'_, AppState>) -> Vec<PluginInfo> {
         .iter()
         .map(|p| forge_plugin_api::l10n::localize_plugin(p, &l10n))
         .collect()
+}
+
+/// The packs this Forge process loads (`phpforge`, `forge --packs …`) and the plugins that
+/// are off because of it.
+#[tauri::command]
+pub fn launch_profile(state: State<'_, AppState>) -> ProfileView {
+    state
+        .plugins
+        .read()
+        .expect("plugins lock poisoned")
+        .profile()
+        .clone()
 }
 
 /// Enable or disable a plugin (cascading over dependencies); returns the changed ids.

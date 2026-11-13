@@ -17,8 +17,8 @@ const tokens = themeTokens(readThemeCss());
  * design and stay below 4.5:1 on its backgrounds); Forge's own themes have no exceptions.
  */
 const PALETTE_EXCEPTIONS: Record<string, RegExp> = {
-  "solarized-dark": /^--(syn-|accent-fg|danger|info|vcs-)/,
-  "solarized-light": /^--(syn-|accent-fg|danger|warning|success|info|vcs-)/,
+  "solarized-dark": /^--(syn-|accent-fg|danger|info|vcs-|ref-)/,
+  "solarized-light": /^--(syn-|accent-fg|danger|warning|success|info|vcs-|ref-)/,
 };
 
 describe("contrast math", () => {

@@ -2,6 +2,7 @@
 //! validation, the permission prompt and the marketplace index, mirroring the
 //! `plugin_inspect` and `marketplace_list` IPC commands in browser mode.
 
+use forge_plugin_api::profile::{self, LaunchProfile, PluginFacts};
 use forge_plugins::manifest::{Permissions, PluginManifest};
 use forge_plugins::marketplace::{self, Index, InstalledVersion};
 use serde::Deserialize;
@@ -73,9 +74,45 @@ pub fn plugins_validate_manifest(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LaunchProfileRequest {
+    /// The packs asked for, as `--packs` takes them (`phpforge,webforge`, `none`, `all`).
+    spec: String,
+    plugins: Vec<PluginFacts>,
+}
+
+/// `{ spec, plugins: [{ id, pack, depends, required }] }` → `ProfileView`, as the
+/// `launch_profile` command answers for a Forge started with those packs.
+#[wasm_bindgen]
+pub fn plugins_launch_profile(request_json: &str) -> String {
+    match serde_json::from_str::<LaunchProfileRequest>(request_json) {
+        Ok(req) => to_json(&profile::resolve(
+            &LaunchProfile::parse(&req.spec),
+            &req.plugins,
+        )),
+        Err(e) => error(e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolves_a_launch_profile() {
+        let req = serde_json::json!({ "spec": "luaforge", "plugins": [
+            { "id": "forge.core", "pack": "core", "depends": [], "required": true },
+            { "id": "forge.lua", "pack": "luaforge", "depends": [] },
+            { "id": "forge.php", "pack": "phpforge", "depends": [] },
+        ]});
+        let out: serde_json::Value =
+            serde_json::from_str(&plugins_launch_profile(&req.to_string())).unwrap();
+        assert_eq!(out["all"], false);
+        assert_eq!(out["packs"], serde_json::json!(["luaforge"]));
+        assert_eq!(out["hidden"], serde_json::json!(["forge.php"]));
+        assert!(plugins_launch_profile("{}").contains("error"));
+    }
 
     #[test]
     fn bridges_json() {

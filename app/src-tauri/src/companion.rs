@@ -421,7 +421,11 @@ pub fn startup_launch_args() -> Vec<String> {
         .unwrap_or_else(|e| e.into_inner())
         .take()
         .unwrap_or_default();
-    std::env::args().skip(1).chain(early).collect()
+    forge_plugin_api::profile::strip_args(std::env::args())
+        .into_iter()
+        .skip(1)
+        .chain(early)
+        .collect()
 }
 
 /// macOS open-file event (`RunEvent::Opened`: Finder "Open With", files and folders dropped

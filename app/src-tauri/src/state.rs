@@ -31,6 +31,34 @@ pub struct AppState {
     pub plugin_store: Option<forge_plugins::PluginStore>,
 }
 
+/// The value of `plugins.disabled` for the registry's state. Plugins the launch profile
+/// turned off are not the user's choice: they keep what `saved` (the stored list) says, so
+/// `phpforge` does not disable the other packs for `forge`.
+fn disabled_to_save(registry: &PluginRegistry, saved: &[String]) -> Vec<String> {
+    registry
+        .list()
+        .iter()
+        .filter(|p| {
+            if registry.is_hidden(&p.manifest.id) {
+                saved.contains(&p.manifest.id)
+            } else {
+                !p.enabled
+            }
+        })
+        .map(|p| p.manifest.id.clone())
+        .collect()
+}
+
+/// The `plugins.disabled` list the user stored. Only the user's own layer counts: a
+/// project's `.forge/settings.toml` must not end up in the user settings.
+fn user_disabled_plugins(settings: &Settings) -> Vec<String> {
+    settings
+        .layer_values(SettingsScope::User)
+        .get(DISABLED_PLUGINS_KEY)
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_default()
+}
+
 /// The IDE language setting (`en`, `de`).
 pub const LANGUAGE_KEY: &str = "ide.language";
 
@@ -97,6 +125,12 @@ impl AppState {
                 tracing::warn!("cannot disable plugin {id}: {e}");
             }
         }
+        // `phpforge`, `--packs …`: the other packs are off for this process, whatever the
+        // settings say.
+        let profile = registry.apply_profile(&plugins::launch_profile());
+        if !profile.unknown.is_empty() {
+            tracing::warn!("unknown packs ignored: {}", profile.unknown.join(", "));
+        }
         drop(registry);
         // The IDE language (Settings | Appearance & Behavior | System Settings | Language)
         // applies to Rust-originated text from the start.
@@ -131,15 +165,9 @@ impl AppState {
 
     /// Persist the ids of currently disabled plugins in the user settings.
     pub fn save_disabled_plugins(&self) -> forge_core::Result<()> {
-        let disabled: Vec<String> = self
-            .plugins
-            .read()
-            .expect("plugins lock poisoned")
-            .list()
-            .iter()
-            .filter(|p| !p.enabled)
-            .map(|p| p.manifest.id.clone())
-            .collect();
+        let saved = user_disabled_plugins(&self.read_settings());
+        let disabled =
+            disabled_to_save(&self.plugins.read().expect("plugins lock poisoned"), &saved);
         if let Some(store) = &self.plugin_store {
             let registry = self.plugins.read().expect("plugins lock poisoned");
             for p in registry
@@ -381,6 +409,56 @@ mod tests {
                 label: "Robert (workstation)".into(),
             }),
         }
+    }
+
+    #[test]
+    fn a_launch_profile_does_not_change_the_saved_disabled_plugins() {
+        let mut registry = plugins::builtin_registry().unwrap();
+        // The user turned Lua and Git off; then Forge starts as `phpforge`.
+        let saved = vec!["forge.lua".to_string(), "forge.git".to_string()];
+        for id in &saved {
+            registry.set_enabled(id, false).unwrap();
+        }
+        let before = disabled_to_save(&registry, &[]);
+        registry.apply_profile(&forge_plugin_api::LaunchProfile::parse("phpforge"));
+        assert!(registry.is_hidden("forge.lua") && registry.is_hidden("forge.go"));
+        assert!(registry.is_enabled("forge.laravel") && registry.is_enabled("forge.web"));
+        assert!(!registry.is_enabled("forge.go"));
+        assert_eq!(disabled_to_save(&registry, &saved), before);
+
+        // Disabling a plugin of the profile is saved; the hidden packs stay as they were.
+        registry.set_enabled("forge.xdebug", false).unwrap();
+        let now = disabled_to_save(&registry, &saved);
+        assert!(now.contains(&"forge.xdebug".to_string()));
+        assert!(now.contains(&"forge.lua".to_string()));
+        assert!(!now.contains(&"forge.go".to_string()));
+    }
+
+    #[test]
+    fn a_project_does_not_decide_the_saved_disabled_plugins() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(project.join(".forge")).unwrap();
+        std::fs::write(
+            Settings::project_path(&project),
+            "[plugins]\ndisabled = [\"forge.go\"]\n",
+        )
+        .unwrap();
+        let mut settings = Settings::new();
+        settings.load_user(dir.path().join("user.toml")).unwrap();
+        settings
+            .set(
+                DISABLED_PLUGINS_KEY,
+                serde_json::json!(["forge.lua"]),
+                SettingsScope::User,
+            )
+            .unwrap();
+        settings.load_project(&project).unwrap();
+        assert_eq!(
+            settings.get_as::<Vec<String>>(DISABLED_PLUGINS_KEY),
+            Some(vec!["forge.go".to_string()])
+        );
+        assert_eq!(user_disabled_plugins(&settings), ["forge.lua"]);
     }
 
     #[test]

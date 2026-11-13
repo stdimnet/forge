@@ -1801,6 +1801,12 @@ export function pio_command(request_json: string): string;
 export function pio_project(request_json: string): string;
 
 /**
+ * `{ spec, plugins: [{ id, pack, depends, required }] }` → `ProfileView`, as the
+ * `launch_profile` command answers for a Forge started with those packs.
+ */
+export function plugins_launch_profile(request_json: string): string;
+
+/**
  * `{ manifest, theme, files }` → `LoadedIconTheme`, as `icon_theme_load` reads it from an
  * installed plugin.
  */
@@ -3152,6 +3158,7 @@ export interface InitOutput {
     readonly php_source_roots: (a: number, b: number, c: number) => void;
     readonly pio_command: (a: number, b: number, c: number) => void;
     readonly pio_project: (a: number, b: number, c: number) => void;
+    readonly plugins_launch_profile: (a: number, b: number, c: number) => void;
     readonly plugins_load_icon_theme: (a: number, b: number, c: number) => void;
     readonly plugins_marketplace: (a: number, b: number, c: number) => void;
     readonly plugins_permission_lines: (a: number, b: number, c: number) => void;

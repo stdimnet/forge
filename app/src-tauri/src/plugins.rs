@@ -3,7 +3,7 @@
 //! copy) in sync with them.
 
 use forge_core::Result;
-use forge_plugin_api::{PluginDescriptor, PluginRegistry};
+use forge_plugin_api::{profile, LaunchProfile, PluginDescriptor, PluginRegistry};
 
 const MANIFESTS: &[(&str, &str)] = &[
     ("core.toml", include_str!("../plugins/core.toml")),
@@ -91,6 +91,26 @@ const MANIFESTS: &[(&str, &str)] = &[
 
 /// Setting holding the ids of plugins the user disabled.
 pub const DISABLED_PLUGINS_KEY: &str = "plugins.disabled";
+
+/// Look up the launch profile of this process (`forge_plugin_api::profile`: the `--packs`
+/// flag, `FORGE_PACKS`, the program name) and export it as `FORGE_PACKS`, so
+/// [`launch_profile`], the project windows Forge starts and a restart all see the same
+/// one. Returns `args` without the flag. Call it first in `main`, before any thread runs.
+pub fn init_launch_profile(args: Vec<String>) -> Vec<String> {
+    let env = std::env::var(profile::PACKS_ENV).ok();
+    // An AppImage runs the binary inside its mount; `ARGV0` is the name it was started as.
+    let argv0 = std::env::var_os("APPIMAGE").and_then(|_| std::env::var("ARGV0").ok());
+    let profile = LaunchProfile::detect(&args, env.as_deref(), argv0.as_deref());
+    std::env::set_var(profile::PACKS_ENV, profile.spec());
+    profile::strip_args(args)
+}
+
+/// The launch profile [`init_launch_profile`] found (every pack without it).
+pub fn launch_profile() -> LaunchProfile {
+    std::env::var(profile::PACKS_ENV)
+        .map(|spec| LaunchProfile::parse(&spec))
+        .unwrap_or_default()
+}
 
 pub fn builtin_descriptors() -> Result<Vec<PluginDescriptor>> {
     let mut out = Vec::new();

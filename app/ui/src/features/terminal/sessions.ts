@@ -34,6 +34,13 @@ interface Session {
   host: HTMLElement;
   opened: boolean;
   exited: boolean;
+  /**
+   * What the terminal had to send before its shell was open: replies to the shell's first
+   * questions (fish asks for the Primary Device Attributes when it starts and waits ten
+   * seconds for the answer) and keys typed meanwhile. Sent once the shell is open.
+   * Undefined while nothing may wait (replaying saved output, attaching to a running shell).
+   */
+  early?: string[];
   webgl?: WebglAddon;
   /** Renderer in use; "dom" after a failed or lost WebGL context. */
   renderer: Exclude<TerminalRenderer, "auto">;
@@ -440,15 +447,22 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string, comma
     /* host not laid out yet; the resize observer fits later */
   }
   term.onData((data) => {
-    if (session.opened && !session.exited && !session.readOnly) void terminalApi.write(id, data).catch(() => undefined);
+    if (session.exited || session.readOnly) return;
+    if (session.opened) void terminalApi.write(id, data).catch(() => undefined);
+    // The shell's output can arrive before `terminal_open` has answered: keep the reply.
+    else session.early?.push(data);
   });
   const history = restoredHistory.get(id);
   if (history !== undefined) {
     // What the tab showed when its project closed (setting `terminal.restoreScrollback`).
     restoredHistory.delete(id);
     term.write(history);
-    term.write(`\r\n\x1b[2m${tr("tools.terminal.historyRestored")}\x1b[0m\r\n`);
-  }
+    // The saved output may hold questions of the old shell; their replies are not for the
+    // new one, so replies wait for the shell only once the saved output is through.
+    term.write(`\r\n\x1b[2m${tr("tools.terminal.historyRestored")}\x1b[0m\r\n`, () => {
+      if (!source && !session.opened) session.early = [];
+    });
+  } else if (!source) session.early = [];
   if (source) void attachExisting(id, session, source);
   else void start(id, session, cwd, command, ssh);
 }
@@ -557,6 +571,9 @@ function openedWhileAlive(id: string, s: Session): boolean {
     return false;
   }
   s.opened = true;
+  const early = s.early?.join("");
+  s.early = undefined;
+  if (early && !s.exited && !s.readOnly) void terminalApi.write(id, early).catch(() => undefined);
   return true;
 }
 

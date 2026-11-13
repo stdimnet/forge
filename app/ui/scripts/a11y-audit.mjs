@@ -83,7 +83,7 @@ const SCREENS = {
     await run(page, "git.log");
     await page.waitForSelector(".log-row");
     await page.click(".log-branches .tree-row[aria-expanded=false]");
-    return ".log-branches";
+    return ".git-panel";
   },
   rename: async (page) => {
     await projectView(page);

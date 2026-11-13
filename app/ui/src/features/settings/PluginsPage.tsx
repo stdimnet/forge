@@ -3,7 +3,9 @@
  * grouped by pack, with enable toggles, a search field and a details pane; third-party
  * plugins ("Downloaded") also show their permissions and can be uninstalled. The gear menu
  * has Install Plugin from Disk…, Check for Updates and Marketplace Settings (index URL and
- * the access token of a private marketplace, kept in the OS keychain).
+ * the access token of a private marketplace, kept in the OS keychain). When Forge was started
+ * with some packs only (`phpforge`, `--packs …`), a note says so and the plugins of the
+ * other packs cannot be switched.
  */
 import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js";
 import { Puzzle, Search, Settings as Gear } from "lucide-solid";
@@ -16,7 +18,7 @@ import { settingsState } from "@/state/settings";
 import { pluginEnabled, pluginDraft, setPluginDraftEnabled } from "./dialogState";
 import { createSettingsSearch, segmentsOf, type SearchResult } from "./search";
 import { showContextMenu } from "@/features/contextMenu/state";
-import { t, tOr, t as tr } from "@/i18n";
+import { locale, t, tOr, t as tr } from "@/i18n";
 
 export const PACKS: Record<string, { label: string; order: number }> = {
   thirdParty: { label: "Downloaded", order: -1 },
@@ -169,6 +171,15 @@ export function PluginsPage() {
   });
   const selected = () =>
     settingsState.plugins.find((p) => p.id === selectedId()) ?? groups()[0]?.plugins[0];
+  // Off because of the packs Forge was started with: not the user's to switch here.
+  const hidden = (id: string) => settingsState.launchProfile.hidden.includes(id);
+  const profileNote = () => {
+    const profile = settingsState.launchProfile;
+    if (profile.all) return "";
+    if (!profile.packs.length) return t("plugins.profile.none");
+    const packs = new Intl.ListFormat(locale(), { type: "conjunction" }).format(profile.packs.map(packLabel));
+    return t("plugins.profile.packs", { packs });
+  };
   const pending = () => Object.keys(pluginDraft).length;
   const depNames = (p: PluginInfo) =>
     p.depends.map((d) => settingsState.plugins.find((q) => q.id === d)?.name ?? d).join(", ");
@@ -215,6 +226,11 @@ export function PluginsPage() {
       <Show when={tab() === "marketplace"}>
         <MarketplaceTab reload={reload} onSettings={() => setEditUrl(true)} />
       </Show>
+      <Show when={tab() === "installed" && profileNote()}>
+        <div class="plugins-note plugins-profile-note" role="note" data-testid="plugins-profile-note">
+          {profileNote()}
+        </div>
+      </Show>
       <div class="plugins-body" style={{ display: tab() === "installed" ? undefined : "none" }}>
         <div class="plugins-list-pane">
           <div class="set-search plugins-search">
@@ -253,9 +269,17 @@ export function PluginsPage() {
                         </div>
                         <input
                           type="checkbox"
-                          title={p.required ? t("plugins.requiredShort") : pluginEnabled(p.id) ? t("plugins.disable") : t("plugins.enable")}
+                          title={
+                            p.required
+                              ? t("plugins.requiredShort")
+                              : hidden(p.id)
+                                ? t("plugins.profile.hidden")
+                                : pluginEnabled(p.id)
+                                  ? t("plugins.disable")
+                                  : t("plugins.enable")
+                          }
                           checked={pluginEnabled(p.id)}
-                          disabled={p.required}
+                          disabled={p.required || hidden(p.id)}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => setPluginDraftEnabled(p.id, e.currentTarget.checked)}
                         />
@@ -285,8 +309,8 @@ export function PluginsPage() {
               </div>
               <div class="plugin-details-actions">
                 <Show
-                  when={!p().required}
-                  fallback={<span class="muted">{t("plugins.required")}</span>}
+                  when={!p().required && !hidden(p().id)}
+                  fallback={<span class="muted">{p().required ? t("plugins.required") : t("plugins.profile.hidden")}</span>}
                 >
                   <button
                     class="btn-secondary"
