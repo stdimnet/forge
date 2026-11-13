@@ -1,0 +1,77 @@
+---
+title: forge-filetypes
+description: "File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly)."
+order: 80
+tags: [crate, rust]
+---
+
+# forge-filetypes
+
+`crates/forge-filetypes` — File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly).
+
+## Purpose
+
+File type recognition (PHPStorm's Settings | Editor | File Types): which language a file
+is, what the status bar calls it, its indentation and, for template languages, the data
+language between the template tags.
+
+The bundled types (`builtin_file_types`) are extended or replaced by the file types of
+plugin manifests (`[[plugin.contributions.fileTypes]]`). Detection prefers, in order:
+a manual override (`overrides`, the `fileTypes.overrides` setting), file names and path
+patterns, the longest matching extension (so `x.blade.php` beats `php`), the interpreter of
+a `#!` line (`shebang_interpreter`: `/usr/bin/env` with `-S`, `-i`, `-u NAME`, assignments,
+absolute paths, `.exe`) and a Vim/Emacs modeline on the first line. Later registrations win
+ties; a plugin type without `interpreters` keeps those of the bundled type with its id. An
+override to a type of an inactive plugin uses that type for the overridden file only.
+
+The crate is pure so the desktop app (IPC) and the browser-mode UI (WebAssembly) share it.
+The UI only maps a file type id to its CodeMirror syntax mode.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `builtin.rs` | File types every Forge installation knows (PHPStorm's bundled file types). Plugins add more, or replace one of these by contributing a file type with the same id, through `[[plugin.contributions.fileTypes]]` in their manifests. |
+| `data.rs` | Template Data Languages (as in PHPStorm): the language of the content *between* template tags. |
+| `glob.rs` | The two pattern flavours of file type settings. |
+| `modeline.rs` | Vim (`vim: set ft=php:`) and Emacs (`-*- mode: python -*-`) modelines on the first line. |
+| `overrides.rs` | Override File Type: `fileTypes.overrides` entries (`{ path, fileType }`), `edit_overrides` (set, unset, follow renames/moves, drop deleted files), `association_pattern`, `FileTypeRegistry::override_choices` (the popup's list). |
+| `user.rs` | Settings \| Editor \| File Types: patterns added to or removed from a type (`fileTypes.associations`; a pattern added to one type leaves the others), custom file types with their `CustomSyntax` (`fileTypes.custom`), `FileTypeRegistry::customized` and `rows` (the page's list), `DEFAULT_IGNORED_FILES`. |
+
+## Main public items
+
+```rust
+pub use builtin::builtin_file_types;
+pub use data::{data_language_for, DataLanguage, DATA_LANGUAGES};
+pub use glob::{matches_glob_list, wildcard_match};
+pub use overrides::{edit_overrides, override_for, parse_overrides, association_pattern, OverrideEdit, OverrideChoices, PLAIN_TEXT_ID, …};
+pub fn shebang_interpreter(line: &str) -> Option<String>;
+pub struct FileTypeSpec { … }
+pub struct FileTypeRegistry { … }
+pub struct DetectRequest { … }
+pub struct FileRef { … }
+pub struct FileTypeInfo { … }
+```
+
+## Used by
+
+- IPC: `filetypes_detect`, `filetypes_list`, `filetypes_override_choices`,
+  `filetypes_edit_overrides`; `fs_list_dir` hides `fileTypes.ignoredFiles`
+- UI: `app/ui/src/editor/fileTypes.ts` (re-detects open files when their first line changes),
+  `app/ui/src/features/fileTypes` (the settings page, `override.tsx`: Override File Type),
+  `app/ui/src/editor/customFileType.ts` (highlighting of custom types)
+- Browser mode: built into `forge-wasm`
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`
+
+## Tests
+
+8 source files; unit tests for names, extensions, shebangs with every `env` form, modelines,
+override priority and renames.
+
+```sh
+cargo test -p forge-filetypes
+```

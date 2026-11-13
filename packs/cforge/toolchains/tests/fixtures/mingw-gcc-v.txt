@@ -1,0 +1,8 @@
+Using built-in specs.
+COLLECT_GCC=C:\msys64\mingw64\bin\gcc.exe
+COLLECT_LTO_WRAPPER=C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper.exe
+Target: x86_64-w64-mingw32
+Configured with: ../gcc-14.2.0/configure --prefix=/mingw64 --with-local-prefix=/mingw64/local --build=x86_64-w64-mingw32 --host=x86_64-w64-mingw32 --target=x86_64-w64-mingw32 --enable-languages=c,lto,c++,fortran,ada,objc,obj-c++,jit --enable-threads=posix
+Thread model: posix
+Supported LTO compression algorithms: zlib zstd
+gcc version 14.2.0 (Rev2, Built by MSYS2 project)

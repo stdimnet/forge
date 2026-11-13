@@ -1,0 +1,742 @@
+/* ---------- In-place rename (Shift+F6) ---------- */
+.cm-rename-primary {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  border-radius: 2px;
+  background: var(--accent-soft);
+}
+.cm-rename-occurrence {
+  border-radius: 2px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+.cm-rename-hint {
+  display: grid;
+  gap: 4px;
+  padding: 5px 10px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.cm-rename-hint-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  cursor: default;
+}
+.cm-rename-hint-option input {
+  margin: 0;
+}
+
+/* ---------- Light bulb ---------- */
+.cm-intention-bulb {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--warning);
+  cursor: pointer;
+  animation: bulb-in 120ms ease-out;
+}
+.cm-intention-bulb.fix {
+  color: var(--danger);
+}
+.cm-intention-bulb:hover {
+  background: var(--bg-hover);
+}
+@keyframes bulb-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Intention popup (Alt+Enter) ---------- */
+.intention-popup {
+  position: fixed;
+  z-index: var(--z-popup);
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  max-width: min(560px, calc(100vw - 32px));
+  max-height: 420px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  outline: none;
+  font-size: var(--fs-ui);
+}
+.intention-search {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.intention-query {
+  color: var(--fg-strong);
+}
+.intention-list {
+  overflow: auto;
+  padding: 4px;
+}
+.intention-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 24px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  white-space: nowrap;
+  cursor: default;
+}
+.intention-row.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.intention-row.disabled {
+  color: var(--fg-faint);
+}
+.intention-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+.intention-icon.fix {
+  color: var(--danger);
+}
+.intention-icon.intention {
+  color: var(--warning);
+}
+.intention-icon.refactor,
+.intention-icon.source {
+  color: var(--info);
+}
+.intention-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.intention-title mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+.intention-more {
+  display: inline-flex;
+  margin-left: 12px;
+  color: var(--fg-muted);
+}
+.intention-submenu {
+  margin: 2px 0 2px 24px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+.intention-empty {
+  padding: 6px 10px;
+  color: var(--fg-muted);
+}
+
+/* ---------- Rename dialog and Refactoring Preview ---------- */
+/* Above the editor's tooltips (the in-place rename hint). */
+.refactoring-backdrop {
+  z-index: var(--z-modal);
+}
+.rename-dialog {
+  width: min(480px, calc(100vw - 32px));
+}
+.rename-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+}
+.dialog-buttons-gap {
+  flex: 1;
+}
+.refactoring-preview {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 64px));
+  outline: none;
+}
+.refactoring-preview .dialog-body {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.preview-conflicts {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--diff-deleted-bg);
+}
+.preview-conflict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-strong);
+}
+.preview-conflict svg {
+  flex-shrink: 0;
+  color: var(--danger);
+}
+.preview-conflict-link {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.preview-summary {
+  color: var(--fg-muted);
+}
+.preview-files {
+  min-height: 120px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.preview-file + .preview-file {
+  margin-top: 4px;
+}
+.preview-file-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  color: var(--fg);
+}
+.preview-file-name {
+  color: var(--fg-strong);
+}
+.preview-file-dir,
+.preview-file-count {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.preview-file-count {
+  margin-left: auto;
+}
+.preview-file-op {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vcs-modified);
+  font-size: var(--fs-small);
+}
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 22px;
+  padding: 0 6px 0 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: default;
+}
+.preview-row:hover {
+  background: var(--bg-hover);
+}
+.preview-line {
+  min-width: 3ch;
+  color: var(--fg-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+
+/* ---------- Extract / Introduce and Inline ---------- */
+/* The expression a chooser row stands for. */
+.cm-refactor-highlight {
+  border-radius: 2px;
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent);
+}
+.refactor-chooser {
+  min-width: 220px;
+}
+.refactor-chooser-title {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.refactor-chooser-code.code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.refactor-chooser-detail {
+  margin-left: 24px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+/* In-place Introduce Variable: the name suggestions under the name. */
+.cm-introduce-names {
+  display: grid;
+  min-width: 160px;
+  max-height: 160px;
+  overflow: auto;
+  margin: -1px -6px 0;
+}
+.cm-introduce-name {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  cursor: default;
+}
+.cm-introduce-name:hover {
+  background: var(--bg-hover);
+}
+.cm-introduce-name.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.introduce-dialog {
+  width: min(500px, calc(100vw - 32px));
+}
+.extract-method-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+.inline-dialog {
+  width: min(480px, calc(100vw - 32px));
+  outline: none;
+}
+.introduce-dialog .form-row,
+.extract-method-dialog .form-row {
+  grid-template-columns: 64px 1fr;
+}
+.refactor-expression {
+  overflow: hidden;
+  color: var(--fg-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.refactor-expression code,
+.refactor-note code {
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.refactor-name {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.refactor-name input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+}
+.refactor-name-prefix {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+.refactor-group {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.refactor-group legend {
+  padding: 0 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.refactor-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+.refactor-radios.vertical {
+  flex-direction: column;
+}
+.refactor-group input,
+.refactor-radios input,
+.introduce-dialog input[type="checkbox"],
+.extract-method-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.refactor-note {
+  color: var(--fg-muted);
+}
+.extract-method-options {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.extract-params {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+.extract-params-list {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.extract-param {
+  display: grid;
+  grid-template-columns: minmax(48px, auto) auto 1fr;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+}
+.extract-param.selected {
+  background: var(--bg-selection);
+}
+.extract-param input {
+  height: 22px;
+  border-color: transparent;
+  background: transparent;
+  font-family: var(--font-mono);
+}
+.extract-param input:focus {
+  border-color: var(--accent);
+  background: var(--bg-input);
+}
+.extract-param-type {
+  color: var(--syn-type);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.extract-params-buttons {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+.refactor-signature-label {
+  margin-bottom: -6px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.refactor-signature {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre;
+}
+
+/* ---------- Move, Copy, Safe Delete, Change Signature, Make Static ---------- */
+.move-class-dialog {
+  width: min(520px, calc(100vw - 32px));
+  outline: none;
+}
+.move-dialog .dialog-body > .form-label:not(.check) {
+  margin-bottom: -6px;
+}
+.move-input {
+  min-width: 0;
+  font-family: var(--font-mono);
+}
+.move-dialog input[type="checkbox"],
+.move-dialog input[type="radio"] {
+  accent-color: var(--accent);
+}
+.move-dialog code {
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.move-members-dialog {
+  width: min(600px, calc(100vw - 32px));
+}
+.move-members-list {
+  display: grid;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.move-member {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  color: var(--fg);
+  cursor: default;
+}
+.move-member:hover {
+  background: var(--bg-hover);
+}
+.move-member-kind {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 600;
+}
+.move-member-kind.property {
+  color: var(--syn-variable);
+}
+.move-member-kind.constant {
+  color: var(--syn-number);
+}
+.move-member-signature {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.safe-delete-dialog {
+  width: min(460px, calc(100vw - 32px));
+  outline: none;
+}
+.usages-detected {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 12px;
+}
+.usages-detected-icon {
+  color: var(--warning);
+}
+.usages-detected-text {
+  display: grid;
+  gap: 4px;
+  color: var(--fg);
+}
+.change-signature-dialog {
+  width: min(720px, calc(100vw - 32px));
+}
+.change-signature-head {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 12px;
+}
+.change-signature-head .form-label {
+  display: grid;
+  gap: 4px;
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.signature-params {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+.signature-table {
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.signature-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr 1fr;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+}
+.signature-row.head {
+  position: sticky;
+  top: 0;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.signature-row.selected {
+  background: var(--bg-selection);
+}
+.signature-row.added .signature-name input {
+  color: var(--vcs-added);
+}
+.signature-row input {
+  min-width: 0;
+  height: 22px;
+  border-color: transparent;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.signature-row input:focus {
+  border-color: var(--accent);
+  background: var(--bg-input);
+}
+.signature-row input:disabled {
+  opacity: 0.5;
+}
+.signature-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.signature-name input {
+  flex: 1;
+}
+.signature-empty {
+  padding: 6px 8px;
+}
+.refactor-note.warning {
+  color: var(--warning);
+}
+.make-static-param {
+  margin-left: 22px;
+}
+/* Extract Interface / Superclass, Pull Members Up / Push Members Down. */
+.hierarchy-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+.hierarchy-dialog .dialog-body > .form-label:not(.check) {
+  margin-bottom: -6px;
+}
+.hierarchy-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.hierarchy-dialog code {
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.hierarchy-members {
+  display: grid;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.hierarchy-member {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  color: var(--fg);
+}
+.hierarchy-members.with-abstract .hierarchy-member {
+  grid-template-columns: auto minmax(0, 1fr) 104px;
+}
+.hierarchy-member.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.hierarchy-member:not(.head):hover {
+  background: var(--bg-hover);
+}
+.hierarchy-member.dependency,
+.hierarchy-legend-swatch {
+  background: var(--accent-soft);
+}
+.hierarchy-member-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.hierarchy-abstract,
+.hierarchy-abstract-head {
+  justify-self: center;
+}
+.hierarchy-empty {
+  padding: 6px 8px;
+}
+.hierarchy-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+}
+.hierarchy-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+/* Refactor This: numbered rows, a speed search field. */
+.refactor-this .intention-list {
+  max-height: min(420px, 60vh);
+  overflow: auto;
+}
+.refactor-this-number {
+  flex-shrink: 0;
+  width: 14px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+.refactor-this-search {
+  padding: 3px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.refactor-this-search mark {
+  background: none;
+  color: var(--accent);
+}
+.refactor-this-separator {
+  height: 1px;
+  margin: 3px 0;
+  background: var(--border);
+}
+.refactor-this-empty {
+  padding: 4px 10px;
+  color: var(--fg-muted);
+}
+/* Extract Component. */
+.extract-component-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.extract-component-prop {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}

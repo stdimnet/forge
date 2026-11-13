@@ -1,0 +1,40 @@
+[package]
+name = "forge-scratches"
+description = "Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["client"]
+# Sends `.http` requests with reqwest; off in the WebAssembly build, which only parses and renders.
+client = ["dep:reqwest", "dep:tokio", "dep:tokio-tungstenite", "dep:futures-util", "dep:h2", "dep:http", "dep:bytes", "dep:prost-reflect", "dep:protox", "dep:tokio-rustls", "dep:rustls", "dep:rustls-native-certs"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+forge-filetypes.workspace = true
+forge-fuzzy.workspace = true
+base64 = "0.22"
+sha2 = "0.10"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2"], optional = true }
+tokio = { workspace = true, optional = true }
+# WebSocket requests (MIT / Apache-2.0).
+tokio-tungstenite = { version = "0.30", optional = true, default-features = false, features = ["connect", "rustls-tls-native-roots"] }
+futures-util = { version = "0.3", optional = true, default-features = false, features = ["sink", "std"] }
+# gRPC requests: HTTP/2 transport (MIT), dynamic protobuf messages and `.proto` parsing
+# (prost-reflect and protox: Apache-2.0 / MIT).
+h2 = { version = "0.4", optional = true }
+http = { version = "1", optional = true }
+bytes = { version = "1", optional = true }
+prost-reflect = { version = "0.16", optional = true, features = ["serde"] }
+protox = { version = "0.10", optional = true }
+tokio-rustls = { version = "0.26", optional = true, default-features = false, features = ["ring", "tls12"] }
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std", "tls12"] }
+rustls-native-certs = { version = "0.8", optional = true }
+
+[dev-dependencies]
+forge-ports.workspace = true
+tempfile.workspace = true
+tokio.workspace = true

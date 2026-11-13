@@ -1,0 +1,775 @@
+/* PHPForge UI. Colours come exclusively from the theme tokens in src/theme/theme.css. */
+
+/* ---------- Symbol badges (Structure, chooser) ---------- */
+.php-symbol-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 16px;
+  margin-right: 2px;
+}
+.php-symbol-icon.with-visibility {
+  width: 28px;
+}
+.php-badge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font: 700 9.5px/1 var(--font-mono);
+  color: var(--bg-editor);
+  background: var(--info);
+}
+.php-badge.abstract {
+  background: transparent;
+  color: var(--info);
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.php-badge-class { background: var(--info); }
+.php-badge-interface { background: var(--success); }
+.php-badge-trait { background: var(--syn-variable); }
+.php-badge-enum { background: var(--syn-number); }
+.php-badge-enumCase { background: var(--syn-number); }
+.php-badge-method { background: var(--danger); }
+.php-badge-property { background: var(--warning); }
+.php-badge-constant { background: var(--syn-type); }
+.php-badge-function { background: var(--syn-function); }
+.php-badge-namespace { background: var(--fg-faint); }
+.php-badge-module { background: var(--syn-keyword); }
+.php-badge-alias { background: var(--syn-type); }
+.php-badge-variable { background: var(--syn-variable); }
+.php-symbol-glyph { width: 15px; justify-content: center; }
+.php-glyph-tag { color: var(--syn-tag); }
+.php-glyph-rule { color: var(--syn-type); }
+.php-glyph-region { color: var(--fg-muted); }
+.php-badge.abstract.php-badge-method { color: var(--danger); }
+.php-badge.abstract.php-badge-interface { color: var(--success); }
+.php-badge-static {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  box-shadow: 0 0 0 1.5px var(--bg-panel);
+}
+.php-visibility {
+  position: absolute;
+  left: 17px;
+  top: 3px;
+  display: inline-flex;
+}
+.php-visibility-public { color: var(--success); }
+.php-visibility-protected { color: var(--warning); }
+.php-visibility-private { color: var(--danger); }
+
+/* ---------- Structure tool window ---------- */
+.php-structure-file {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.php-structure-row {
+  gap: 4px;
+}
+.php-structure-name {
+  flex-shrink: 0;
+  color: var(--fg);
+}
+.php-structure-detail {
+  margin-left: -4px;
+  white-space: pre;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.php-structure-owner {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.php-structure-row.inherited .php-structure-name {
+  color: var(--fg-muted);
+}
+.php-structure-row.deprecated .php-structure-name {
+  text-decoration: line-through;
+}
+
+/* ---------- Generate popup ---------- */
+.php-generate-popup {
+  position: fixed;
+  z-index: var(--z-popup);
+  min-width: 220px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+  outline: none;
+}
+.php-popup-title {
+  padding: 4px 8px 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.php-popup-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
+}
+.php-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  cursor: default;
+}
+.php-popup-item.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.php-popup-item.disabled {
+  color: var(--fg-faint);
+}
+.php-popup-label u {
+  text-underline-offset: 2px;
+}
+.php-popup-shortcut {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.php-popup-item.active .php-popup-shortcut {
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* ---------- Chooser dialog ---------- */
+.php-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-app) 35%, transparent);
+}
+.php-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 480px;
+  max-height: min(560px, 80vh);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+}
+.php-dialog-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.php-dialog-title .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.php-dialog-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px 4px;
+}
+.php-dialog-toolbar .icon-btn {
+  width: 26px;
+  height: 26px;
+}
+.php-chooser-list {
+  flex: 1;
+  min-height: 160px;
+  margin: 0 14px;
+  padding: 4px 0;
+  overflow: auto;
+  background: var(--bg-editor);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  outline: none;
+}
+.php-chooser-list:focus-visible {
+  border-color: var(--accent);
+}
+.php-chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 30px;
+  white-space: nowrap;
+  cursor: default;
+}
+.php-chooser-row.header {
+  padding-left: 10px;
+}
+.php-chooser-row:not(.header):hover {
+  background: var(--bg-hover);
+}
+.php-chooser-row.focused {
+  background: var(--bg-active);
+}
+.php-chooser-list:focus .php-chooser-row.focused {
+  background: var(--bg-selection);
+}
+.php-chooser-row input[type="checkbox"] {
+  margin: 0 2px 0 0;
+  accent-color: var(--accent);
+}
+.php-chooser-name {
+  color: var(--fg-strong);
+}
+.php-chooser-detail {
+  margin-left: -6px;
+  white-space: pre;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.php-chooser-empty {
+  padding: 12px;
+  color: var(--fg-muted);
+}
+.php-dialog-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px 0;
+  color: var(--fg);
+}
+.php-dialog-option input {
+  accent-color: var(--accent);
+}
+.php-dialog-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+}
+.php-dialog-buttons .spacer {
+  flex: 1;
+}
+.php-btn {
+  height: 28px;
+  min-width: 72px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+.php-btn:hover {
+  background: var(--bg-hover);
+}
+.php-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+.php-btn.primary:hover {
+  background: var(--accent-strong);
+}
+.php-btn:disabled {
+  opacity: 0.5;
+}
+
+.php-balloon {
+  position: fixed;
+  z-index: var(--z-notification);
+  max-width: 360px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+}
+
+/* ---------- Hover ---------- */
+.php-hover {
+  max-width: 560px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 8px 12px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+}
+.php-hover p {
+  margin: 6px 0;
+}
+.php-hover p:first-child > code:only-child {
+  color: var(--fg-muted);
+  background: none;
+  padding: 0;
+}
+.php-hover ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.php-hover code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+}
+.php-hover .md-code {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  font-family: var(--font-mono);
+  font-size: var(--fs-editor);
+  white-space: pre-wrap;
+  color: var(--fg);
+}
+.md-kw { color: var(--syn-keyword); }
+.md-str { color: var(--syn-string); }
+.md-var { color: var(--syn-variable); }
+.md-attr { color: var(--syn-attribute); }
+
+/* ---------- Status bar ---------- */
+.php-indexing {
+  gap: 8px;
+}
+.php-progress {
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.php-progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+
+/* ---------- Settings page ---------- */
+.php-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+  max-width: 640px;
+}
+.php-settings h3 {
+  margin: 0 0 8px;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.php-field {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.php-settings input[type="text"],
+.php-settings input[type="password"],
+.php-settings select {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  width: 100%;
+}
+.php-settings input:focus,
+.php-settings select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.php-hint {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.php-secret {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.php-list {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  min-height: 34px;
+}
+.php-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+}
+
+/* ---------- CLI Interpreter picker and the CLI Interpreters dialog ---------- */
+.php-interp-picker {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+.php-interp-picker select {
+  flex: 1;
+  min-width: 0;
+}
+.php-interp-more {
+  min-width: 30px;
+  justify-content: center;
+}
+.php-interp-dialog {
+  max-height: calc(100vh - 48px);
+}
+.php-interp-dialog input[type="text"],
+.php-interp-dialog select {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.php-interp-dialog input:focus,
+.php-interp-dialog select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.php-interp-dialog input[type="radio"],
+.php-interp-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.php-interp-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 460px;
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
+}
+.php-interp-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-editor);
+  min-height: 0;
+}
+.php-interp-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.php-interp-add {
+  position: relative;
+}
+.php-interp-menu {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 5;
+  min-width: 300px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+.php-interp-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  font: inherit;
+}
+.php-interp-menu button:hover {
+  background: var(--accent-soft);
+}
+.php-interp-menu-sep {
+  margin: 4px 8px 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.php-interp-items {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+.php-interp-empty {
+  padding: 12px;
+}
+.php-interp-row {
+  gap: 6px;
+  padding: 0 10px;
+}
+.php-interp-icon {
+  display: inline-flex;
+  color: var(--fg-muted);
+}
+.php-interp-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.php-interp-form {
+  overflow: auto;
+  padding: 12px 16px;
+  min-height: 0;
+}
+.php-interp-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.php-interp-field {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.php-interp-field > label {
+  color: var(--fg);
+}
+.php-interp-value {
+  min-width: 0;
+}
+.php-interp-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 160px;
+}
+.php-interp-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 2px;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.php-interp-section::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+.php-interp-path {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.php-interp-info {
+  color: var(--fg);
+}
+.php-interp-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.php-interp-wrap {
+  overflow-wrap: anywhere;
+}
+.php-interp-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.php-interp-radios label,
+.php-interp-kinds label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.php-interp-kinds {
+  display: flex;
+  gap: 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.php-interp-kinds label.disabled {
+  color: var(--fg-faint);
+}
+.php-interp-table {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.php-interp-thead,
+.php-interp-trow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 28px;
+  gap: 4px;
+  align-items: center;
+}
+.php-interp-thead {
+  padding: 2px 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.php-interp-trow.auto {
+  padding: 3px 4px;
+  color: var(--fg-muted);
+}
+.php-interp-none {
+  padding: 4px;
+}
+.php-interp-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+.php-interp-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.php-phpinfo {
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font: var(--fs-small) / 1.45 var(--font-mono);
+  white-space: pre;
+}
+.php-spin {
+  animation: php-spin 0.9s linear infinite;
+}
+@keyframes php-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Source roots (Mark Directory as) and External Libraries ---------- */
+.tree-row.php-source-root .file-icon {
+  color: var(--info) !important;
+}
+.tree-row.php-test-root .file-icon {
+  color: var(--success) !important;
+}
+.library-icon {
+  display: inline-flex;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+
+/* ---------- Settings | Directories ---------- */
+.php-dirs-root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+.php-dirs-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: 1px;
+  background: var(--fg-faint);
+}
+.php-dirs-title.php-dirs-source::before {
+  background: var(--info);
+}
+.php-dirs-title.php-dirs-test::before {
+  background: var(--success);
+}
+.php-dirs-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.2fr) 150px 52px;
+  gap: 8px;
+  height: 30px;
+}
+.php-dirs-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.php-dirs-list[data-kind="source"] .php-dirs-path {
+  color: var(--info);
+}
+.php-dirs-list[data-kind="test"] .php-dirs-path {
+  color: var(--success);
+}
+.php-dirs-list[data-kind="none"] .php-dirs-path {
+  color: var(--fg-muted);
+}
+.php-settings .php-dirs-prefix {
+  height: 24px;
+}
+.php-dirs-origin {
+  white-space: nowrap;
+}
+.php-dirs-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.php-dirs-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr 110px auto;
+  gap: 6px;
+  align-items: center;
+}

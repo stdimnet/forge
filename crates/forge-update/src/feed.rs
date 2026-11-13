@@ -1,0 +1,331 @@
+//! The update feed (`latest.json`) and the offer shown to the user.
+//!
+//! `pnpm tauri build` with `createUpdaterArtifacts` writes signed bundles plus their `.sig`
+//! files; `latest.json` lists them per platform:
+//!
+//! ```json
+//! { "version": "0.2.0", "notes": "…", "pub_date": "2026-11-02T10:00:00Z",
+//!   "platforms": { "linux-x86_64": { "signature": "…", "url": "https://…/Forge_0.2.0_amd64.AppImage" } } }
+//! ```
+//!
+//! Keys are `{os}-{arch}` or `{os}-{arch}-{installer}` (`linux-x86_64-appimage`), as
+//! `tauri-plugin-updater` reads them. The release workflow adds `"channel": "beta"` to the
+//! beta feed (`latest-beta.json`); feeds without the field are stable.
+//!
+//! A channel can read several feeds ([`Channel::endpoints`]); [`pick_feed`] takes the newest
+//! release among them.
+
+use std::collections::BTreeMap;
+
+use semver::Version;
+use serde::{Deserialize, Serialize};
+
+use crate::policy::{evaluate, Channel, UpdateState, Verdict};
+use crate::{format_size, parse_version, Result, UpdateError};
+
+/// One platform's download in the feed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FeedPlatform {
+    pub signature: String,
+    pub url: String,
+}
+
+/// `latest.json`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Feed {
+    pub version: String,
+    #[serde(default)]
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub pub_date: Option<String>,
+    #[serde(default)]
+    pub platforms: BTreeMap<String, FeedPlatform>,
+    /// `stable` or `beta`; missing means stable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
+}
+
+impl Feed {
+    pub fn parse(text: &str) -> Result<Self> {
+        serde_json::from_str(text).map_err(|e| UpdateError::Feed(e.to_string()))
+    }
+
+    /// The channel the feed was published for (missing or unknown: stable).
+    pub fn channel(&self) -> Channel {
+        Channel::from_setting(self.channel.as_deref())
+    }
+
+    /// The download for the first of `targets` the feed has (most specific first).
+    pub fn platform(&self, targets: &[String]) -> Option<(&str, &FeedPlatform)> {
+        targets
+            .iter()
+            .find_map(|t| self.platforms.get_key_value(t.as_str()))
+            .map(|(k, p)| (k.as_str(), p))
+    }
+}
+
+/// An update the user can install, as the splash screen and the Check for Updates dialog
+/// show it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateOffer {
+    pub version: String,
+    pub current_version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date: Option<String>,
+    /// Download size in bytes, when the server reports it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<u64>,
+    /// The one-line description under the title.
+    pub summary: String,
+    /// A simulated update: the download is fake and nothing is installed.
+    #[serde(default)]
+    pub simulated: bool,
+    /// The feed the offer came from; the download reads the same feed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feed: Option<String>,
+}
+
+impl UpdateOffer {
+    pub fn new(
+        version: &str,
+        current: &str,
+        notes: Option<String>,
+        date: Option<String>,
+        size: Option<u64>,
+        simulated: bool,
+    ) -> Self {
+        let summary = summary(current, size, simulated);
+        Self {
+            version: version.to_string(),
+            current_version: current.to_string(),
+            notes: notes.filter(|n| !n.trim().is_empty()),
+            date,
+            size,
+            summary,
+            simulated,
+            feed: None,
+        }
+    }
+}
+/// The one line under the title: "You have 0.1.0. The 94 MB download is checked against
+/// Forge's signing key."
+pub fn summary(current: &str, size: Option<u64>, simulated: bool) -> String {
+    let size = size
+        .map(|s| format!("{} ", format_size(s)))
+        .unwrap_or_default();
+    if simulated {
+        format!(
+            "You have {current}. Simulated update: a fake {size}download, nothing is installed."
+        )
+    } else {
+        format!("You have {current}. The {size}download is checked against Forge's signing key.")
+    }
+}
+
+/// The HTTP client for update checks: system proxy settings, short timeouts and a
+/// `Forge/<version>` user agent.
+pub fn client(version: &str) -> reqwest::Client {
+    reqwest::Client::builder()
+        .user_agent(format!("Forge/{version}"))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .unwrap_or_default()
+}
+
+/// The largest feed Forge reads (a real `latest.json` is a few kilobytes).
+pub const MAX_FEED_BYTES: usize = 1024 * 1024;
+
+/// Feeds are read over https; plain http only from this machine (local test servers).
+pub fn check_endpoint(endpoint: &str) -> Result<()> {
+    let insecure = || UpdateError::Insecure(endpoint.to_string());
+    let url = reqwest::Url::parse(endpoint.trim()).map_err(|_| insecure())?;
+    let host = url.host_str().unwrap_or_default();
+    let host = host.trim_start_matches('[').trim_end_matches(']');
+    let local = host.eq_ignore_ascii_case("localhost")
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback());
+    match url.scheme() {
+        "https" => Ok(()),
+        "http" if local => Ok(()),
+        _ => Err(insecure()),
+    }
+}
+
+/// Read the feed. A `204 No Content` answer means "no update" and returns `None`. Only
+/// https feeds ([`check_endpoint`]) of at most [`MAX_FEED_BYTES`] are read.
+pub async fn fetch_feed(client: &reqwest::Client, endpoint: &str) -> Result<Option<Feed>> {
+    check_endpoint(endpoint)?;
+    let mut response = client
+        .get(endpoint)
+        .header(reqwest::header::ACCEPT, "application/json")
+        .send()
+        .await
+        .map_err(|e| UpdateError::Network(e.to_string()))?;
+    let status = response.status();
+    if status == reqwest::StatusCode::NO_CONTENT {
+        return Ok(None);
+    }
+    if !status.is_success() {
+        return Err(UpdateError::Status(status.as_u16()));
+    }
+    if response
+        .content_length()
+        .is_some_and(|n| n > MAX_FEED_BYTES as u64)
+    {
+        return Err(UpdateError::TooLarge(MAX_FEED_BYTES));
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| UpdateError::Network(e.to_string()))?
+    {
+        if body.len() + chunk.len() > MAX_FEED_BYTES {
+            return Err(UpdateError::TooLarge(MAX_FEED_BYTES));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Feed::parse(&String::from_utf8_lossy(&body)).map(Some)
+}
+
+/// The download's size from a `HEAD` request, if the server tells.
+pub async fn download_size(client: &reqwest::Client, url: &str) -> Option<u64> {
+    let response = client.head(url).send().await.ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+    response
+        .headers()
+        .get(reqwest::header::CONTENT_LENGTH)?
+        .to_str()
+        .ok()?
+        .parse()
+        .ok()
+        .filter(|n| *n > 0)
+}
+
+/// What a check found.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase", tag = "status")]
+pub enum CheckOutcome {
+    Available {
+        offer: UpdateOffer,
+    },
+    /// Nothing newer (or the server answered `204`).
+    UpToDate,
+    /// A newer release exists but is not offered (skipped, postponed or another channel).
+    NotOffered {
+        version: String,
+        verdict: Verdict,
+    },
+}
+
+/// The inputs of one check.
+#[derive(Debug, Clone)]
+pub struct CheckRequest<'a> {
+    /// The feeds to read ([`Channel::endpoints`]), most specific first.
+    pub endpoints: &'a [String],
+    pub current: &'a Version,
+    pub channel: Channel,
+    pub state: &'a UpdateState,
+    pub manual: bool,
+    /// Unix seconds.
+    pub now: u64,
+    /// Feed platform keys of this installation, most specific first.
+    pub targets: &'a [String],
+}
+
+/// Choose the feed to evaluate from what each endpoint answered, in endpoint order.
+///
+/// - Endpoints that failed are ignored as long as another one answered; when all failed, the
+///   first endpoint's error is returned.
+/// - A feed published for the beta channel never counts on the stable channel.
+/// - The newest release wins; on a tie the earlier endpoint wins.
+/// - `Ok(None)`: no feed announces a release (every answer was `204` or filtered out).
+pub fn pick_feed(
+    channel: Channel,
+    answers: Vec<(String, Result<Option<Feed>>)>,
+) -> Result<Option<(String, Feed, Version)>> {
+    let mut first_error = None;
+    let mut answered = false;
+    let mut best: Option<(String, Feed, Version)> = None;
+    for (endpoint, answer) in answers {
+        let feed = match answer.and_then(|feed| match feed {
+            Some(feed) => parse_version(&feed.version).map(|v| Some((feed, v))),
+            None => Ok(None),
+        }) {
+            Ok(feed) => {
+                answered = true;
+                feed
+            }
+            Err(e) => {
+                first_error.get_or_insert(e);
+                None
+            }
+        };
+        let Some((feed, version)) = feed else {
+            continue;
+        };
+        if channel == Channel::Stable && feed.channel() == Channel::Beta {
+            continue;
+        }
+        if best.as_ref().is_none_or(|(_, _, v)| version > *v) {
+            best = Some((endpoint, feed, version));
+        }
+    }
+    match (answered, first_error) {
+        (false, Some(e)) => Err(e),
+        _ => Ok(best),
+    }
+}
+
+/// Read the channel's feeds and decide what to offer.
+pub async fn check(client: &reqwest::Client, req: &CheckRequest<'_>) -> Result<CheckOutcome> {
+    let mut answers = Vec::with_capacity(req.endpoints.len());
+    for endpoint in req.endpoints {
+        answers.push((endpoint.clone(), fetch_feed(client, endpoint).await));
+    }
+    let Some((endpoint, feed, remote)) = pick_feed(req.channel, answers)? else {
+        return Ok(CheckOutcome::UpToDate);
+    };
+    match evaluate(
+        req.current,
+        &remote,
+        req.channel,
+        req.state,
+        req.manual,
+        req.now,
+    ) {
+        Verdict::Update => {}
+        Verdict::UpToDate => return Ok(CheckOutcome::UpToDate),
+        verdict => {
+            return Ok(CheckOutcome::NotOffered {
+                version: remote.to_string(),
+                verdict,
+            })
+        }
+    }
+    let (_, platform) = feed
+        .platform(req.targets)
+        .ok_or_else(|| UpdateError::NoPlatform(req.targets.join(", ")))?;
+    let size = download_size(client, &platform.url).await;
+    let mut offer = UpdateOffer::new(
+        &remote.to_string(),
+        &req.current.to_string(),
+        feed.notes.clone(),
+        feed.pub_date.clone(),
+        size,
+        false,
+    );
+    offer.feed = Some(endpoint);
+    Ok(CheckOutcome::Available { offer })
+}
+
+#[cfg(test)]
+#[path = "feed_tests.rs"]
+mod tests;

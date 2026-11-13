@@ -1,0 +1,260 @@
+id = "forge.database"
+name = "Database Tools and SQL"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Data sources, SQL consoles, schema browsing and table editing for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse and Oracle, plus Redis and MongoDB, with SSH tunnels, SSL, sessions and read-only / production data sources."
+
+[[contributions.commands]]
+id = "database.newDataSource"
+title = "New Data Source…"
+category = "Database"
+
+[[contributions.commands]]
+id = "database.openConsole"
+title = "Open Query Console"
+category = "Database"
+
+[[contributions.toolWindows]]
+id = "database"
+title = "Database"
+anchor = "right"
+icon = "database"
+order = 10
+
+[[contributions.settings]]
+key = "database.pageSize"
+title = "Result set page size"
+description = "Rows fetched per page in consoles and table editors."
+type = "int"
+min = 10
+max = 100000
+default = 500
+group = "tools.database"
+section = "Data Editor and Viewer"
+order = 0
+
+[[contributions.settings]]
+key = "database.showNullAs"
+title = "Show NULL as"
+type = "string"
+default = "<null>"
+group = "tools.database"
+section = "Data Editor and Viewer"
+order = 10
+
+[[contributions.settings]]
+key = "database.suggestFromEnv"
+title = "Suggest data sources from .env files"
+description = "Offer to add the database configured in Laravel's DB_* or Symfony's DATABASE_URL."
+type = "bool"
+default = true
+group = "tools.database"
+section = "General"
+order = 20
+
+[[contributions.commands]]
+id = "sql.runFile"
+title = "Run SQL Script…"
+category = "Database"
+
+[[contributions.commands]]
+id = "sql.queryHistory"
+title = "Browse Query History"
+category = "Database"
+
+# ---- Settings | Languages & Frameworks | SQL Dialects ------------------------------------
+
+[[contributions.settings]]
+key = "sql.dialect.default"
+title = "Global SQL dialect"
+description = "Dialect of SQL files in every project unless the project or a path says otherwise."
+type = "enum"
+options = [
+  { value = "generic", label = "Generic SQL" },
+  { value = "mysql", label = "MySQL" },
+  { value = "postgres", label = "PostgreSQL" },
+  { value = "sqlite", label = "SQLite" },
+  { value = "sqlserver", label = "SQL Server" },
+  { value = "oracle", label = "Oracle" },
+  { value = "clickhouse", label = "ClickHouse" },
+]
+default = "generic"
+group = "lang.sqlDialects"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "sql.dialect.project"
+title = "Project SQL dialect"
+description = "Dialect of the project's SQL files; empty uses the global dialect."
+type = "enum"
+options = [
+  { value = "", label = "<Global>" },
+  { value = "generic", label = "Generic SQL" },
+  { value = "mysql", label = "MySQL" },
+  { value = "postgres", label = "PostgreSQL" },
+  { value = "sqlite", label = "SQLite" },
+  { value = "sqlserver", label = "SQL Server" },
+  { value = "oracle", label = "Oracle" },
+  { value = "clickhouse", label = "ClickHouse" },
+]
+default = ""
+group = "lang.sqlDialects"
+project = true
+hidden = true
+order = 1
+
+[[contributions.settings]]
+key = "sql.dialect.mappings"
+title = "SQL dialect and data source mappings"
+description = "Files and folders with their SQL dialect and the data source their names resolve against: path, dialect, dataSource. The most specific path wins."
+type = "objects"
+unique = ["path"]
+default = []
+group = "lang.sqlDialects"
+project = true
+hidden = true
+order = 2
+
+# ---- Settings | Tools | Database: user parameters, history, Run SQL Script ---------------
+
+[[contributions.settings]]
+key = "database.parameters.question"
+title = "? (positional)"
+type = "bool"
+default = true
+group = "tools.database"
+section = "User Parameters"
+order = 40
+
+[[contributions.settings]]
+key = "database.parameters.colon"
+title = ":name"
+type = "bool"
+default = true
+group = "tools.database"
+section = "User Parameters"
+order = 41
+
+[[contributions.settings]]
+key = "database.parameters.dollar"
+title = "$1"
+type = "bool"
+default = true
+group = "tools.database"
+section = "User Parameters"
+order = 42
+
+[[contributions.settings]]
+key = "database.parameters.dollarBrace"
+title = "${name}"
+type = "bool"
+default = true
+group = "tools.database"
+section = "User Parameters"
+order = 43
+
+[[contributions.settings]]
+key = "database.parameters.hashBrace"
+title = "#{name}"
+type = "bool"
+default = true
+group = "tools.database"
+section = "User Parameters"
+order = 44
+
+[[contributions.settings]]
+key = "database.history.limit"
+title = "Query history entries per data source"
+description = "Executed statements kept in the query history of each data source (in Forge's data directory)."
+type = "int"
+min = 10
+max = 100000
+default = 1000
+group = "tools.database"
+section = "Query History"
+order = 50
+
+[[contributions.settings]]
+key = "database.runFile.stopOnError"
+title = "Run SQL Script: stop at the first error"
+type = "bool"
+default = true
+group = "tools.database"
+section = "Query History"
+order = 51
+
+# ---- SQL inspections ---------------------------------------------------------------------
+
+[[contributions.inspections]]
+id = "SqlResolve"
+name = "Unresolved reference"
+group = "SQL"
+language = "sql"
+severity = "ERROR"
+description = "Reports tables, columns, schemas and aliases that do not exist in the data source attached to the file or console, or in the script itself. Schemas that were not introspected are not checked."
+
+[[contributions.inspections]]
+id = "SqlAmbiguousColumn"
+name = "Ambiguous column reference"
+group = "SQL"
+language = "sql"
+severity = "WARNING"
+description = "Reports unqualified columns that exist in more than one table of the query. The quick fix qualifies the column."
+
+[[contributions.inspections]]
+id = "SqlWithoutWhere"
+name = "Delete or update statement without where clauses"
+group = "SQL"
+language = "sql"
+severity = "WARNING"
+description = "Reports DELETE and UPDATE statements without WHERE, which change every row of the table. The quick fix adds a WHERE placeholder."
+
+[[contributions.inspections]]
+id = "SqlUnusedAlias"
+name = "Unused table alias"
+group = "SQL"
+language = "sql"
+severity = "WEAK WARNING"
+description = "Reports table aliases that no column of the query uses. The quick fix removes the alias."
+
+[[contributions.inspections]]
+id = "SqlUnusedCte"
+name = "Unused common table expression"
+group = "SQL"
+language = "sql"
+severity = "WARNING"
+description = "Reports WITH queries that the statement never reads. The quick fix removes the CTE."
+
+[[contributions.inspections]]
+id = "SqlType"
+name = "Types compatibility"
+group = "SQL"
+language = "sql"
+severity = "WARNING"
+description = "Reports comparisons of a column with a value of another type family (a number column with a string, a text column with a number) where the data source model knows the column's type. The quick fix quotes a number compared with a text column."
+
+[[contributions.inspections]]
+id = "SqlRedundantOrderingDirection"
+name = "Redundant ordering direction"
+group = "SQL/Redundant code"
+language = "sql"
+severity = "WEAK WARNING"
+description = "Reports ASC in ORDER BY: ascending is the default. The quick fix removes it."
+
+[[contributions.inspections]]
+id = "SqlRedundantElseNull"
+name = "Redundant ELSE NULL clause"
+group = "SQL/Redundant code"
+language = "sql"
+severity = "WEAK WARNING"
+description = "Reports ELSE NULL in CASE expressions: a CASE without ELSE gives NULL. The quick fix removes it."
+
+[[contributions.inspections]]
+id = "SqlRedundantAlias"
+name = "Redundant alias expressions"
+group = "SQL/Redundant code"
+language = "sql"
+severity = "WEAK WARNING"
+description = "Reports aliases that repeat the table's or column's own name. The quick fix removes the alias."

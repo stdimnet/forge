@@ -1,0 +1,19 @@
+[package]
+name = "pyforge-interpreters"
+description = "PyForge: Python interpreters (system, pyenv, venv/virtualenv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL): model, detection, metadata parsing and new environments"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-hostspawn.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+phpforge-interpreters.workspace = true
+pyforge-lang-python.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+dirs.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

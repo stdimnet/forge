@@ -1,0 +1,9 @@
+{
+    "name": "forge/meta-project",
+    "autoload": {
+        "psr-4": { "App\\": "app/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Tests\\": "tests/" }
+    }
+}

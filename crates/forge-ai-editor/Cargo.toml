@@ -1,0 +1,11 @@
+[package]
+name = "forge-ai-editor"
+description = "Forge IDE AI in the editor: inline completion context and post-processing, AI actions (explain, fix, tests, docs) and the .aiignore policy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-agent-cli = { path = "../forge-agent-cli", default-features = false }

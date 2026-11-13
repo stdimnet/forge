@@ -1,0 +1,12 @@
+[package]
+name = "luaforge-lang-lua"
+description = "LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-fuzzy.workspace = true
+forge-markdown.workspace = true

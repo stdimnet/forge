@@ -1,0 +1,59 @@
+name: CI
+
+# Manual only for now: CI must not run automatically until the project owner enables it.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    # The project's self-hosted Linux runner.
+    runs-on: [self-hosted, Linux, X64]
+    defaults:
+      run:
+        working-directory: app/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/ui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # release.yml runs only on pushed `v*` tags, every other workflow only manually.
+      - run: pnpm workflows:check
+      # Every z-index above 10 uses the layer scale of theme.css.
+      - run: pnpm zindex:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux on the project's self-hosted runner, Windows and macOS on GitHub's runners.
+        runner: ['["self-hosted","Linux","X64"]', '"windows-latest"', '"macos-latest"']
+    runs-on: ${{ fromJSON(matrix.runner) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Linux system dependencies
+        if: runner.os == 'Linux'
+        run: .github/scripts/linux-deps.sh
+      - name: Frontend dist placeholder
+        shell: bash
+        run: mkdir -p app/ui/dist && echo '<!doctype html>' > app/ui/dist/index.html
+      - run: cargo fmt --all --check
+        if: runner.os == 'Linux'
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace

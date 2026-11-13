@@ -1,0 +1,39 @@
+[package]
+name = "forge-plugins"
+description = "Forge third-party plugins: manifest validation, .forgeplugin packages, the installed plugin store, permissions and the marketplace client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["net"]
+# Packages and the installed plugin store (zip, user data dir). Without it only the pure
+# models are built (manifests, permissions, the marketplace index), e.g. for WebAssembly.
+disk = ["dep:zip", "dep:dirs"]
+# Marketplace downloads and the plugins' HTTP calls.
+net = ["disk", "dep:reqwest"]
+# The marketplace access token in the OS keychain.
+keychain = ["dep:keyring"]
+
+[dependencies]
+forge-hostspawn.workspace = true
+forge-plugin-api.workspace = true
+forge-icons.workspace = true
+forge-keymap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+dirs = { workspace = true, optional = true }
+semver = "1"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+ed25519-dalek = "3"
+zip = { version = "2", default-features = false, features = ["deflate"], optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"], optional = true }
+url = "2"
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
+forge-langservers = { workspace = true, features = ["testserver"] }

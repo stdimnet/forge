@@ -1,0 +1,9 @@
+{
+  "name": "@forge/plugin-api",
+  "version": "1.0.0",
+  "description": "Types of the Forge plugin API (the `forge` global of sandboxed UI plugins).",
+  "license": "MIT",
+  "types": "index.d.ts",
+  "main": "index.js",
+  "files": ["index.d.ts", "index.js"]
+}

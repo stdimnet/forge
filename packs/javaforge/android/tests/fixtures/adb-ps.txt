@@ -1,0 +1,8 @@
+  PID NAME
+    1 init
+    2 kthreadd
+  612 zygote64
+ 1432 system_server
+ 2210 com.android.systemui
+12034 com.acme.notes
+12101 com.acme.notes:sync

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Forge",
+  "version": "0.1.0",
+  "identifier": "dev.forge.ide",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "splash",
+        "create": false,
+        "url": "splash.html",
+        "title": "Forge",
+        "width": 640,
+        "height": 400,
+        "center": true,
+        "resizable": false,
+        "maximizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "skipTaskbar": true
+      },
+      {
+        "label": "main",
+        "create": false,
+        "title": "Forge",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 560,
+        "decorations": false
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": { "../../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md" },
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "fileAssociations": [
+      {"ext": ["txt", "text", "log", "md", "markdown", "csv", "tsv", "rst", "adoc"], "name": "Text document", "description": "Text document", "role": "Editor", "contentTypes": ["public.plain-text", "net.daringfireball.markdown"]},
+      {"ext": ["php", "phtml", "js", "mjs", "cjs", "jsx", "ts", "mts", "cts", "tsx", "vue", "svelte", "css", "scss", "sass", "less", "twig", "lua", "py", "rb", "go", "rs", "java", "kt", "kts", "scala", "groovy", "gradle", "c", "h", "cpp", "cc", "hpp", "cs", "swift", "gd", "sh", "bash", "zsh", "ps1", "sql"], "name": "Source code", "description": "Source code", "role": "Editor", "contentTypes": ["public.source-code", "public.script", "public.shell-script"]},
+      {"ext": ["json", "jsonc", "yaml", "yml", "toml", "xml", "ini", "cfg", "conf", "properties", "neon", "env", "editorconfig"], "name": "Configuration file", "description": "Configuration file", "role": "Editor", "contentTypes": ["public.json", "public.xml", "public.yaml"]},
+      {"ext": [], "name": "Folder", "description": "Folder", "role": "Editor", "rank": "Alternate", "contentTypes": ["public.folder"]}
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "linux/forge.desktop",
+        "files": {
+          "/usr/share/applications/forge-url-handler.desktop": "linux/forge-url-handler.desktop",
+          "/usr/share/kio/servicemenus/forge-open-folder.desktop": "linux/forge-open-folder.desktop"
+        }
+      },
+      "rpm": {
+        "desktopTemplate": "linux/forge.desktop",
+        "files": {
+          "/usr/share/applications/forge-url-handler.desktop": "linux/forge-url-handler.desktop",
+          "/usr/share/kio/servicemenus/forge-open-folder.desktop": "linux/forge-open-folder.desktop"
+        }
+      }
+    },
+    "windows": {
+      "nsis": { "installerHooks": "windows/hooks.nsh" },
+      "wix": { "fragmentPaths": ["windows/shell-verbs.wxs"], "componentRefs": ["ForgeShellVerbs"] }
+    },
+    "macOS": {
+      "hardenedRuntime": true,
+      "entitlements": "Entitlements.plist",
+      "dmg": {
+        "background": "dmg/background.tiff",
+        "windowSize": { "width": 660, "height": 400 },
+        "appPosition": { "x": 180, "y": 190 },
+        "applicationFolderPosition": { "x": 480, "y": 190 }
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": { "schemes": ["forge"] }
+    },
+    "updater": {
+      "pubkey": "",
+      "endpoints": [],
+      "requireSignedVersion": true,
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

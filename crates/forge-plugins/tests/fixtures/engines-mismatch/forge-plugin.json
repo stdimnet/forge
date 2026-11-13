@@ -1,0 +1,9 @@
+{
+  "manifestVersion": 1,
+  "id": "fixture.future",
+  "name": "Future Fixture",
+  "version": "1.0.0",
+  "engines": { "forge": ">=99.0.0" },
+  "main": "dist/plugin.js",
+  "activationEvents": ["onStartup"]
+}

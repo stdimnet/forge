@@ -1,0 +1,343 @@
+/* Forge's "Ember" (dark) and "Anvil" (light) palettes. */
+:root {
+  --bg: #18181c;
+  --bg-elevated: #222228;
+  --bg-input: #1f1f25;
+  --bg-hover: #26262d;
+  --border: #2c2c33;
+  --border-strong: #3a3a43;
+  --fg: #d9d9df;
+  --fg-strong: #f2f2f5;
+  --fg-muted: #8c8c98;
+  --accent: #ff7a1a;
+  --accent-strong: #ff8f3d;
+  --accent-soft: rgba(255, 122, 26, 0.14);
+  --accent-fg: #1a0f06;
+  --success: #5fbf77;
+  --danger: #ef5f5f;
+  --warning: #e5b449;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f8fa;
+    --bg-elevated: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #e6e8ee;
+    --border: #dfe1e6;
+    --border-strong: #cdd0d7;
+    --fg: #26272b;
+    --fg-strong: #0f1012;
+    --fg-muted: #6b6e78;
+    --accent: #e8620c;
+    --accent-strong: #d45608;
+    --accent-soft: rgba(232, 98, 12, 0.12);
+    --accent-fg: #ffffff;
+    --success: #2f8a46;
+    color-scheme: light;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  width: 360px;
+  margin: 0;
+  padding: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+h1 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fg-strong);
+}
+h2 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+.muted {
+  color: var(--fg-muted);
+}
+.strong {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+code,
+kbd {
+  font: 11px/1.5 "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+}
+kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.head img {
+  border-radius: 6px;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  flex-shrink: 0;
+}
+.status.ok .dot {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+.status.warn .dot {
+  background: var(--warning);
+}
+.status.bad .dot {
+  background: var(--danger);
+}
+
+.card {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+}
+#pair {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--accent-soft);
+}
+.label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.row.end {
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.hint b {
+  color: var(--fg);
+  font-weight: 600;
+}
+.error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+input:not([type]),
+textarea {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+}
+textarea {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
+  font: 11.5px/1.5 "JetBrains Mono", Menlo, monospace;
+}
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+#code {
+  font: 600 16px/1 "JetBrains Mono", Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button.primary,
+button.secondary {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+button.primary {
+  border: none;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+button.primary:hover {
+  background: var(--accent-strong);
+}
+button.secondary {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--fg);
+}
+button.secondary:hover {
+  background: var(--bg-hover);
+}
+button.link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: var(--accent);
+}
+button.link.danger {
+  color: var(--danger);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.switch-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.switch-text .muted {
+  font-size: 12px;
+}
+input[role="switch"] {
+  appearance: none;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: background 120ms;
+  flex-shrink: 0;
+}
+input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 120ms;
+}
+input[role="switch"]:checked {
+  background: var(--accent);
+}
+input[role="switch"]:checked::after {
+  transform: translateX(14px);
+}
+input[role="switch"]:disabled {
+  opacity: 0.5;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  cursor: pointer;
+}
+.check input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+#recent {
+  list-style: none;
+  margin: 0 -6px 12px;
+  padding: 0;
+}
+#recent li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#recent li:hover {
+  background: var(--bg-hover);
+}
+.recent-name {
+  color: var(--fg-strong);
+  white-space: nowrap;
+}
+.recent-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+  font: 11px/1.4 "JetBrains Mono", Menlo, monospace;
+  color: var(--fg-muted);
+}
+.empty {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+details summary {
+  font-size: 12px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.advanced .label {
+  margin-top: 6px;
+  font-weight: 500;
+}

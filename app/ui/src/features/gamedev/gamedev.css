@@ -1,0 +1,273 @@
+/* Unity and Godot (DotNetForge game engines). */
+
+.gd-tw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.gd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+  flex-wrap: wrap;
+}
+.gd-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.gd-toolbar .icon-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.gd-toolbar .icon-btn.active {
+  background: var(--bg-active);
+  color: var(--accent);
+}
+.gd-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.gd-spacer {
+  flex: 1;
+}
+.gd-spin {
+  animation: gd-spin 1s linear infinite;
+}
+@keyframes gd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.gd-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  margin-left: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  color: var(--fg);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.gd-filter.off {
+  background: transparent;
+  color: var(--fg-faint);
+}
+.gd-filter.gd-error svg {
+  color: var(--danger);
+}
+.gd-filter.gd-warning svg {
+  color: var(--warning);
+}
+.gd-filter.off svg {
+  color: var(--fg-faint);
+}
+.gd-search {
+  height: 22px;
+  width: 160px;
+  margin-left: 6px;
+}
+.gd-conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.gd-conn.on {
+  cursor: default;
+  color: var(--fg);
+  border-color: transparent;
+}
+.gd-conn.on svg {
+  color: var(--success);
+}
+.gd-badge {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--fs-small);
+}
+
+.gd-log {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+.gd-log-row:hover {
+  background: var(--bg-hover);
+}
+.gd-log-row.selected {
+  background: var(--bg-selection);
+}
+.gd-log-icon {
+  flex: none;
+  color: var(--info);
+}
+.gd-log-row.gd-warning .gd-log-icon {
+  color: var(--warning);
+}
+.gd-log-row.gd-error .gd-log-icon {
+  color: var(--danger);
+}
+.gd-log-row.gd-error .gd-log-msg {
+  color: var(--danger);
+}
+.gd-log-time {
+  flex: none;
+  width: 58px;
+}
+.gd-log-msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gd-detail {
+  flex: none;
+  max-height: 40%;
+  overflow: auto;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.gd-detail-text {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.gd-link {
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-link:hover {
+  text-decoration: underline;
+}
+
+.gd-intro {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+}
+.gd-intro-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.gd-intro-grid,
+.gd-settings-info {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 16px;
+  word-break: break-word;
+}
+.gd-intro-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gd-note {
+  max-width: 720px;
+  line-height: 1.45;
+}
+.gd-pad {
+  padding: 8px;
+}
+
+.gd-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gd-settings-info {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+.gd-editor.current {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+
+.gd-attach {
+  width: min(640px, calc(100vw - 32px));
+}
+.gd-attach-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.gd-attach-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+.gd-attach-row:hover {
+  background: var(--bg-hover);
+}
+.gd-attach-name {
+  font-weight: 600;
+}
+.gd-attach-project {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-attach-port {
+  color: var(--fg-muted);
+}
+.gd-attach-manual {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.gd-attach-manual .form-label {
+  margin-right: 4px;
+}
+.gd-port {
+  width: 80px;
+}

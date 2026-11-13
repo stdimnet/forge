@@ -1,0 +1,15 @@
+[package]
+name = "phpforge-interpreters"
+description = "PHPForge: PHP CLI interpreters (local, Docker, Docker Compose, SSH, WSL): model, detection, version and extension parsing, command lines and path mappings"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-hostspawn.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+forge-runtargets.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

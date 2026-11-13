@@ -1,0 +1,61 @@
+# JavaForge: Groovy basics, in the style of IntelliJ IDEA's Groovy plugin. The logic lives in
+# packs/javaforge/lang-groovy (sources, scripts and mains, Spock, script command lines, the
+# Groovy SDK lookup) and is wired up by app/src-tauri/src/commands/groovy.rs. Gradle and the
+# JUnit machinery come from JavaForge.
+
+id = "forge.groovy"
+name = "Groovy"
+version = "0.1.0"
+pack = "javaforge"
+vendor = "Forge"
+depends = ["forge.java"]
+description = "Groovy: highlighting, Groovy Script run configurations (groovy from the Groovy SDK or SDKMAN!, or through Gradle), Groovy source sets in the Gradle tool window and Spock specifications through Gradle or Maven."
+projectTypes = ["groovy"]
+
+[contributions]
+languages = ["groovy"]
+
+# ---- Spock on the shared test runner (forge-testing) --------------------------------------
+# Discovery (specifications and feature methods), command lines through Gradle or Maven
+# with JUnit XML reports and Rerun Failed Tests come from `javaforge_lang_groovy::SpockTests`,
+# registered under the same id.
+
+[[contributions.testFrameworks]]
+id = "spock"
+name = "Spock"
+description = "Run Spock specifications through Gradle or Maven: all, a package, a specification or one feature."
+icon = "flask-conical"
+language = "groovy"
+detect = { dependencies = [{ file = "build.gradle", contains = "org.spockframework" }, { file = "build.gradle.kts", contains = "org.spockframework" }, { file = "pom.xml", contains = "org.spockframework" }] }
+testFiles = ["**/src/test/groovy/**/*.groovy", "*Spec.groovy"]
+report = "jUnitFile"
+junitFlavor = "kotlin"
+coverage = { file = "build/reports/jacoco/test/jacocoTestReport.xml", format = "jacoco" }
+
+# ---- Settings | Languages & Frameworks | Groovy -----------------------------------------
+
+[[contributions.settings]]
+key = "groovy.sdk.path"
+title = "Groovy SDK"
+description = "A Groovy installation (its folder, bin folder or the groovy launcher). Empty: GROOVY_HOME, SDKMAN!'s current Groovy, else groovy on the PATH."
+type = "path"
+default = ""
+group = "lang.groovy"
+section = "Groovy SDK"
+order = 0
+
+[[contributions.settings]]
+key = "groovy.run.runner"
+title = "Run Groovy scripts with"
+description = "Gradle runs the script with the project's class path (a task Forge adds with an init script); groovy uses the Groovy SDK."
+type = "enum"
+options = [
+  { value = "auto", label = "Gradle when the build applies the groovy plugin, else groovy" },
+  { value = "groovy", label = "groovy (Groovy SDK)" },
+  { value = "gradle", label = "Gradle" },
+]
+default = "auto"
+group = "lang.groovy"
+section = "Run"
+project = true
+order = 10

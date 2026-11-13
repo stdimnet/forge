@@ -1,0 +1,648 @@
+/* Jupyter notebooks: the notebook editor, outputs, DataFrame tables and notebook diffs. */
+
+.nb-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-editor);
+  min-width: 0;
+}
+
+.nb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-editor);
+  flex-shrink: 0;
+}
+
+.nb-toolbar .toolbar-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border);
+}
+
+.nb-type-select {
+  margin-left: 6px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font-size: var(--fs-small);
+}
+
+.nb-kernel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 6px 0 8px;
+  padding: 0 8px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.nb-kernel .nb-kernel-dot {
+  color: var(--fg-faint);
+  fill: currentColor;
+}
+
+.nb-kernel.idle .nb-kernel-dot {
+  color: var(--success);
+}
+
+.nb-kernel.dead .nb-kernel-dot,
+.nb-kernel.failed .nb-kernel-dot {
+  color: var(--danger);
+}
+
+.nb-kernel .spin {
+  color: var(--warning);
+}
+
+.nb-kernel-name {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nb-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.nb-cells {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px 24px 48px 8px;
+  outline: none;
+}
+
+.nb-error {
+  margin: 12px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--fg);
+  background: var(--diff-deleted-bg);
+}
+
+.nb-cell {
+  display: flex;
+  position: relative;
+  margin: 2px 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.nb-cell::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.nb-cell.selected::before {
+  background: var(--fg-faint);
+}
+
+.nb-cell.selected.editing::before {
+  background: var(--accent);
+}
+
+.nb-cell.running::before {
+  background: var(--warning);
+}
+
+.nb-cell-gutter {
+  width: 64px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 6px 8px 0 0;
+}
+
+.nb-run {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--success);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.nb-cell:hover .nb-run,
+.nb-cell.selected .nb-run,
+.nb-cell.running .nb-run {
+  opacity: 1;
+}
+
+.nb-run:hover {
+  background: var(--bg-hover);
+}
+
+.nb-count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-muted);
+}
+
+.nb-cell.running .nb-count {
+  color: var(--warning);
+}
+
+.nb-cell-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.nb-input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.nb-cell.markdown .nb-input,
+.nb-cell.raw .nb-input {
+  background: transparent;
+}
+
+.nb-cell.markdown:not(.editing) .nb-input {
+  border-color: transparent;
+}
+
+.nb-cell.selected .nb-input {
+  border-color: var(--border-strong);
+}
+
+.nb-cell.selected.editing .nb-input {
+  border-color: var(--accent);
+}
+
+.nb-cell.failed .nb-input {
+  border-left: 2px solid var(--danger);
+}
+
+.nb-input-editor .cm-editor {
+  font-size: var(--fs-editor);
+}
+
+.nb-md {
+  padding: 4px 12px;
+  min-height: 24px;
+  cursor: default;
+}
+
+.nb-md .md {
+  font-size: 13.5px;
+}
+
+.nb-outputs {
+  padding: 6px 2px 4px;
+}
+
+.nb-outputs.limited {
+  max-height: 400px;
+  overflow: auto;
+}
+
+.nb-outputs > * + * {
+  margin-top: 6px;
+}
+
+.nb-out-text {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 2px 10px;
+  color: var(--fg);
+}
+
+.nb-out-text.error {
+  background: var(--diff-deleted-bg);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.nb-out-html {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+
+.nb-out-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-left: 10px;
+  border-radius: 4px;
+}
+
+.nb-out-json {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 2px 10px;
+}
+
+.nb-json-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.nb-json-toggle {
+  cursor: pointer;
+}
+
+.nb-json-children {
+  padding-left: 16px;
+}
+
+.nb-json-key {
+  color: var(--syn-variable);
+}
+
+.nb-json-string {
+  color: var(--syn-string);
+}
+
+.nb-json-number {
+  color: var(--syn-number);
+}
+
+.nb-json-boolean,
+.nb-json-null {
+  color: var(--syn-keyword);
+}
+
+.nb-add {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  padding: 14px 0 0 64px;
+  opacity: 0.8;
+}
+
+/* DataFrame tables */
+
+.nb-df {
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-editor);
+}
+
+.nb-df.fill {
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.nb-df-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-toolbar);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+
+.nb-df-title {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+
+.nb-df-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--fg-muted);
+}
+
+.nb-df-filter input {
+  width: 140px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: var(--fs-small);
+}
+
+.nb-df-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nb-df-grid {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nb-df.fill .nb-df-grid {
+  flex: 1;
+}
+
+.nb-df-grid .dg {
+  flex: 1;
+  min-height: 0;
+}
+
+.nb-frame-tab {
+  height: 100%;
+  background: var(--bg-editor);
+}
+
+/* Variables */
+
+.nb-vars {
+  width: 34%;
+  min-width: 240px;
+  max-width: 480px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-panel);
+  font-size: 13px;
+}
+
+.nb-vars .pycon-vars-head .spacer {
+  flex: 1;
+}
+
+.nb-var .pycon-var-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.nb-var-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 0 6px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 11px;
+  cursor: pointer;
+  flex: none;
+}
+
+/* Settings */
+
+.nb-settings-token {
+  margin-top: 8px;
+}
+
+.nb-settings-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.nb-settings-row .input {
+  width: 280px;
+}
+
+.nb-settings-ok {
+  margin-top: 6px;
+  color: var(--success);
+}
+
+.nb-settings-error {
+  margin-top: 6px;
+  color: var(--danger);
+}
+
+/* Notebook diffs */
+
+.nbd {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px 32px;
+  background: var(--bg-editor);
+  user-select: text;
+}
+
+.nbd-error {
+  padding: 12px;
+  color: var(--danger);
+}
+
+.nbd-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: var(--fs-small);
+}
+
+.nbd-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-active);
+  color: var(--fg-muted);
+}
+
+.nbd-badge.modified {
+  background: var(--diff-changed-bg);
+  color: var(--vcs-modified);
+}
+
+.nbd-badge.added {
+  background: var(--diff-inserted-bg);
+  color: var(--vcs-added);
+}
+
+.nbd-badge.removed {
+  background: var(--diff-deleted-bg);
+  color: var(--danger);
+}
+
+.nbd-cell {
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.nbd-cell.modified {
+  border-color: color-mix(in srgb, var(--vcs-modified) 45%, var(--border));
+}
+
+.nbd-cell.added {
+  border-color: color-mix(in srgb, var(--vcs-added) 45%, var(--border));
+}
+
+.nbd-cell.removed {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+.nbd-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+
+.nbd-side {
+  color: var(--fg);
+}
+
+.nbd-notes {
+  font-size: 11px;
+}
+
+.nbd-section + .nbd-section {
+  border-top: 1px dashed var(--border);
+}
+
+.nbd-section-title {
+  display: flex;
+  gap: 8px;
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-faint);
+}
+
+.nbd-counts {
+  text-transform: none;
+  font-weight: 500;
+}
+
+.nbd-plus {
+  color: var(--vcs-added);
+}
+
+.nbd-minus {
+  color: var(--danger);
+}
+
+.nbd-lines {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding-bottom: 4px;
+}
+
+.nbd-line {
+  display: flex;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.nbd-line.insert {
+  background: var(--diff-inserted-bg);
+}
+
+.nbd-line.delete {
+  background: var(--diff-deleted-bg);
+}
+
+.nbd-no {
+  width: 36px;
+  flex: none;
+  padding-right: 6px;
+  text-align: right;
+  color: var(--fg-faint);
+  user-select: none;
+}
+
+.nbd-sign {
+  width: 16px;
+  flex: none;
+  text-align: center;
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.nbd-line.insert .nbd-sign {
+  color: var(--vcs-added);
+}
+
+.nbd-line.delete .nbd-sign {
+  color: var(--danger);
+}
+
+.nbd-text {
+  flex: 1;
+  min-width: 0;
+  padding-right: 10px;
+}
+
+.nbd-fold {
+  margin-bottom: 10px;
+}
+
+.nbd-fold-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.nbd-fold-btn:hover {
+  color: var(--fg);
+}

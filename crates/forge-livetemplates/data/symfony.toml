@@ -1,0 +1,67 @@
+# Symfony live templates (active in Symfony projects).
+
+[group]
+name = "Symfony"
+framework = "symfony"
+
+[[template]]
+abbreviation = "action"
+description = "Controller action with #[Route]"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+#[Route('/$PATH$', name: '$ROUTE$')]
+public function $NAME$(): Response
+{
+    $END$
+}'''
+variables = [
+  { name = "PATH" },
+  { name = "NAME", expression = "camelCase(PATH)", defaultValue = '"index"' },
+  { name = "ROUTE", expression = 'concat("app_", snakeCase(NAME))', alwaysStopAt = false },
+]
+
+[[template]]
+abbreviation = "flash"
+description = "$this->addFlash()"
+contexts = ["PHP_STATEMENT"]
+text = "$$this->addFlash('$TYPE$', '$MESSAGE$');"
+variables = [{ name = "TYPE", defaultValue = '"success"' }, { name = "MESSAGE" }]
+
+[[template]]
+abbreviation = "json"
+description = "return $this->json()"
+contexts = ["PHP_STATEMENT"]
+text = "return $$this->json($END$);"
+
+[[template]]
+abbreviation = "redirect"
+description = "return $this->redirectToRoute()"
+contexts = ["PHP_STATEMENT"]
+text = "return $$this->redirectToRoute('$ROUTE$');"
+
+[[template]]
+abbreviation = "render"
+description = "return $this->render()"
+contexts = ["PHP_STATEMENT"]
+text = '''
+return $$this->render('$TEMPLATE$', [
+    $END$
+]);'''
+
+[[template]]
+abbreviation = "route"
+description = "#[Route] attribute"
+contexts = ["PHP_CLASS_MEMBER"]
+text = "#[Route('/$PATH$', name: '$NAME$')]"
+
+[[template]]
+abbreviation = "path"
+description = "{{ path('') }}"
+contexts = ["TWIG"]
+text = "{{ path('$ROUTE$') }}$END$"
+
+[[template]]
+abbreviation = "trans"
+description = "{{ ''|trans }}"
+contexts = ["TWIG"]
+text = "{{ '$KEY$'|trans }}$END$"

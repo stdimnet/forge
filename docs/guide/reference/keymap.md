@@ -1,0 +1,698 @@
+---
+title: Keymap reference
+description: Every action of Forge's PHPStorm keymap with its default shortcuts on Windows/Linux and macOS, grouped like PHPStorm's keymap, and whether Forge implements it.
+order: 10
+tags: [keymap, shortcuts, reference]
+---
+
+# Keymap reference
+
+Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`), keyed by
+PHPStorm's action ids. This page is the complete list. The other bundled keymaps (VS Code,
+Eclipse, Sublime Text, Emacs) change only some of these shortcuts; see
+[Keymap](../user/keymap.md#other-keymaps). To learn the shortcuts the way the
+JetBrains help teaches them, start with:
+
+- [Keymap reference card](../user/shortcuts/reference-card.md): the 62 most important shortcuts
+  on one printable page;
+- [Shortcuts by topic](../user/shortcuts/index.md): one page per area (editing, navigation,
+  search, refactoring, run and debug, Git, tool windows, general) that explains every
+  implemented action, where it is in the menus, and shows its result;
+- [Main menu reference](main-menu/index.md): every menu entry with its shortcut and status;
+- [Keymap](../user/keymap.md): changing shortcuts, chords and focus contexts.
+
+## How to read the tables
+
+Actions are grouped as in Settings | Keymap. The **In Forge** column says whether the action does
+something on this version (checked against the commands the UI registers):
+
+- **yes**: implemented;
+- **native**: handled by the editor or the operating system (undo, clipboard, caret movement);
+- **—**: not implemented yet; the shortcut stays reserved and shows "*Action* is not available
+  yet", and its main menu entry is disabled.
+
+Shortcuts marked `Fn+…` in PHPStorm are left out. Several Forge commands implement PHPStorm
+actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, `settings.open` →
+`ShowSettings`, `run.run` → `Run`, `run.debug` → `Debug`, `run.editConfigurations` →
+`editRunConfigurations`, `git.branches` → `Git.Branches`, `git.commit` → `CheckinProject`,
+`git.push` → `Vcs.Push`, `git.update` → `Vcs.UpdateProject`, `git.fetch` → `Git.Fetch`,
+`git.newBranch` → `Git.CreateNewBranch`, `git.log` → `Vcs.Show.Log`, `git.annotate` →
+`Annotate`, `php.generate` → `Generate`, `workspace.open` → `OpenFile`, `workspace.close` →
+`CloseProject`, `ExtractVariable` → `IntroduceVariable`. `Exit` exists only in the desktop app.
+
+## Main Menu
+
+
+### Navigate
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Search Everywhere | `SearchEverywhere` | `Double Shift` | `Double Shift` | yes |
+| Class… | `GotoClass` | `Ctrl+N` | `Cmd+O` | yes |
+| File… | `GotoFile` | `Ctrl+Shift+N` | `Cmd+Shift+O` | yes |
+| Symbol… | `GotoSymbol` | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes |
+| Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
+| Back | `Back` | `Ctrl+Alt+Left`, `Button4 Click` | `Cmd+[`, `Cmd+Alt+Left`, `Button4 Click` | yes |
+| Forward | `Forward` | `Ctrl+Alt+Right`, `Button5 Click` | `Cmd+]`, `Cmd+Alt+Right`, `Button5 Click` | yes |
+| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
+| Next Edit Location | `JumpToNextChange` |  |  | yes |
+| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
+| Declaration or Usages | `GotoDeclaration` | `Ctrl+B`, `Ctrl+Button1 Click`, `Button2 Click` | `Cmd+B`, `Cmd+Button1 Click`, `Button2 Click` | yes |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B`, `Ctrl+Alt+Button1 Click` | `Cmd+Alt+B`, `Cmd+Alt+Button1 Click` | yes |
+| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
+| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
+| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes |
+| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
+| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
+| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | yes |
+| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | yes |
+| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | yes |
+| Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
+| Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
+| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
+| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | yes |
+| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
+| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
+| Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
+| Move Caret to Matching Brace | `EditorMatchBrace` | `Ctrl+Shift+M` | `Ctrl+M` | yes |
+| Move Caret to Code Block Start | `EditorCodeBlockStart` | `Ctrl+[` | `Cmd+Alt+[` | — |
+| Move Caret to Code Block End | `EditorCodeBlockEnd` | `Ctrl+]` | `Cmd+Alt+]` | — |
+| Move Caret to Code Block Start with Selection | `EditorCodeBlockStartWithSelection` | `Ctrl+Shift+[` | `Cmd+Alt+Shift+[` | — |
+| Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
+| Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
+| Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
+| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes |
+| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes |
+
+### Help
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Find Action… | `GotoAction` | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes |
+| Keymap Reference | `Help.KeymapReference` |  |  | yes |
+| Check for Updates… | `CheckForUpdate` |  |  | yes |
+| About | `About` |  |  | yes |
+
+### Code
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | yes |
+| Basic Completion | `CodeCompletion` | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes |
+| Type-Matching Completion | `SmartTypeCompletion` | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | — |
+| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | yes |
+| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | yes |
+| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | yes |
+| Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
+| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
+| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
+| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | yes |
+| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes |
+| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | yes |
+| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes |
+| Surround with Emmet… | `SurroundWithEmmet` |  |  | yes |
+| Update Tag with Emmet… | `EmmetUpdateTag` |  |  | yes |
+| Show Color Picker | `ShowColorPicker` |  |  | yes |
+| Comment with Line Comment | `CommentByLineComment` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes |
+| Comment with Block Comment | `CommentByBlockComment` | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes |
+| Reformat Code | `ReformatCode` | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes |
+| Reformat File… | `ShowReformatFileDialog` | `Ctrl+Alt+Shift+L` | `Cmd+Alt+Shift+L` | — |
+| Auto-Indent Lines | `AutoIndentLines` | `Ctrl+Alt+I` | `Ctrl+Alt+I` | yes |
+| Optimize Imports | `OptimizeImports` | `Ctrl+Alt+O` | `Ctrl+Alt+O` | — |
+| Rearrange Code | `RearrangeCode` |  |  | — |
+| Move Statement Up | `MoveStatementUp` | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | yes |
+| Move Statement Down | `MoveStatementDown` | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | yes |
+| Move Element Left | `MoveElementLeft` | `Ctrl+Alt+Shift+Left` | `Cmd+Alt+Shift+Left` | — |
+| Move Element Right | `MoveElementRight` | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | — |
+| Move Line Up | `MoveLineUp` | `Alt+Shift+Up` | `Alt+Shift+Up` | yes |
+| Move Line Down | `MoveLineDown` | `Alt+Shift+Down` | `Alt+Shift+Down` | yes |
+| Inspect Code… | `InspectCode` |  |  | yes |
+| Inspect Current File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes |
+| Code Cleanup… | `CodeCleanup` |  |  | yes |
+| Locate Duplicates… | `LocateDuplicates` |  |  | yes |
+| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes |
+| Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
+| Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
+
+### File
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Settings… | `ShowSettings` | `Ctrl+Alt+S` | `Cmd+,` | yes |
+| Project Structure… | `ShowProjectStructureSettings` | `Ctrl+Alt+Shift+S` | `Cmd+;` | — |
+| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | yes |
+| New Scratch File | `NewScratchFile` | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` | yes |
+| New Project… | `NewProject` |  |  | yes |
+| Open… | `OpenFile` |  |  | yes |
+| Save All | `SaveAll` | `Ctrl+S` | `Cmd+S` | yes |
+| Reload All from Disk | `Synchronize` | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | — |
+| Close Project | `CloseProject` |  |  | yes |
+| Exit | `Exit` |  | `Cmd+Q` | yes |
+| Invalidate Caches… | `InvalidateCaches` |  |  | — |
+
+### View
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Quick Switch Scheme… | `QuickChangeScheme` | `` Ctrl+` `` | `` Ctrl+` `` | yes |
+| Theme: Toggle Dark/Light | `ChangeLaf` |  |  | yes |
+| Toggle Full Screen Mode | `ToggleFullScreen` |  | `Ctrl+Cmd+F` | yes |
+| Toggle Presentation Mode | `TogglePresentationMode` |  |  | yes |
+| Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | yes |
+| Toggle Zen Mode | `ToggleZenMode` |  |  | yes |
+| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | yes |
+| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
+| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
+| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes |
+| Parameter Info | `ParameterInfo` | `Ctrl+P` | `Cmd+P` | yes |
+| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | yes |
+| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | yes |
+| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | yes |
+| Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
+| Recently Changed Files | `RecentChangedFiles` |  |  | yes |
+| Recent Changes | `RecentChanges` | `Alt+Shift+C` | `Alt+Shift+C` | yes |
+| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
+| Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
+| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
+| Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
+| Compare with Clipboard | `CompareClipboardWithSelection` |  |  | — |
+| Inlay Hints | `ViewInplaceComments` |  |  | — |
+
+### File > File Properties
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| File Path | `ShowFilePath` | `Ctrl+Alt+F12` | `Cmd+Alt+F12` | — |
+
+### View > Appearance
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Show Main Menu in Separate Toolbar | `ToggleMainMenuInSeparateToolbar` |  |  | yes |
+| Compact Mode | `ToggleCompactMode` |  |  | yes |
+| Tool Window Bars | `ViewToolButtons` |  |  | yes |
+
+### View > Appearance > Zoom IDE
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Zoom In | `ZoomInIdeAction` | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` | yes |
+| Zoom Out | `ZoomOutIdeAction` | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` | yes |
+| Reset | `ResetIdeScaleAction` | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` | yes |
+
+### File > Manage IDE Settings
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Export Settings… | `ExportSettings` |  |  | — |
+
+### Edit
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Undo | `$Undo` | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` | native |
+| Redo | `$Redo` | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` | native |
+| Cut | `$Cut` | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | native |
+| Copy | `$Copy` | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | native |
+| Paste | `$Paste` | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | native |
+| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes |
+| Paste as Plain Text | `PasteSimple` | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes |
+| Select All | `$SelectAll` | `Ctrl+A` | `Cmd+A` | native |
+| Delete | `$Delete` | `Delete` | `Delete`, `Backspace` | native |
+| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | yes |
+| Add Selection for Next Occurrence | `SelectNextOccurrence` | `Alt+J` | `Ctrl+G` | yes |
+| Unselect Occurrence | `UnselectPreviousOccurrence` | `Alt+Shift+J` | `Ctrl+Shift+G` | yes |
+| Select All Occurrences | `SelectAllOccurrences` | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` | yes |
+| Extend Selection | `EditorSelectWord` | `Ctrl+W` | `Alt+Up` | yes |
+| Shrink Selection | `EditorUnSelectWord` | `Ctrl+Shift+W` | `Alt+Down` | yes |
+| Join Lines | `EditorJoinLines` | `Ctrl+Shift+J` | `Ctrl+Shift+J` | yes |
+| Duplicate Line or Selection | `EditorDuplicate` | `Ctrl+D` | `Cmd+D` | yes |
+| Delete Line | `EditorDeleteLine` | `Ctrl+Y` | `Cmd+Backspace` | yes |
+| Toggle Case | `EditorToggleCase` | `Ctrl+Shift+U` | `Cmd+Shift+U` | yes |
+| Sort Lines | `EditorSortLines` |  |  | — |
+| Reverse Lines | `EditorReverseLines` |  |  | — |
+| Fill Paragraph | `FillParagraph` |  |  | — |
+
+### Edit > Copy Path > Reference
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Copy Absolute Path | `CopyPaths` | `Ctrl+Shift+C` | `Cmd+Shift+C` | yes |
+| Copy Reference | `CopyReference` | `Ctrl+Alt+Shift+C` | `Cmd+Alt+Shift+C` | yes |
+
+### Edit > Find
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Find… | `Find` | `Ctrl+F` | `Cmd+F` | yes |
+| Replace… | `Replace` | `Ctrl+R` | `Cmd+R` | yes |
+| Find Next / Move to Next Occurrence | `FindNext` | `F3` | `Cmd+G` | yes |
+| Find Previous / Move to Previous Occurrence | `FindPrevious` | `Shift+F3` | `Cmd+Shift+G` | yes |
+| Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
+| Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
+| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
+| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
+| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | yes |
+| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes |
+| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
+| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes |
+| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | yes |
+| Replace Structurally… | `StructuralSearchPlugin.StructuralReplaceAction` |  |  | yes |
+
+### View > Tool Windows
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
+| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | yes |
+| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
+| Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
+| Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
+| Problems | `ActivateProblemsViewToolWindow` | `Alt+6` | `Cmd+6` | yes |
+| Structure | `ActivateStructureToolWindow` | `Alt+7` | `Cmd+7` | yes |
+| Services | `ActivateServicesToolWindow` | `Alt+8` | `Cmd+8` | yes |
+| Git | `ActivateVersionControlToolWindow` | `Alt+9` | `Cmd+9` | yes |
+| Commit | `ActivateCommitToolWindow` | `Alt+0` | `Cmd+0` | yes |
+| Terminal | `ActivateTerminalToolWindow` | `Alt+F12` | `Alt+F12` | yes |
+| Database | `ActivateDatabaseToolWindow` |  |  | yes |
+| Notifications | `ActivateNotificationsToolWindow` |  |  | yes |
+| AI Chat | `ActivateAIChatToolWindow` |  |  | yes |
+| Pull Requests | `ActivatePullRequestsToolWindow` |  |  | yes |
+| TODO | `ActivateTODOToolWindow` |  |  | yes |
+| Documentation | `ActivateDocumentationToolWindow` |  |  | yes |
+
+### Navigate > Bookmarks
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | yes |
+| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | yes |
+| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | yes |
+| Edit Bookmark Description… | `EditBookmark` |  |  | yes |
+| Next Bookmark | `GotoNextBookmark` |  |  | yes |
+| Previous Bookmark | `GotoPreviousBookmark` |  |  | yes |
+| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | yes |
+| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | yes |
+| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | yes |
+| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | yes |
+| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | yes |
+| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | yes |
+| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | yes |
+| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | yes |
+| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | yes |
+| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | yes |
+| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | yes |
+| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | yes |
+| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | yes |
+| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | yes |
+| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | yes |
+| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | yes |
+| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | yes |
+| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | yes |
+| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | yes |
+| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | yes |
+
+### Code > Folding
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Expand | `ExpandRegion` | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | yes |
+| Collapse | `CollapseRegion` | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes |
+| Expand Recursively | `ExpandRegionRecursively` | `Ctrl+Alt+=`, `Ctrl+Alt+NumPad+` | `Cmd+Alt+=`, `Cmd+Alt+NumPad+` | yes |
+| Collapse Recursively | `CollapseRegionRecursively` | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes |
+| Expand All | `ExpandAllRegions` | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes |
+| Collapse All | `CollapseAllRegions` | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes |
+| Fold Selection / Remove Region | `CollapseSelection` | `Ctrl+.` | `Cmd+.` | — |
+| Collapse Doc Comments | `CollapseDocComments` |  |  | yes |
+
+### Refactor
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes |
+| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | yes |
+| Rename File… | `RenameFile` |  |  | yes |
+| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | yes |
+| Move… | `Move` | `F6` | `F6` | yes |
+| Copy File… | `CopyElement` | `F5` | `F5` | yes |
+| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | yes |
+| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes |
+| Push Members Down… | `MemberPushDown` |  |  | —yes |
+| Pull Members Up… | `MembersPullUp` |  |  | —yes |
+| Make Static… | `MakeStatic` |  |  | yes |
+
+### Refactor > Extract > Introduce
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Extract Method… | `ExtractMethod` | `Ctrl+Alt+M` | `Cmd+Alt+M` | — |
+| Introduce Variable… | `IntroduceVariable` | `Ctrl+Alt+V` | `Cmd+Alt+V` | — |
+| Introduce Field… | `IntroduceField` | `Ctrl+Alt+F` | `Cmd+Alt+F` | — |
+| Introduce Constant… | `IntroduceConstant` | `Ctrl+Alt+C` | `Cmd+Alt+C` | — |
+| Introduce Parameter… | `IntroduceParameter` | `Ctrl+Alt+P` | `Cmd+Alt+P` | — |
+| Extract Interface… | `ExtractInterface` |  |  | —yes |
+| Extract Superclass… | `ExtractSuperclass` |  |  | —yes |
+
+### Run
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Run | `Run` | `Shift+F10` | `Ctrl+R` | yes |
+| Debug | `Debug` | `Shift+F9` | `Ctrl+D` | yes |
+| Run… | `ChooseRunConfiguration` | `Alt+Shift+F10` | `Ctrl+Alt+R` | yes |
+| Debug… | `ChooseDebugConfiguration` | `Alt+Shift+F9` | `Ctrl+Alt+D` | yes |
+| Run Context Configuration | `RunClass` | `Ctrl+Shift+F10` | `Ctrl+Shift+R` | yes |
+| Debug Context Configuration | `DebugClass` | `Ctrl+Shift+F9` | `Ctrl+Shift+D` | yes |
+| Edit Configurations… | `editRunConfigurations` |  |  | yes |
+| Stop | `Stop` | `Ctrl+F2` | `Cmd+F2` | yes |
+| Rerun | `Rerun` | `Ctrl+F5` | `Cmd+R` | yes |
+| View Breakpoints… | `ViewBreakpoints` | `Ctrl+Shift+F8` | `Cmd+Shift+F8` | yes |
+| Attach to Process… | `XDebugger.AttachToProcess` | `Ctrl+Alt+F5` | `Cmd+Alt+F5` | — |
+
+### Tools
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Run Anything | `RunAnything` | `Double Ctrl` | `Double Ctrl` | yes |
+| Upload to Default Server | `PublishGroup.Upload` | — | — | yes |
+| Upload to… | `PublishGroup.UploadTo` | `Ctrl+Alt+Shift+X` | `Cmd+Alt+Shift+X` | yes |
+| Download from Default Server | `PublishGroup.Download` | — | — | yes |
+| Download from… | `PublishGroup.DownloadFrom` | — | — | yes |
+| Compare with Deployed Version | `PublishGroup.CompareLocalVsRemote` | — | — | yes |
+| Compare with Deployed Version on… | `PublishGroup.CompareLocalVsRemoteWith` | — | — | yes |
+| Sync with Deployed to Default Server | `PublishGroup.SyncLocalVsRemote` | — | — | yes |
+| Sync with Deployed to… | `PublishGroup.SyncLocalVsRemoteWith` | — | — | yes |
+| Delete on Default Server | `PublishGroup.DeleteOnServer` | — | — | yes |
+| Deployment Configuration… | `PublishGroup.Configuration` | — | — | yes |
+| Deployment Options… | `PublishGroup.Options` | — | — | yes |
+| Automatic Upload (Always) | `PublishGroup.ToggleAutoUpload` | — | — | yes |
+| Browse Remote Host | `PublishGroup.BrowseServers` | — | — | yes |
+| Remote Host (tool window) | `ActivateRemoteHostToolWindow` | — | — | yes |
+| Start SSH Session… | `RunSshConsole` | — | — | yes |
+
+Every enabled [External Tool](../user/run-debug.md#external-tools) is an action too
+(`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no
+default shortcut and can be bound in Settings | Keymap.
+
+### Build
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Build Project | `CompileDirty` | `Ctrl+F9` | `Cmd+F9` | — |
+
+### Run > Toggle Breakpoint
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Toggle Line Breakpoint | `ToggleLineBreakpoint` | `Ctrl+F8` | `Cmd+F8` | yes |
+| Toggle Temporary Line Breakpoint | `ToggleTemporaryLineBreakpoint` | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes |
+
+### Git
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Commit… | `CheckinProject` | `Ctrl+K` | `Cmd+K` | yes |
+| Push… | `Vcs.Push` | `Ctrl+Shift+K` | `Cmd+Shift+K` | yes |
+| Update Project… | `Vcs.UpdateProject` | `Ctrl+T` | `Cmd+T` | yes |
+| Commit and Push… | `Git.Commit.And.Push.Executor` | `Ctrl+Alt+K` | `Cmd+Alt+K` | — |
+| VCS Operations Popup… | `Vcs.QuickListPopupAction` | `` Alt+` `` | `Ctrl+V` | — |
+| Branches… | `Git.Branches` |  |  | yes |
+| Fetch | `Git.Fetch` |  |  | yes |
+| Show Git Log | `Vcs.Show.Log` |  |  | yes |
+| Pull… | `Git.Pull` |  |  | — |
+| Stash Changes… | `Git.Stash` |  |  | — |
+| Unstash Changes… | `Git.Unstash` |  |  | — |
+| New Branch… | `Git.CreateNewBranch` |  |  | yes |
+| Rollback… | `ChangesView.Rollback` | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | — |
+| Show Commit Message History | `Vcs.ShowMessageHistory` | `Ctrl+M` | `Cmd+M` | — |
+
+### Git > Current File
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Annotate with Git Blame | `Annotate` |  |  | yes |
+| Show History | `Vcs.ShowTabbedFileHistory` |  |  | — |
+| Compare with Revision… | `Compare.SameVersion` |  |  | — |
+| Show History for Selection | `Vcs.ShowHistoryForBlock` |  |  | — |
+| Rollback Lines | `Vcs.RollbackChangedLines` | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | — |
+
+### File > Local History
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Show Local History | `LocalHistory.ShowHistory` |  |  | yes |
+| Show History for Selection | `LocalHistory.ShowSelectionHistory` |  |  | yes |
+| Put Label… | `LocalHistory.PutLabel` |  |  | yes |
+
+### Window
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Hide All Tool Windows | `HideAllWindows` | `Ctrl+Shift+F12` | `Cmd+Shift+F12` | yes |
+| Jump to Last Tool Window | `JumpToLastWindow` | `F12` | `F12` | yes |
+| Hide Active Tool Window | `HideActiveWindow` | `Shift+Escape` | `Shift+Escape` | yes |
+| Hide Side Tool Windows | `HideSideWindows` |  |  | yes |
+| Maximize Tool Window | `MaximizeToolWindow` | `Ctrl+Shift+'` | `Cmd+Shift+'` | — |
+| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
+| Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
+| Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
+| Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | yes |
+| Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | yes |
+
+### Window > Layouts
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Save Current Layout as New… | `StoreNewLayout` |  |  | yes |
+
+### Window > Active Tool Window
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Stretch to Left | `ResizeToolWindowLeft` | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` | yes |
+| Stretch to Right | `ResizeToolWindowRight` | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` | yes |
+| Stretch to Top | `ResizeToolWindowUp` | `Ctrl+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes |
+| Stretch to Bottom | `ResizeToolWindowDown` | `Ctrl+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes |
+
+### Window > Editor Tabs
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Select Next Tab | `NextTab` | `Alt+Right` | `Ctrl+Right`, `Cmd+Shift+]` | yes |
+| Select Previous Tab | `PreviousTab` | `Alt+Left` | `Ctrl+Left`, `Cmd+Shift+[` | yes |
+| Close Tab | `CloseContent` | `Ctrl+F4` | `Cmd+W` | yes |
+| Close All Tabs | `CloseAllEditors` |  |  | yes |
+| Close Other Tabs | `CloseAllEditorsButActive` |  | `Cmd+Alt+W` | yes |
+| Close Unmodified Tabs | `CloseAllUnmodifiedEditors` |  |  | yes |
+| Reopen Closed Tab | `ReopenClosedTab` |  |  | yes |
+| Pin Tab | `PinActiveEditorTab` |  |  | yes |
+| Split Right | `SplitVertically` |  |  | yes |
+| Split Down | `SplitHorizontally` |  |  | yes |
+| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | yes |
+| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | yes |
+| Split and Move Right | `MoveTabRight` |  |  | yes |
+| Open in New Window | `EditSourceInNewWindow` | `Shift+F4` | `Shift+F4` | yes |
+| Split and Move Down | `MoveTabDown` |  |  | yes |
+| Move to Opposite Group | `MoveEditorToOppositeTabGroup` |  |  | yes |
+| Change Splitter Orientation | `ChangeSplitOrientation` |  |  | yes |
+| Unsplit | `Unsplit` |  |  | yes |
+| Unsplit All | `UnsplitAll` |  |  | yes |
+| Close Tabs to the Left | `CloseAllToTheLeft` |  |  | yes |
+| Close Tabs to the Right | `CloseAllToTheRight` |  |  | yes |
+
+## Editor Actions
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Split Line | `EditorSplitLine` | `Ctrl+Enter` | `Cmd+Enter` | yes |
+| Start New Line | `EditorStartNewLine` | `Shift+Enter` | `Shift+Enter` | yes |
+| Start New Line Before Current | `EditorStartNewLineBefore` | `Ctrl+Alt+Enter` | `Cmd+Alt+Enter` | yes |
+| Scroll Up | `EditorScrollUp` | `Ctrl+Up` |  | yes |
+| Scroll Down | `EditorScrollDown` | `Ctrl+Down` |  | yes |
+| Delete to Word Start | `EditorDeleteToWordStart` | `Ctrl+Backspace` | `Alt+Backspace` | native |
+| Delete to Word End | `EditorDeleteToWordEnd` | `Ctrl+Delete` | `Alt+Delete` | native |
+| Delete to Line Start | `EditorDeleteToLineStart` |  |  | native |
+| Delete to Line End | `EditorDeleteToLineEnd` |  | `Ctrl+K` | native |
+| Indent Selection | `EditorIndentSelection` | `Tab` | `Tab` | native |
+| Unindent Line or Selection | `EditorUnindentSelection` | `Shift+Tab` | `Shift+Tab` | native |
+| Enter | `EditorEnter` | `Enter` | `Enter` | native |
+| Escape | `EditorEscape` | `Escape` | `Escape` | native |
+| Backspace | `EditorBackSpace` | `Backspace`, `Shift+Backspace` | `Backspace`, `Shift+Backspace` | native |
+| Move Caret to Line Start | `EditorLineStart` | `Home` | `Home`, `Cmd+Left` | native |
+| Move Caret to Line End | `EditorLineEnd` | `End` | `End`, `Cmd+Right` | native |
+| Move Caret to Text Start | `EditorTextStart` | `Ctrl+Home` | `Cmd+Home` | native |
+| Move Caret to Text End | `EditorTextEnd` | `Ctrl+End` | `Cmd+End` | native |
+| Move Caret to Previous Word | `EditorPreviousWord` | `Ctrl+Left` | `Alt+Left` | native |
+| Move Caret to Next Word | `EditorNextWord` | `Ctrl+Right` | `Alt+Right` | native |
+| Move Caret to Previous Word with Selection | `EditorPreviousWordWithSelection` | `Ctrl+Shift+Left` | `Alt+Shift+Left` | native |
+| Move Caret to Next Word with Selection | `EditorNextWordWithSelection` | `Ctrl+Shift+Right` | `Alt+Shift+Right` | native |
+| Page Up | `EditorPageUp` | `PageUp` | `PageUp` | native |
+| Page Down | `EditorPageDown` | `PageDown` | `PageDown` | native |
+| Move Caret to Page Top | `EditorMoveToPageTop` | `Ctrl+PageUp` | `Cmd+PageUp` | native |
+| Move Caret to Page Bottom | `EditorMoveToPageBottom` | `Ctrl+PageDown` | `Cmd+PageDown` | native |
+| Clone Caret Above | `EditorCloneCaretAbove` | `Double Ctrl+Up` | `Double Alt+Up` | yes |
+| Clone Caret Below | `EditorCloneCaretBelow` | `Double Ctrl+Down` | `Double Alt+Down` | yes |
+| Add Carets to Ends of Selected Lines | `EditorAddCaretPerSelectedLine` | `Alt+Shift+G` | `Alt+Shift+G` | yes |
+| Toggle Insert/Overwrite | `EditorToggleInsertState` | `Insert` |  | native |
+| Choose Lookup Item and Replace | `EditorChooseLookupItemReplace` | `Tab` | `Tab` | native |
+
+## Debugger Actions
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Mute Breakpoints | `XDebugger.MuteBreakpoints` |  |  | yes |
+| Step Over | `StepOver` | `F8` | `F8` | yes |
+| Step Into | `StepInto` | `F7` | `F7` | yes |
+| Smart Step Into | `SmartStepInto` | `Shift+F7` | `Shift+F7` | yes |
+| Force Step Into | `ForceStepInto` | `Alt+Shift+F7` | `Alt+Shift+F7` | yes |
+| Step Out | `StepOut` | `Shift+F8` | `Shift+F8` | yes |
+| Run to Cursor | `RunToCursor` | `Alt+F9` | `Alt+F9` | yes |
+| Force Run to Cursor | `ForceRunToCursor` | `Ctrl+Alt+F9` | `Cmd+Alt+F9` | yes |
+| Resume Program | `Resume` | `F9` | `Cmd+Alt+R` | yes |
+| Pause Program | `Pause` |  |  | yes |
+| Evaluate Expression… | `EvaluateExpression` | `Alt+F8` | `Alt+F8` | yes |
+| Quick Evaluate Expression | `QuickEvaluateExpression` | `Ctrl+Alt+F8` | `Cmd+Alt+F8` | yes |
+| Show Execution Point | `ShowExecutionPoint` | `Alt+F10` | `Alt+F10` | yes |
+| Add to Watches | `Debugger.AddToWatch` |  |  | yes |
+| Set Value… | `XDebugger.SetValue` | `F2` | `F2` | yes |
+| Copy Value | `XDebugger.CopyValue` |  |  | yes |
+
+## Other
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Show Context Menu | `ShowPopupMenu` | `ContextMenu` |  | yes |
+| Main Menu | `MainMenuButton.ShowMenu` | `Alt+\` |  | yes |
+
+
+## Plugins
+
+Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some under Main Menu).
+"Context" is where the shortcut applies.
+
+| Action | Action id | Windows / Linux | macOS | Context |
+| --- | --- | --- | --- | --- |
+| Insert Inline Proposal | `InsertInlineCompletionAction` | `Tab` | `Tab` | editor, while an AI suggestion is shown |
+| Insert Inline Proposal Word | `InsertInlineCompletionWordAction` | `Ctrl+Right` | `Alt+Right` | editor, while an AI suggestion is shown |
+| Insert Inline Proposal Line | `InsertInlineCompletionLineAction` |  |  | editor, while an AI suggestion is shown |
+| Show Next Inline Proposal | `NextInlineCompletionAction` | `Alt+]` | `Alt+]` | editor, while an AI suggestion is shown |
+| Show Previous Inline Proposal | `PrevInlineCompletionAction` | `Alt+[` | `Alt+[` | editor, while an AI suggestion is shown |
+| Call Inline Completion | `CallInlineCompletionAction` | `Alt+Shift+\` | `Alt+Shift+\` | editor |
+| Explain with AI | `ai.explain` |  |  | any |
+| Fix with AI | `ai.fix` |  |  | any |
+| Generate Documentation with AI | `ai.generateDocs` |  |  | any |
+| Generate Tests with AI | `ai.generateTests` |  |  | any |
+| Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
+| Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
+| Composer: Add Dependency… | `Composer.AddDependency` |  |  | any |
+| Composer: Install | `Composer.Install` |  |  | any |
+| Composer: Update | `Composer.Update` |  |  | any |
+| Composer: Validate | `Composer.Validate` |  |  | any |
+| Composer: Show Outdated | `Composer.ShowOutdated` |  |  | any |
+| Composer: Audit | `Composer.Audit` |  |  | any |
+| Run Command… (Command Line Tools Console) | `CommandLineToolsAction` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
+| Command Line Tools Console (tool window) | `ActivateCommandLineToolsConsoleToolWindow` |  |  | any |
+| Run Artisan Command… | `Laravel.RunArtisan` |  |  | any |
+| Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
+| Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
+| Symfony Routes | `Symfony.ShowRoutes` |  |  | any |
+| Doctrine Entities | `Doctrine.ShowEntities` |  |  | any |
+| npm (tool window) | `ActivatenpmToolWindow` |  |  | any |
+| Reload npm Scripts | `npm.reload` |  |  | any |
+| Install Dependencies | `npm.install` |  |  | any |
+| Python Packages (tool window) | `ActivatePythonPackagesToolWindow` |  |  | any |
+| Switch Python Interpreter… | `python.selectInterpreter` |  |  | any |
+| Add Python Interpreter… | `python.addInterpreter` |  |  | any |
+| Install Requirements | `python.installRequirements` |  |  | any |
+| Run Selection in Python Console | `ExecuteInPyConsoleAction` | `Alt+Shift+E` | `Alt+Shift+E` | editor |
+| Run File in Python Console | `RunFileInPythonConsole` |  |  | any |
+| Python Console (tool window) | `ActivatePythonConsoleToolWindow` |  |  | any |
+| Profiler (tool window) | `ActivateProfilerToolWindow` |  |  | any |
+| Profile | `python.profile` |  |  | any |
+| Run tox Environment… | `python.runToxEnvironment` |  |  | any |
+| New Terminal Tab | `Terminal.NewTab` | `Ctrl+Shift+T` | `Cmd+T` | tool window |
+| Close Terminal Tab | `Terminal.CloseTab` |  |  | tool window |
+| Start Listening for PHP Debug Connections | `PhpListenDebugAction` |  |  | any |
+| Web Server Debug Validation | `WebServerDebugValidation` |  |  | any |
+| New Scratch Buffer | `NewScratchBuffer` |  |  | any |
+| Execute (database console) | `Console.Jdbc.Execute` | `Ctrl+Enter` | `Cmd+Enter` | editor |
+| Submit (data grid) | `Console.TableResult.SubmitChanges` | `Ctrl+Enter` | `Cmd+Enter` | tool window |
+| Add Row | `Console.TableResult.AddRow` | `Alt+Insert` | `Cmd+N` | tool window |
+| Delete Rows | `Console.TableResult.DeleteRows` | `Ctrl+Y` | `Cmd+Backspace` | tool window |
+| Revert Selected | `Console.TableResult.Revert` | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | tool window |
+| Reload Page | `Console.TableResult.Reload` |  |  | any |
+| Go to Referenced Data (data grid) | `Console.TableResult.GotoReferencedData` | `Ctrl+B` | `Cmd+B` | tool window |
+| Open Value Editor | `Console.TableResult.EditValue` | `Shift+Enter` in a grid (through `Database.Properties`) |  | any |
+| Transpose | `Console.TableResult.Transpose` |  |  | any |
+| Aggregate View | `Console.TableResult.AggregateView` |  |  | any |
+| Show Chart | `Console.TableResult.ShowChart` |  |  | any |
+| Compare With… (data) | `Console.TableResult.CompareWith` |  |  | any |
+| Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
+| Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
+| New Data Source… | `Database.NewDataSource` |  |  | any |
+| Full-Text Search… (database) | `DatabaseView.FullTextSearch` | `Ctrl+Alt+Shift+F` | `Cmd+Alt+Shift+F` | any |
+| Show Diagram… (ER diagram) | `ShowUmlDiagram` | `Ctrl+Alt+Shift+U` | `Cmd+Alt+Shift+U` | any |
+| Compare Structure… (database) | `Database.CompareStructure` |  |  | any |
+| Explain Plan (database console) | `Console.Jdbc.ExplainPlan` |  |  | editor |
+| Explain Plan (Raw) (database console) | `Console.Jdbc.ExplainPlan.Raw` |  |  | editor |
+| Modify Table… | `Database.ModifyTable` | `Ctrl+F6` | `Cmd+F6` | tool window |
+| New Table… | `Database.NewTable` |  |  | any |
+| SQL Generator… (Generate DDL) | `Database.GenerateDdl` |  |  | any |
+| Import Data from File… | `Database.ImportData` |  |  | any |
+| Export with Dump Tool… | `Database.DumpData` |  |  | any |
+| Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
+| Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
+| Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
+| Zoom In (image editor) | `Images.Editor.ZoomIn` | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | any |
+| Zoom Out (image editor) | `Images.Editor.ZoomOut` | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | any |
+| Actual Size (image editor) | `Images.Editor.ActualSize` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | any |
+| Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
+| Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
+| Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Run Cell and Select Below | `Jupyter.RunCellSelectBelow` | `Shift+Enter` | `Shift+Enter` | notebook |
+| Run Cell | `Jupyter.RunCell` | `Ctrl+Enter` | `Cmd+Enter` | notebook |
+| Run Cell and Insert Below | `Jupyter.RunCellInsertBelow` | `Alt+Enter` | `Opt+Enter` | notebook |
+| Run All Cells | `Jupyter.RunAll` | `Ctrl+Alt+Shift+Enter` | `Cmd+Opt+Shift+Enter` | notebook |
+| Interrupt Kernel | `Jupyter.InterruptKernel` | `I I` | `I I` | notebook command mode |
+| Restart Kernel | `Jupyter.RestartKernel` | `0 0` | `0 0` | notebook command mode |
+| Shut Down Kernel | `Jupyter.ShutdownKernel` |  |  | any |
+| Enter Command Mode | `Jupyter.EnterCommandMode` | `Escape` | `Escape` | notebook |
+| Enter Edit Mode | `Jupyter.EnterEditMode` | `Enter` | `Enter` | notebook command mode |
+| Insert Cell Above | `Jupyter.InsertCellAbove` | `A` | `A` | notebook command mode |
+| Insert Cell Below | `Jupyter.InsertCellBelow` | `B` | `B` | notebook command mode |
+| Delete Cell | `Jupyter.DeleteCell` | `D D` | `D D` | notebook command mode |
+| Change Cell Type to Code | `Jupyter.ToCode` | `Y` | `Y` | notebook command mode |
+| Change Cell Type to Markdown | `Jupyter.ToMarkdown` | `M` | `M` | notebook command mode |
+| Change Cell Type to Raw | `Jupyter.ToRaw` | `R` | `R` | notebook command mode |
+| Select Cell Above | `Jupyter.SelectCellAbove` | `Up`, `K` | `Up`, `K` | notebook command mode |
+| Select Cell Below | `Jupyter.SelectCellBelow` | `Down`, `J` | `Down`, `J` | notebook command mode |
+| Move Cell Up | `Jupyter.MoveCellUp` | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | notebook command mode |
+| Move Cell Down | `Jupyter.MoveCellDown` | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | notebook command mode |
+| Clear All Outputs | `Jupyter.ClearAllOutputs` |  |  | any |
+| Show Variables (Jupyter) | `Jupyter.ShowVariables` |  |  | any |
+| Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
+| Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
+| Select in Project View | `SelectInProjectView` |  |  | any |
+| Render All Doc Comments | `ToggleRenderedDocPresentationForAll` |  |  | any |
+| Show Sticky Lines | `EditorToggleStickyLines` |  |  | any |
+| Reader Mode | `ToggleReaderMode` |  |  | any |
+| Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
+| Clear All Notifications | `ClearAllNotifications` |  |  | any |
+| Apply Changes (Hot Reload of `dotnet watch` runs; IntelliJ's Update Running Application) | `UpdateRunningApplication` | `Ctrl+F10` | `Cmd+F10` | any |
+
+## Commands without shortcuts
+
+Forge also registers commands that are not PHPStorm actions. They have no default shortcut but
+appear in Find Action and can be bound in Settings | Keymap, for example: Show Git Log
+(`git.log`), Fetch (`git.fetch`), New Branch… (`git.newBranch`), Show Diff (`git.showDiff`),
+Create Merge Request… (`forges.createMergeRequest`), View Pull/Merge Requests
+(`forges.showMergeRequests`), Refresh Pull/Merge Requests (`forges.refresh`), Detect Project
+Type (`project.redetect`), Reindex PHP Files (`php.reindex`), Generate PHPDoc Comment
+(`php.generatePhpDoc`), Reindex Lua Files (`lua.reindex`), Refresh Symfony Index
+(`symfony.refresh`), Refresh Doctrine Entities (`doctrine.refresh`), Refresh Services
+(`Services.Refresh`), Pull Image… (`Docker.PullImage`), New SSH Connection…
+(`Remote.NewSshConnection`), Reconnect to Remote Host (`Remote.Reconnect`), SSH
+Configurations… (`remote.settings`), Language Servers… (`langservers.settings`), AI Providers…
+(`ai.settings`), AI Assistant Settings… (`ai.assistantSettings`), Enable/Disable AI Inline
+Completion (`ai.toggleInlineCompletion`), Open AI Chat (`AIChat.Focus`), New AI Chat (`AIChat.NewChat`), Browser
+Companion Settings (`BrowserCompanion.Settings`), Keymap Settings (`settings.keymap`).

@@ -1,0 +1,9 @@
+[package]
+name = "forge-ports"
+description = "Forge IDE local ports: free ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+socket2 = "0.6"

@@ -1,0 +1,765 @@
+# PyForge: Python in the style of PyCharm. The logic lives in packs/pyforge (lang-python:
+# PEP 440/508, dependency files, imports and inspections; interpreters: detection and new
+# environments; packages: pip/uv/Poetry/Pipenv and PyPI). basedpyright, Pyright, ty and
+# ruff come from the language server catalog (crates/forge-langservers).
+
+[[plugin]]
+id = "forge.python"
+name = "Python"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+description = "Python editing: highlighting, scope-aware completion, syntax checks, requirements files, basedpyright / ty and ruff from Settings > Language Servers, Reformat Code with ruff format or Black."
+
+[plugin.contributions]
+languages = ["python"]
+
+[[plugin.contributions.fileTypes]]
+id = "python"
+name = "Python"
+extensions = ["py", "pyw", "pyi", "pyx", "pxd", "gyp"]
+fileNames = ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"]
+interpreters = ["python", "python3", "pypy", "pypy3", "uv", "pythonw"]
+
+[[plugin.contributions.fileTypes]]
+id = "pip-requirements"
+name = "pip Requirements"
+fileNames = ["requirements*.txt", "constraints*.txt", "requirements*.in", "requirements/*.txt"]
+
+[[plugin.contributions.commands]]
+id = "python.reformatFile"
+title = "Reformat File with ruff format / Black"
+category = "Python"
+
+# ---- Settings | Languages & Frameworks | Python ----------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.formatter"
+title = "Reformat Code with"
+description = "Ctrl+Alt+L and \"Reformat code\" on save use this formatter for Python files; pyproject.toml / ruff.toml settings are honoured."
+type = "enum"
+options = [
+  { value = "ruff", label = "ruff format" },
+  { value = "black", label = "Black" },
+  { value = "lsp", label = "The language server" },
+  { value = "none", label = "Do not format" },
+]
+default = "ruff"
+group = "lang.python"
+section = "Formatter"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.ruff.path"
+title = "ruff executable"
+description = "Leave empty to use the interpreter's environment, Forge's download or PATH."
+type = "path"
+default = ""
+group = "lang.python"
+section = "Formatter"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.black.path"
+title = "Black executable"
+description = "Leave empty to use the interpreter's environment or PATH."
+type = "path"
+default = ""
+group = "lang.python"
+section = "Formatter"
+order = 2
+
+[[plugin.contributions.settings]]
+key = "python.lsp.useEnvironmentTools"
+title = "Use language servers from the interpreter's environment"
+description = "basedpyright, ruff and ty installed in the selected environment (or the project's .venv) start before Forge's own downloads and PATH."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Language Servers"
+order = 10
+
+[[plugin.contributions.inspections]]
+id = "PyPackageRequirements"
+name = "Package requirements"
+group = "Python/Requirements"
+language = "python"
+severity = "WARNING"
+batch = false
+description = "Reports dependencies of requirements files and pyproject.toml that are not installed in the project interpreter, or not in a matching version."
+
+[[plugin.contributions.inspections]]
+id = "PyUndeclaredRequirement"
+name = "Imported package is not listed in the requirements"
+group = "Python/Requirements"
+language = "python"
+severity = "WEAK WARNING"
+batch = false
+description = "Reports imports of third-party packages that no dependency file declares."
+
+[[plugin.contributions.inspectionMappings]]
+source = "pyforge"
+code = "python.requirementNotSatisfied"
+inspection = "PyPackageRequirements"
+
+[[plugin.contributions.inspectionMappings]]
+source = "pyforge"
+code = "python.requirementSyntax"
+inspection = "PyPackageRequirements"
+
+[[plugin.contributions.inspectionMappings]]
+source = "pyforge"
+code = "python.undeclaredImport"
+inspection = "PyUndeclaredRequirement"
+
+[[plugin]]
+id = "forge.python-env"
+name = "Python Interpreters and Packages"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python"]
+projectTypes = ["pyforge"]
+description = "Python interpreters (system, pyenv, venv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL), the Python Packages tool window, requirements inspections and the Python run configuration."
+
+[[plugin.contributions.toolWindows]]
+id = "pythonPackages"
+title = "Python Packages"
+anchor = "bottom"
+icon = "package"
+order = 45
+
+[[plugin.contributions.commands]]
+id = "python.selectInterpreter"
+title = "Switch Python Interpreter…"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "python.addInterpreter"
+title = "Add Python Interpreter…"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "python.installRequirements"
+title = "Install Requirements"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "ActivatePythonPackagesToolWindow"
+title = "Python Packages"
+category = "View"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "python"
+name = "Python"
+description = "Run a Python script or module (python -m) with the project's interpreter."
+icon = "file-code"
+
+# ---- Settings | Project | Python Interpreter ------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.interpreter"
+title = "Python Interpreter"
+description = "The project's interpreter: the path of a local python executable (a detected environment) or the name of a configured interpreter."
+type = "string"
+default = ""
+group = "project.python-interpreter"
+project = true
+hidden = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.interpreters"
+title = "Python interpreters"
+description = "Interpreters available in every project: local, Docker, Docker Compose, SSH and WSL."
+type = "objects"
+unique = ["name"]
+default = []
+group = "project.python-interpreter"
+hidden = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.projectInterpreters"
+title = "Python interpreters of this project"
+type = "objects"
+unique = ["name"]
+default = []
+group = "project.python-interpreter"
+project = true
+hidden = true
+order = 2
+
+# ---- Python Packages and inspections ---------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.packages.pypi"
+title = "Look up packages on PyPI"
+description = "Latest versions, search and version completion come from PyPI (cached for 12 hours in Forge's cache folder)."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Packages"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "python.packages.index"
+title = "Package index"
+description = "PyPI or a mirror with the same JSON API."
+type = "string"
+default = "https://pypi.org"
+group = "lang.python"
+section = "Packages"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "python.inspections.requirements"
+title = "Report unsatisfied requirements"
+description = "Dependencies in requirements files and pyproject.toml that are not installed in the interpreter, with \"Install requirement\"."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Inspections"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "python.inspections.imports"
+title = "Report imports of packages missing from the requirements"
+description = "With the quick fix \"Add requirement\" to requirements.txt or pyproject.toml."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Inspections"
+order = 31
+
+[[plugin.contributions.settings]]
+key = "python.inspections.ignoredPackages"
+title = "Ignored packages"
+description = "Packages the requirements inspections do not report."
+type = "list"
+default = []
+group = "lang.python"
+section = "Inspections"
+project = true
+order = 32
+
+# ---- Tests, debugger, console and profiler (packs/pyforge/testing) ------------------------
+
+[[plugin]]
+id = "forge.python-tools"
+name = "Python Tests, Debugger, Console and Profiler"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-env"]
+projectTypes = ["pyforge"]
+description = "pytest, unittest and tox in the test runner (gutter icons, Rerun Failed Tests, coverage with pytest-cov), debugging with debugpy (launch, Attach to Process, Attach to DAP Server, the debug console), the Python Console with IPython and a variables view, and the cProfile profiler with call tree and hot spots."
+
+[[plugin.contributions.toolWindows]]
+id = "pythonConsole"
+title = "Python Console"
+anchor = "bottom"
+icon = "square-terminal"
+order = 46
+
+[[plugin.contributions.toolWindows]]
+id = "profiler"
+title = "Profiler"
+anchor = "bottom"
+icon = "gauge"
+order = 47
+
+[[plugin.contributions.commands]]
+id = "ExecuteInPyConsoleAction"
+title = "Run Selection in Python Console"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "RunFileInPythonConsole"
+title = "Run File in Python Console"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "ActivatePythonConsoleToolWindow"
+title = "Python Console"
+category = "View"
+
+[[plugin.contributions.commands]]
+id = "python.profile"
+title = "Profile"
+category = "Run"
+
+[[plugin.contributions.commands]]
+id = "python.runToxEnvironment"
+title = "Run tox Environment…"
+category = "Python"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "pytest"
+name = "pytest"
+description = "Run pytest: a directory, a file, a class, a test or parametrized case, or tests matching a keyword (-k)."
+icon = "flask-conical"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "unittest"
+name = "Unittests"
+description = "Run unittest test cases: discovery in a directory, a file, a class or a test method."
+icon = "test-tube-diagonal"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "tox"
+name = "tox"
+description = "Run tox environments; every environment is a test of the tree."
+icon = "box"
+
+# debugpy (MIT). Run configurations debug through `python -m debugpy --listen`, so Docker,
+# SSH and WSL interpreters work; Attach to Process starts the adapter
+# (`python -m debugpy.adapter`) with the project's interpreter.
+[[plugin.contributions.debugAdapters]]
+type = "python"
+label = "Python (debugpy)"
+command = "python3"
+args = ["-m", "debugpy.adapter"]
+languages = ["py", "pyw"]
+launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}", console = "internalConsole", justMyCode = true }
+attach = { processId = "${pid}", justMyCode = true }
+attachSchema = { type = "object", properties = { justMyCode = { type = "boolean", description = "Step only through the project's code" }, pathMappings = { type = "array", description = "[{ \"localRoot\": \"…\", \"remoteRoot\": \"…\" }] for programs in containers or on other hosts" } } }
+
+# ---- Settings | Tools | Python Integrated Tools ------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.testing.runner"
+title = "Default test runner"
+description = "Runs tests from the gutter and Run Context Configuration. Autodetect: pytest when the project uses it (configuration or dependency), unittest for files with only test cases."
+type = "enum"
+options = [
+  { value = "auto", label = "Autodetect" },
+  { value = "pytest", label = "pytest" },
+  { value = "unittest", label = "Unittests" },
+]
+default = "auto"
+group = "tools.python-integrated-tools"
+section = "Testing"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.pytest.reporter"
+title = "pytest results"
+description = "JUnit XML is built into pytest; a report log needs the pytest-reportlog plugin."
+type = "enum"
+options = [
+  { value = "junitxml", label = "JUnit XML (--junitxml)" },
+  { value = "reportLog", label = "Report log (--report-log)" },
+]
+default = "junitxml"
+group = "tools.python-integrated-tools"
+section = "Testing"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.tox.path"
+title = "tox executable"
+description = "Leave empty to run tox with the project's interpreter (python -m tox)."
+type = "path"
+default = ""
+group = "tools.python-integrated-tools"
+section = "tox"
+order = 10
+
+# ---- Settings | Build, Execution, Deployment | Debugger | Python -------------------------
+
+[[plugin.contributions.settings]]
+key = "python.debugger.justMyCode"
+title = "Step only through the project's code (justMyCode)"
+description = "Library and standard library frames are skipped while stepping and break only on exceptions raised in the project."
+type = "bool"
+default = true
+group = "build.python-debugger"
+section = "debugpy"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.debugger.subProcess"
+title = "Attach to subprocesses automatically"
+description = "Child Python processes (multiprocessing, subprocess) are debugged too."
+type = "bool"
+default = true
+group = "build.python-debugger"
+section = "debugpy"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.debugger.installWithoutAsking"
+title = "Install debugpy without asking"
+description = "When the interpreter has no debugpy, Debug installs it (pip install debugpy) instead of asking first."
+type = "bool"
+default = false
+group = "build.python-debugger"
+section = "debugpy"
+order = 2
+
+# ---- Settings | Build, Execution, Deployment | Python Console ----------------------------
+
+[[plugin.contributions.settings]]
+key = "python.console.ipython"
+title = "Use IPython if available"
+description = "The Python Console runs IPython when the interpreter has it (magics, Out[] history)."
+type = "bool"
+default = true
+group = "build.python-console"
+section = "Python Console"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.console.interpreterOptions"
+title = "Interpreter options"
+description = "Passed to the interpreter that runs the console, for example -X dev."
+type = "string"
+default = ""
+group = "build.python-console"
+section = "Python Console"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.profiler.snapshots"
+title = "Profiler snapshots to keep"
+description = "cProfile snapshots (.pstats) of a project kept in Forge's cache folder."
+type = "int"
+min = 1
+max = 200
+default = 20
+group = "tools.python-integrated-tools"
+section = "Profiler"
+order = 20
+
+# ---- Web frameworks (packs/pyforge/frameworks): Django, Flask, FastAPI, Celery -----------
+# Everything is read from the sources; only the run configurations and the optional
+# `manage.py help --commands` run project code (refused in Safe Mode).
+
+[[plugin]]
+id = "forge.python-web"
+name = "Python Web Frameworks"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-env"]
+projectTypes = ["django", "flask", "fastapi"]
+description = "The Endpoints tool window (Django URL patterns, Flask routes, FastAPI path operations with Open in HTTP Client), template navigation and completion (render, render_template, {% extends %}, {% include %}, {% url %}) and the unresolved template inspection."
+
+[[plugin.contributions.toolWindows]]
+id = "endpoints"
+title = "Endpoints"
+anchor = "bottom"
+icon = "route"
+order = 48
+
+[[plugin.contributions.commands]]
+id = "ActivateEndpointsToolWindow"
+title = "Endpoints"
+category = "View"
+
+[[plugin]]
+id = "forge.django"
+name = "Django"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-web"]
+projectTypes = ["django"]
+description = "Django: settings detection, Tools | Run manage.py Task… with command completion, the Django Server and Django tests run configurations, the Django Structure tool window (apps, models and fields, URL patterns), Django templates with navigation and {% url %} completion."
+
+[[plugin.contributions.fileTypes]]
+id = "django"
+name = "Django Template"
+extensions = ["djhtml"]
+fileNames = ["templates/*.html", "templates/*.htm", "templates/*.txt"]
+template = true
+
+[[plugin.contributions.toolWindows]]
+id = "djangoStructure"
+title = "Django Structure"
+anchor = "left"
+icon = "boxes"
+order = 40
+
+[[plugin.contributions.commands]]
+id = "Django.RunManageTask"
+title = "Run manage.py Task…"
+category = "Tools"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "django-server"
+name = "Django Server"
+description = "Run manage.py runserver on a host and port; debug with debugpy."
+icon = "server"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "django-tests"
+name = "Django tests"
+description = "Run manage.py test (Django's test runner) or pytest with pytest-django in the test runner."
+icon = "test-tube-diagonal"
+
+[[plugin.contributions.settings]]
+key = "django.settingsModule"
+title = "Settings module"
+description = "DJANGO_SETTINGS_MODULE, for example mysite.settings. Empty: read from manage.py."
+type = "string"
+default = ""
+group = "lang.django"
+section = "Project"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "django.manageScript"
+title = "Manage script"
+description = "The project's manage.py, relative to the project. Empty: the manage.py found in the project."
+type = "path"
+default = ""
+group = "lang.django"
+section = "Project"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "django.manageCommandsFromProject"
+title = "Read manage.py commands from the project"
+description = "Run manage.py help --commands (trusted projects only) so the project's and third-party commands are completed; otherwise Django's built-in commands and the project's management/commands are offered."
+type = "bool"
+default = true
+group = "lang.django"
+section = "manage.py"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "django.testRunner"
+title = "Test runner of new Django tests configurations"
+type = "enum"
+options = [
+  { value = "django", label = "Django test runner (manage.py test)" },
+  { value = "pytest", label = "pytest (pytest-django)" },
+]
+default = "django"
+group = "lang.django"
+section = "Tests"
+project = true
+order = 20
+
+[[plugin]]
+id = "forge.flask"
+name = "Flask"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-web"]
+projectTypes = ["flask"]
+description = "Flask: routes of apps and blueprints in the Endpoints tool window, Jinja2 templates with render_template / url_for navigation, and the Flask Server run configuration (flask run with FLASK_APP, debug with debugpy)."
+
+[[plugin.contributions.fileTypes]]
+id = "jinja"
+name = "Jinja2"
+extensions = ["j2", "jinja", "jinja2", "njk", "nunjucks"]
+fileNames = ["templates/*.html", "templates/*.htm"]
+template = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "flask-server"
+name = "Flask Server"
+description = "Run flask run with FLASK_APP on a host and port; debug with debugpy."
+icon = "flask-round"
+
+[[plugin.contributions.settings]]
+key = "flask.app"
+title = "Application (FLASK_APP)"
+description = "For example app or blog:create_app(). Empty: the module that creates Flask(...)."
+type = "string"
+default = ""
+group = "lang.flask"
+project = true
+order = 0
+
+[[plugin]]
+id = "forge.fastapi"
+name = "FastAPI"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-web"]
+projectTypes = ["fastapi"]
+description = "FastAPI: path operations of apps and APIRouters (with include_router prefixes) in the Endpoints tool window, the FastAPI run configuration (uvicorn with reload, debug with debugpy) and a link to the interactive /docs."
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "fastapi"
+name = "FastAPI"
+description = "Run the application with uvicorn (--reload) on a host and port; debug with debugpy."
+icon = "zap"
+
+[[plugin.contributions.settings]]
+key = "fastapi.app"
+title = "Application"
+description = "module:attribute that uvicorn serves, for example shop_api.main:app. Empty: the module that creates FastAPI(...)."
+type = "string"
+default = ""
+group = "lang.fastapi"
+project = true
+order = 0
+
+[[plugin]]
+id = "forge.celery"
+name = "Celery"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-env"]
+projectTypes = ["celery"]
+description = "Celery: the project's tasks (@shared_task, @app.task) with gutter icons and the Celery worker and Celery beat run configurations."
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "celery-worker"
+name = "Celery worker"
+description = "Run celery -A <app> worker; debug with debugpy."
+icon = "cog"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "celery-beat"
+name = "Celery beat"
+description = "Run the celery -A <app> beat scheduler."
+icon = "alarm-clock"
+
+[[plugin.contributions.settings]]
+key = "celery.app"
+title = "Application (-A)"
+description = "The Celery application, for example proj. Empty: the module that creates Celery(...)."
+type = "string"
+default = ""
+group = "lang.celery"
+project = true
+order = 0
+
+# ---- Jupyter notebooks (packs/pyforge/jupyter) --------------------------------------------
+# Opening, editing, diffing and viewing notebooks never runs anything; starting a kernel runs
+# project code (refused in Safe Mode). Kernels: ipykernel in the project's interpreter over
+# ZeroMQ, or a Jupyter server (REST + WebSocket) whose token lives in the OS keychain.
+
+[[plugin]]
+id = "forge.jupyter"
+name = "Jupyter"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python"]
+description = "Jupyter notebooks: the notebook editor with code and Markdown cells, rich outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, the Variables view and notebook diffs cell by cell."
+
+[[plugin.contributions.commands]]
+id = "Jupyter.RunCell"
+title = "Run Cell"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.RunCellSelectBelow"
+title = "Run Cell and Select Below"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.RunCellInsertBelow"
+title = "Run Cell and Insert Below"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.RunAll"
+title = "Run All Cells"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.InterruptKernel"
+title = "Interrupt Kernel"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.RestartKernel"
+title = "Restart Kernel"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.ShutdownKernel"
+title = "Shut Down Kernel"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.ClearAllOutputs"
+title = "Clear All Outputs"
+category = "Jupyter"
+
+[[plugin.contributions.commands]]
+id = "Jupyter.ShowVariables"
+title = "Show Variables"
+category = "Jupyter"
+
+[[plugin.contributions.settings]]
+key = "jupyter.server.url"
+title = "Jupyter server URL"
+description = "Run kernels on this server instead of starting ipykernel in the project's interpreter, for example http://localhost:8888 (a pasted URL's ?token= is moved to the keychain). Needed for Docker, SSH and WSL interpreters and remote projects."
+type = "string"
+default = ""
+group = "lang.jupyter"
+section = "Kernels"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "jupyter.kernel.installWithoutAsking"
+title = "Install ipykernel without asking"
+description = "Install ipykernel into the interpreter with its package manager when a notebook starts a kernel and it is missing."
+type = "bool"
+default = false
+group = "lang.jupyter"
+section = "Kernels"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "jupyter.kernel.shutdownOnClose"
+title = "Shut down the kernel when the notebook is closed"
+type = "bool"
+default = true
+group = "lang.jupyter"
+section = "Kernels"
+order = 2
+
+[[plugin.contributions.settings]]
+key = "jupyter.outputs.limitHeight"
+title = "Scroll long outputs"
+description = "Outputs taller than 400 pixels get their own scroll bar."
+type = "bool"
+default = true
+group = "lang.jupyter"
+section = "Outputs"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "jupyter.dataframe.pageSize"
+title = "DataFrame rows per page"
+type = "int"
+min = 10
+max = 1000
+default = 50
+group = "lang.jupyter"
+section = "Outputs"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "jupyter.diff.view"
+title = "Show notebook diffs"
+description = "How the diff viewer shows .ipynb files first."
+type = "enum"
+options = [
+  { value = "cells", label = "Cell by cell" },
+  { value = "json", label = "As JSON text" },
+]
+default = "cells"
+group = "lang.jupyter"
+section = "Diff"
+order = 20

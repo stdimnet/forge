@@ -1,0 +1,13 @@
+==28311==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x55a1b2c3d4e5 in main /home/anna/Projects/shapes/src/shapes.cpp:70:13
+    #1 0x7f6e4d02a1c9 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #2 0x7f6e4d02a28a in __libc_start_main csu/../csu/libc-start.c:360:3
+    #3 0x55a1b2b9b3a4 in _start (/home/anna/Projects/shapes/cmake-build-msan/shapes_app+0x2f3a4) (BuildId: 6c1f0a4b7d9e2a35)
+
+  Uninitialized value was created by a heap allocation
+    #0 0x55a1b2c41a1d in operator new[](unsigned long) (/home/anna/Projects/shapes/cmake-build-msan/shapes_app+0xd5a1d) (BuildId: 6c1f0a4b7d9e2a35)
+    #1 0x55a1b2c3d3f1 in main /home/anna/Projects/shapes/src/shapes.cpp:69:18
+    #2 0x7f6e4d02a1c9 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+
+SUMMARY: MemorySanitizer: use-of-uninitialized-value /home/anna/Projects/shapes/src/shapes.cpp:70:13 in main
+Exiting

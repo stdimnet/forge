@@ -1,0 +1,21 @@
+[package]
+name = "javaforge-minecraft"
+description = "JavaForge: Minecraft plugins and mods (the New Project generators for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord plugins and Fabric and NeoForge mods with pinned version tables, project detection, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml main class checks and navigation, fabric.mod.json and mixin class checks and navigation, neoforge.mods.toml completion, event handler gutter markers; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# "Refresh versions": maven-metadata.xml from repo.papermc.io, only on user action. The pure
+# part builds to WebAssembly without it.
+net = ["dep:reqwest"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+
+[dev-dependencies]
+toml.workspace = true
+tokio.workspace = true

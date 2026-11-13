@@ -1,0 +1,101 @@
+/* ---------- npm tool window ---------- */
+.npm-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.npm-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0 8px;
+}
+.npm-row {
+  padding-left: 6px;
+}
+.npm-script {
+  padding-left: 26px;
+}
+.npm-empty-scripts {
+  padding-left: 30px;
+  font-style: italic;
+}
+.npm-icon-package {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+.npm-icon-script {
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.npm-script-name {
+  color: var(--fg-strong);
+}
+.npm-command {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.npm-row .tree-label {
+  flex-shrink: 0;
+}
+.npm-row .tree-hint {
+  flex: 1;
+  min-width: 0;
+}
+.npm-pm {
+  flex-shrink: 0;
+  padding: 0 6px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  background: var(--bg-hover);
+}
+.npm-pm-pnpm {
+  color: var(--warning);
+}
+.npm-pm-yarn {
+  color: var(--info);
+}
+.npm-pm-bun {
+  color: var(--fg-strong);
+}
+.npm-pm-npm {
+  color: var(--danger);
+}
+.npm-footer {
+  padding: 4px 10px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+.icon-btn.npm-run-btn:not(:disabled) {
+  color: var(--success);
+}
+.icon-btn.npm-debug-btn:not(:disabled) {
+  color: var(--success);
+}
+
+/* ---------- Gutter icons ---------- */
+.cm-line-marker.marker-npm-run {
+  color: var(--success);
+}
+.cm-line-marker.marker-ng-template {
+  color: var(--syn-tag);
+}
+.cm-line-marker.marker-ng-styles {
+  color: var(--syn-attribute);
+}
+.cm-line-marker.marker-ng-component {
+  color: var(--danger);
+}
+
+/* ---------- Settings | TypeScript ---------- */
+.wf-ts-page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wf-ts-servers-title {
+  margin: 8px 0 0;
+}

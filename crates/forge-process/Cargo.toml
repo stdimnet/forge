@@ -1,0 +1,25 @@
+[package]
+name = "forge-process"
+description = "Forge IDE processes: PTY terminal sessions, run configurations and the process runner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core.workspace = true
+dirs.workspace = true
+forge-hostspawn.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-runtargets.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+tracing.workspace = true
+portable-pty = "0.9"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tempfile.workspace = true

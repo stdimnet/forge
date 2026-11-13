@@ -1,0 +1,551 @@
+/* Git menu dialogs (GitDialogHost.tsx) and the Stash / Shelf tabs of the Commit tool window.
+   Colors come from theme.css only. */
+.gd.gd-wide {
+  width: 600px;
+}
+.gd-body {
+  gap: 12px;
+}
+.gd-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 8px 12px;
+}
+.gd-label {
+  color: var(--fg-muted);
+}
+.gd-value {
+  min-width: 0;
+}
+.gd-static {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-input,
+.gd-select {
+  height: 28px;
+  min-width: 0;
+  width: 100%;
+  padding: 0 8px;
+}
+.gd-select {
+  width: auto;
+  min-width: 96px;
+}
+.gd-textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 6px 8px;
+  resize: vertical;
+  font-family: var(--font-ui);
+}
+.gd-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gd-line .gd-input {
+  flex: 1;
+}
+.gd-cmd {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.gd-inline,
+.gd-commit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gd-commit .gd-input {
+  flex: 1;
+}
+.gd-valid {
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-invalid {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.gd-note {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.git-dialog-check.disabled {
+  color: var(--fg-faint);
+}
+
+/* "Modify options" */
+.gd-options {
+  display: grid;
+  gap: 6px;
+}
+.gd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.gd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--bg-input);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-chip-x {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.gd-chip-x:hover {
+  background: var(--bg-hover);
+  color: var(--fg-strong);
+}
+.gd-modify {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.gd-option-list {
+  display: grid;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+.gd-option {
+  display: grid;
+  grid-template-columns: 16px max-content 1fr;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+}
+.gd-option:hover {
+  background: var(--bg-hover);
+}
+.gd-option input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-option-flag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-chip.plain,
+.gd-option-flag.plain {
+  font-family: var(--font-ui);
+  font-size: inherit;
+}
+.gd-option-desc {
+  overflow: hidden;
+  color: var(--fg-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-option.disabled .gd-option-flag,
+.gd-option.disabled .gd-option-flag.plain {
+  font-family: var(--font-ui);
+  font-size: inherit;
+}
+.gd-option-desc {
+  color: var(--fg-faint);
+}
+
+/* Unstash: list with buttons on the right */
+.gd-split {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: 8px;
+}
+.gd .gd-list {
+  height: 140px;
+}
+.gd-side-buttons {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.gd-stash-ref {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-checks {
+  display: flex;
+  gap: 18px;
+}
+.gd-files {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 2px;
+}
+.gd-files-title {
+  padding: 4px 8px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.gd-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.gd-file:hover {
+  background: var(--bg-hover);
+}
+.gd-file input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-file-indent {
+  padding-left: 26px;
+}
+.gd-file-diff {
+  margin-left: auto;
+}
+.gd .gd-file-checks {
+  height: 200px;
+}
+
+/* Reset */
+.gd-group-title {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+.gd-radios {
+  display: grid;
+  gap: 8px;
+}
+.gd-radio {
+  display: grid;
+  grid-template-columns: 16px 56px 1fr;
+  align-items: baseline;
+  gap: 6px;
+}
+.gd-radio input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-radio-label {
+  font-weight: 600;
+}
+.gd-radio-text {
+  color: var(--fg-muted);
+}
+.gd-radio-text.warn {
+  color: var(--warning);
+}
+
+/* Git Remotes */
+.gd-table-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.gd-table-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.gd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.gd-table th {
+  text-align: left;
+  font-weight: normal;
+  color: var(--fg-muted);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.gd-table td {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.gd-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.gd-table tbody tr.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.gd-table tbody {
+  display: table-row-group;
+}
+.gd-table-box {
+  min-height: 160px;
+}
+
+/* Commit tool window: Stash and Shelf tabs */
+.vcs-tab-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.vcs-tab-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.vcs-tab-empty {
+  padding: 24px 16px;
+  color: var(--fg-muted);
+  text-align: center;
+}
+.vcs-tab-node .tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vcs-tab-ref {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.vcs-tab-panel .tree-row.selected {
+  background: var(--bg-selection);
+}
+
+/* Git Log actions (LogDialogs.tsx): Edit Commit Message, Squash Commits, Rebasing Commits. */
+.log-message-dialog .log-message-editor {
+  min-height: 180px;
+  font-family: var(--font-mono);
+}
+
+.git-dialog.rebase-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+}
+.rebase-dialog .dialog-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.rebase-subtitle {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-weight: normal;
+}
+.rebase-toolbar {
+  gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+.rebase-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  cursor: default;
+}
+.rebase-tool:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+.rebase-tool.active {
+  border-color: var(--border-strong);
+  background: var(--bg-active);
+}
+.rebase-tool:disabled {
+  color: var(--fg-faint);
+}
+.rebase-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border-strong);
+}
+.rebase-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.rebase-table {
+  overflow: auto;
+  outline: none;
+  border-right: 1px solid var(--border);
+}
+.rebase-row {
+  display: grid;
+  grid-template-columns: 64px 18px minmax(0, 1fr) 120px 110px;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  white-space: nowrap;
+  cursor: default;
+  border-top: 2px solid transparent;
+}
+.rebase-row:hover {
+  background: var(--bg-hover);
+}
+.rebase-row.selected {
+  background: var(--bg-active);
+}
+.rebase-table:focus .rebase-row.selected {
+  background: var(--bg-selection);
+}
+.rebase-row.drop-before {
+  border-top-color: var(--accent);
+}
+.rebase-action {
+  justify-self: start;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  background: var(--bg-elevated);
+}
+.rebase-row.action-edit .rebase-action,
+.rebase-row.action-reword .rebase-action {
+  color: var(--info);
+}
+.rebase-row.action-squash .rebase-action,
+.rebase-row.action-fixup .rebase-action {
+  color: var(--warning);
+}
+.rebase-row.action-drop .rebase-action {
+  color: var(--danger);
+}
+.rebase-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--graph-0);
+  justify-self: center;
+}
+.rebase-row.action-squash .rebase-dot,
+.rebase-row.action-fixup .rebase-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--graph-4);
+}
+.rebase-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 4px;
+}
+.rebase-row.action-drop .rebase-subject {
+  color: var(--fg-faint);
+  text-decoration: line-through;
+}
+.rebase-into {
+  color: var(--fg-muted);
+}
+.rebase-author,
+.rebase-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+  padding-left: 10px;
+}
+.rebase-details {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+.rebase-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  padding: 12px;
+}
+.rebase-editor .gd-textarea {
+  flex: 1;
+  min-height: 160px;
+  font-family: var(--font-mono);
+}
+.rebase-dialog .git-dialog-actions {
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Changelists and patches */
+.gd-radio-row {
+  display: grid;
+  grid-template-columns: 16px max-content 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.gd-radio-row input[type="radio"] {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-grow {
+  min-width: 0;
+}
+.gd-grow .gd-input {
+  flex: 1;
+}
+.gd-note.gd-error {
+  color: var(--danger);
+}
+.gd-note.gd-warn {
+  color: var(--warning);
+}
+.gd .gd-patch-files {
+  height: 220px;
+}
+.gd-patch-counts {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.gd-plus {
+  color: var(--vcs-added);
+}
+.gd-minus {
+  color: var(--vcs-deleted);
+}
+.gd-patch-warn {
+  display: inline-flex;
+  color: var(--warning);
+}
+.gd-patch-files .gd-file-diff {
+  margin-left: 4px;
+}

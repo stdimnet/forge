@@ -1,0 +1,655 @@
+/* Workbench layout: mirrors PHPStorm's New UI geometry. */
+.workbench {
+  display: flex;
+  flex-direction: column;
+  /* `--ide-zoom`: Zoom IDE in browser mode (CSS zoom does not scale viewport units). */
+  height: calc(100vh / var(--ide-zoom, 1));
+}
+
+.workbench-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.workbench-center {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-panel);
+}
+
+/* ---------- Undocked and floating tool windows (View Mode) ---------- */
+.undocked-tool-window,
+.floating-tool-window {
+  position: absolute;
+  z-index: var(--z-floating-tool-window);
+  display: flex;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.undocked-tool-window > .tool-window,
+.floating-tool-window > .tool-window {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.undocked-left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+.undocked-right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+.undocked-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.floating-tool-window {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.floating-tool-window .tool-window-header {
+  cursor: move;
+}
+.floating-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+}
+
+.workbench-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------- Main toolbar ---------- */
+.main-toolbar {
+  height: var(--toolbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  gap: 4px;
+  flex-shrink: 0;
+}
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.toolbar-center {
+  flex: 1;
+  height: 100%;
+}
+.toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-strong);
+  margin: 0 6px;
+}
+.project-widget {
+  font-weight: 600;
+}
+.project-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ffb347, #ff5a1f);
+}
+.run-config {
+  border: 1px solid var(--border-strong);
+  margin-right: 2px;
+  max-width: 260px;
+}
+.run-config.open {
+  background: var(--bg-active);
+}
+.run-config-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.run-btn {
+  color: var(--success);
+}
+.debug-btn {
+  color: var(--success);
+}
+.stop-btn {
+  color: var(--danger);
+}
+
+/* ---------- Tool stripes ---------- */
+.tool-stripe {
+  width: var(--stripe-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  background: var(--bg-toolbar);
+  /* Stripe buttons are dragged with the pointer. */
+  user-select: none;
+  touch-action: none;
+}
+.tool-stripe.dragging {
+  cursor: grabbing;
+}
+.tool-stripe-left {
+  border-right: 1px solid var(--border);
+}
+.tool-stripe-right {
+  border-left: 1px solid var(--border);
+  justify-content: flex-start;
+}
+.stripe-part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.tool-stripe-right .stripe-part:last-child {
+  margin-top: auto;
+}
+.stripe-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.stripe-separator {
+  width: 20px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border-strong);
+}
+/* While a stripe button is dragged, every group (also empty ones) is a drop target. */
+.tool-stripe.dragging .stripe-group {
+  min-height: 30px;
+  width: 30px;
+  border-radius: var(--radius);
+}
+.tool-stripe.dragging .stripe-group.drop-target {
+  background: var(--bg-hover);
+}
+.stripe-drop-indicator {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.stripe-btn.dragged {
+  opacity: 0.35;
+}
+.stripe-drag-ghost {
+  position: fixed;
+  z-index: var(--z-drag-ghost);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  color: var(--accent);
+  pointer-events: none;
+}
+.stripe-btn {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  position: relative;
+}
+/* Small state marker of a hidden tool window, e.g. terminal progress */
+.stripe-badge {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: flex;
+  pointer-events: none;
+}
+.stripe-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------- Tool windows ---------- */
+.side-panel,
+.bottom-panel {
+  flex-shrink: 0;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+}
+.bottom-panel {
+  border-top: 1px solid var(--border);
+}
+/* The one or two tool windows of an area (Left Top above Left Bottom, Bottom Left beside
+   Bottom Right). */
+.tool-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.tool-area-bottom {
+  flex-direction: row;
+}
+.tool-area-part {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.tool-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.tool-window-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 0 12px;
+  flex-shrink: 0;
+}
+.tool-window-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+  flex-shrink: 0;
+}
+.tool-window-header-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-left: 10px;
+}
+.tool-window-actions {
+  display: flex;
+  gap: 2px;
+}
+.tool-window-actions .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.tool-window-body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.placeholder-panel {
+  padding: 16px;
+  color: var(--fg-muted);
+}
+
+.splitter {
+  flex-shrink: 0;
+  background: var(--border);
+  position: relative;
+  z-index: 2;
+}
+.splitter-v {
+  width: 1px;
+  cursor: col-resize;
+}
+.splitter-h {
+  height: 1px;
+  cursor: row-resize;
+}
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+}
+.splitter:hover {
+  background: var(--accent);
+}
+
+/* ---------- Project tree ---------- */
+.project-tree {
+  padding: 2px 0 12px;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+  border-radius: 0;
+}
+.tree-row:hover {
+  background: var(--bg-hover);
+}
+.project-tree {
+  outline: none;
+}
+.tree-row.active-file:not(.selected) {
+  background: color-mix(in srgb, var(--bg-active) 45%, transparent);
+}
+.project-tree:focus .tree-row.selected {
+  background: var(--accent-soft);
+}
+.tree-row.selected {
+  background: var(--bg-active);
+}
+.tree-chevron {
+  width: 14px;
+  display: inline-flex;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-row.ignored .tree-label,
+.tree-row.ignored .tree-label[class*="vcs-"] {
+  color: var(--vcs-ignored);
+}
+.tree-row.ignored .file-icon {
+  opacity: 0.6;
+}
+.tree-label.strong {
+  font-weight: 600;
+}
+.tree-hint {
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The project name stays readable; a long root (user@host:/path) is cut instead. */
+.tree-root .tree-label {
+  flex-shrink: 0;
+}
+.tree-root .tree-hint {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* ---------- Editor ---------- */
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-editor);
+}
+.editor-groups {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+.editor-groups.horizontal {
+  flex-direction: column;
+}
+.editor-group {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.editor-group-splitter {
+  flex: 0 0 1px;
+  background: var(--border);
+  position: relative;
+  z-index: 2;
+}
+.editor-group-splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+  cursor: col-resize;
+}
+.editor-group-splitter.h::after {
+  inset: -3px 0;
+  cursor: row-resize;
+}
+/* With several groups, only the active group's active tab carries the accent. */
+.editor-groups:has(.active-group) .editor-group:not(.active-group) .editor-tab.active {
+  border-bottom-color: var(--fg-faint);
+}
+.editor-tabs {
+  display: flex;
+  height: 36px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  background: var(--bg-editor);
+  border-bottom: 1px solid var(--border);
+}
+.editor-tabs::-webkit-scrollbar {
+  height: 0;
+}
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 12px;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  border-bottom: 2px solid transparent;
+  cursor: default;
+}
+.editor-tab:hover {
+  background: var(--bg-hover);
+}
+.editor-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.tab-close {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--fg-faint);
+  cursor: pointer;
+}
+.tab-close > * {
+  grid-area: 1 / 1;
+}
+.tab-close:hover {
+  background: var(--bg-active);
+  color: var(--fg);
+}
+.tab-close .dirty-dot {
+  display: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+}
+.tab-close.dirty .dirty-dot {
+  display: block;
+}
+.tab-close.dirty svg {
+  visibility: hidden;
+}
+.tab-close.dirty:hover .dirty-dot {
+  display: none;
+}
+.tab-close.dirty:hover svg {
+  visibility: visible;
+}
+.tab-pin {
+  color: var(--fg-muted);
+}
+.tab-pin svg {
+  transform: rotate(45deg);
+}
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 14px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.editor-stack {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+.editor-slot {
+  position: absolute;
+  inset: 0;
+}
+.editor-slot.hidden {
+  display: none;
+}
+.editor-slot-custom {
+  overflow: hidden;
+  background: var(--bg-editor);
+}
+.editor-tab-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+.code-editor {
+  height: 100%;
+  user-select: text;
+}
+.editor-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  color: var(--fg-muted);
+}
+.editor-empty-logo {
+  width: 72px;
+  height: 72px;
+  opacity: 0.35;
+  filter: grayscale(0.4);
+}
+.editor-empty-rows {
+  display: grid;
+  gap: 10px;
+}
+.editor-empty-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  min-width: 300px;
+}
+.kbd-hint {
+  color: var(--accent);
+}
+
+/* ---------- Status bar ---------- */
+.status-bar {
+  height: var(--statusbar-h);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--bg-toolbar);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+.status-left,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+/* Gives way before the navigation bar; the full text is its tooltip. */
+.status-message {
+  padding: 0 8px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 60px;
+  flex-shrink: 20;
+}
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+button.status-item:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+/* A status bar widget's popup (StatusPopup.tsx), placed in script and kept inside the window.
+   It renders in a popup layer (shell/layers.tsx), above CodeMirror's sticky editor panels. */
+.status-popup-anchored {
+  position: fixed;
+  z-index: var(--z-popup);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Project view drag and drop (Move). */
+.tree-row.drop-target {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* ---------- Overlay stack (shell/layers.tsx) ---------- */
+/* One layer of the overlay stack: covers the window without taking clicks, and carries the
+   layer's z-index (set in script) so its content stacks as one unit. */
+.forge-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+:where(.forge-layer) > * {
+  pointer-events: auto;
+}
+/* CodeMirror's tooltips (completion, hover, lint) live in the editor overlay band with its
+   sticky panels (300), not above popups and dialogs (CodeMirror's own default is 500). An
+   editor inside a dialog or a floating tool window keeps them inside that layer. */
+:root .cm-editor .cm-tooltip {
+  z-index: calc(var(--z-editor-overlay) + 10);
+}

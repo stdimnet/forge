@@ -1,0 +1,50 @@
+{
+  "manifestVersion": 1,
+  "id": "example.word-count",
+  "name": "Word Count",
+  "version": "1.0.0",
+  "publisher": "Forge SDK Examples",
+  "description": "Shows the number of words of the open file (or the selection) in the status bar, with details in a tool window.",
+  "license": "MIT",
+  "engines": { "forge": ">=0.1.0" },
+  "main": "dist/plugin.js",
+  "activationEvents": ["onStartup"],
+  "permissions": {
+    "editor": ["read"]
+  },
+  "contributes": {
+    "commands": [
+      { "id": "example.word-count.show", "title": "Show Word Count", "category": "Word Count" }
+    ],
+    "keybindings": [
+      { "command": "example.word-count.show", "key": "Ctrl+Alt+Shift+W" }
+    ],
+    "statusItems": [
+      { "id": "example.word-count.status", "alignment": "right", "order": 0, "command": "example.word-count.show" }
+    ],
+    "toolWindows": [
+      { "id": "example.word-count.details", "title": "Word Count", "anchor": "right", "icon": "text" }
+    ],
+    "settingsPages": [
+      { "id": "example.word-count.settings", "title": "Word Count" }
+    ],
+    "settings": [
+      {
+        "key": "example.word-count.countSelection",
+        "title": "Count only the selection when text is selected",
+        "type": "bool",
+        "default": true,
+        "group": "example.word-count.settings"
+      },
+      {
+        "key": "example.word-count.wordsPerMinute",
+        "title": "Reading speed (words per minute)",
+        "type": "int",
+        "min": 50,
+        "max": 1000,
+        "default": 230,
+        "group": "example.word-count.settings"
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+[package]
+name = "rustforge-toolchain"
+description = "RustForge: Rust toolchains on the user's machine — rustup toolchains, the active toolchain of a folder, standalone rustc installs, sysroots and the standard library's sources, components and cargo plugins (nextest, llvm-cov), consented rustup installs, the consented rust-analyzer download from its GitHub releases (pinned version, SHA-256 checked), and GDB with rustc's pretty printers as a debug adapter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-hostspawn.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+tokio.workspace = true
+flate2 = "1"
+rustforge-lang-rust.workspace = true
+forge-langservers.workspace = true
+forge-dap.workspace = true
+forge-plugin-api.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+forge-langservers = { workspace = true, features = ["testserver"] }

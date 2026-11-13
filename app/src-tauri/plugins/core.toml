@@ -1,0 +1,2304 @@
+# The IDE platform itself: appearance, system and editor settings.
+id = "forge.core"
+name = "Forge Platform"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+required = true
+description = "Workbench, editor, settings and the plugin system."
+
+[[contributions.commands]]
+id = "settings.open"
+title = "Settings…"
+category = "File"
+
+[[contributions.commands]]
+id = "file.saveAll"
+title = "Save All"
+category = "File"
+
+[[contributions.keybindings]]
+command = "settings.open"
+key = "Ctrl+Alt+S"
+
+[[contributions.keybindings]]
+command = "settings.open"
+key = "Meta+,"
+keymap = "macos"
+
+[[contributions.keybindings]]
+command = "file.saveAll"
+key = "Ctrl+S"
+
+[[contributions.toolWindows]]
+id = "project"
+title = "Project"
+anchor = "left"
+icon = "folder"
+
+# ---- Keymap (edited on the Keymap page) ------------------------------------------------
+
+[[contributions.settings]]
+key = "keymap.active"
+title = "Keymap"
+description = "auto (the PHPStorm keymap of the platform), $default, macOS, a bundled keymap (VSCode, VSCode OSX, Eclipse, Eclipse (Mac OS X), Sublime Text, Sublime Text (Mac OS X), Emacs) or the name of a user keymap."
+type = "string"
+default = "auto"
+group = "keymap"
+order = 0
+
+[[contributions.settings]]
+key = "keymap.overrides.default"
+title = "Changed shortcuts (Windows / Linux)"
+description = "One entry per action: the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 1
+
+[[contributions.settings]]
+key = "keymap.overrides.macOS"
+title = "Changed shortcuts (macOS)"
+description = "One entry per action: the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 2
+
+[[contributions.settings]]
+key = "keymap.overrides.bundled"
+title = "Changed shortcuts (other bundled keymaps)"
+description = "One entry per action: the keymap id, the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 3
+
+[[contributions.settings]]
+key = "keymap.custom"
+title = "User keymaps"
+description = "Keymaps made with Duplicate or Derive: name, parent keymap and the changed shortcuts (one action per line: the action id, then its shortcuts, separated by tabs)."
+type = "objects"
+unique = ["name"]
+default = []
+group = "keymap"
+order = 4
+
+# ---- Appearance & Behavior > Appearance ----------------------------------------------
+
+[[contributions.settings]]
+key = "appearance.theme"
+title = "Theme"
+type = "enum"
+options = [
+  { value = "dark", label = "Forge Ember (Dark)" },
+  { value = "light", label = "Forge Anvil (Light)" },
+  { value = "solarized-dark", label = "Solarized Dark" },
+  { value = "solarized-light", label = "Solarized Light" },
+  { value = "high-contrast", label = "High Contrast" },
+  { value = "high-contrast-light", label = "High Contrast Light" },
+]
+default = "dark"
+group = "appearance"
+order = 0
+
+[[contributions.settings]]
+key = "appearance.zoom"
+title = "Zoom"
+description = "Scales the whole IDE: menus, tool windows, dialogs and the editor (View | Appearance | Zoom IDE)."
+type = "enum"
+options = [
+  { value = "50", label = "50%" },
+  { value = "67", label = "67%" },
+  { value = "75", label = "75%" },
+  { value = "80", label = "80%" },
+  { value = "90", label = "90%" },
+  { value = "100", label = "100%" },
+  { value = "110", label = "110%" },
+  { value = "125", label = "125%" },
+  { value = "150", label = "150%" },
+  { value = "175", label = "175%" },
+  { value = "200", label = "200%" },
+  { value = "250", label = "250%" },
+  { value = "300", label = "300%" },
+]
+default = "100"
+group = "appearance"
+order = 1
+
+[[contributions.settings]]
+key = "appearance.presentationFontSize"
+title = "Font size"
+description = "Editor font size in Presentation Mode (View | Appearance | Enter Presentation Mode)."
+type = "int"
+min = 8
+max = 96
+default = 24
+group = "appearance"
+section = "Presentation Mode"
+order = 40
+
+[[contributions.settings]]
+key = "workbench.layouts"
+title = "Layouts"
+description = "Tool window layouts saved with Window | Layouts | Save Current Layout as New…; each entry has a name and the layout as JSON."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance"
+hidden = true
+order = 90
+
+[[contributions.settings]]
+key = "appearance.screenReader"
+title = "Support screen readers"
+description = "Announces what happens through the screen reader: the caret position and problems at the caret on request, opened files, invoked actions, notifications and the result of dialogs. Tree and list rows, tool windows, menus and dialogs always carry their accessible names."
+type = "bool"
+default = false
+group = "appearance"
+section = "Accessibility"
+order = 12
+
+[[contributions.settings]]
+key = "appearance.contrastScrollbars"
+title = "Use contrast scrollbars"
+description = "Draws scrollbars with a strong color and a wider thumb so they are easy to see."
+type = "bool"
+default = false
+group = "appearance"
+section = "Accessibility"
+order = 13
+
+[[contributions.settings]]
+key = "appearance.presentationAssistant.enabled"
+title = "Show Presentation Assistant"
+description = "Shows the name and shortcut of every action you invoke in a popup, for demos, screencasts and pair programming."
+type = "bool"
+default = false
+group = "appearance"
+section = "Presentation Assistant"
+order = 50
+
+[[contributions.settings]]
+key = "appearance.presentationAssistant.size"
+title = "Popup size"
+type = "enum"
+options = [
+  { value = "small", label = "Small" },
+  { value = "medium", label = "Medium" },
+  { value = "large", label = "Large" },
+]
+default = "medium"
+group = "appearance"
+section = "Presentation Assistant"
+order = 51
+
+[[contributions.settings]]
+key = "appearance.presentationAssistant.position"
+title = "Position"
+type = "enum"
+options = [
+  { value = "top-left", label = "Top left" },
+  { value = "top-center", label = "Top center" },
+  { value = "top-right", label = "Top right" },
+  { value = "bottom-left", label = "Bottom left" },
+  { value = "bottom-center", label = "Bottom center" },
+  { value = "bottom-right", label = "Bottom right" },
+]
+default = "bottom-center"
+group = "appearance"
+section = "Presentation Assistant"
+order = 52
+
+[[contributions.settings]]
+key = "appearance.presentationAssistant.duration"
+title = "Duration (ms)"
+description = "How long the popup stays after the last action."
+type = "int"
+min = 500
+max = 30000
+default = 4000
+group = "appearance"
+section = "Presentation Assistant"
+order = 53
+
+[[contributions.settings]]
+key = "appearance.presentationAssistant.alternateKeymap"
+title = "Show alternate keymap"
+description = "Also shows the shortcut of the other PHPStorm keymap: macOS next to Windows/Linux, or the other way round."
+type = "bool"
+default = true
+group = "appearance"
+section = "Presentation Assistant"
+order = 54
+
+[[contributions.settings]]
+key = "appearance.uiFont.family"
+title = "Font"
+description = "Font used for menus, tool windows and dialogs."
+type = "enum"
+options = [
+  { value = "Inter", label = "Inter" },
+  { value = "system-ui", label = "System default" },
+  { value = "Segoe UI", label = "Segoe UI" },
+  { value = "Roboto", label = "Roboto" },
+]
+default = "Inter"
+group = "appearance"
+section = "Font"
+order = 10
+
+[[contributions.settings]]
+key = "appearance.uiFont.size"
+title = "Size"
+type = "int"
+min = 10
+max = 20
+default = 13
+group = "appearance"
+section = "Font"
+order = 11
+
+[[contributions.settings]]
+key = "appearance.compactMode"
+title = "Compact mode"
+description = "Reduces paddings and the height of toolbars and tool window headers."
+type = "bool"
+default = false
+group = "appearance"
+section = "UI Options"
+order = 20
+
+[[contributions.settings]]
+key = "appearance.showToolWindowBars"
+title = "Show tool window bars"
+description = "The stripes with tool window buttons along the window edges."
+type = "bool"
+default = true
+group = "appearance"
+section = "Tool Windows"
+order = 30
+
+[[contributions.settings]]
+key = "appearance.showToolWindowNumbers"
+title = "Show tool window numbers"
+type = "bool"
+default = true
+group = "appearance"
+section = "Tool Windows"
+order = 31
+
+[[contributions.settings]]
+key = "appearance.mainMenu"
+title = "Main menu"
+description = "Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar."
+type = "enum"
+options = [
+  { value = "hamburger", label = "Hamburger menu" },
+  { value = "merged", label = "Merged with main toolbar" },
+  { value = "toolbar", label = "Show in separate toolbar" },
+]
+default = "hamburger"
+group = "appearance"
+section = "UI Options"
+order = 19
+
+[[contributions.settings]]
+key = "appearance.smoothScrolling"
+title = "Smooth scrolling"
+description = "Animate scrolling in lists and trees."
+type = "bool"
+default = true
+group = "appearance"
+section = "UI Options"
+order = 21
+
+[[contributions.settings]]
+key = "appearance.showSplash"
+title = "Show splash screen on startup"
+description = "The Forge wordmark fills with molten metal while the IDE loads, and offers updates."
+type = "bool"
+default = true
+group = "appearance"
+section = "UI Options"
+order = 22
+
+[[contributions.settings]]
+key = "appearance.windowControls"
+title = "Window controls"
+description = "Look of the title bar buttons of the main window and dialogs. \"Native\" lets the operating system draw the title bar."
+type = "enum"
+options = [
+  { value = "auto", label = "Match the system" },
+  { value = "windows", label = "Windows" },
+  { value = "macos", label = "macOS" },
+  { value = "gnome", label = "GNOME" },
+  { value = "kde", label = "KDE Plasma" },
+  { value = "linux", label = "Generic Linux" },
+  { value = "native", label = "Native title bar" },
+]
+default = "auto"
+group = "appearance"
+section = "Window"
+order = 25
+
+[[contributions.settings]]
+key = "projectView.openFilesWithSingleClick"
+title = "Open files with single click"
+description = "In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 40
+
+[[contributions.settings]]
+key = "projectView.autoscrollFromSource"
+title = "Always select opened file"
+description = "The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 41
+
+[[contributions.settings]]
+key = "projectView.showExcludedFiles"
+title = "Show excluded files"
+description = "The Project tool window lists excluded folders and files (orange) instead of hiding them. Options menu (⋮) › Show Excluded Files."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 42
+
+[[contributions.settings]]
+key = "projectView.showMembers"
+title = "Show members"
+description = "PHP, JavaScript, TypeScript and Lua files expand to their classes, functions, methods and properties; a click on a member opens it. Options menu (⋮) › Show Members."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 43
+
+[[contributions.settings]]
+key = "projectView.compactMiddlePackages"
+title = "Compact middle packages"
+description = "Folders that contain only one folder are shown as one row (`src/Acme/Shop`). Options menu (⋮) › Compact Middle Packages."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 44
+
+[[contributions.settings]]
+key = "projectView.foldersAlwaysOnTop"
+title = "Folders always on top"
+description = "Folders come before files; turn it off to sort folders and files together. Options menu (⋮) › Folders Always on Top."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 45
+
+[[contributions.settings]]
+key = "projectView.sortByType"
+title = "Sort by type"
+description = "Files are sorted by their extension, then by name. Options menu (⋮) › Sort by Type."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 46
+
+[[contributions.settings]]
+key = "projectView.fileNesting.enabled"
+title = "File nesting"
+description = "Files with the same name as another file and a child suffix of a nesting rule are shown below it (`app.js` below `app.ts`). Options menu (⋮) › File Nesting…"
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 47
+
+[[contributions.settings]]
+key = "projectView.fileNesting.rules"
+title = "File nesting rules"
+description = "Parent file suffix and child file suffixes (separated by `;`) of File Nesting. Empty uses PHPStorm's predefined rules. Edit them in the Project tool window: Options menu (⋮) › File Nesting…"
+type = "objects"
+unique = ["parent"]
+default = []
+group = "appearance"
+section = "Project View"
+order = 48
+
+# ---- Directories ----------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "projectStructure.folders"
+title = "Excluded and resource folders"
+description = "Folders marked as Excluded, Resource Root or Test Resources Root (Settings | Directories, Project view: Mark Directory as), stored in the project. Kind `included` cancels the default exclusion of a folder like `node_modules`. Excluded folders are left out of the indexes, Find in Files, Search Everywhere, inspections and local history."
+type = "objects"
+unique = ["path"]
+default = []
+group = "directories"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "projectStructure.excludePatterns"
+title = "Exclude files"
+description = "File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`)."
+type = "string"
+default = ""
+group = "directories"
+project = true
+order = 11
+
+# ---- Appearance & Behavior > Scopes and File Colors ------------------------------------
+
+[[contributions.settings]]
+key = "scopes.shared"
+title = "Shared scopes"
+description = "Named scopes stored in the project (`.forge/settings.toml`, shared with the team through version control): name and pattern in PHPStorm's scope language, e.g. `file:app//*.php&&!test:*..*`."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance.scopes"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "scopes.local"
+title = "Local scopes"
+description = "Named scopes stored in your user settings only (not shared): name and pattern."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance.scopes"
+order = 1
+
+[[contributions.settings]]
+key = "fileColors.enabled"
+title = "Enable file colors"
+description = "Tint files by scope with the colors below."
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 0
+
+[[contributions.settings]]
+key = "fileColors.useInEditorTabs"
+title = "Use in editor tabs"
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 1
+
+[[contributions.settings]]
+key = "fileColors.useInProjectView"
+title = "Use in project view"
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 2
+
+[[contributions.settings]]
+key = "fileColors.local"
+title = "Local colors"
+description = "Colors stored in your user settings: scope name and color (Blue, Green, Orange, Rose, Violet, Yellow, Gray). The first scope containing a file wins; local colors come before shared ones."
+type = "objects"
+unique = ["scope"]
+default = [
+  { scope = "Non-Project Files", color = "Yellow" },
+  { scope = "Tests", color = "Green" },
+]
+group = "appearance.fileColors"
+order = 3
+
+[[contributions.settings]]
+key = "fileColors.shared"
+title = "Shared colors"
+description = "Colors stored in the project (`.forge/settings.toml`): scope name and color."
+type = "objects"
+unique = ["scope"]
+default = []
+group = "appearance.fileColors"
+project = true
+order = 4
+
+[[contributions.settings]]
+key = "structureView.autoscrollToSource"
+title = "Autoscroll to source"
+description = "A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click."
+type = "bool"
+default = true
+group = "appearance"
+section = "Structure View"
+order = 42
+
+[[contributions.settings]]
+key = "structureView.autoscrollFromSource"
+title = "Autoscroll from source"
+description = "The Structure tool window selects the member at the caret as you move through the editor."
+type = "bool"
+default = true
+group = "appearance"
+section = "Structure View"
+order = 43
+
+[[contributions.settings]]
+key = "appearance.navigationBar.location"
+title = "Navigation bar"
+description = "Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View | Appearance | Navigation Bar."
+type = "enum"
+options = [
+  { value = "top", label = "Top" },
+  { value = "statusBar", label = "In status bar" },
+  { value = "hidden", label = "Don't show" },
+]
+default = "top"
+group = "appearance"
+section = "Navigation Bar"
+order = 50
+
+[[contributions.settings]]
+key = "appearance.navigationBar.showMembers"
+title = "Show members in the navigation bar"
+description = "Add the class and function at the caret after the file name. View | Appearance | Members in Navigation Bar."
+type = "bool"
+default = true
+group = "appearance"
+section = "Navigation Bar"
+order = 51
+
+# ---- Languages & Frameworks > Template Data Languages --------------------------------
+
+[[contributions.settings]]
+key = "templates.dataLanguages"
+title = "Template data languages"
+description = "Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards."
+type = "list"
+default = []
+group = "lang.templates"
+section = "Data Languages"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "templates.delimiters"
+title = "Template delimiters"
+description = "Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors."
+type = "objects"
+unique = ["template", "language"]
+default = [
+  { template = "smarty", language = "latex", left = "[[", right = "]]" },
+  { template = "twig", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
+  { template = "jinja", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
+]
+group = "lang.templates"
+section = "Delimiters"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "fileTemplates.custom"
+title = "File and code templates"
+description = "Templates added in Settings | Editor | File and Code Templates and the changed text of built-in ones (kind \"file\", \"include\" or \"code\", name, extension, text). Built-in templates without an entry use their default text."
+type = "objects"
+unique = ["kind", "name"]
+default = []
+group = "editor.file-templates"
+order = 0
+
+# ---- Editor > File Types -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "fileTypes.associations"
+title = "File name patterns"
+description = "Patterns added to a file type (`{ fileType = \"php\", pattern = \"*.module\" }`) or removed from it (`action = \"remove\"`). A pattern added to one type is taken away from the others."
+type = "objects"
+unique = ["fileType", "pattern"]
+default = []
+group = "editor.file-types"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "fileTypes.custom"
+title = "Custom file types"
+description = "File types created in Settings | Editor | File Types with their syntax highlighting: name, description, comments, number formats, keyword lists 1-4 and options."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.file-types"
+hidden = true
+order = 10
+
+[[contributions.settings]]
+key = "fileTypes.overrides"
+title = "File type overrides"
+description = "Files whose type was chosen with File | File Properties | Override File Type: `{ path = \"artisan\", fileType = \"php\" }`, the path relative to the project. `fileType = \"text\"` makes a file plain text."
+type = "objects"
+unique = ["path"]
+default = []
+group = "editor.file-types"
+project = true
+hidden = true
+order = 15
+
+[[contributions.settings]]
+key = "fileTypes.ignoredFiles"
+title = "Ignored Files and Folders"
+description = "Files and folders with these names are hidden from the Project view, separated by ';' (`*` and `?` wildcards)."
+type = "string"
+default = "*.hprof;*.pyc;*.pyo;*.rbc;*.yarb;*~;.DS_Store;.git;.hg;.svn;CVS;__pycache__;_svn;vssver.scc;vssver2.scc"
+group = "editor.file-types"
+hidden = true
+order = 20
+
+# ---- Appearance & Behavior > System Settings ----------------------------------------
+
+[[contributions.settings]]
+key = "system.reopenLastProject"
+title = "Reopen projects on startup"
+type = "bool"
+default = true
+group = "system"
+section = "Project"
+order = 0
+
+[[contributions.settings]]
+key = "system.confirmExit"
+title = "Confirm before exiting the IDE"
+type = "bool"
+default = true
+group = "system"
+section = "Project"
+order = 1
+
+[[contributions.settings]]
+key = "system.openProjectIn"
+title = "Open project in"
+description = "Where File | Open and the recent projects open a project while another one is open in this window."
+type = "enum"
+options = [
+  { value = "newWindow", label = "New window" },
+  { value = "thisWindow", label = "Current window" },
+  { value = "ask", label = "Ask" },
+]
+default = "ask"
+group = "system"
+section = "Project"
+order = 2
+
+[[contributions.settings]]
+key = "system.flatpak.runOnHost"
+title = "Run tools on the host (Flatpak)"
+description = "In the Flatpak build, start PHP, Composer, Node, Git, Docker, language servers, debug adapters and the terminal's shell on the host through flatpak-spawn --host. Turn it off only with a runtime that ships these tools. Has no effect outside Flatpak."
+type = "bool"
+default = true
+group = "tools.flatpak"
+order = 0
+
+[[contributions.settings]]
+key = "system.defaultProjectDirectory"
+title = "Default project directory"
+description = "New projects are created here unless you pick another location."
+type = "path"
+default = "~/Projects"
+group = "system"
+section = "Project"
+order = 3
+
+[[contributions.settings]]
+key = "system.autosave.onFrameDeactivation"
+title = "Save files if the IDE is switched to a different application"
+type = "bool"
+default = true
+group = "system"
+section = "Autosave"
+order = 10
+
+[[contributions.settings]]
+key = "system.autosave.onIdle"
+title = "Save files if the IDE is idle"
+type = "bool"
+default = false
+group = "system"
+section = "Autosave"
+order = 11
+
+[[contributions.settings]]
+key = "system.autosave.idleSeconds"
+title = "Idle time (seconds)"
+type = "int"
+min = 1
+max = 600
+default = 15
+group = "system"
+section = "Autosave"
+order = 12
+
+[[contributions.settings]]
+key = "system.syncExternalChanges"
+title = "Synchronize external changes when switching to the IDE window"
+type = "bool"
+default = true
+group = "system"
+section = "Synchronization"
+order = 20
+
+[[contributions.settings]]
+key = "system.preloadSettings"
+title = "Keep the Settings window ready in the background"
+description = "Settings opens at once, because its window is loaded ahead of time and kept hidden. This uses more memory. Turn it off to load the window when you open Settings."
+type = "bool"
+default = true
+group = "system"
+section = "Performance"
+order = 30
+
+# ---- Appearance & Behavior > System Settings > Language -----------------------------
+
+[[contributions.settings]]
+key = "ide.language"
+title = "IDE language"
+description = "The language of menus, tool windows, dialogs and messages. Forge restarts to apply it everywhere."
+type = "enum"
+options = [
+  { value = "en", label = "English" },
+  { value = "de", label = "Deutsch" },
+]
+default = "en"
+group = "system.language"
+order = 0
+
+# ---- Appearance & Behavior > File Icons ---------------------------------------------
+
+[[contributions.settings]]
+key = "fileIcons.theme"
+title = "Icon theme"
+description = "The icon theme of the Project view, editor tabs, Recent Files, Search Everywhere, Find in Files, Structure, completion and the navigation bar. Plugins contribute icon themes; empty: Forge's own icons."
+type = "string"
+default = ""
+group = "appearance.fileIcons"
+section = "Icon Theme"
+order = 0
+
+[[contributions.settings]]
+key = "fileIcons.treeArrows"
+title = "Tree arrows"
+type = "enum"
+options = [
+  { value = "theme", label = "As the icon theme sets" },
+  { value = "chevron", label = "Chevrons" },
+  { value = "triangle", label = "Triangles" },
+  { value = "plusMinus", label = "Plus and minus" },
+  { value = "arrow", label = "Arrows" },
+  { value = "none", label = "None" },
+]
+default = "theme"
+group = "appearance.fileIcons"
+section = "Look"
+order = 10
+
+[[contributions.settings]]
+key = "fileIcons.monochrome"
+title = "Monochrome icons"
+type = "enum"
+options = [
+  { value = "theme", label = "As the icon theme sets" },
+  { value = "on", label = "On" },
+  { value = "off", label = "Off" },
+]
+default = "theme"
+group = "appearance.fileIcons"
+section = "Look"
+order = 11
+
+[[contributions.settings]]
+key = "fileIcons.accentColor"
+title = "Folder accent color"
+description = "A color like #e0a040 for folder icons. Empty: the icon theme's accent color, if it sets one."
+type = "string"
+default = ""
+group = "appearance.fileIcons"
+section = "Look"
+order = 12
+
+[[contributions.settings]]
+key = "fileIcons.size"
+title = "Icon size (pixels)"
+description = "0: the size the icon theme sets, else each view's own size."
+type = "int"
+min = 0
+max = 32
+default = 0
+group = "appearance.fileIcons"
+section = "Look"
+order = 13
+
+[[contributions.settings]]
+key = "fileIcons.variant"
+title = "Light and dark icons"
+description = "Which variant of a theme's icons to draw. Automatic: the light icons with the Light, Solarized Light and High Contrast Light themes, the dark icons with the others."
+type = "enum"
+options = [
+  { value = "auto", label = "Follow the UI theme" },
+  { value = "dark", label = "Always dark" },
+  { value = "light", label = "Always light" },
+]
+default = "auto"
+group = "appearance.fileIcons"
+section = "Look"
+order = 14
+
+[[contributions.settings]]
+key = "fileIcons.tintMode"
+title = "Accent and monochrome colors"
+description = "Icons that mark a tint layer (data-forge-tint) can keep their other colors; icons without one are always recolored as a whole."
+type = "enum"
+options = [
+  { value = "layer", label = "Recolor the tint layer only" },
+  { value = "mask", label = "Recolor the whole icon" },
+]
+default = "layer"
+group = "appearance.fileIcons"
+section = "Look"
+order = 15
+
+[[contributions.settings]]
+key = "fileIcons.saturation"
+title = "Saturation (%)"
+description = "100: the icons' own colors, 0: gray."
+type = "int"
+min = 0
+max = 100
+default = 100
+group = "appearance.fileIcons"
+section = "Look"
+order = 16
+
+[[contributions.settings]]
+key = "fileIcons.opacity"
+title = "Opacity (%)"
+type = "int"
+min = 10
+max = 100
+default = 100
+group = "appearance.fileIcons"
+section = "Look"
+order = 17
+
+[[contributions.settings]]
+key = "fileIcons.hollowFolders"
+title = "Hollow folders"
+description = "Folders that hold open files get the icon theme's hollow folder icon (Forge's own icons: a folder with a dot)."
+type = "enum"
+options = [
+  { value = "theme", label = "As the icon theme sets" },
+  { value = "on", label = "On" },
+  { value = "off", label = "Off" },
+]
+default = "theme"
+group = "appearance.fileIcons"
+section = "Folders"
+order = 18
+
+[[contributions.settings]]
+key = "fileIcons.folderColors"
+title = "Folder colors"
+description = "Folders drawn in a color of their own (a folder name or glob like vendor or *-cache, or a path glob relative to the project root like app/Http/*). The first matching row wins; it comes before the accent color."
+type = "objects"
+unique = ["pattern"]
+default = []
+group = "appearance.fileIcons"
+section = "Folders"
+order = 19
+
+[[contributions.settings]]
+key = "fileIcons.associations"
+title = "Custom associations"
+description = "Your own file and folder icons (kind \"fileName\", \"extension\", \"pattern\", \"regex\" or \"folderName\", value, icon id of the active theme). They come before the theme's own rules."
+type = "objects"
+unique = ["kind", "value"]
+default = []
+group = "appearance.fileIcons"
+section = "Custom Associations"
+order = 20
+
+# ---- Appearance & Behavior > System Settings > Updates ------------------------------
+
+[[contributions.settings]]
+key = "updates.checkOnStartup"
+title = "Check for updates on startup"
+description = "The splash screen checks at most once a day. Help | Check for Updates… checks at any time."
+type = "bool"
+default = true
+group = "system.updates"
+section = "Automatic Checks"
+order = 0
+
+[[contributions.settings]]
+key = "updates.channel"
+title = "Update channel"
+description = "Beta also offers pre-releases."
+type = "enum"
+options = [
+  { value = "stable", label = "Stable releases" },
+  { value = "beta", label = "Beta releases" },
+]
+default = "stable"
+group = "system.updates"
+section = "Automatic Checks"
+order = 1
+
+[[contributions.settings]]
+key = "updates.endpoint"
+title = "Update feed URL"
+description = "The latest.json of the update feed. Empty: the GitHub releases of Forge for the selected channel. Updates must be signed with the key this build was made with."
+type = "string"
+default = ""
+group = "system.updates"
+section = "Advanced"
+order = 10
+
+# ---- Editor > General ---------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.smoothScrolling"
+title = "Enable smooth scrolling"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Scrolling"
+order = 0
+
+[[contributions.settings]]
+key = "editor.caret.blinking"
+title = "Caret blinking"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Caret"
+order = 10
+
+[[contributions.settings]]
+key = "editor.caret.blinkPeriod"
+title = "Blink period (ms)"
+type = "int"
+min = 100
+max = 2000
+default = 500
+group = "editor.general"
+section = "Caret"
+order = 11
+
+[[contributions.settings]]
+key = "editor.find.matchCase"
+title = "Find in file: match case"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 200
+
+[[contributions.settings]]
+key = "editor.find.words"
+title = "Find in file: words"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 201
+
+[[contributions.settings]]
+key = "editor.find.regex"
+title = "Find in file: regex"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 202
+
+[[contributions.settings]]
+key = "editor.find.preserveCase"
+title = "Replace in file: preserve case"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 203
+
+[[contributions.settings]]
+key = "editor.find.recentFind"
+title = "Recent searches"
+description = "Search history of the editor's Find/Replace bar, newest first."
+type = "list"
+default = []
+group = "editor.general"
+hidden = true
+order = 204
+
+[[contributions.settings]]
+key = "editor.find.recentReplace"
+title = "Recent replacements"
+description = "Replace history of the editor's Find/Replace bar, newest first."
+type = "list"
+default = []
+group = "editor.general"
+hidden = true
+order = 205
+
+[[contributions.settings]]
+key = "editor.softWraps"
+title = "Soft-wrap files"
+description = "Wrap long lines visually in files matching the patterns below."
+type = "bool"
+default = false
+group = "editor.general"
+section = "Soft Wraps"
+order = 20
+
+[[contributions.settings]]
+key = "editor.softWrapFiles"
+title = "File patterns"
+type = "string"
+default = "*.md; *.txt; *.rst; *.adoc"
+group = "editor.general"
+section = "Soft Wraps"
+order = 21
+
+[[contributions.settings]]
+key = "editor.showWhitespace"
+title = "Show whitespaces"
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 30
+
+[[contributions.settings]]
+key = "editor.showLineNumbers"
+title = "Show line numbers"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 31
+
+[[contributions.settings]]
+key = "editor.highlightCurrentLine"
+title = "Highlight caret row"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 32
+
+[[contributions.settings]]
+key = "editor.stripTrailingSpaces"
+title = "Remove trailing spaces on"
+type = "enum"
+options = [
+  { value = "none", label = "None" },
+  { value = "modified", label = "Modified lines" },
+  { value = "all", label = "All lines" },
+]
+default = "modified"
+group = "editor.general"
+section = "On Save"
+order = 40
+
+[[contributions.settings]]
+key = "editor.ensureNewlineAtEof"
+title = "Ensure every saved file ends with a line break"
+type = "bool"
+default = true
+group = "editor.general"
+section = "On Save"
+order = 41
+
+[[contributions.settings]]
+key = "editor.clipboard.maxContents"
+title = "Maximum number of contents to keep in clipboard"
+description = "Entries of Paste from History (Ctrl+Shift+V). The history is kept until Forge closes."
+type = "int"
+min = 1
+max = 100
+default = 20
+group = "editor.general"
+section = "Limits"
+order = 50
+
+# ---- Editor > General: Sticky Lines, rendered doc comments; Breadcrumbs; Reader Mode ----
+
+[[contributions.settings]]
+key = "editor.renderDocComments"
+title = "Render documentation comments"
+description = "Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon."
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 33
+
+[[contributions.settings]]
+key = "editor.stickyLines.enabled"
+title = "Show sticky lines while scrolling"
+description = "The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Sticky Lines"
+order = 35
+
+[[contributions.settings]]
+key = "editor.stickyLines.maxLines"
+title = "Limit sticky lines"
+type = "int"
+min = 1
+max = 20
+default = 5
+group = "editor.general"
+section = "Sticky Lines"
+order = 36
+
+[[contributions.settings]]
+key = "editor.stickyLines.disabledLanguages"
+title = "Show sticky lines for"
+type = "list"
+default = []
+group = "editor.general"
+section = "Sticky Lines"
+order = 37
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.show"
+title = "Show breadcrumbs"
+description = "The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings."
+type = "bool"
+default = true
+group = "editor.breadcrumbs"
+order = 0
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.placement"
+title = "Placement"
+type = "enum"
+options = [
+  { value = "top", label = "Top" },
+  { value = "bottom", label = "Bottom" },
+]
+default = "bottom"
+group = "editor.breadcrumbs"
+order = 1
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.disabledLanguages"
+title = "Show breadcrumbs for"
+type = "list"
+default = []
+group = "editor.breadcrumbs"
+section = "Languages"
+order = 2
+
+[[contributions.settings]]
+key = "editor.readerMode.enabled"
+title = "Use Reader mode"
+description = "Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor."
+type = "bool"
+default = true
+group = "editor.readerMode"
+order = 0
+
+[[contributions.settings]]
+key = "editor.readerMode.applyTo"
+title = "Use for"
+type = "enum"
+options = [
+  { value = "libraries", label = "Library files (vendor, node_modules, PHP stubs)" },
+  { value = "readOnly", label = "Read-only files" },
+  { value = "both", label = "Library and read-only files" },
+]
+default = "both"
+group = "editor.readerMode"
+order = 1
+
+[[contributions.settings]]
+key = "editor.readerMode.renderDocs"
+title = "Rendered documentation comments"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 10
+
+[[contributions.settings]]
+key = "editor.readerMode.ligatures"
+title = "Ligatures"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 11
+
+[[contributions.settings]]
+key = "editor.readerMode.increaseLineSpacing"
+title = "Increased line spacing"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 12
+
+# ---- Editor > General > Postfix Completion ---------------------------------------------
+
+[[contributions.settings]]
+key = "editor.postfix.enabled"
+title = "Enable postfix completion"
+description = "Type a template key after an expression, e.g. $user.if or items.forof, to wrap it."
+type = "bool"
+default = true
+group = "editor.postfix"
+order = 0
+
+[[contributions.settings]]
+key = "editor.postfix.showInCompletion"
+title = "Show postfix templates in the completion autopopup"
+type = "bool"
+default = true
+group = "editor.postfix"
+order = 1
+
+[[contributions.settings]]
+key = "editor.postfix.expandKey"
+title = "Expand templates with"
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "space", label = "Space" },
+  { value = "enter", label = "Enter" },
+]
+default = "tab"
+group = "editor.postfix"
+order = 2
+
+[[contributions.settings]]
+key = "editor.postfix.disabled"
+title = "Templates"
+description = "Clear a template to stop offering it."
+type = "list"
+default = []
+group = "editor.postfix"
+order = 3
+
+# ---- Editor > Emmet --------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.emmet.expandKey"
+title = "Expand abbreviation with"
+description = "Live templates and postfix templates expand first when they match."
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "enter", label = "Enter" },
+  { value = "space", label = "Space" },
+]
+default = "tab"
+group = "editor.emmet"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.html.enabled"
+title = "Enable Emmet"
+description = "In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files."
+type = "bool"
+default = true
+group = "editor.emmet.html"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.html.preview"
+title = "Enable abbreviation preview"
+description = "Show the expanded markup in a popup while typing an abbreviation."
+type = "bool"
+default = false
+group = "editor.emmet.html"
+order = 1
+
+[[contributions.settings]]
+key = "editor.emmet.html.hrefAutoDetect"
+title = "Enable automatic URL recognition while wrapping text with <a> tag"
+type = "bool"
+default = true
+group = "editor.emmet.html"
+order = 2
+
+[[contributions.settings]]
+key = "editor.emmet.css.enabled"
+title = "Enable Emmet"
+description = "In CSS, SCSS, Less, Sass and Stylus, and in <style> blocks: m10, p10-20, df, pos:a, bgc#fff …"
+type = "bool"
+default = true
+group = "editor.emmet.css"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.jsx.enabled"
+title = "Enable Emmet in JSX"
+type = "bool"
+default = true
+group = "editor.emmet.jsx"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.jsx.classAttribute"
+title = "Class attribute"
+description = "Attribute written for .class abbreviations in JSX and TSX files."
+type = "enum"
+options = [
+  { value = "className", label = "className" },
+  { value = "class", label = "class" },
+]
+default = "className"
+group = "editor.emmet.jsx"
+order = 1
+
+# ---- Editor > General > Appearance: color preview ----------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorPreview.gutter"
+title = "Show color preview in the gutter"
+description = "Swatches next to colors in CSS, markup and scripts; click one to open the color picker."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 33
+
+[[contributions.settings]]
+key = "editor.colorPreview.inline"
+title = "Show color preview inline"
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 34
+
+[[contributions.settings]]
+key = "editor.colorPicker.recentColors"
+title = "Recently used colors"
+description = "Colors picked in the color picker, newest first."
+type = "list"
+default = []
+group = "editor.colorPicker"
+order = 0
+
+# ---- Editor > General > Editor Tabs ---------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.tabs.limit"
+title = "Tab limit"
+description = "Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit."
+type = "int"
+min = 0
+max = 100
+default = 10
+group = "editor.tabs"
+section = "Closing Policy"
+order = 0
+
+[[contributions.settings]]
+key = "editor.tabs.closeUnmodifiedFirst"
+title = "When the tab limit is reached, close non-modified tabs first"
+type = "bool"
+default = true
+group = "editor.tabs"
+section = "Closing Policy"
+order = 1
+
+[[contributions.settings]]
+key = "editor.tabs.activateOnClose"
+title = "When the current tab is closed, activate"
+type = "enum"
+options = [
+  { value = "left", label = "The tab on the left" },
+  { value = "right", label = "The tab on the right" },
+  { value = "recent", label = "Most recently opened tab" },
+]
+default = "recent"
+group = "editor.tabs"
+section = "Closing Policy"
+order = 2
+
+[[contributions.settings]]
+key = "editor.tabs.showPinnedIcon"
+title = "Show pin icon on pinned tabs"
+type = "bool"
+default = true
+group = "editor.tabs"
+section = "Appearance"
+order = 10
+
+# ---- Editor > TODO ------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "todo.patterns"
+title = "Patterns"
+description = "Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive."
+type = "list"
+default = ["\\btodo\\b.*", "\\bfixme\\b.*"]
+group = "editor.todo"
+section = "Patterns"
+order = 0
+
+# ---- Editor > Live Templates ----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.liveTemplates.expandKey"
+title = "By default expand with"
+description = "Key that expands a live template abbreviation."
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "space", label = "Space" },
+  { value = "enter", label = "Enter" },
+]
+default = "tab"
+group = "editor.liveTemplates"
+order = 0
+
+[[contributions.settings]]
+key = "editor.liveTemplates.custom"
+title = "User and changed templates"
+description = "New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed."
+type = "objects"
+default = []
+group = "editor.liveTemplates"
+order = 10
+
+[[contributions.settings]]
+key = "editor.liveTemplates.disabled"
+title = "Disabled templates"
+description = "Ids (`group/abbreviation`) of templates that do not expand."
+type = "list"
+default = []
+group = "editor.liveTemplates"
+order = 20
+
+# ---- Editor > Language Injections -----------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.injections.disabled"
+title = "Disabled injection rules"
+description = "Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject."
+type = "list"
+default = []
+group = "editor.injections"
+order = 0
+
+[[contributions.settings]]
+key = "editor.injections.uninjected"
+title = "Un-injected places"
+description = "Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes."
+type = "list"
+default = []
+group = "editor.injections"
+project = true
+order = 10
+
+# ---- Appearance & Behavior > Notifications --------------------------------------------
+
+[[contributions.settings]]
+key = "notifications.balloons"
+title = "Display balloon notifications"
+type = "bool"
+default = true
+group = "notifications"
+order = 0
+
+[[contributions.settings]]
+key = "notifications.groups"
+title = "Notification groups"
+description = "How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`."
+type = "list"
+default = []
+group = "notifications"
+order = 1
+
+# ---- Editor > Color Scheme -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorScheme.active"
+title = "Scheme"
+description = "Color scheme of the editor: Ember, Anvil or the name of a user scheme. Empty follows the theme (Ember for dark themes, Anvil for light ones)."
+type = "string"
+default = ""
+group = "editor.color-scheme"
+order = 0
+
+[[contributions.settings]]
+key = "editor.colorScheme.schemes"
+title = "User schemes"
+description = "Schemes made with Duplicate or Import: name, parent (Ember or Anvil) and the changed attributes, one per line: the attribute key, then fg=#rrggbb, bg=#rrggbb, bold, italic, effect=<type> and effectColor=#rrggbb."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.color-scheme"
+order = 1
+
+# ---- Editor > Font -------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.font.family"
+title = "Font"
+type = "enum"
+options = [
+  { value = "JetBrains Mono", label = "JetBrains Mono" },
+  { value = "Fira Code", label = "Fira Code" },
+  { value = "Cascadia Code", label = "Cascadia Code" },
+  { value = "Source Code Pro", label = "Source Code Pro" },
+  { value = "Menlo", label = "Menlo" },
+  { value = "Consolas", label = "Consolas" },
+  { value = "monospace", label = "System monospace" },
+]
+default = "JetBrains Mono"
+group = "editor.font"
+order = 0
+
+[[contributions.settings]]
+key = "editor.font.size"
+title = "Size"
+type = "number"
+min = 6
+max = 72
+step = 0.5
+default = 13.5
+group = "editor.font"
+order = 1
+
+[[contributions.settings]]
+key = "editor.font.lineHeight"
+title = "Line height"
+type = "number"
+min = 1.0
+max = 3.0
+step = 0.1
+default = 1.6
+group = "editor.font"
+order = 2
+
+[[contributions.settings]]
+key = "editor.font.ligatures"
+title = "Enable ligatures"
+description = "Render character sequences like -> and !== as a single glyph if the font supports it."
+type = "bool"
+default = true
+group = "editor.font"
+order = 3
+
+# ---- Editor > Code Style -------------------------------------------------------------
+# The scheme options (line separator, hard wrap, visual guides, formatter markers and every
+# language page) come from the code style model (`forge-codestyle`); these two are plain
+# settings shown on the General page.
+
+[[contributions.settings]]
+key = "editor.codeStyle.useEditorConfig"
+title = "Enable EditorConfig support"
+description = "Indents, line separators, charset and the On Save options of .editorconfig files override these settings."
+type = "bool"
+default = true
+group = "editor.code-style"
+project = true
+order = 3
+
+[[contributions.settings]]
+key = "editor.codeStyle.detectIndents"
+title = "Detect and use existing file indents for editing"
+description = "Files indented differently from the code style keep their indent; the status bar marks it with *."
+type = "bool"
+default = true
+group = "editor.code-style"
+project = true
+order = 4
+
+# ---- Editor > Inlay Hints ------------------------------------------------------------
+# Hints come from the language servers (`textDocument/inlayHint`); Forge groups and filters
+# them (`forge_codeintel::inlay`).
+
+[[contributions.settings]]
+key = "editor.inlayHints.parameterNames"
+title = "Parameter names"
+description = "Show parameter names at call sites for literal and null arguments."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Parameters"
+order = 0
+
+[[contributions.settings]]
+key = "editor.inlayHints.types"
+title = "Inferred variable types"
+description = "The type of variables and properties without a declared type."
+type = "bool"
+default = false
+group = "editor.inlay-hints"
+section = "Types"
+order = 10
+
+[[contributions.settings]]
+key = "editor.inlayHints.returnTypes"
+title = "Return types of closures and functions"
+description = "The inferred return type after the parameter list when none is declared."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Types"
+order = 11
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.php"
+title = "PHP"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 30
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.javascript"
+title = "JavaScript and TypeScript"
+description = "Also Vue, Svelte and Astro files."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 31
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.lua"
+title = "Lua"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 32
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.other"
+title = "Other languages"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 33
+
+[[contributions.settings]]
+key = "editor.inlayHints.implementations"
+title = "Implementations and inheritors"
+description = "Show \"2 implementations\", \"3 inheritors\" and \"1 override\" above PHP classes and methods (Code Vision). Click to go there."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Code Vision"
+order = 20
+
+# ---- Tools > External Tools ------------------------------------------------------------
+
+[[contributions.settings]]
+key = "tools.externalTools"
+title = "External Tools"
+description = "Programs run from Tools | External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line)."
+type = "objects"
+unique = ["group", "name"]
+default = []
+group = "tools.external-tools"
+order = 0
+
+# ---- Tools > HTTP Client ---------------------------------------------------------------
+
+[[contributions.settings]]
+key = "httpClient.environment"
+title = "Environment"
+description = "Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors."
+type = "string"
+default = ""
+group = "tools.http-client"
+project = true
+order = 0
+
+# ---- Tools > Search --------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "search.findInFiles.maxMatches"
+title = "Maximum matches in the Find window"
+description = "0 shows every match. Searches that match millions of lines are slow to transfer and display. The Search Everywhere popup always stays limited."
+type = "int"
+min = 0
+max = 100000000
+default = 0
+group = "tools.search"
+section = "Find in Files"
+order = 0
+
+[[contributions.settings]]
+key = "search.everywhere.fuzzy"
+title = "Fuzzy matching"
+description = "Search Everywhere (Files, Classes, Symbols) and Go to File match abbreviations such as \"orco\" for OrderController. Turn it off to match only text that contains what you typed."
+type = "bool"
+default = true
+group = "tools.search"
+section = "Search Everywhere"
+order = 0
+
+[[contributions.settings]]
+key = "search.indexing.lowPriority"
+title = "Index in the background at low CPU priority"
+description = "The search index of a project is built and refreshed on threads below normal priority, so the IDE and other programs keep their share of the CPU. Turn it off to index as fast as possible. Applies when a project is opened."
+type = "bool"
+default = true
+group = "tools.search"
+section = "Indexing"
+order = 10
+
+[[contributions.settings]]
+key = "httpClient.sendFrom"
+title = "Send requests from"
+description = "Remote projects only: \"Remote host\" sends the requests of .http files through an SSH tunnel from the project's host, so localhost URLs reach the services running there. \"This machine\" sends them from here."
+type = "enum"
+options = [
+  { value = "local", label = "This machine" },
+  { value = "remote", label = "Remote host" },
+]
+default = "remote"
+group = "tools.http-client"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "httpClient.grpc.protoFiles"
+title = ".proto files for gRPC requests"
+description = "Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service."
+type = "list"
+default = []
+group = "tools.http-client"
+section = "gRPC"
+project = true
+order = 10
+
+# ---- Tools > File Watchers -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "tools.fileWatchers"
+title = "File Watchers"
+description = "Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, \"Track only root files\", console and output filters."
+type = "objects"
+unique = ["name"]
+default = []
+group = "tools.file-watchers"
+project = true
+order = 0
+
+# ---- Tools > Actions on Save -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.enabled"
+title = "Reformat code"
+description = "Reformat Code (Ctrl+Alt+L) when the file is saved."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.scope"
+title = "Reformat"
+description = "\"Changed lines\" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely."
+type = "enum"
+options = [
+  { value = "whole", label = "Whole file" },
+  { value = "changed", label = "Changed lines" },
+]
+default = "whole"
+group = "tools.actions-on-save"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.fileTypes"
+title = "Reformat file types"
+description = "File type ids (php, javascript, ...) reformatted on save; empty means all file types."
+type = "list"
+default = []
+group = "tools.actions-on-save"
+project = true
+order = 2
+
+[[contributions.settings]]
+key = "actionsOnSave.optimizeImports"
+title = "Optimize imports"
+description = "Remove unused imports and sort the others (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "actionsOnSave.rearrange"
+title = "Rearrange code"
+description = "Order class members: constants, properties, constructor, methods (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 20
+
+[[contributions.settings]]
+key = "actionsOnSave.codeCleanup"
+title = "Run code cleanup"
+description = "Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 30
+
+[[contributions.settings]]
+key = "actionsOnSave.runOnAutosave"
+title = "Also run on autosave"
+description = "Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 90
+
+# ---- Markdown, images and CSV/TSV (file editors) --------------------------------------
+
+[[contributions.settings]]
+key = "markdown.defaultLayout"
+title = "Default layout"
+description = "How Markdown files open. The buttons in the top-right corner of the editor switch it per file."
+type = "enum"
+options = [
+  { value = "editor", label = "Editor only" },
+  { value = "split", label = "Editor and Preview" },
+  { value = "preview", label = "Preview only" },
+]
+default = "split"
+group = "lang.markdown"
+section = "Preview"
+order = 0
+
+[[contributions.settings]]
+key = "markdown.syncScroll"
+title = "Synchronize scrolling between the editor and the preview"
+type = "bool"
+default = true
+group = "lang.markdown"
+section = "Preview"
+order = 10
+
+[[contributions.settings]]
+key = "markdown.frontMatter"
+title = "Front matter"
+description = "The YAML (---) or TOML (+++) block at the start of a file."
+type = "enum"
+options = [
+  { value = "table", label = "Show as table" },
+  { value = "hidden", label = "Hide" },
+]
+default = "table"
+group = "lang.markdown"
+section = "Preview"
+order = 20
+
+[[contributions.settings]]
+key = "markdown.mermaid"
+title = "Mermaid"
+description = "Render ```mermaid code blocks as diagrams."
+type = "bool"
+default = true
+group = "lang.markdown"
+section = "Markdown Extensions"
+order = 30
+
+[[contributions.settings]]
+key = "images.showChessboard"
+title = "Show chessboard"
+description = "Transparent areas of images are drawn over a chessboard pattern."
+type = "bool"
+default = true
+group = "editor.image"
+section = "Image Viewer"
+order = 0
+
+[[contributions.settings]]
+key = "images.showGrid"
+title = "Show grid"
+description = "Pixel grid lines when the zoom is 300% or more."
+type = "bool"
+default = false
+group = "editor.image"
+section = "Image Viewer"
+order = 10
+
+[[contributions.settings]]
+key = "images.svgDefaultLayout"
+title = "SVG files open with"
+type = "enum"
+options = [
+  { value = "editor", label = "Editor only" },
+  { value = "split", label = "Editor and Preview" },
+  { value = "preview", label = "Preview only" },
+]
+default = "split"
+group = "editor.image"
+section = "SVG"
+order = 20
+
+[[contributions.settings]]
+key = "csv.defaultView"
+title = "Open CSV/TSV files as"
+type = "enum"
+options = [
+  { value = "text", label = "Text" },
+  { value = "table", label = "Table" },
+]
+default = "text"
+group = "editor.csv"
+order = 0
+
+[[contributions.settings]]
+key = "csv.firstRowIsHeader"
+title = "First row is header"
+description = "Default of the table view's header toggle."
+type = "bool"
+default = true
+group = "editor.csv"
+order = 10
+
+# ---- Highlight usages / Find Usages settings ------------------------------------------
+
+[[contributions.settings]]
+key = "editor.highlightUsagesAtCaret"
+title = "Highlight usages of element at caret"
+description = "Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Highlight on Caret Movement"
+order = 38
+
+[[contributions.settings]]
+key = "findUsages.options.classUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 0
+
+[[contributions.settings]]
+key = "findUsages.options.classMethodUsages"
+title = "Usages of methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 1
+
+[[contributions.settings]]
+key = "findUsages.options.classFieldUsages"
+title = "Usages of fields"
+type = "bool"
+default = false
+group = "findUsages"
+order = 2
+
+[[contributions.settings]]
+key = "findUsages.options.classDerivedClasses"
+title = "Derived classes"
+type = "bool"
+default = false
+group = "findUsages"
+order = 3
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 4
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceMethodUsages"
+title = "Usages of methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 5
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceImplementingClasses"
+title = "Implementing classes"
+type = "bool"
+default = false
+group = "findUsages"
+order = 6
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceDerivedInterfaces"
+title = "Derived interfaces"
+type = "bool"
+default = false
+group = "findUsages"
+order = 7
+
+[[contributions.settings]]
+key = "findUsages.options.methodUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 8
+
+[[contributions.settings]]
+key = "findUsages.options.methodOverridingMethods"
+title = "Overriding methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 9
+
+[[contributions.settings]]
+key = "findUsages.options.readAccess"
+title = "Read access"
+type = "bool"
+default = true
+group = "findUsages"
+order = 10
+
+[[contributions.settings]]
+key = "findUsages.options.writeAccess"
+title = "Write access"
+type = "bool"
+default = true
+group = "findUsages"
+order = 11
+
+[[contributions.settings]]
+key = "findUsages.options.usages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 12
+
+[[contributions.settings]]
+key = "findUsages.options.searchInCommentsAndStrings"
+title = "Search in comments and strings"
+type = "bool"
+default = false
+group = "findUsages"
+order = 13
+
+[[contributions.settings]]
+key = "findUsages.options.searchForTextOccurrences"
+title = "Search for text occurrences"
+type = "bool"
+default = false
+group = "findUsages"
+order = 14
+
+[[contributions.settings]]
+key = "findUsages.scope.kind"
+title = "Scope"
+type = "enum"
+options = [
+  { value = "projectFiles", label = "Project Files" },
+  { value = "projectAndLibraries", label = "Project and Libraries" },
+  { value = "openFiles", label = "Open Files" },
+  { value = "currentFile", label = "Current File" },
+  { value = "recentlyChangedFiles", label = "Recently Changed Files" },
+  { value = "directory", label = "Directory" },
+  { value = "custom", label = "Custom" },
+]
+default = "projectFiles"
+group = "findUsages"
+order = 20
+
+[[contributions.settings]]
+key = "findUsages.scope.directory"
+title = "Directory"
+type = "string"
+default = ""
+group = "findUsages"
+order = 21
+
+[[contributions.settings]]
+key = "findUsages.scope.includeSubdirectories"
+title = "Include subdirectories"
+type = "bool"
+default = true
+group = "findUsages"
+order = 22
+
+[[contributions.settings]]
+key = "findUsages.scope.pattern"
+title = "Custom scope"
+description = "A scope pattern (`file:app//*.php&&!test:*..*`, see Settings | Appearance & Behavior | Scopes) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**)."
+type = "string"
+default = ""
+group = "findUsages"
+order = 23
+
+[[contributions.settings]]
+key = "findUsages.scope.name"
+title = "Named scope"
+description = "A scope of the Scopes page used as the custom scope; empty uses the pattern above."
+type = "string"
+default = ""
+group = "findUsages"
+order = 24
+
+[[contributions.settings]]
+key = "findUsages.openInNewTab"
+title = "Open in new tab"
+type = "bool"
+default = true
+group = "findUsages"
+order = 30
+
+# ---- Version Control > Local History ------------------------------------------------------
+
+[[contributions.settings]]
+key = "localHistory.keepDays"
+title = "Keep local history for (working days)"
+description = "Only days with changes count. Older revisions and labels are removed when a project opens and every few hours."
+type = "int"
+min = 1
+max = 365
+default = 5
+group = "vcs.local-history"
+order = 0
+
+[[contributions.settings]]
+key = "localHistory.maxStorageMb"
+title = "Maximum history size per project (MB)"
+description = "When the stored contents grow larger, the oldest revisions are removed first."
+type = "int"
+min = 16
+max = 10240
+default = 512
+group = "vcs.local-history"
+order = 1
+
+[[contributions.settings]]
+key = "localHistory.maxFileSizeKb"
+title = "Do not record files larger than (KB)"
+description = "Larger files and binary files are left out of Local History."
+type = "int"
+min = 16
+max = 102400
+default = 1024
+group = "vcs.local-history"
+order = 2
+
+[[contributions.settings]]
+key = "localHistory.excludedFolders"
+title = "Excluded folders"
+description = "Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded."
+type = "list"
+default = [".git", ".hg", ".svn", "node_modules", "vendor", ".idea"]
+group = "vcs.local-history"
+order = 3
+
+# ---- Plugins > Marketplace -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "plugins.marketplace.url"
+title = "Marketplace index URL"
+description = "The plugin index (JSON, format 1) the Marketplace tab reads. The default is Forge's marketplace (stdimnet/marketplace on GitHub). A private marketplace's access token is stored in the OS keychain, not here."
+type = "string"
+default = "https://raw.githubusercontent.com/stdimnet/marketplace/main/index.json"
+group = "plugins"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "plugins.marketplace.trustedKeys"
+title = "Trusted publisher keys"
+description = "Base64 Ed25519 public keys. When set, marketplace downloads must carry a signature from one of them (the SHA-256 checksum is always checked)."
+type = "list"
+default = []
+group = "plugins"
+hidden = true
+order = 1
+
+# ---- Settings Sync ---------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "settingsSync.enabled"
+title = "Sync settings across machines"
+description = "Keep the chosen settings in step through a folder or a git repository you provide. Forge runs no sync service; secrets stay in the OS keychain."
+type = "bool"
+default = false
+group = "settingsSync"
+order = 0
+
+[[contributions.settings]]
+key = "settingsSync.method"
+title = "Sync through"
+type = "enum"
+options = [
+  { value = "folder", label = "A folder (e.g. in Dropbox, OneDrive, Google Drive, Nextcloud)" },
+  { value = "git", label = "A git repository" },
+]
+default = "folder"
+group = "settingsSync"
+order = 1
+
+[[contributions.settings]]
+key = "settingsSync.folder"
+title = "Sync folder"
+description = "Forge writes a forge-settings-sync folder into it."
+type = "path"
+default = ""
+group = "settingsSync"
+order = 2
+
+[[contributions.settings]]
+key = "settingsSync.gitUrl"
+title = "Git repository URL"
+description = "A repository you own (SSH or HTTPS). Forge clones it into its cache and uses your git credentials."
+type = "string"
+default = ""
+group = "settingsSync"
+order = 3
+
+[[contributions.settings]]
+key = "settingsSync.gitBranch"
+title = "Branch"
+type = "string"
+default = "main"
+group = "settingsSync"
+order = 4
+
+[[contributions.settings]]
+key = "settingsSync.groups"
+title = "Synced settings"
+description = "Settings groups to sync (ids of the Export Settings groups)."
+type = "list"
+default = ["appearance", "keymap", "editor", "colorSchemes", "codeStyle", "fileTypes", "templates", "liveTemplates", "plugins", "installedPlugins"]
+group = "settingsSync"
+hidden = true
+order = 5

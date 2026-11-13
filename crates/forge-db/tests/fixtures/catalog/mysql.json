@@ -1,0 +1,40 @@
+{
+  "mysql.current_schema": [["shop"]],
+  "mysql.schemas": [["information_schema"], ["mysql"], ["shop"], ["staging"]],
+  "mysql.tables": [
+    ["customer_totals", "VIEW", "VIEW", null],
+    ["orders", "BASE TABLE", "Customer orders", "3"],
+    ["users", "BASE TABLE", "", "2"]
+  ],
+  "mysql.columns": [
+    ["customer_totals", "user_id", "bigint unsigned", "NO", null, "", "", ""],
+    ["customer_totals", "spent", "decimal(32,2)", "YES", null, "", "", ""],
+    ["orders", "id", "bigint unsigned", "NO", null, "auto_increment", "", ""],
+    ["orders", "user_id", "bigint unsigned", "NO", null, "", "", ""],
+    ["orders", "total", "decimal(10,2)", "NO", "0.00", "", "Gross amount", ""],
+    ["orders", "total_with_tax", "decimal(10,2)", "YES", null, "STORED GENERATED", "", "(`total` * 1.19)"],
+    ["users", "id", "bigint unsigned", "NO", null, "auto_increment", "", ""],
+    ["users", "email", "varchar(255)", "NO", null, "", "", ""]
+  ],
+  "mysql.indexes": [
+    ["orders", "PRIMARY", "0", "id"],
+    ["orders", "orders_user_id_foreign", "1", "user_id"],
+    ["users", "PRIMARY", "0", "id"],
+    ["users", "users_email_unique", "0", "email"]
+  ],
+  "mysql.foreign_keys": [
+    ["orders", "orders_user_id_foreign", "user_id", "shop", "users", "id", "RESTRICT", "CASCADE"]
+  ],
+  "mysql.checks": [["orders", "orders_total_positive", "(`total` >= 0)"]],
+  "mysql.triggers": [["orders", "orders_audit", "AFTER", "INSERT", "BEGIN INSERT INTO audit (order_id) VALUES (NEW.id); END"]],
+  "mysql.views": [["customer_totals", "select `o`.`user_id` AS `user_id`,sum(`o`.`total`) AS `spent` from `shop`.`orders` `o` group by `o`.`user_id`"]],
+  "mysql.routines": [
+    ["archive_orders", "PROCEDURE", null, "BEGIN DELETE FROM orders WHERE created_at < before_date; END", "SQL"],
+    ["order_total", "FUNCTION", "decimal(10,2)", "BEGIN RETURN (SELECT total FROM orders WHERE id = o_id); END", "SQL"]
+  ],
+  "mysql.parameters": [
+    ["archive_orders", "before_date", "date", "IN"],
+    ["order_total", "o_id", "bigint", null]
+  ],
+  "mysql.roles": [["root@localhost", "Y", "Y"], ["shop@%", "N", "Y"]]
+}

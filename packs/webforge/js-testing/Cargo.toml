@@ -1,0 +1,16 @@
+[package]
+name = "webforge-js-testing"
+description = "WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright Test, Cypress, node --test) on the shared test runner: discovery of describe/it/test calls, command lines, Rerun Failed Tests and debug programs — pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-runtools.workspace = true
+forge-testing.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+forge-output.workspace = true
+serde_json.workspace = true
+toml.workspace = true

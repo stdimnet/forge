@@ -1,0 +1,77 @@
+/* Notifications tool window (PHPStorm New UI). */
+.notif-view {
+  height: 100%;
+  overflow: auto;
+  outline: none;
+}
+.notif-empty {
+  padding: 24px 16px;
+  text-align: center;
+}
+.notif-entry {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding: 10px 28px 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.notif-entry:hover {
+  background: var(--bg-hover);
+}
+.notif-entry.unread {
+  background: var(--accent-soft);
+}
+.notif-entry.unread .notif-title {
+  font-weight: 600;
+}
+.notif-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.notif-icon.info {
+  color: var(--info);
+}
+.notif-icon.warning {
+  color: var(--warning);
+}
+.notif-icon.error {
+  color: var(--danger);
+}
+.notif-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.notif-title {
+  color: var(--fg-strong);
+}
+.notif-content {
+  color: var(--fg);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+.notif-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.notif-meta {
+  display: flex;
+  gap: 10px;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.notif-remove {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  visibility: hidden;
+}
+.notif-entry:hover .notif-remove {
+  visibility: visible;
+}
+.notif-unread-icon {
+  color: var(--accent);
+}

@@ -1,0 +1,55 @@
+# JSON Schema support for JSON, JSON5/JSONC and YAML files (crates/forge-jsonschema):
+# validation, completion, documentation and Go to Declaration from the schema mapped to a
+# file. Settings | Languages & Frameworks | Schemas and DTDs.
+id = "forge.json-schema"
+name = "JSON Schema"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Validates, completes and documents JSON and YAML files with JSON Schema: composer.json, package.json, tsconfig.json, ESLint and Prettier configs, Docker Compose, GitHub Actions and GitLab CI out of the box, plus your own mappings and the file's $schema."
+depends = ["forge.core"]
+
+# ---- Schemas and DTDs > JSON Schema Mappings ----------------------------------------------
+
+[[contributions.settings]]
+key = "jsonSchema.mappings"
+title = "JSON Schema mappings"
+description = "Schemas for files of this project: name, schema (a file or URL), schema version and the files, directories (ending in /) or patterns it applies to, one per line. A mapping without a schema turns schemas off for its files."
+type = "objects"
+default = []
+group = "lang.json-schema"
+project = true
+order = 0
+
+# ---- Schemas and DTDs > Remote JSON Schemas -------------------------------------------------
+
+[[contributions.settings]]
+key = "jsonSchema.remote.enabled"
+title = "Allow downloading JSON schemas from remote sources"
+description = "Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download."
+type = "bool"
+default = false
+group = "lang.json-schema.remote"
+order = 0
+
+[[contributions.settings]]
+key = "jsonSchema.remote.schemaStore"
+title = "Use schemastore.org JSON Schema catalog"
+description = "Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog."
+type = "bool"
+default = true
+group = "lang.json-schema.remote"
+order = 1
+
+[[contributions.inspections]]
+id = "JsonSchemaCompliance"
+name = "Compliance with JSON schema"
+group = "JSON and JSON5"
+severity = "WARNING"
+external = true
+batch = false
+description = "Reports values that do not match the JSON schema of the file (schema mappings, $schema, SchemaStore)."
+
+[[contributions.inspectionMappings]]
+source = "json-schema"
+inspection = "JsonSchemaCompliance"

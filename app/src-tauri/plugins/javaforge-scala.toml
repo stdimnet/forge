@@ -1,0 +1,127 @@
+# JavaForge: Scala basics, in the style of IntelliJ IDEA's Scala plugin. The logic lives in
+# packs/javaforge/lang-scala (sources and mains, sbt builds and command lines, ScalaTest and
+# MUnit, the Metals launch) and is wired up by app/src-tauri/src/commands/scala.rs. Metals
+# (Apache-2.0) is found on the PATH or installed on request with Coursier; JDKs come from
+# JavaForge.
+
+id = "forge.scala"
+name = "Scala"
+version = "0.1.0"
+pack = "javaforge"
+vendor = "Forge"
+depends = ["forge.java"]
+description = "Scala with sbt: highlighting, the sbt tool window (projects, Scala versions, dependencies, tasks), sbt Task and sbt shell run configurations, ScalaTest and MUnit through sbt, and Metals as the language server."
+projectTypes = ["scala"]
+
+[contributions]
+languages = ["scala"]
+
+[[contributions.commands]]
+id = "scala.reloadSbt"
+title = "Reload sbt Project"
+category = "Scala"
+
+[[contributions.commands]]
+id = "scala.sbtShell"
+title = "Open sbt Shell"
+category = "Scala"
+
+[[contributions.commands]]
+id = "scala.installMetals"
+title = "Install Metals (Scala Language Server)"
+category = "Scala"
+
+# ---- ScalaTest and MUnit on the shared test runner (forge-testing) ------------------------
+# Discovery (suites and their tests in every ScalaTest style), sbt `testOnly` command lines
+# with the JUnit XML reports of target/test-reports and Rerun Failed Tests come from
+# `javaforge_lang_scala::ScalaTests`, registered under the same ids.
+
+[[contributions.testFrameworks]]
+id = "scalatest"
+name = "ScalaTest"
+description = "Run ScalaTest suites through sbt: all, a package, a suite or one test."
+icon = "flask-conical"
+language = "scala"
+detect = { dependencies = [{ file = "build.sbt", contains = "org.scalatest" }] }
+testFiles = ["**/src/test/scala/**/*.scala", "*Spec.scala", "*Suite.scala", "*Test.scala"]
+report = "jUnitFile"
+junitFlavor = "kotlin"
+
+[[contributions.testFrameworks]]
+id = "munit"
+name = "MUnit"
+description = "Run MUnit suites through sbt: all, a package, a suite or one test."
+icon = "flask-conical"
+language = "scala"
+detect = { dependencies = [{ file = "build.sbt", contains = "munit" }] }
+testFiles = ["**/src/test/scala/**/*.scala", "*Suite.scala", "*Spec.scala", "*Test.scala"]
+report = "jUnitFile"
+junitFlavor = "kotlin"
+
+# ---- Settings | Languages & Frameworks | Scala ------------------------------------------
+
+[[contributions.settings]]
+key = "scala.metals.path"
+title = "Metals"
+description = "The metals launcher. Empty: the one Forge installed, else metals on the PATH."
+type = "path"
+default = ""
+group = "lang.scala"
+section = "Language Server (Metals)"
+order = 0
+
+[[contributions.settings]]
+key = "scala.metals.autoInstall"
+title = "Install Metals"
+description = "When a Scala project opens without Metals: offer to install the pinned version with Coursier (cs), or never ask."
+type = "enum"
+options = [
+  { value = "ask", label = "Ask" },
+  { value = "never", label = "Never" },
+]
+default = "ask"
+group = "lang.scala"
+section = "Language Server (Metals)"
+order = 1
+
+[[contributions.settings]]
+key = "scala.coursier.path"
+title = "Coursier (cs)"
+description = "The cs launcher that installs Metals. Empty: cs or coursier on the PATH."
+type = "path"
+default = ""
+group = "lang.scala"
+section = "Language Server (Metals)"
+order = 2
+
+[[contributions.settings]]
+key = "scala.sbt.path"
+title = "sbt launcher"
+description = "The sbt script. Empty: SDKMAN!'s current sbt, else sbt on the PATH."
+type = "path"
+default = ""
+group = "lang.scala"
+section = "sbt"
+order = 10
+
+[[contributions.settings]]
+key = "scala.sbt.vmOptions"
+title = "VM parameters"
+description = "JVM options of sbt (passed as -J options), e.g. -Xmx2g."
+type = "string"
+default = ""
+group = "lang.scala"
+section = "sbt"
+project = true
+order = 11
+
+[[contributions.settings]]
+key = "scala.sbt.importOnOpen"
+title = "Reload the sbt project when it opens"
+description = "Ask sbt for the projects, Scala versions and dependencies (this runs the build definition: only in trusted projects)."
+type = "bool"
+default = false
+group = "lang.scala"
+section = "sbt"
+project = true
+order = 12

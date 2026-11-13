@@ -1,0 +1,80 @@
+.twp {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-editor);
+}
+.twp-editor {
+  flex: 1 1 50%;
+  min-width: 0;
+  height: 100%;
+}
+.twp[data-layout="split"] .twp-editor {
+  flex-grow: 0;
+}
+.twp-editor.hidden {
+  display: none;
+}
+.twp-splitter {
+  flex: 0 0 1px;
+  background: var(--border);
+  cursor: col-resize;
+  position: relative;
+}
+.twp-splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+}
+.twp-preview {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+.twp-toolbar {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  opacity: 0.92;
+}
+.twp-toolbar:hover {
+  opacity: 1;
+}
+.twp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.twp-btn:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.twp-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.twp-sep {
+  width: 1px;
+  height: 14px;
+  margin: 0 3px;
+  background: var(--border);
+}

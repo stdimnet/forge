@@ -1,0 +1,54 @@
+{
+  "actions": [],
+  "advisories": {
+    "1102341": {
+      "findings": [
+        {"version": "0.24.2", "paths": [".>vite>esbuild", ".>vitest>vite>esbuild"]}
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/evanw/esbuild/security/advisories/GHSA-67mh-4wv8-2f99\n- https://github.com/advisories/GHSA-67mh-4wv8-2f99",
+      "created": "2025-02-10T17:48:07.000Z",
+      "id": 1102341,
+      "npm_advisory_id": null,
+      "overview": "esbuild allows any websites to send any request to the development server and read the response due to default CORS settings.",
+      "reported_by": null,
+      "title": "esbuild enables any website to send any requests to the development server and read the response",
+      "metadata": null,
+      "cves": [],
+      "access": "public",
+      "severity": "moderate",
+      "module_name": "esbuild",
+      "vulnerable_versions": "<=0.24.2",
+      "github_advisory_id": "GHSA-67mh-4wv8-2f99",
+      "recommendation": "Upgrade to version 0.25.0 or later",
+      "patched_versions": ">=0.25.0",
+      "updated": "2025-02-10T17:48:08.000Z",
+      "cvss": {"score": 5.3, "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N"},
+      "cwe": ["CWE-346"],
+      "url": "https://github.com/advisories/GHSA-67mh-4wv8-2f99"
+    },
+    "1104523": {
+      "findings": [
+        {"version": "7.5.1", "paths": [".>react-router-dom>react-router"]}
+      ],
+      "id": 1104523,
+      "title": "React Router allows pre-render data spoofing on React-Router framework mode",
+      "cves": ["CVE-2025-43865"],
+      "severity": "high",
+      "module_name": "react-router",
+      "vulnerable_versions": ">=7.0.0 <=7.5.1",
+      "github_advisory_id": "GHSA-cpj6-fhp6-mr6j",
+      "patched_versions": ">=7.5.2",
+      "url": "https://github.com/advisories/GHSA-cpj6-fhp6-mr6j"
+    }
+  },
+  "muted": [],
+  "metadata": {
+    "vulnerabilities": {"info": 0, "low": 0, "moderate": 1, "high": 1, "critical": 0},
+    "dependencies": 412,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 412
+  }
+}

@@ -1,0 +1,259 @@
+/* Terminal tool window. Colors come from theme.css variables only. */
+
+.terminal-view {
+  position: relative;
+  height: 100%;
+  background: var(--bg-panel);
+}
+.term-host {
+  position: absolute;
+  inset: 2px 4px 0 12px;
+}
+.term-host.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+.term-host .xterm {
+  height: 100%;
+}
+.term-host .xterm-viewport {
+  background: transparent !important;
+}
+.term-host .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+
+/* Tabs in the tool window header */
+.term-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.term-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.term-tab:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.term-tab.active {
+  color: var(--fg-strong);
+  background: var(--bg-active);
+}
+.term-tab-title {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.term-tab-input {
+  width: 120px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: var(--fs-small);
+}
+.term-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-faint);
+  visibility: hidden;
+}
+.term-tab.active .term-tab-close,
+.term-tab:hover .term-tab-close {
+  visibility: visible;
+}
+.term-tab-close:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.term-tabs .term-new {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* Visual bell */
+.term-host.term-bell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent-soft);
+  pointer-events: none;
+  animation: term-bell-fade 200ms ease-out forwards;
+}
+@keyframes term-bell-fade {
+  to {
+    opacity: 0;
+  }
+}
+/* Shared with Code With Me guests, or the host's terminal in a guest's window. */
+.term-tab-shared {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.term-tab-bell {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* OSC 8 / URL target while hovering a link */
+.term-link-hint {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  z-index: 10;
+  max-width: 70%;
+  padding: 2px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  pointer-events: none;
+}
+
+/* Program progress (OSC 9;4): tab, status bar and stripe */
+.term-progress {
+  flex-shrink: 0;
+  fill: none;
+  stroke-width: 2.5;
+}
+.term-progress-track {
+  stroke: var(--border-strong);
+}
+.term-progress-value {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray 200ms ease-out;
+}
+.term-progress-error .term-progress-value {
+  stroke: var(--danger);
+}
+.term-progress-paused .term-progress-value {
+  stroke: var(--warning);
+}
+.term-progress-indeterminate {
+  animation: term-spin 0.9s linear infinite;
+}
+@keyframes term-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-progress-indeterminate {
+    animation-duration: 3s;
+  }
+}
+.term-status {
+  max-width: 280px;
+}
+.term-status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.term-status-percent {
+  font-variant-numeric: tabular-nums;
+}
+.term-status.error .term-status-percent {
+  color: var(--danger);
+}
+.term-status.paused .term-status-percent {
+  color: var(--warning);
+}
+.stripe-badge .term-progress {
+  border-radius: 50%;
+  background: var(--bg-toolbar);
+}
+.stripe-badge .term-tab-bell {
+  margin: 2px;
+  box-shadow: 0 0 0 2px var(--bg-toolbar);
+}
+
+/* ---------- Start SSH Session ---------- */
+.term-ssh-chooser {
+  width: 380px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+.term-ssh-title {
+  padding: 4px 8px 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.term-ssh-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+.term-ssh-group {
+  padding: 6px 8px 2px;
+  font-size: var(--fs-small);
+}
+.term-ssh-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  cursor: default;
+  white-space: nowrap;
+}
+.term-ssh-item.selected {
+  background: var(--accent-soft);
+}
+.term-ssh-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.term-ssh-detail {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+.term-ssh-config-icon {
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.term-ssh-server-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.term-ssh-empty {
+  padding: 10px 8px;
+  font-size: var(--fs-small);
+}
+.term-ssh-footer {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+.term-ssh-credentials {
+  width: 560px;
+}

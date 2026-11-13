@@ -1,0 +1,208 @@
+.prof-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: var(--fs-ui);
+  color: var(--fg);
+}
+
+.prof-empty {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.prof-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-toolbar);
+  flex-wrap: wrap;
+}
+
+.prof-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+
+.prof-type {
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+}
+
+.prof-spacer {
+  flex: 1;
+}
+
+.prof-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.prof-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--fg-muted);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+}
+
+.prof-tabs button.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+
+.prof-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Flame graph: the root at the bottom, callees above their callers. */
+.prof-flame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.prof-flame-row {
+  position: relative;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.prof-flame-frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  border-right: 1px solid var(--bg-panel);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  color: var(--bg-editor);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 20px;
+  padding: 0 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.prof-flame-frame:hover {
+  filter: brightness(1.12);
+}
+
+.prof-flame-frame span {
+  pointer-events: none;
+}
+
+.prof-reset {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+}
+
+.prof-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  white-space: nowrap;
+}
+
+.prof-toggle {
+  width: 12px;
+  display: inline-flex;
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+
+.prof-pct {
+  width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-bar {
+  width: 60px;
+  height: 6px;
+  background: var(--bg-hover);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prof-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.prof-name {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.prof-value,
+.prof-self {
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-top {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prof-top th,
+.prof-top td {
+  text-align: right;
+  padding: 2px 10px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.prof-top th:first-child,
+.prof-top td:first-child {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  width: 100%;
+}
+
+.prof-top th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-weight: 500;
+}
+
+.prof-top tr:hover td {
+  background: var(--bg-hover);
+}
+
+.prof-top tr.prof-own td:first-child {
+  color: var(--accent);
+}
+
+.prof-name.prof-own {
+  color: var(--accent);
+}

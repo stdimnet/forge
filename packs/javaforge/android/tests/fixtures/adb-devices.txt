@@ -1,0 +1,6 @@
+List of devices attached
+emulator-5554          device product:sdk_gphone64_x86_64 model:sdk_gphone64_x86_64 device:emu64xa transport_id:1
+R58N12ABCDE            device usb:1-1 product:dm3qxxx model:SM_S918B device:dm3q transport_id:3
+0a1b2c3d               unauthorized usb:1-2 transport_id:4
+9A281FFAZ007UM         no permissions (missing udev rules? user is in the plugdev group); see [http://developer.android.com/tools/device.html] usb:3-2 transport_id:5
+

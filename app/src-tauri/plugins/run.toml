@@ -1,0 +1,67 @@
+id = "forge.run"
+name = "Run/Debug"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Run/Debug configurations, the Run tool window and shell script configurations."
+
+[[contributions.commands]]
+id = "run.run"
+title = "Run"
+category = "Run"
+
+[[contributions.commands]]
+id = "run.debug"
+title = "Debug"
+category = "Run"
+
+[[contributions.commands]]
+id = "run.editConfigurations"
+title = "Edit Configurations…"
+category = "Run"
+
+[[contributions.toolWindows]]
+id = "run"
+title = "Run"
+anchor = "bottom"
+icon = "play"
+order = 10
+
+[[contributions.runConfigurationTypes]]
+id = "shell"
+name = "Shell Script"
+description = "Run a script file or a script text with a shell."
+icon = "square-terminal"
+
+[[contributions.settings]]
+key = "run.console.softWrap"
+title = "Use soft wraps in console"
+type = "bool"
+default = false
+group = "editor.general"
+section = "Console"
+order = 90
+
+[[contributions.settings]]
+key = "run.console.cycleBufferKb"
+title = "Override console cycle buffer size (KB)"
+description = "Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards."
+type = "int"
+min = 100
+max = 100000
+default = 1024
+group = "editor.general"
+section = "Console"
+order = 91
+
+[[contributions.settings]]
+key = "run.autoTest.delay"
+title = "Auto-test delay (seconds)"
+description = "With Toggle Auto-Test on, a test run reruns this long after the last file was saved."
+type = "int"
+min = 0
+max = 600
+default = 3
+group = "lang.php.test-frameworks"
+section = "Auto-Test"
+order = 10

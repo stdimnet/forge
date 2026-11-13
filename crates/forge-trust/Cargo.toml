@@ -1,0 +1,17 @@
+[package]
+name = "forge-trust"
+description = "Project trust and Safe Mode: trusted projects and locations, and what may run"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core.workspace = true
+forge-i18n.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+toml.workspace = true
+dirs.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

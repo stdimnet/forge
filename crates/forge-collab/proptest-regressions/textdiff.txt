@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc d0caeab87fc596e65ecfa6bb5dc61dd18429bb47e5e5f2f834c8a7f545caa2a1 # shrinks to old = "fn x() {}\n😀fn x() {}\n\nabaü𝄞fn x() {}\n😀\r\n\r\nfn x() {}\nfn x() {}\nfn x() {}\n\nafn x() {}\na", new = "\nfn x() {}\n\na𝄞𝄞ü\r\na\r\nfn x() {}\n\r\nfn x() {}\n\n\n\n\nfn x() {}\nb"

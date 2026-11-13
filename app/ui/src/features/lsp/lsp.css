@@ -1,0 +1,516 @@
+/* ---------- Diagnostics in the editor ---------- */
+.cm-lsp-diag {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+.cm-lsp-diag-error {
+  text-decoration-color: var(--danger);
+}
+.cm-lsp-diag-warning {
+  text-decoration-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+.cm-lsp-diag-weak {
+  text-decoration-color: color-mix(in srgb, var(--warning) 55%, var(--fg-faint));
+}
+/* Spelling and grammar (features/spelling): PHPStorm's green typo and grammar underlines. */
+.cm-lsp-diag-typo {
+  text-decoration-color: var(--success);
+}
+.cm-lsp-diag-grammar {
+  text-decoration-color: var(--info);
+}
+.cm-lsp-diag-info {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--fg-faint);
+}
+/* Unused code is greyed out instead of squiggled, like PHPStorm. */
+.cm-lsp-unused,
+.cm-lsp-unused * {
+  color: var(--fg-faint) !important;
+}
+.cm-lsp-unused.cm-lsp-diag-weak,
+.cm-lsp-unused.cm-lsp-diag-info {
+  text-decoration-line: none;
+}
+.cm-lsp-deprecated {
+  text-decoration-line: line-through;
+  text-decoration-style: solid;
+  text-decoration-color: var(--fg-muted);
+}
+
+.cm-lsp-gutter .cm-gutterElement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  padding: 0;
+}
+.cm-lsp-gutter-marker {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  cursor: default;
+}
+.sev-error {
+  color: var(--danger);
+}
+.sev-warning {
+  color: var(--warning);
+}
+.sev-weak {
+  color: color-mix(in srgb, var(--warning) 50%, var(--fg-muted));
+}
+.sev-info {
+  color: var(--info);
+}
+.sev-typo {
+  color: var(--success);
+}
+.sev-grammar {
+  color: var(--info);
+}
+
+/* Ctrl+hover link */
+.cm-lsp-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--info) !important;
+  cursor: pointer;
+}
+.cm-lsp-link * {
+  color: var(--info) !important;
+}
+
+/* ---------- Inspection widget (top-right of the editor) ---------- */
+.cm-lsp-inspection {
+  position: absolute;
+  top: 4px;
+  right: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 1px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-editor) 85%, transparent);
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+}
+.cm-lsp-inspection button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.cm-lsp-inspection button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.cm-lsp-inspection-ok {
+  color: var(--success) !important;
+}
+.cm-lsp-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--fg);
+}
+.cm-lsp-count svg {
+  flex-shrink: 0;
+}
+.cm-lsp-count.sev-error svg {
+  color: var(--danger);
+}
+.cm-lsp-count.sev-warning svg {
+  color: var(--warning);
+}
+.cm-lsp-count.sev-weak svg {
+  color: color-mix(in srgb, var(--warning) 50%, var(--fg-muted));
+}
+.cm-lsp-count.sev-typo svg {
+  color: var(--success);
+}
+.cm-lsp-count.sev-grammar svg {
+  color: var(--info);
+}
+.cm-lsp-inspection-nav {
+  padding: 0 2px !important;
+}
+
+/* ---------- Hover / quick documentation ---------- */
+.cm-tooltip.cm-tooltip-hover {
+  padding: 0;
+  max-width: 620px;
+  overflow: hidden;
+}
+.lsp-hover {
+  max-width: 620px;
+  max-height: 420px;
+  overflow: auto;
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--fg);
+  user-select: text;
+}
+.lsp-hover-problems {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lsp-hover-problems + .lsp-hover-doc {
+  border-top: 1px solid var(--border-strong);
+}
+.lsp-hover-problem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lsp-hover-problem .sev-icon {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.lsp-hover-problem-text {
+  color: var(--fg-strong);
+}
+.lsp-hover-doc {
+  padding: 10px 14px 12px;
+}
+.lsp-hover-definition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  margin-bottom: 6px;
+}
+.lsp-hover-definition-icon {
+  color: var(--syn-type);
+  flex-shrink: 0;
+}
+.lsp-hover-signature {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg-strong);
+}
+.lsp-hover-signature.deprecated .tok-function,
+.lsp-hover-signature.deprecated .tok-property,
+.lsp-hover-signature.deprecated .tok-type:first-of-type {
+  text-decoration: line-through;
+}
+.lsp-hover-body {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.lsp-hover-sections {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 14px;
+  row-gap: 4px;
+  margin-top: 10px;
+  font-size: var(--fs-small);
+}
+.lsp-hover-signature + .lsp-hover-sections {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.lsp-hover-section-title {
+  color: var(--fg-muted);
+}
+.lsp-hover-section-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.deprecated-note {
+  color: var(--danger);
+}
+
+/* Rendered markdown (docs) */
+.md p {
+  margin: 0 0 6px;
+}
+.md p:last-child {
+  margin-bottom: 0;
+}
+.md ul,
+.md ol {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+.md hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0;
+}
+.md blockquote {
+  margin: 4px 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--fg-muted);
+}
+.md .md-h {
+  font-weight: 600;
+  color: var(--fg-strong);
+  margin: 6px 0 4px;
+}
+.lsp-hover code,
+.cm-lsp-signature code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+}
+.md-code {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+}
+.md-code code {
+  background: none;
+  padding: 0;
+}
+.md-fqcn,
+.md-link {
+  color: var(--info);
+  cursor: pointer;
+}
+.md-fqcn:hover,
+.md-link:hover {
+  text-decoration: underline;
+}
+.lsp-hover del {
+  color: var(--fg-muted);
+}
+
+/* Syntax colors in docs and signatures */
+.tok-keyword { color: var(--syn-keyword); }
+.tok-string { color: var(--syn-string); }
+.tok-number { color: var(--syn-number); }
+.tok-comment { color: var(--syn-comment); font-style: italic; }
+.tok-variable { color: var(--syn-variable); }
+.tok-function { color: var(--syn-function); }
+.tok-type { color: var(--syn-type); }
+.tok-property { color: var(--syn-attribute); }
+.tok-operator { color: var(--syn-operator); }
+
+/* ---------- Completion popup ---------- */
+/* Selectors are scoped under .cm-editor to win over CodeMirror's base theme. */
+.cm-editor .cm-tooltip.cm-tooltip-autocomplete {
+  padding: 3px 0;
+}
+.cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  max-height: 19em;
+  min-width: 380px;
+  max-width: 560px;
+}
+.cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 10px 1px 6px;
+  line-height: 20px;
+}
+.cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--accent-soft);
+}
+.cm-lsp-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+.cm-lsp-kind.kind-function { color: var(--syn-function); }
+.cm-lsp-kind.kind-property { color: var(--syn-attribute); }
+.cm-lsp-kind.kind-type { color: var(--syn-type); }
+.cm-lsp-kind.kind-constant { color: var(--syn-number); }
+.cm-lsp-kind.kind-variable { color: var(--syn-variable); }
+.cm-lsp-kind.kind-keyword { color: var(--syn-keyword); }
+.cm-lsp-kind.kind-other { color: var(--fg-muted); }
+.cm-editor .cm-tooltip-autocomplete .cm-completionLabel {
+  color: var(--fg-strong);
+  white-space: nowrap;
+}
+.cm-editor .cm-tooltip-autocomplete .cm-completionMatchedText {
+  text-decoration: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+.cm-editor .cm-tooltip-autocomplete .cm-completionDetail {
+  margin-left: auto;
+  padding-left: 28px;
+  font-style: normal;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.cm-editor .cm-lsp-deprecated-option .cm-completionLabel {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+.cm-editor .cm-tooltip.cm-completionInfo {
+  padding: 0;
+  max-width: 480px;
+}
+.cm-tooltip.cm-completionInfo .lsp-hover {
+  max-height: 320px;
+}
+
+/* ---------- Parameter info & hints ---------- */
+.cm-lsp-signature {
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  max-width: 640px;
+}
+.cm-lsp-signature-row {
+  white-space: pre-wrap;
+}
+.cm-lsp-signature-row + .cm-lsp-signature-row {
+  border-top: 1px solid var(--border);
+  margin-top: 3px;
+  padding-top: 3px;
+}
+.cm-lsp-signature-row.active {
+  color: var(--fg);
+}
+.cm-lsp-param.current {
+  color: var(--fg-strong);
+  font-weight: 700;
+}
+.cm-lsp-signature-none {
+  font-style: italic;
+}
+.cm-lsp-signature-doc {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-ui);
+  color: var(--fg);
+}
+.cm-lsp-hint {
+  padding: 4px 10px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+}
+
+/* ---------- Problems tool window ---------- */
+.problems-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.problems-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  height: 30px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.problems-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.problems-tab:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.problems-tab.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.problems-count {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--fg-muted);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+.problems-tab.active .problems-count {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.problems-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0 8px;
+}
+.problems-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-muted);
+}
+.problem-row {
+  cursor: pointer;
+}
+.problem-row:focus {
+  outline: none;
+}
+.problem-row.selected {
+  background: var(--accent-soft);
+}
+.problem-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.problem-message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg);
+}
+
+/* ---------- Status bar ---------- */
+.lsp-status svg.lsp-ok {
+  color: var(--success);
+}
+.lsp-status svg.lsp-failed {
+  color: var(--danger);
+}
+.lsp-spin {
+  animation: lsp-spin 1s linear infinite;
+}
+.lsp-status-detail {
+  font-variant-numeric: tabular-nums;
+}
+@keyframes lsp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

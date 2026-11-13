@@ -1,0 +1,303 @@
+/* JavaForge: JDKs and Java settings pages, the Gradle / Maven tool window. Theme variables only. */
+
+.java-pad {
+  padding: 12px;
+}
+
+.java-jdks,
+.java-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.java-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.java-form-row > label {
+  min-width: 120px;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.java-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.java-value {
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.java-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.java-sdks {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  min-height: 260px;
+  margin-top: 6px;
+}
+.java-sdk-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  min-height: 0;
+}
+.java-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.java-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.java-toolbar .icon-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.java-sdk-items {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.java-sdk-row {
+  gap: 7px;
+  padding-left: 10px;
+}
+.java-sdk-version {
+  margin-left: auto;
+  padding-right: 8px;
+  font-size: 11px;
+}
+.java-jdk-icon {
+  color: var(--warning);
+}
+.java-sdk-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.java-download {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.java-download-title {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.java-hint {
+  margin: 0;
+  font-size: 12px;
+}
+.java-error {
+  margin: 0;
+  color: var(--danger);
+}
+.java-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-muted);
+}
+.java-progress progress {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.java-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.java-buttons-left {
+  justify-content: flex-start;
+}
+
+.java-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.java-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.java-status-row b {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.java-status-pad {
+  width: 14px;
+}
+.java-ok {
+  color: var(--success);
+}
+.java-warn {
+  color: var(--warning);
+}
+
+.java-build-tw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.java-build-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+  outline: none;
+}
+.java-build-tree .java-bt-row {
+  min-width: max-content;
+}
+.java-build-icon {
+  color: var(--info);
+}
+
+/* Gradle / Maven tool windows */
+.java-toolbar-sep {
+  width: 1px;
+  margin: 4px 3px;
+  background: var(--border);
+}
+.java-bt-row {
+  gap: 5px;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.java-bt-twisty {
+  display: inline-flex;
+  width: 13px;
+  flex: none;
+  color: var(--fg-muted);
+}
+.java-bt-row > svg {
+  flex: none;
+}
+.java-bt-label {
+  flex: none;
+}
+.java-bt-secondary {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.java-bt-muted .java-bt-label {
+  color: var(--fg-muted);
+}
+.java-bt-danger .java-bt-label {
+  color: var(--danger);
+}
+.java-bt-lib {
+  color: var(--warning);
+}
+.java-bt-error,
+.java-error-icon {
+  color: var(--danger);
+}
+.java-bt-check {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.java-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.java-sync-failed {
+  color: var(--danger);
+}
+.java-sync-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.java-sync-hint {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.java-sync-log {
+  max-height: 140px;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  background: var(--bg-editor);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+/* Execute Gradle Task / Maven Goal */
+.java-execute-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  margin-top: 6px;
+  overflow: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.java-execute-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+.java-execute-item:hover {
+  background: var(--bg-hover);
+}
+.java-execute-item.selected {
+  background: var(--bg-selection);
+}
+
+/* Settings | Build Tools | Gradle: the wrapper */
+.java-wrapper .java-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

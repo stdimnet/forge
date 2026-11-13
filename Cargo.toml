@@ -1,0 +1,202 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/builtin-lsp", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/quality-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/js-testing", "packs/webforge/js-debug", "packs/webforge/quality-tools", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/webforge/web-tooling", "packs/luaforge/lang-lua", "packs/pyforge/lang-python", "packs/pyforge/interpreters", "packs/pyforge/packages", "packs/goforge/lang-go", "packs/goforge/pprof", "packs/goforge/delve", "packs/goforge/sdk", "packs/pyforge/testing", "packs/pyforge/frameworks", "packs/javaforge/build", "packs/javaforge/lang-java", "packs/javaforge/jdk", "packs/javaforge/fw-spring", "packs/javaforge/lang-groovy", "packs/javaforge/lang-scala", "packs/javaforge/android", "packs/javaforge/minecraft", "packs/kotlinforge/lang-kotlin", "packs/rustforge/lang-rust", "packs/rustforge/toolchain", "packs/rubyforge/lang-ruby", "packs/rubyforge/sdk", "packs/rubyforge/fw-rails", "packs/pyforge/jupyter", "packs/cforge/toolchains", "packs/cforge/cmake", "packs/cforge/lang-cpp", "packs/cforge/analyzers", "packs/cforge/embedded", "packs/dotnetforge/lang-dotnet", "packs/dotnetforge/sdk", "packs/dotnetforge/gamedev", "app/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Reeperk/Forge"
+rust-version = "1.80"
+
+[workspace.dependencies]
+forge-core = { path = "crates/forge-core" }
+forge-trust = { path = "crates/forge-trust" }
+forge-wasm = { path = "crates/forge-wasm" }
+forge-fuzzy = { path = "crates/forge-fuzzy" }
+forge-find = { path = "crates/forge-find" }
+forge-scopes = { path = "crates/forge-scopes" }
+forge-inspections = { path = "crates/forge-inspections" }
+forge-ssr = { path = "crates/forge-ssr" }
+forge-search = { path = "crates/forge-search" }
+forge-search-core = { path = "crates/forge-search-core" }
+forge-bookmarks = { path = "crates/forge-bookmarks" }
+forge-localhistory = { path = "crates/forge-localhistory", default-features = false }
+forge-text = { path = "crates/forge-text" }
+forge-codestyle = { path = "crates/forge-codestyle" }
+forge-save-actions = { path = "crates/forge-save-actions", default-features = false }
+forge-editing = { path = "crates/forge-editing" }
+forge-file-templates = { path = "crates/forge-file-templates" }
+forge-codeintel = { path = "crates/forge-codeintel" }
+forge-filetypes = { path = "crates/forge-filetypes" }
+forge-icons = { path = "crates/forge-icons" }
+forge-maintenance = { path = "crates/forge-maintenance", default-features = false }
+forge-plugin-api = { path = "crates/forge-plugin-api" }
+forge-plugins = { path = "crates/forge-plugins", default-features = false }
+forge-ai = { path = "crates/forge-ai" }
+forge-ai-editor = { path = "crates/forge-ai-editor" }
+forge-agent-cli = { path = "crates/forge-agent-cli" }
+forge-agent-tasks = { path = "crates/forge-agent-tasks" }
+forge-lsp = { path = "crates/forge-lsp" }
+forge-langservers = { path = "crates/forge-langservers" }
+forge-vcs = { path = "crates/forge-vcs" }
+forge-diff = { path = "crates/forge-diff" }
+forge-project = { path = "crates/forge-project" }
+forge-open = { path = "crates/forge-open" }
+forge-process = { path = "crates/forge-process" }
+forge-hostspawn = { path = "crates/forge-hostspawn" }
+forge-output = { path = "crates/forge-output" }
+forge-runtools = { path = "crates/forge-runtools" }
+forge-testing = { path = "crates/forge-testing" }
+forge-runtargets = { path = "crates/forge-runtargets" }
+forge-markdown = { path = "crates/forge-markdown" }
+forge-viewers = { path = "crates/forge-viewers" }
+forge-profiler = { path = "crates/forge-profiler" }
+forge-debug = { path = "crates/forge-debug" }
+forge-dap = { path = "crates/forge-dap" }
+forge-ports = { path = "crates/forge-ports" }
+forge-db = { path = "crates/forge-db" }
+forge-containers = { path = "crates/forge-containers" }
+forge-sql = { path = "crates/forge-sql" }
+forge-dataedit = { path = "crates/forge-dataedit" }
+forge-dbmodel = { path = "crates/forge-dbmodel" }
+forge-dbschema = { path = "crates/forge-dbschema" }
+forge-dbtransfer = { path = "crates/forge-dbtransfer" }
+forge-sqlcode = { path = "crates/forge-sqlcode" }
+forge-forges = { path = "crates/forge-forges" }
+forge-code-review = { path = "crates/forge-code-review" }
+forge-keymap = { path = "crates/forge-keymap" }
+forge-i18n = { path = "crates/forge-i18n" }
+forge-vim = { path = "crates/forge-vim" }
+forge-livetemplates = { path = "crates/forge-livetemplates" }
+forge-injections = { path = "crates/forge-injections" }
+forge-emmet = { path = "crates/forge-emmet" }
+forge-colors = { path = "crates/forge-colors" }
+forge-colorscheme = { path = "crates/forge-colorscheme" }
+forge-spell = { path = "crates/forge-spell" }
+forge-jsonschema = { path = "crates/forge-jsonschema" }
+forge-scratches = { path = "crates/forge-scratches", default-features = false }
+forge-backend = { path = "crates/forge-backend", default-features = false }
+forge-remote = { path = "crates/forge-remote" }
+forge-collab = { path = "crates/forge-collab" }
+forge-devenv = { path = "crates/forge-devenv" }
+forge-deploy = { path = "crates/forge-deploy" }
+forge-window = { path = "crates/forge-window" }
+forge-update = { path = "crates/forge-update" }
+forge-vulns = { path = "crates/forge-vulns" }
+forge-mcp = { path = "crates/forge-mcp", default-features = false }
+phpforge-builtin-lsp = { path = "packs/phpforge/builtin-lsp" }
+phpforge-composer = { path = "packs/phpforge/composer" }
+phpforge-interpreters = { path = "packs/phpforge/interpreters" }
+phpforge-cli-tools = { path = "packs/phpforge/cli-tools" }
+phpforge-quality-tools = { path = "packs/phpforge/quality-tools" }
+phpforge-test-frameworks = { path = "packs/phpforge/test-frameworks" }
+phpforge-fw-wordpress = { path = "packs/phpforge/fw-wordpress" }
+phpforge-fw-cms = { path = "packs/phpforge/fw-cms" }
+luaforge-lang-lua = { path = "packs/luaforge/lang-lua" }
+webforge-js-testing = { path = "packs/webforge/js-testing" }
+webforge-js-debug = { path = "packs/webforge/js-debug" }
+webforge-quality-tools = { path = "packs/webforge/quality-tools" }
+webforge-web-tooling = { path = "packs/webforge/web-tooling" }
+pyforge-lang-python = { path = "packs/pyforge/lang-python" }
+pyforge-interpreters = { path = "packs/pyforge/interpreters" }
+pyforge-packages = { path = "packs/pyforge/packages" }
+goforge-lang-go = { path = "packs/goforge/lang-go" }
+goforge-pprof = { path = "packs/goforge/pprof" }
+goforge-delve = { path = "packs/goforge/delve" }
+goforge-sdk = { path = "packs/goforge/sdk" }
+rustforge-lang-rust = { path = "packs/rustforge/lang-rust" }
+rustforge-toolchain = { path = "packs/rustforge/toolchain" }
+rubyforge-lang-ruby = { path = "packs/rubyforge/lang-ruby" }
+rubyforge-sdk = { path = "packs/rubyforge/sdk" }
+rubyforge-fw-rails = { path = "packs/rubyforge/fw-rails" }
+dotnetforge-lang-dotnet = { path = "packs/dotnetforge/lang-dotnet" }
+dotnetforge-sdk = { path = "packs/dotnetforge/sdk" }
+dotnetforge-gamedev = { path = "packs/dotnetforge/gamedev" }
+pyforge-testing = { path = "packs/pyforge/testing" }
+pyforge-frameworks = { path = "packs/pyforge/frameworks" }
+pyforge-jupyter = { path = "packs/pyforge/jupyter" }
+javaforge-build = { path = "packs/javaforge/build" }
+javaforge-lang-java = { path = "packs/javaforge/lang-java", default-features = false }
+javaforge-jdk = { path = "packs/javaforge/jdk" }
+javaforge-fw-spring = { path = "packs/javaforge/fw-spring" }
+javaforge-lang-groovy = { path = "packs/javaforge/lang-groovy" }
+javaforge-lang-scala = { path = "packs/javaforge/lang-scala" }
+javaforge-android = { path = "packs/javaforge/android" }
+javaforge-minecraft = { path = "packs/javaforge/minecraft" }
+kotlinforge-lang-kotlin = { path = "packs/kotlinforge/lang-kotlin" }
+cforge-toolchains = { path = "packs/cforge/toolchains" }
+cforge-cmake = { path = "packs/cforge/cmake" }
+cforge-lang-cpp = { path = "packs/cforge/lang-cpp" }
+cforge-analyzers = { path = "packs/cforge/analyzers" }
+cforge-embedded = { path = "packs/cforge/embedded" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+toml = "0.8"
+dirs = "6"
+tempfile = "3"
+ignore = "0.4"
+
+# Line tables keep panics and backtraces readable at a fraction of full debug info's size.
+# Everyone (make dev, tests, agents) builds the same profile, so target/ holds one copy.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# Size-optimised build of crates/forge-wasm for browser mode (`pnpm --dir app/ui wasm`).
+[profile.wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
+panic = "abort"
+
+# Indexing is CPU heavy: keep the search crate and its hot dependencies optimized in dev builds.
+[profile.dev.package.forge-search-core]
+opt-level = 3
+[profile.dev.package.forge-search]
+opt-level = 3
+[profile.dev.package.roaring]
+opt-level = 3
+[profile.dev.package.regex]
+opt-level = 3
+[profile.dev.package.regex-automata]
+opt-level = 3
+[profile.dev.package.regex-syntax]
+opt-level = 3
+[profile.dev.package.ignore]
+opt-level = 3
+[profile.dev.package.globset]
+opt-level = 3
+[profile.dev.package.rayon]
+opt-level = 3
+[profile.dev.package.rayon-core]
+opt-level = 3
+[profile.dev.package.crossbeam-deque]
+opt-level = 3
+[profile.dev.package.crossbeam-epoch]
+opt-level = 3
+[profile.dev.package.nucleo-matcher]
+opt-level = 3
+[profile.dev.package.bincode]
+opt-level = 3
+[profile.dev.package.memchr]
+opt-level = 3
+[profile.dev.package.aho-corasick]
+opt-level = 3
+
+# Building the dictionary and ranking suggestions are hot loops: keep them fast in dev builds.
+[profile.dev.package.forge-spell]
+opt-level = 3
+[profile.dev.package.flate2]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3

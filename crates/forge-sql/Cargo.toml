@@ -1,0 +1,11 @@
+[package]
+name = "forge-sql"
+description = "Forge console text: dialects, statement splitting, the read-only / production guard, literals, row changes and export (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+hex = "0.4"

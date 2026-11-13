@@ -1,0 +1,756 @@
+/* DotNetForge: the Build and NuGet tool windows, Settings | .NET, Add Project from Template. Theme variables only. */
+
+.dn-tw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.dn-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.dn-toolbar .icon-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.dn-toolbar .icon-btn.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.dn-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.dn-spacer {
+  flex: 1;
+}
+.dn-select {
+  height: 22px;
+  margin-left: 4px;
+  max-width: 220px;
+}
+.dn-run {
+  color: var(--success);
+}
+.icon-btn:disabled .dn-run {
+  color: var(--fg-faint);
+}
+.dn-spin {
+  animation: dn-spin 1s linear infinite;
+}
+.dn-spin-slow {
+  animation: dn-spin 2.4s linear infinite;
+}
+@keyframes dn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.dn-split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.dn-left {
+  width: 38%;
+  min-width: 220px;
+  max-width: 420px;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.dn-message {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  word-break: break-word;
+}
+.dn-warning {
+  color: var(--warning);
+  font-size: var(--fs-small);
+}
+.dn-tree {
+  padding: 2px 0;
+}
+.dn-row,
+.dn-file-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+.dn-file-row {
+  padding-left: 8px;
+}
+.dn-twisty {
+  display: inline-flex;
+  width: 13px;
+  flex: none;
+  color: var(--fg-muted);
+}
+.dn-icon {
+  flex: none;
+}
+.dn-label {
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dn-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+.dn-sln {
+  color: var(--syn-keyword);
+}
+.dn-folder {
+  color: var(--file-color-yellow);
+}
+.dn-app {
+  color: var(--success);
+}
+.dn-lib {
+  color: var(--info);
+}
+.dn-test {
+  color: var(--warning);
+}
+.dn-pkg {
+  color: var(--fg-muted);
+}
+.dn-error {
+  color: var(--danger);
+}
+.dn-ok {
+  color: var(--success);
+}
+.dn-warn-icon {
+  color: var(--warning);
+}
+.dn-results {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dn-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  flex: none;
+}
+.dn-problems {
+  flex: 1;
+  overflow: auto;
+}
+.dn-problem {
+  padding-left: 28px;
+}
+.dn-output {
+  flex: 1;
+  margin: 0;
+  padding: 6px 10px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: var(--bg-editor);
+  white-space: pre-wrap;
+}
+
+/* NuGet */
+.nuget-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 420px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.nuget-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  outline: none;
+}
+.nuget-check,
+.dn-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 6px;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.nuget-tabs {
+  display: flex;
+  gap: 2px;
+}
+.nuget-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.nuget-tabs button.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.nuget-count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: var(--fs-small);
+  text-align: center;
+}
+.nuget-list {
+  width: 48%;
+  max-width: 560px;
+}
+.nuget-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 4px;
+  font-size: var(--fs-small);
+}
+.nuget-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+}
+.nuget-item:hover {
+  background: var(--bg-hover);
+}
+.nuget-item.selected {
+  background: var(--bg-selection);
+}
+.nuget-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--syn-type);
+}
+.nuget-item-text {
+  min-width: 0;
+  flex: 1;
+}
+.nuget-item-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.nuget-id {
+  color: var(--fg-strong);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nuget-verified {
+  color: var(--info);
+}
+.nuget-version {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.nuget-upgrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.nuget-desc {
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.nuget-details {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nuget-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(var(--fs-ui) + 2px);
+}
+.nuget-about {
+  margin: 2px 0;
+  color: var(--fg);
+}
+.nuget-version-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nuget-version-row select {
+  min-width: 180px;
+}
+.nuget-projects {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 4px;
+}
+.nuget-projects td {
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.nuget-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* Settings | .NET */
+.dn-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dn-facts {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 4px 12px;
+  font-size: var(--fs-small);
+}
+.dn-facts > span:nth-child(odd) {
+  color: var(--fg-muted);
+}
+.dn-mono {
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dn-missing {
+  color: var(--warning);
+}
+.dn-problem-line {
+  font-size: var(--fs-small);
+}
+.dn-row-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dn-tools {
+  border-collapse: collapse;
+  width: 100%;
+}
+.dn-tools td {
+  padding: 3px 8px 3px 0;
+  white-space: nowrap;
+}
+.dn-tool-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Add Project from Template */
+.dn-add-body {
+  display: flex;
+  gap: 14px;
+  min-height: 320px;
+}
+.dn-add-templates {
+  flex: 1.3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dn-add-list {
+  flex: 1;
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.dn-add-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+.dn-add-item:hover {
+  background: var(--bg-hover);
+}
+.dn-add-item.selected {
+  background: var(--bg-selection);
+}
+.dn-add-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dn-add-form .dn-check {
+  margin: 8px 0 0;
+}
+.dn-note {
+  font-size: var(--fs-small);
+}
+.dn-problem .problem-message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dn-problem .tree-hint {
+  flex: none;
+}
+
+/* ---- Web and cloud: ASP.NET Core endpoints, EF Core, Docker, Hot Reload ---- */
+
+.dn-ep {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dn-ep-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.dn-ep-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 340px;
+  min-width: 140px;
+  padding: 0 6px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--fg-muted);
+}
+.dn-ep-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  outline: none;
+  padding: 0;
+}
+.dn-ep-segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.dn-ep-segmented button {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.dn-ep-segmented button.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.dn-ep-summary {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.dn-ep-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+.dn-ep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-ui);
+}
+.dn-ep-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-weight: normal;
+  text-align: left;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dn-ep-table td {
+  padding: 2px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+.dn-ep-table tbody tr {
+  cursor: pointer;
+}
+.dn-ep-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.dn-ep-table tbody tr.selected {
+  background: var(--bg-selection);
+}
+.dn-ep-method {
+  width: 70px;
+}
+.dn-ep-kind {
+  width: 110px;
+}
+.dn-ep-actions {
+  width: 28px;
+  text-align: right;
+}
+.dn-ep-actions .icon-btn {
+  width: 22px;
+  height: 20px;
+  color: var(--success);
+}
+.dn-verb {
+  display: inline-block;
+  min-width: 46px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: center;
+  color: var(--fg-muted);
+  background: var(--bg-hover);
+}
+.dn-verb.verb-get {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+.dn-verb.verb-post {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+}
+.dn-verb.verb-put,
+.dn-verb.verb-patch {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+.dn-verb.verb-delete {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+.dn-ep-path {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+.dn-ep-param {
+  color: var(--syn-variable);
+}
+.dn-ep-lock {
+  margin-left: 6px;
+  color: var(--warning);
+  vertical-align: -1px;
+}
+.dn-ep-name {
+  margin-left: 8px;
+  font-size: var(--fs-small);
+}
+.dn-ep-handler {
+  color: var(--syn-function);
+}
+.dn-ep-badge {
+  font-size: var(--fs-small);
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--fg-muted);
+}
+.dn-ep-badge.fw-blazor,
+.dn-ep-badge.fw-razorPages {
+  color: var(--syn-type);
+}
+.dn-ep-badge.fw-controller {
+  color: var(--syn-keyword);
+}
+.dn-ep-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+.dn-ef-split {
+  min-height: 0;
+}
+.dn-ef-contexts {
+  width: 30%;
+  min-width: 200px;
+  max-width: 360px;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+  padding: 4px 0;
+}
+.dn-ef-migrations {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+.dn-ef-head {
+  padding: 2px 10px 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dn-ef-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dn-ef-row:hover {
+  background: var(--bg-hover);
+}
+.dn-ef-set {
+  padding-left: 30px;
+  cursor: default;
+}
+.dn-ef-db {
+  color: var(--syn-type);
+}
+.dn-ef-provider {
+  padding: 8px 10px 0;
+  font-size: var(--fs-small);
+}
+.dn-ef-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dn-ef-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+}
+.dn-ef-status.applied {
+  color: var(--success);
+}
+.dn-ef-status.pending {
+  color: var(--warning);
+}
+.dn-ef-busy {
+  font-size: var(--fs-small);
+  margin-right: 4px;
+}
+.dn-ef-form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+.dn-ef-form .form-label {
+  margin: 0;
+}
+.dn-ef-note {
+  grid-column: 1 / -1;
+  color: var(--fg-muted);
+}
+.dn-ef-hint {
+  margin-right: auto;
+  font-size: var(--fs-small);
+}
+.dn-docker-path {
+  margin: 12px 0 6px;
+  font-size: var(--fs-small);
+}
+.dn-docker-preview {
+  margin: 0 0 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre;
+}
+.status-item.dn-hot-reload {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning);
+}
+.status-item.dn-hot-reload.ok {
+  color: var(--success);
+}
+.status-item.dn-hot-reload.bad {
+  color: var(--danger);
+}

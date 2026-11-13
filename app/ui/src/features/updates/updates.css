@@ -1,0 +1,208 @@
+/* Update offer (splash window and Check for Updates dialog). Sizes scale with --u:
+   1cqw inside the 640px splash, a fixed 6.4px elsewhere. */
+.upd-panel {
+  --u: 6.4px;
+  padding: calc(var(--u) * 2.8) calc(var(--u) * 3.2);
+  background: color-mix(in srgb, var(--splash-bg) 94%, var(--accent) 6%);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--splash-edge));
+  border-radius: 8px;
+  display: grid;
+  gap: calc(var(--u) * 1.5);
+  color: var(--fg);
+  user-select: none;
+}
+.upd-panel h2 {
+  margin: 0;
+  font: 600 calc(var(--u) * 3.1) var(--font-ui);
+  color: var(--fg-strong);
+}
+.upd-panel h2 em {
+  font-style: normal;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.upd-panel p {
+  margin: 0;
+  font-size: calc(var(--u) * 2);
+  color: var(--fg-muted);
+  line-height: 1.45;
+}
+.upd-actions {
+  display: flex;
+  gap: calc(var(--u) * 1.4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.upd-actions .grow {
+  flex: 1;
+}
+.upd-btn {
+  font: 500 calc(var(--u) * 2.1) var(--font-ui);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2.2);
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--splash-edge);
+  background: transparent;
+  color: var(--fg);
+}
+.upd-btn:hover {
+  background: var(--accent-soft);
+}
+.upd-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.upd-btn.primary:hover {
+  background: var(--accent-strong);
+}
+.upd-btn.link {
+  border-color: transparent;
+  color: var(--fg-muted);
+  padding-inline: calc(var(--u) * 0.6);
+}
+.upd-btn.link:hover {
+  background: none;
+  color: var(--fg);
+}
+.upd-btn:focus-visible {
+  outline: 2px solid var(--splash-molten-3);
+  outline-offset: 2px;
+}
+.upd-dl {
+  display: grid;
+  gap: calc(var(--u) * 1.1);
+}
+.upd-row {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(var(--u) * 2);
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 1.8);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.upd-row span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upd-bar {
+  height: calc(var(--u) * 0.6);
+  border-radius: 99px;
+  background: var(--splash-steel);
+  overflow: hidden;
+}
+.upd-bar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--splash-molten-1), var(--splash-molten-3));
+  transition: width 0.3s;
+}
+.upd-ok {
+  color: var(--splash-ok);
+}
+.upd-error {
+  color: var(--danger);
+}
+
+/* ---------- Help | Check for Updates… ---------- */
+.upd-dialog {
+  width: min(520px, calc(100vw - 32px));
+  outline: none;
+}
+.upd-dialog .upd-panel {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 18px 20px 16px;
+}
+.upd-message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 20px 20px 18px;
+  line-height: 1.5;
+}
+.upd-message svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fg-muted);
+}
+.upd-message.ok svg {
+  color: var(--success);
+}
+.upd-message.error svg {
+  color: var(--danger);
+}
+.upd-message b {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.upd-message .muted {
+  color: var(--fg-muted);
+}
+.upd-spin {
+  animation: upd-spin 1s linear infinite;
+}
+@keyframes upd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Settings | Appearance & Behavior | System Settings | Updates ---------- */
+.upd-status {
+  /* Spans the label and control columns of the settings section. */
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.upd-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.upd-status-row .label {
+  color: var(--fg-muted);
+  min-width: 120px;
+}
+.upd-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  line-height: 1.45;
+}
+.upd-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--info);
+}
+.upd-note.warning svg {
+  color: var(--warning);
+}
+.upd-note code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upd-bar i {
+    transition: none;
+  }
+  .upd-spin {
+    animation: none;
+  }
+}

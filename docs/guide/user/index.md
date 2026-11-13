@@ -1,0 +1,122 @@
+---
+title: User guide
+description: One page per Forge feature, written for people who use Forge as their IDE.
+order: 0
+tags: [user guide]
+---
+
+# User guide
+
+Each page describes one feature the way PHPStorm users know it: tool windows, actions,
+shortcuts (Windows/Linux, with macOS where it differs) and Settings paths. Where a feature is
+not finished, the page says so.
+
+## Working in the IDE
+
+| Page | Covers |
+| --- | --- |
+| [Workbench and tool windows](workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
+| [Windows, modes and layouts](windows-and-layouts.md) | several project windows, Presentation / Distraction-Free / Zen / Full Screen, Zoom IDE, tool window view modes (Float, Undock, Window), editor tabs in their own window, Window \| Layouts |
+| [Forge as the system's text editor](open-from-the-os.md) | Open With → Forge (the LightEdit window), Open Folder in Forge, file associations on Linux, Windows and macOS |
+| [Editor](editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [Sticky lines, breadcrumbs and Reader mode](code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
+| [Markdown, images and CSV](markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
+| [Optimize Imports and Auto Import](imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
+| [Actions on Save](actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint on save |
+| [Live templates](live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
+| [Emmet and color previews](emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
+| [JSON Schema](json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
+| [Spelling and grammar](spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
+| [Language injections](language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
+| [File and code templates](file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
+| [Vim emulation](vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
+| [Search Everywhere and Find Action](search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [Inspections](inspections.md) | Settings \| Editor \| Inspections (profiles, severities, scopes, options, import/export of PHPStorm profiles), Inspect Code, Run Inspection by Name (`Ctrl+Alt+Shift+I`), Code Cleanup with preview, Inspection Results, `@noinspection` / `noinspection` suppressions, duplicated code, PHP data flow, `forge inspect` for CI |
+| [Vulnerable dependencies](vulnerable-dependencies.md) | Package Checker: composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck and OWASP dependency-check reports as Vulnerable Dependencies problems in the manifests, Upgrade '<package>' to <version> quick fix, the Vulnerable Dependencies tab of Problems, checks on project open and lock file changes (cached), Safe Mode and the network switch |
+| [Scopes and file colors](scopes-and-file-colors.md) | named scopes in PHPStorm's scope language (`file:app//*.php`, `src:`, `test:`, `lib:`, `&&`, `\|\|`, `!`), predefined scopes, scopes in Find in Files, Replace in Files and Find Usages, file colors in editor tabs and the Project view |
+| [Structural Search and Replace](structural-search.md) | templates with `$variables$` for PHP, JavaScript and TypeScript, Count / Text / Type filters, the template library, Replace with preview, Replace All and Undo |
+| [Type, Method and Call Hierarchy](hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
+| [Go to Test and Create Test](go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
+| [File Structure, Navigation Bar and Related Symbol](navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
+| [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
+| [Language servers](language-servers.md) | detection, installation, per-server settings, the built-in php-lsp |
+| [Keymap](keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
+| [Shortcuts by topic](shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](shortcuts/reference-card.md) |
+| [Color schemes](color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil, High Contrast and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
+| [IDE language](languages.md) | English or German (Deutsch): the Language settings page, what is translated, Find Action in both languages |
+| [Settings and themes](settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
+| [Accessibility](accessibility.md) | screen readers, the High Contrast themes, keyboard-only navigation and focus areas, contrast scrollbars, the Presentation Assistant |
+| [Invalidate Caches and Repair IDE](repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
+| [Plugins and packs](plugins-and-packs.md) | packs, activation, Settings \| Plugins |
+
+## Languages and frameworks
+
+| Page | Covers |
+| --- | --- |
+| [PHP](php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
+| [PHP Quality Tools](php-quality-tools.md) | PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: problems on the fly and on save, Reformat with …, Fix with … quick fixes, Rector's preview, Inspect Code, PHP interpreters and remote projects |
+| [Web Code Quality Tools](web-quality-tools.md) | ESLint, Prettier, Stylelint and Biome: automatic or manual configuration, problems on the fly, Fix … problems, Reformat with Prettier, Prettier/Biome on Reformat Code, fix on save, Biome priority, Inspect Code |
+| [Composer](composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` ([Vulnerable Dependencies](vulnerable-dependencies.md)), composer.phar download |
+| [Laravel](laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
+| [Symfony](symfony.md) | services, routes, Twig, console, Symfony tool window |
+| [WordPress](wordpress.md) | hook completion, navigation, gutter icons and Find Usages, the WordPress tool window, WP-CLI, stubs, the WordPress code style with Yoda hints, plugin and theme templates |
+| [Drupal, Joomla and Shopware](cms.md) | CMS detection, Drupal file types and hook completion with Go to the hook docs, Shopware Twig tags, Drush and Shopware console |
+| [Doctrine and DQL](doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
+| [WebForge](webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
+| [Web tooling](web-tooling.md) | File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, OAuth 2.0, cURL, WebSocket and gRPC requests |
+| [LuaForge](luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
+| [Django, Flask, FastAPI and Celery](python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
+| [PyForge (Python)](python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
+| [Jupyter notebooks](jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
+| [RubyForge (Ruby)](ruby.md) | Ruby interpreters of rbenv, rvm, chruby, asdf and mise (.ruby-version, .tool-versions), Bundler and gems in External Libraries, the Rake tool window, Ruby and Rake run configurations, RSpec and Minitest with gutter icons, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB, the IRB console |
+| [Ruby on Rails](rails.md) | Rails routes in the Endpoints tool window with Generate HTTP Request, Go to Related between models, controllers, views, helpers, tests and migrations, route helper / partial / translation / Stimulus navigation and completion, model attribute completion from schema.rb, Run Rails Generator, the Rails console and server, data sources from database.yml, I18n folding and inspections |
+| [RustForge (Rust)](rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
+| [GoForge (Go)](go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
+| [JavaForge](java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [CForge (C and C++)](cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
+| [DotNetForge (.NET)](dotnet.md) | .NET SDKs and global.json, solutions (.sln, .slnx) and MSBuild projects, the Build tool window with build problems, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg, the NuGet tool window, dotnet new templates, Code Cleanup with dotnet format, the Roslyn language server |
+| [C/C++ dynamic analysis and packages](cpp-tools.md) | Sanitizers (ASan, UBSan, TSan, MSan, LSan) in CMake profiles with the Sanitizers tab, Run with Valgrind Memcheck, Profile with perf (flame graph), vcpkg and Conan 2 |
+| [Profiling PHP and Node.js](profiling.md) | Xdebug and SPX snapshots and V8 CPU / heap profiles in the Profiler: Execution Statistics with callers and callees, Call Tree, Flame Graph, the Memory view of heap snapshots, Profile with Xdebug, SPX and V8 |
+| [Embedded development](embedded.md) | PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB Server debugging, the SVD Peripherals view |
+| [Spring Boot and Jakarta EE](spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
+| [Groovy and Scala](groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
+| [Android](android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
+| [Unity and Godot](unity-godot.md) | Unity: the project's editor from the Unity Hub, the Forge editor bridge (play, pause, stop, refresh, Unity's console, scripts opened from Unity), project files, Unity tests, attaching to Unity, ShaderLab / HLSL / asmdef; Godot: GDScript with the Godot editor's language server, the Godot run configuration, GDScript and C# debugging, GdUnit4 |
+| [Minecraft plugins and mods](minecraft.md) | The Minecraft Plugin wizard (Paper, Purpur, Folia, Spigot, Bukkit, Velocity, BungeeCord; Gradle or Maven; Java or Kotlin) and the Minecraft Mod wizard (Fabric with Loom, NeoForge with ModDevGradle), plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml, fabric.mod.json, mixin and neoforge.mods.toml completion and class checks, Run Paper Server, the Minecraft Client / Server configurations and event handler gutter icons |
+| [KotlinForge](kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
+
+## Version control
+
+| Page | Covers |
+| --- | --- |
+| [Git](git.md) | Commit tool window, AI commit messages, diff, blame, branches, log |
+| [Local History](local-history.md) | revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes (`Alt+Shift+C`) |
+| [Code hosts](code-hosts.md) | GitHub, GitLab, Forgejo/Gitea pull/merge requests, issues, pipelines |
+
+## Running, debugging and tools
+
+| Page | Covers |
+| --- | --- |
+| [Project trust and Safe Mode](project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
+| [Run/Debug configurations](run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
+| [Testing](testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest, RSpec, Minitest) |
+| [Code coverage](coverage.md) | Run with Coverage, the Coverage tool window (line and branch coverage per directory and file), coverage marks with hits in the editor gutter, the Project view, Show Coverage Data (`Ctrl+Alt+F6`), importing LCOV, Cobertura, Clover, JaCoCo and Go reports |
+| [Run targets (Run on)](run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
+| [PHP test frameworks](test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
+| [Command Line Tool Support](command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
+| [JavaScript debugging and testing](javascript-debugging.md) | js-debug for Node.js, npm scripts, tests and Chrome/Edge (TypeScript through source maps, attach), Jest, Vitest, Mocha, Playwright, Cypress and `node --test` |
+| [Debugging](debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
+| [Terminal](terminal.md) | tabs, shells, links |
+| [Database tools and SQL console](database.md) | data sources, consoles, data grid, export |
+| [SQL editor](sql-editor.md) | dialects, resolve and SQL inspections, formatter, parameters, query history, Run SQL Script |
+| [Scratches, consoles and HTTP client](scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
+| [Services](services.md) | Docker, Docker Compose, Kubernetes |
+| [Remote development](remote-development.md) | SSH, the Forge agent, what runs remotely |
+| [Code With Me](code-with-me.md) | invite guests, accept them with the verification code, permission levels and Custom permissions, per-guest permissions, Remove Guest, Regenerate Link, session log, files guests never see, joining |
+| [Code With Me: relay and NAT traversal](code-with-me-relay.md) | direct and relayed connections, Relay server settings, running `iroh-relay`, SSH tunnel and VPN |
+| [Dev Containers and WSL](dev-containers-and-wsl.md) | devcontainer.json, building with the Docker CLI and the build log, Start / Stop / Rebuild / Delete, WSL distributions, `\\wsl$` paths, Terminal › WSL |
+| [Deployment](deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
+| [Remote Host and SSH sessions](remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
+| [AI](ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
+| [MCP Server](mcp-server.md) | external agents (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex) use Forge's tools: client configurations, tool groups, approval cards, Safe Mode, `.aiignore`, call log |
+| [Browser Companion](browser-companion.md) | browser extension, `forge://` links, error page integrations |

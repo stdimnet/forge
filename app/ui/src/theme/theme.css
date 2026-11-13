@@ -1,0 +1,940 @@
+/*
+ * Forge theme tokens. Layout mirrors PHPStorm's New UI; the palette is Forge's own
+ * ("Ember" dark / "Anvil" light) with a warm forge-orange accent.
+ */
+:root,
+:root[data-theme="dark"] {
+  --bg-app: #131316;
+  --bg-toolbar: #1a1a1f;
+  --bg-panel: #18181c;
+  --bg-editor: #141417;
+  --bg-elevated: #222228;
+  --bg-hover: #26262d;
+  --bg-active: #2d2d35;
+  --bg-selection: #3a2a1e;
+  --bg-input: #1f1f25;
+  --border: #26262c;
+  --border-strong: #34343c;
+
+  --fg: #d9d9df;
+  --fg-strong: #f2f2f5;
+  --fg-muted: #a0a0ab;
+  --fg-faint: #8a8a95;
+
+  --accent: #ff7a1a;
+  --accent-strong: #ff8f3d;
+  --accent-soft: rgba(255, 122, 26, 0.14);
+  --accent-fg: #1a0f06;
+
+  --success: #5fbf77;
+  --warning: #e5b449;
+  --danger: #ef5f5f;
+  --info: #5ea4ff;
+
+  /* VCS file status colors (project tree, tabs, commit window) */
+  --vcs-modified: #6aa7ff;
+  --vcs-added: #73c48a;
+  --vcs-deleted: #9a9aa4;
+  --vcs-untracked: #e0806a;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #e08a4f;
+  --tree-resource-root: #c08ae0;
+  --tree-test-resource-root: #8cc97a;
+  --vcs-ignored: #80808a;
+  --vcs-conflict: #ef5f5f;
+
+  /* Git blame annotation age (newest -> oldest) and diff viewer */
+  --blame-age-0: #ff9a4d;
+  --blame-age-1: #d98a52;
+  --blame-age-2: #a87a5c;
+  --blame-age-3: #7a6a60;
+  --blame-age-4: #4f4c52;
+  --blame-bg-0: rgba(255, 122, 26, 0.1);
+  --blame-bg-1: rgba(255, 122, 26, 0.05);
+  --diff-inserted-bg: rgba(95, 191, 119, 0.13);
+  --diff-inserted-text: rgba(95, 191, 119, 0.28);
+  --diff-deleted-bg: rgba(239, 95, 95, 0.12);
+  --diff-deleted-text: rgba(239, 95, 95, 0.3);
+  --diff-changed-bg: rgba(94, 164, 255, 0.12);
+  --graph-0: #ff8a3d;
+  --graph-1: #5ea4ff;
+  --graph-2: #73c48a;
+  --graph-3: #c9a6ff;
+  --graph-4: #e5b449;
+  --graph-5: #6fd2c4;
+  --graph-6: #ef7f9f;
+  --ref-local: #ff9a57;
+  --ref-remote: #b48cff;
+  --ref-tag: #e5b449;
+
+  /* File colors (Settings | Appearance & Behavior | File Colors): tints of tabs and rows */
+  --file-color-blue: rgba(94, 164, 255, 0.16);
+  --file-color-green: rgba(95, 191, 119, 0.15);
+  --file-color-orange: rgba(255, 138, 61, 0.16);
+  --file-color-rose: rgba(239, 127, 159, 0.16);
+  --file-color-violet: rgba(180, 140, 255, 0.17);
+  --file-color-yellow: rgba(229, 180, 73, 0.15);
+  --file-color-gray: rgba(140, 140, 152, 0.18);
+
+  /* Syntax */
+  --syn-keyword: #ff9a57;
+  --syn-string: #a5d17f;
+  --syn-number: #7cc5e8;
+  --syn-comment: #80808e;
+  --syn-variable: #c9a6ff;
+  --syn-function: #ffd479;
+  --syn-type: #6fd2c4;
+  --syn-attribute: #d0c070;
+  --syn-operator: #c4c4cc;
+  --syn-tag: #ff9a57;
+
+  /* ANSI palette (terminal, Run console) */
+  --ansi-black: #2a2a31;
+  --ansi-red: #ef6b6b;
+  --ansi-green: #7ccf8e;
+  --ansi-yellow: #e5b449;
+  --ansi-blue: #6aa7ff;
+  --ansi-magenta: #c9a6ff;
+  --ansi-cyan: #6fd2c4;
+  --ansi-white: #c4c4cc;
+  --ansi-bright-black: #6b6b78;
+  --ansi-bright-red: #ff8a8a;
+  --ansi-bright-green: #9be3aa;
+  --ansi-bright-yellow: #ffd479;
+  --ansi-bright-blue: #8fbcff;
+  --ansi-bright-magenta: #dcc2ff;
+  --ansi-bright-cyan: #94e6da;
+  --ansi-bright-white: #f2f2f5;
+
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+
+  /* Window controls drawn by Forge (title bars), styled after the platform */
+  --wc-fg: #c4c4cc;
+  --wc-hover: rgba(255, 255, 255, 0.08);
+  --wc-pressed: rgba(255, 255, 255, 0.05);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #a3261a;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(255, 255, 255, 0.1);
+  --wc-round-hover: rgba(255, 255, 255, 0.16);
+  --wc-round-active: rgba(255, 255, 255, 0.28);
+  --wc-breeze-hover: #c4c4cc;
+  --wc-breeze-hover-fg: #1a1a1f;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(0, 0, 0, 0.2);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.6);
+  --wc-mac-disabled: #45454d;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg-app: #eceef2;
+  --bg-toolbar: #f3f4f7;
+  --bg-panel: #f7f8fa;
+  --bg-editor: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e6e8ee;
+  --bg-active: #dcdfe7;
+  --bg-selection: #ffe3cc;
+  --bg-input: #ffffff;
+  --border: #dfe1e6;
+  --border-strong: #cdd0d7;
+
+  --fg: #26272b;
+  --fg-strong: #0f1012;
+  --fg-muted: #575a63;
+  --fg-faint: #686b74;
+
+  --accent: #b84a08;
+  --accent-strong: #9e4006;
+  --accent-soft: rgba(232, 98, 12, 0.12);
+  --accent-fg: #ffffff;
+
+  --success: #236b35;
+  --warning: #765300;
+  --danger: #c42b2b;
+  --info: #1f5fbf;
+
+  --vcs-modified: #1a4d9c;
+  --vcs-added: #236b35;
+  --vcs-deleted: #5a5a63;
+  --vcs-untracked: #8f3519;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #c0580e;
+  --tree-resource-root: #8a4fb5;
+  --tree-test-resource-root: #3a8a3a;
+  --vcs-ignored: #6b6b75;
+
+  --blame-age-0: #e8620c;
+  --blame-age-1: #e48a4a;
+  --blame-age-2: #d6a67e;
+  --blame-age-3: #c9bcae;
+  --blame-age-4: #dcd8d4;
+  --blame-bg-0: rgba(232, 98, 12, 0.09);
+  --blame-bg-1: rgba(232, 98, 12, 0.04);
+  --diff-inserted-bg: rgba(47, 138, 70, 0.1);
+  --diff-inserted-text: rgba(47, 138, 70, 0.24);
+  --diff-deleted-bg: rgba(200, 60, 60, 0.09);
+  --diff-deleted-text: rgba(200, 60, 60, 0.24);
+  --diff-changed-bg: rgba(36, 99, 199, 0.08);
+  --graph-0: #e8620c;
+  --graph-1: #2463c7;
+  --graph-2: #2a7d3f;
+  --graph-3: #7a3fc4;
+  --graph-4: #856600;
+  --graph-5: #157a6e;
+  --graph-6: #c43f6a;
+  --ref-local: #a84300;
+  --ref-remote: #7a3fc4;
+  --ref-tag: #7d5e00;
+
+  --file-color-blue: rgba(36, 99, 199, 0.1);
+  --file-color-green: rgba(47, 138, 70, 0.11);
+  --file-color-orange: rgba(232, 98, 12, 0.1);
+  --file-color-rose: rgba(196, 63, 106, 0.1);
+  --file-color-violet: rgba(122, 63, 196, 0.1);
+  --file-color-yellow: rgba(181, 138, 0, 0.14);
+  --file-color-gray: rgba(107, 110, 120, 0.12);
+
+  --syn-keyword: #b8460b;
+  --syn-string: #3c7d24;
+  --syn-number: #1b6fa0;
+  --syn-comment: #6e717b;
+  --syn-variable: #7a3fc4;
+  --syn-function: #8a5a00;
+  --syn-type: #157a6e;
+  --syn-attribute: #806a00;
+  --syn-operator: #3a3c42;
+  --syn-tag: #b8460b;
+
+  /* ANSI palette (terminal, Run console) */
+  --ansi-black: #26272b;
+  --ansi-red: #c43c3c;
+  --ansi-green: #2f8a46;
+  --ansi-yellow: #9a7400;
+  --ansi-blue: #2463c7;
+  --ansi-magenta: #7a3fc4;
+  --ansi-cyan: #157a6e;
+  --ansi-white: #8c8f99;
+  --ansi-bright-black: #6b6e78;
+  --ansi-bright-red: #e04f4f;
+  --ansi-bright-green: #3aa55a;
+  --ansi-bright-yellow: #b58a00;
+  --ansi-bright-blue: #3a7be0;
+  --ansi-bright-magenta: #9455d8;
+  --ansi-bright-cyan: #1d9686;
+  --ansi-bright-white: #3a3c42;
+
+  --shadow: 0 8px 24px rgba(20, 22, 30, 0.14);
+
+  --wc-fg: #3a3c42;
+  --wc-hover: rgba(0, 0, 0, 0.06);
+  --wc-pressed: rgba(0, 0, 0, 0.04);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #c8473b;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(0, 0, 0, 0.07);
+  --wc-round-hover: rgba(0, 0, 0, 0.11);
+  --wc-round-active: rgba(0, 0, 0, 0.2);
+  --wc-breeze-hover: #3a3c42;
+  --wc-breeze-hover-fg: #ffffff;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(0, 0, 0, 0.14);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.55);
+  --wc-mac-disabled: #d3d4d9;
+  color-scheme: light;
+}
+
+/* Solarized by Ethan Schoonover, adapted to Forge's tokens. */
+:root[data-theme="solarized-dark"] {
+  --bg-app: #00212b;
+  --bg-toolbar: #00252f;
+  --bg-panel: #00252f;
+  --bg-editor: #002b36;
+  --bg-elevated: #073642;
+  --bg-hover: #073642;
+  --bg-active: #0b4351;
+  --bg-selection: #073a46;
+  --bg-input: #00303c;
+  --border: #0a3b48;
+  --border-strong: #16505f;
+
+  --fg: #93a1a1;
+  --fg-strong: #eee8d5;
+  --fg-muted: #93a7ab;
+  --fg-faint: #80979d;
+
+  --accent: #268bd2;
+  --accent-strong: #4aa3e3;
+  --accent-soft: rgba(38, 139, 210, 0.18);
+  --accent-fg: #fdf6e3;
+
+  --success: #859900;
+  --warning: #b58900;
+  --danger: #dc322f;
+  --info: #268bd2;
+
+  /* VCS file status colors (project tree, tabs, commit window) */
+  --vcs-modified: #268bd2;
+  --vcs-added: #859900;
+  --vcs-deleted: #657b83;
+  --vcs-untracked: #cb4b16;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #cb4b16;
+  --tree-resource-root: #6c71c4;
+  --tree-test-resource-root: #859900;
+  --vcs-conflict: #dc322f;
+
+  /* Git blame annotation age (newest -> oldest) and diff viewer */
+  --blame-age-0: #cb4b16;
+  --blame-age-1: #a8581f;
+  --blame-age-2: #7d5a3a;
+  --blame-age-3: #4f5a52;
+  --blame-age-4: #2c4a52;
+  --blame-bg-0: rgba(203, 75, 22, 0.12);
+  --blame-bg-1: rgba(203, 75, 22, 0.06);
+  --diff-inserted-bg: rgba(133, 153, 0, 0.16);
+  --diff-inserted-text: rgba(133, 153, 0, 0.32);
+  --diff-deleted-bg: rgba(220, 50, 47, 0.14);
+  --diff-deleted-text: rgba(220, 50, 47, 0.32);
+  --diff-changed-bg: rgba(38, 139, 210, 0.14);
+  --graph-0: #cb4b16;
+  --graph-1: #268bd2;
+  --graph-2: #859900;
+  --graph-3: #6c71c4;
+  --graph-4: #b58900;
+  --graph-5: #2aa198;
+  --graph-6: #d33682;
+  --ref-local: #cb4b16;
+  --ref-remote: #6c71c4;
+  --ref-tag: #b58900;
+
+  /* Syntax */
+  --syn-keyword: #859900;
+  --syn-string: #2aa198;
+  --syn-number: #d33682;
+  --syn-comment: #586e75;
+  --syn-variable: #268bd2;
+  --syn-function: #b58900;
+  --syn-type: #cb4b16;
+  --syn-attribute: #6c71c4;
+  --syn-operator: #93a1a1;
+  --syn-tag: #268bd2;
+
+  --shadow: 0 8px 28px rgba(0, 20, 26, 0.55);
+  color-scheme: dark;
+}
+
+:root[data-theme="solarized-light"] {
+  --bg-app: #eee8d5;
+  --bg-toolbar: #f5eedb;
+  --bg-panel: #f5eedb;
+  --bg-editor: #fdf6e3;
+  --bg-elevated: #fdf6e3;
+  --bg-hover: #eae3cc;
+  --bg-active: #e1dac2;
+  --bg-selection: #e6dfc5;
+  --bg-input: #fdf6e3;
+  --border: #e3dcc4;
+  --border-strong: #d3cbb0;
+
+  --fg: #4f646a;
+  --fg-strong: #073642;
+  --fg-muted: #4a5a5f;
+  --fg-faint: #57686c;
+
+  --success: #859900;
+  --warning: #b58900;
+  --danger: #dc322f;
+  --info: #268bd2;
+  --vcs-conflict: #dc322f;
+
+  --accent: #268bd2;
+  --accent-strong: #1f78b8;
+  --accent-soft: rgba(38, 139, 210, 0.14);
+  --accent-fg: #fdf6e3;
+
+  --vcs-modified: #268bd2;
+  --vcs-added: #859900;
+  --vcs-deleted: #93a1a1;
+  --vcs-untracked: #cb4b16;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #cb4b16;
+  --tree-resource-root: #6c71c4;
+  --tree-test-resource-root: #859900;
+
+  --blame-age-0: #cb4b16;
+  --blame-age-1: #d98a5a;
+  --blame-age-2: #d6b690;
+  --blame-age-3: #e0d3ba;
+  --blame-age-4: #eadfc6;
+  --blame-bg-0: rgba(203, 75, 22, 0.10);
+  --blame-bg-1: rgba(203, 75, 22, 0.05);
+  --diff-inserted-bg: rgba(133, 153, 0, 0.14);
+  --diff-inserted-text: rgba(133, 153, 0, 0.30);
+  --diff-deleted-bg: rgba(220, 50, 47, 0.10);
+  --diff-deleted-text: rgba(220, 50, 47, 0.26);
+  --diff-changed-bg: rgba(38, 139, 210, 0.12);
+  --graph-0: #cb4b16;
+  --graph-1: #268bd2;
+  --graph-2: #859900;
+  --graph-3: #6c71c4;
+  --graph-4: #b58900;
+  --graph-5: #2aa198;
+  --graph-6: #d33682;
+  --ref-local: #cb4b16;
+  --ref-remote: #6c71c4;
+  --ref-tag: #b58900;
+
+  --syn-keyword: #859900;
+  --syn-string: #2aa198;
+  --syn-number: #d33682;
+  --syn-comment: #93a1a1;
+  --syn-variable: #268bd2;
+  --syn-function: #b58900;
+  --syn-type: #cb4b16;
+  --syn-attribute: #6c71c4;
+  --syn-operator: #586e75;
+  --syn-tag: #268bd2;
+
+  --shadow: 0 8px 24px rgba(88, 110, 117, 0.22);
+  color-scheme: light;
+}
+
+/* High Contrast: WCAG AAA (7:1) text on pure black, white borders and strong focus rings,
+   after PHPStorm's "High contrast" theme. Checked by src/theme/contrast.test.ts. */
+:root[data-theme="high-contrast"] {
+  --bg-app: #000000;
+  --bg-toolbar: #000000;
+  --bg-panel: #000000;
+  --bg-editor: #000000;
+  --bg-elevated: #0a0a0a;
+  --bg-hover: #262626;
+  --bg-active: #333333;
+  --bg-selection: #5c3300;
+  --bg-input: #000000;
+  --border: #9a9a9a;
+  --border-strong: #ffffff;
+
+  --fg: #ffffff;
+  --fg-strong: #ffffff;
+  --fg-muted: #e6e6e6;
+  --fg-faint: #cccccc;
+
+  --accent: #ffa64d;
+  --accent-strong: #ffbf80;
+  --accent-soft: rgba(255, 166, 77, 0.24);
+  --accent-fg: #000000;
+
+  --success: #85eb96;
+  --warning: #ffd966;
+  --danger: #ff8f8f;
+  --info: #94c8ff;
+
+  --vcs-modified: #94c8ff;
+  --vcs-added: #85eb96;
+  --vcs-deleted: #c8c8c8;
+  --vcs-untracked: #ffb8a6;
+  --tree-excluded: #ffb27a;
+  --tree-resource-root: #e0b8ff;
+  --tree-test-resource-root: #a8f09a;
+  --vcs-ignored: #bdbdbd;
+  --vcs-conflict: #ff8f8f;
+
+  --blame-age-0: #ffb27a;
+  --blame-age-1: #f0a878;
+  --blame-age-2: #d8a88c;
+  --blame-age-3: #c8b8ac;
+  --blame-age-4: #bdbdbd;
+  --blame-bg-0: rgba(255, 166, 77, 0.2);
+  --blame-bg-1: rgba(255, 166, 77, 0.1);
+  --diff-inserted-bg: rgba(133, 235, 150, 0.22);
+  --diff-inserted-text: rgba(133, 235, 150, 0.4);
+  --diff-deleted-bg: rgba(255, 143, 143, 0.22);
+  --diff-deleted-text: rgba(255, 143, 143, 0.4);
+  --diff-changed-bg: rgba(148, 200, 255, 0.22);
+  --graph-0: #ffa64d;
+  --graph-1: #94c8ff;
+  --graph-2: #85eb96;
+  --graph-3: #e0b8ff;
+  --graph-4: #ffd966;
+  --graph-5: #80f0e0;
+  --graph-6: #ff9ec0;
+  --ref-local: #ffa64d;
+  --ref-remote: #e0b8ff;
+  --ref-tag: #ffd966;
+
+  --file-color-blue: rgba(148, 200, 255, 0.24);
+  --file-color-green: rgba(133, 235, 150, 0.22);
+  --file-color-orange: rgba(255, 166, 77, 0.24);
+  --file-color-rose: rgba(255, 158, 192, 0.24);
+  --file-color-violet: rgba(224, 184, 255, 0.24);
+  --file-color-yellow: rgba(255, 217, 102, 0.22);
+  --file-color-gray: rgba(200, 200, 200, 0.24);
+
+  --syn-keyword: #ffb877;
+  --syn-string: #9cf08c;
+  --syn-number: #8fdcff;
+  --syn-comment: #c8c8c8;
+  --syn-variable: #e6ccff;
+  --syn-function: #ffe28f;
+  --syn-type: #80f0e0;
+  --syn-attribute: #f5e98f;
+  --syn-operator: #ffffff;
+  --syn-tag: #ffb877;
+
+  --ansi-black: #4d4d4d;
+  --ansi-red: #ff8f8f;
+  --ansi-green: #85eb96;
+  --ansi-yellow: #ffd966;
+  --ansi-blue: #94c8ff;
+  --ansi-magenta: #e0b8ff;
+  --ansi-cyan: #80f0e0;
+  --ansi-white: #e6e6e6;
+  --ansi-bright-black: #b3b3b3;
+  --ansi-bright-red: #ffb3b3;
+  --ansi-bright-green: #b3f5bd;
+  --ansi-bright-yellow: #ffeb99;
+  --ansi-bright-blue: #c2deff;
+  --ansi-bright-magenta: #efd9ff;
+  --ansi-bright-cyan: #b3f7ee;
+  --ansi-bright-white: #ffffff;
+
+  --shadow: 0 0 0 1px #ffffff;
+
+  --wc-fg: #ffffff;
+  --wc-hover: rgba(255, 255, 255, 0.2);
+  --wc-pressed: rgba(255, 255, 255, 0.3);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #a3261a;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(255, 255, 255, 0.2);
+  --wc-round-hover: rgba(255, 255, 255, 0.32);
+  --wc-round-active: rgba(255, 255, 255, 0.45);
+  --wc-breeze-hover: #ffffff;
+  --wc-breeze-hover-fg: #000000;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(255, 255, 255, 0.5);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.8);
+  --wc-mac-disabled: #808080;
+  color-scheme: dark;
+}
+
+/* High Contrast Light: black on white, AAA text contrast, black borders. */
+:root[data-theme="high-contrast-light"] {
+  --bg-app: #ffffff;
+  --bg-toolbar: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-editor: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f0f0f0;
+  --bg-active: #e6e6e6;
+  --bg-selection: #ffd9b3;
+  --bg-input: #ffffff;
+  --border: #5c5c5c;
+  --border-strong: #000000;
+
+  --fg: #000000;
+  --fg-strong: #000000;
+  --fg-muted: #262626;
+  --fg-faint: #3d3d3d;
+
+  --accent: #9a3a00;
+  --accent-strong: #7a2e00;
+  --accent-soft: rgba(154, 58, 0, 0.16);
+  --accent-fg: #ffffff;
+
+  --success: #104d1f;
+  --warning: #5c4400;
+  --danger: #a30000;
+  --info: #0a4699;
+
+  --vcs-modified: #0a4699;
+  --vcs-added: #104d1f;
+  --vcs-deleted: #3d3d3d;
+  --vcs-untracked: #7a240f;
+  --tree-excluded: #8a3a00;
+  --tree-resource-root: #5c1f99;
+  --tree-test-resource-root: #1a4d1a;
+  --vcs-ignored: #4d4d4d;
+  --vcs-conflict: #a30000;
+
+  --blame-age-0: #9a3a00;
+  --blame-age-1: #8a4a1f;
+  --blame-age-2: #6b4f3a;
+  --blame-age-3: #4d4d4d;
+  --blame-age-4: #5c5c5c;
+  --blame-bg-0: rgba(154, 58, 0, 0.14);
+  --blame-bg-1: rgba(154, 58, 0, 0.07);
+  --diff-inserted-bg: rgba(20, 92, 37, 0.16);
+  --diff-inserted-text: rgba(20, 92, 37, 0.32);
+  --diff-deleted-bg: rgba(163, 0, 0, 0.14);
+  --diff-deleted-text: rgba(163, 0, 0, 0.3);
+  --diff-changed-bg: rgba(10, 70, 153, 0.14);
+  --graph-0: #9a3a00;
+  --graph-1: #0a4699;
+  --graph-2: #145c25;
+  --graph-3: #5c1f99;
+  --graph-4: #5c4400;
+  --graph-5: #00574d;
+  --graph-6: #8f1f4a;
+  --ref-local: #7f2f00;
+  --ref-remote: #5c1f99;
+  --ref-tag: #5c4400;
+
+  --file-color-blue: rgba(10, 70, 153, 0.14);
+  --file-color-green: rgba(20, 92, 37, 0.14);
+  --file-color-orange: rgba(154, 58, 0, 0.14);
+  --file-color-rose: rgba(143, 31, 74, 0.14);
+  --file-color-violet: rgba(92, 31, 153, 0.14);
+  --file-color-yellow: rgba(92, 68, 0, 0.16);
+  --file-color-gray: rgba(61, 61, 61, 0.14);
+
+  --syn-keyword: #8a2c00;
+  --syn-string: #1d5c0c;
+  --syn-number: #004f8a;
+  --syn-comment: #4a4a4a;
+  --syn-variable: #561f99;
+  --syn-function: #614000;
+  --syn-type: #00574d;
+  --syn-attribute: #574a00;
+  --syn-operator: #000000;
+  --syn-tag: #8a2c00;
+
+  --ansi-black: #000000;
+  --ansi-red: #a30000;
+  --ansi-green: #145c25;
+  --ansi-yellow: #5c4400;
+  --ansi-blue: #0a4699;
+  --ansi-magenta: #5c1f99;
+  --ansi-cyan: #00574d;
+  --ansi-white: #4d4d4d;
+  --ansi-bright-black: #3d3d3d;
+  --ansi-bright-red: #c20000;
+  --ansi-bright-green: #1a7030;
+  --ansi-bright-yellow: #6b5000;
+  --ansi-bright-blue: #0d55b8;
+  --ansi-bright-magenta: #6b26b3;
+  --ansi-bright-cyan: #006b5e;
+  --ansi-bright-white: #262626;
+
+  --shadow: 0 0 0 1px #000000;
+
+  --wc-fg: #000000;
+  --wc-hover: rgba(0, 0, 0, 0.14);
+  --wc-pressed: rgba(0, 0, 0, 0.22);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #a3261a;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(0, 0, 0, 0.14);
+  --wc-round-hover: rgba(0, 0, 0, 0.22);
+  --wc-round-active: rgba(0, 0, 0, 0.32);
+  --wc-breeze-hover: #000000;
+  --wc-breeze-hover-fg: #ffffff;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(0, 0, 0, 0.5);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.8);
+  --wc-mac-disabled: #808080;
+  color-scheme: light;
+}
+
+:root {
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, monospace;
+  --fs-ui: 13px;
+  --fs-small: 12px;
+  --fs-editor: 13.5px;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --toolbar-h: 40px;
+  --statusbar-h: 26px;
+  --stripe-w: 40px;
+  --font-display: "Unbounded", "Arial Black", "Helvetica Neue", sans-serif;
+}
+
+/* UI layers, lowest first (see docs/guide/developer/contribution-points.md, "Layers").
+   Features use only these variables for a z-index above 10; `pnpm zindex:check` enforces it.
+   Popups and dialogs that register with the overlay stack (`shell/layers.tsx`) get their
+   parent's layer plus an offset, so whatever a dialog opens sits above that dialog. The
+   numbers are mirrored in `LAYER_BASE` there. */
+:root {
+  /* CodeMirror's own sticky panels (300) and tooltips sit in this band. */
+  --z-editor-overlay: 300;
+  --z-floating-tool-window: 400;
+  --z-popup: 500;
+  --z-modal: 600;
+  --z-notification: 700;
+  --z-context-menu: 800;
+  --z-tooltip: 900;
+  --z-drag-ghost: 1000;
+  /* Presentation Assistant, window resize edges. */
+  --z-system: 1100;
+}
+
+/* Usages of the element at the caret (Highlight Usages in File): reads and writes, in the
+   text and on the scrollbar's error stripe. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
+  --usage-read-bg: rgba(94, 164, 255, 0.2);
+  --usage-write-bg: rgba(239, 95, 95, 0.22);
+  --usage-read-mark: #6aa7ff;
+  --usage-write-mark: #ef7f7f;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
+  --usage-read-bg: rgba(46, 111, 214, 0.16);
+  --usage-write-bg: rgba(214, 58, 58, 0.16);
+  --usage-read-mark: #3f7fe0;
+  --usage-write-mark: #d64545;
+}
+
+/* Merge window: chunk colours in the panes (lines), the bands between the panes and the
+   marker of an empty side. Conflicts red, modifications blue, insertions green, deletions grey. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
+  --merge-conflict-bg: rgba(239, 95, 95, 0.22);
+  --merge-conflict-band: rgba(239, 95, 95, 0.36);
+  --merge-conflict-mark: #ef6f6f;
+  --merge-modified-bg: rgba(94, 164, 255, 0.2);
+  --merge-modified-band: rgba(94, 164, 255, 0.34);
+  --merge-modified-mark: #6aa7ff;
+  --merge-inserted-bg: rgba(95, 191, 119, 0.2);
+  --merge-inserted-band: rgba(95, 191, 119, 0.34);
+  --merge-inserted-mark: #73c48a;
+  --merge-deleted-bg: rgba(150, 150, 165, 0.2);
+  --merge-deleted-band: rgba(150, 150, 165, 0.34);
+  --merge-deleted-mark: #9a9aa8;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
+  --merge-conflict-bg: rgba(214, 58, 58, 0.14);
+  --merge-conflict-band: rgba(214, 58, 58, 0.26);
+  --merge-conflict-mark: #d64545;
+  --merge-modified-bg: rgba(36, 99, 199, 0.1);
+  --merge-modified-band: rgba(36, 99, 199, 0.2);
+  --merge-modified-mark: #2463c7;
+  --merge-inserted-bg: rgba(47, 138, 70, 0.11);
+  --merge-inserted-band: rgba(47, 138, 70, 0.22);
+  --merge-inserted-mark: #2f8a46;
+  --merge-deleted-bg: rgba(110, 112, 125, 0.12);
+  --merge-deleted-band: rgba(110, 112, 125, 0.24);
+  --merge-deleted-mark: #8a8a94;
+}
+
+/* Splash screen: cold steel letters that fill with molten metal while Forge loads. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
+  --splash-desk: #0b0b0d;
+  --splash-bg: #131316;
+  --splash-edge: #26262d;
+  --splash-steel: #2a2a31;
+  --splash-steel-hi: #3a3a44;
+  --splash-molten-1: #ff4d00;
+  --splash-molten-2: #ff8a1f;
+  --splash-molten-3: #ffd27a;
+  --splash-ok: #4caf7d;
+  --splash-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
+  --splash-desk: #dfe2e8;
+  --splash-bg: #f7f8fa;
+  --splash-edge: #d3d6de;
+  --splash-steel: #d5d8e0;
+  --splash-steel-hi: #e6e8ee;
+  --splash-molten-1: #e04400;
+  --splash-molten-2: #f07a14;
+  --splash-molten-3: #ffb24d;
+  --splash-ok: #2f8a5c;
+  --splash-shadow: 0 30px 80px rgba(40, 44, 60, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Shared small building blocks */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+}
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.icon-btn.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  color: var(--fg);
+  white-space: nowrap;
+}
+.pill-btn:hover {
+  background: var(--bg-hover);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: var(--accent-strong);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  color: var(--fg);
+}
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.vcs-modified { color: var(--vcs-modified); }
+.vcs-added { color: var(--vcs-added); }
+.vcs-deleted { color: var(--vcs-deleted); text-decoration: line-through; }
+.vcs-untracked { color: var(--vcs-untracked); }
+.vcs-conflict { color: var(--vcs-conflict); }
+
+/* Code With Me participant colors (carets, selections, avatars), in join order; the host is 1. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"],
+:root[data-theme="high-contrast"] {
+  --collab-1: #ff8a3d;
+  --collab-2: #5aa9ff;
+  --collab-3: #6fd18c;
+  --collab-4: #c48bff;
+  --collab-5: #ff6b9a;
+  --collab-6: #3fd0c9;
+  --collab-7: #f2c94c;
+  --collab-8: #ff6b6b;
+  --collab-label-fg: #15151a;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"],
+:root[data-theme="high-contrast-light"] {
+  --collab-1: #d9590a;
+  --collab-2: #1f6fd1;
+  --collab-3: #24914a;
+  --collab-4: #8a4fd6;
+  --collab-5: #c93a6b;
+  --collab-6: #11867f;
+  --collab-7: #a67c00;
+  --collab-8: #c93636;
+  --collab-label-fg: #ffffff;
+}
+

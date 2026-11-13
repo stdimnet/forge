@@ -1,0 +1,33 @@
+.profiler-host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.profiler-host-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profiler-host-tabs button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--fg-muted);
+  padding: 3px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.profiler-host-tabs button.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+
+.profiler-host-body {
+  flex: 1;
+  min-height: 0;
+}

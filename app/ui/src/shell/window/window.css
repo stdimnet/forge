@@ -1,0 +1,318 @@
+/* ---------- Window controls (WindowControls.tsx) ---------- */
+.wc {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.wc-btn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--wc-fg);
+  cursor: default;
+}
+.wc-btn:disabled {
+  opacity: 0.4;
+}
+.wc-glyph {
+  display: block;
+  pointer-events: none;
+}
+
+/* Windows 11: full-height rectangles, red close. */
+.wc-windows {
+  align-self: stretch;
+}
+.wc-windows .wc-btn {
+  width: 46px;
+  height: 100%;
+}
+.wc-windows .wc-btn:hover {
+  background: var(--wc-hover);
+}
+.wc-windows .wc-btn:active {
+  background: var(--wc-pressed);
+}
+.wc-windows .wc-close:hover {
+  background: var(--wc-close-hover);
+  color: var(--wc-close-fg);
+}
+.wc-windows .wc-close:active {
+  background: var(--wc-close-pressed);
+  color: var(--wc-close-fg);
+}
+
+/* Generic Linux: small rounded squares. */
+.wc-linux {
+  gap: 2px;
+}
+.wc-linux .wc-btn {
+  width: 30px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+}
+.wc-linux .wc-btn:hover {
+  background: var(--wc-hover);
+}
+.wc-linux .wc-close:hover {
+  background: var(--wc-close-hover);
+  color: var(--wc-close-fg);
+}
+
+/* GNOME / Adwaita: round buttons with a faint fill. */
+.wc-gnome {
+  gap: 10px;
+  padding: 0 2px;
+}
+.wc-gnome .wc-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--wc-round-bg);
+}
+.wc-gnome .wc-btn:hover {
+  background: var(--wc-round-hover);
+}
+.wc-gnome .wc-btn:active {
+  background: var(--wc-round-active);
+}
+
+/* KDE Breeze: bare glyphs, a filled circle on hover (red for close). */
+.wc-kde {
+  gap: 6px;
+  padding: 0 2px;
+}
+.wc-kde .wc-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.wc-kde .wc-btn:hover {
+  background: var(--wc-breeze-hover);
+  color: var(--wc-breeze-hover-fg);
+}
+.wc-kde .wc-close:hover {
+  background: var(--wc-breeze-close);
+  color: var(--wc-close-fg);
+}
+
+/* macOS traffic lights: glyphs appear while the pointer is over the group. */
+.wc-macos {
+  gap: 8px;
+  padding: 0 4px;
+}
+.wc-macos .wc-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px var(--wc-mac-border);
+  color: transparent;
+}
+.wc-macos .wc-close {
+  background: var(--wc-mac-close);
+}
+.wc-macos .wc-minimize {
+  background: var(--wc-mac-minimize);
+}
+.wc-macos .wc-maximize {
+  background: var(--wc-mac-maximize);
+}
+.wc-macos:hover .wc-btn {
+  color: var(--wc-mac-glyph);
+}
+.wc-macos .wc-btn:disabled,
+.wc-macos:hover .wc-btn:disabled {
+  background: var(--wc-mac-disabled);
+  color: transparent;
+  opacity: 1;
+}
+.wc-macos .wc-btn:active {
+  filter: brightness(0.85);
+}
+
+/* ---------- The main toolbar is the title bar ---------- */
+.main-toolbar .wc-left {
+  margin-right: 6px;
+}
+.main-toolbar .wc-right {
+  margin-left: 6px;
+}
+.main-toolbar .wc-windows.wc-right {
+  margin-right: -8px;
+}
+.main-toolbar .wc-windows.wc-left {
+  margin-left: -8px;
+}
+.main-toolbar .wc-macos.wc-left {
+  margin-left: 4px;
+  margin-right: 10px;
+}
+
+/* ---------- Dialog frame (WindowFrame.tsx) ---------- */
+.wf {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-panel);
+  color: var(--fg);
+  outline: none;
+}
+.wf-window {
+  position: fixed;
+  inset: 0;
+}
+.wf-window.wf-bordered {
+  border: 1px solid var(--border-strong);
+}
+.wf-in-page {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.wf-in-page.wf-macos {
+  border-radius: 12px;
+}
+.wf-in-page.wf-windows {
+  border-radius: 8px;
+}
+.wf-in-page.wf-gnome {
+  border-radius: 12px;
+}
+.wf-titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.wf-gnome .wf-titlebar {
+  height: 42px;
+}
+.wf-title {
+  position: absolute;
+  left: 50%;
+  max-width: 60%;
+  transform: translateX(-50%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--fg-strong);
+  pointer-events: none;
+}
+.wf-title-left .wf-title {
+  position: static;
+  transform: none;
+  padding-left: 6px;
+  font-weight: 400;
+}
+.wf-titlebar .wc-right {
+  margin-left: auto;
+}
+.wf-titlebar .wc-windows {
+  height: 100%;
+}
+.wf-titlebar .wc-windows.wc-right {
+  margin-right: -8px;
+}
+.wf-titlebar .wc-windows.wc-left {
+  margin-left: -8px;
+}
+.wf-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.wf-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-app) 55%, transparent);
+}
+/* A window that is not modal (browser mode): no backdrop, the IDE stays usable. */
+.wf-modeless {
+  position: fixed;
+  right: 48px;
+  bottom: 48px;
+  z-index: var(--z-floating-tool-window);
+  display: flex;
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+}
+.wf-missing {
+  padding: 24px;
+  color: var(--fg-muted);
+}
+
+/* Resize handles of undecorated windows. */
+.wf-resize {
+  position: fixed;
+  z-index: var(--z-system);
+}
+.wf-resize-n,
+.wf-resize-s {
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  cursor: ns-resize;
+}
+.wf-resize-n {
+  top: 0;
+}
+.wf-resize-s {
+  bottom: 0;
+}
+.wf-resize-e,
+.wf-resize-w {
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  cursor: ew-resize;
+}
+.wf-resize-e {
+  right: 0;
+}
+.wf-resize-w {
+  left: 0;
+}
+.wf-resize-ne,
+.wf-resize-nw,
+.wf-resize-se,
+.wf-resize-sw {
+  width: 8px;
+  height: 8px;
+}
+.wf-resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.wf-resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+.wf-resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.wf-resize-se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}

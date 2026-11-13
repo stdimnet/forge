@@ -1,0 +1,60 @@
+---
+title: forge-core
+description: "Forge IDE core: workspace, file system, settings and event bus."
+order: 50
+tags: [crate, rust]
+---
+
+# forge-core
+
+`crates/forge-core` — Forge IDE core: workspace, file system, settings and event bus.
+
+## Purpose
+
+Forge core: the language-agnostic foundation every pack builds on.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `error.rs` | `ForgeError`: English `Display` for logs, serialized to the UI in the IDE language (`errors.*` keys of forge-i18n); `ForgeError::no_project()`. |
+| `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
+| `lifecycle.rs` | The window's project lifecycle: `ProjectLifecycleBus` runs `ProjectLifecycle` subscribers (`beforeClose` objections, `closing`, `opened`, `ready`) in a fixed order with error and panic isolation, tracks the open project and its generation (a late `ready` of an earlier project is dropped) and defines the `project://lifecycle` event payload (`LifecycleEvent`, `ProjectRef`, `Objection`). See ARCHITECTURE.md, "Project lifecycle". |
+| `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
+| `paths.rs` | Path spelling that works the same on every platform. `paths::canonicalize` is `std::fs::canonicalize` without Windows' verbatim `\\?\` prefix (when the path means the same without it; `simplify_verbatim` holds the rules and is tested on every platform), so project roots, the paths handed to language servers, Git and other tools, and the paths they report back use the ordinary spelling. `relative_to(root, abs)` makes a path project-relative across Windows spellings (`\\?\C:\…`, `c:\…`, `/` or `\`). `Workspace::open` uses `canonicalize`. `is_within(root, path)` is the one "is this inside the project?" check of Safe Mode: it compares the spellings (`within`: verbatim prefixes, separators, `.`/`..`, letter case for drive and UNC paths and on Windows and macOS) and the paths as the file system resolves them (`resolve_existing`: symlinks, `/proc/self/root`, missing files by their deepest existing folder). |
+| `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
+| `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
+| `settings.rs` | Layered settings: built-in defaults < user < Settings for New Projects (`SettingsScope::NewProjects`, `new-project-settings.toml`) < project. User-only keys (`set_user_only`: schema settings without `project = true`) ignore the project layer and cannot be stored in it. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes); `parse_settings_toml` / `settings_to_toml` convert between flat keys and the nested files (settings archives). |
+| `watch.rs` | Watches the open project for changes made outside the editor (git checkouts, composer, code generators, other editors) and reports them in debounced batches. |
+| `workspace.rs` |  |
+
+## Main public items
+
+```rust
+pub use error::{ForgeError, Result};
+pub use lifecycle::{LifecycleEvent, Objection, PhaseReport, ProjectLifecycle, ProjectLifecycleBus, ProjectPhase, ProjectRef};
+pub use project_files::{LocalFiles, MemoryFiles, ProjectFiles, SharedFiles};
+pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
+pub use settings::{Settings, SettingsChange, SettingsScope};
+pub use watch::{FsChanges, ProjectWatcher};
+pub use workspace::{FileEntry, FileKind, Workspace};
+```
+
+## Used by
+
+- IPC: `settings_get_all`, `settings_set`, `workspace_open`, `workspace_current`, `fs_list_dir`, `fs_read_file`, `fs_write_file`, `fs_create_file`, `fs_create_dir`, `fs_rename`, `fs_delete` (through the backend); events `settings://changed`, `fs://changed`
+- UI: `app/ui/src/state/settings.ts`, `app/ui/src/state/workspace.ts`
+- Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
+
+## Dependencies
+
+- Workspace crates: [`forge-find`](forge-find.md), [`forge-fuzzy`](forge-fuzzy.md)
+- External: `dirs`, `ignore`, `notify`, `serde`, `serde_json`, `thiserror`, `toml`, `tracing`
+
+## Tests
+
+8 source files, about 1689 lines; 27 unit tests.
+
+```sh
+cargo test -p forge-core
+```

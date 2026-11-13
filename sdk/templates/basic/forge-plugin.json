@@ -1,0 +1,16 @@
+{
+  "manifestVersion": 1,
+  "id": "{{id}}",
+  "name": "{{name}}",
+  "version": "0.1.0",
+  "publisher": "{{publisher}}",
+  "description": "{{description}}",
+  "license": "MIT",
+  "engines": { "forge": ">={{forgeVersion}}" },
+  "main": "dist/plugin.js",
+  "activationEvents": ["onCommand:{{id}}.hello"],
+  "permissions": {},
+  "contributes": {
+    "commands": [{ "id": "{{id}}.hello", "title": "Say Hello", "category": "{{name}}" }]
+  }
+}

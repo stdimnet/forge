@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acme Shop · Forge Companion demo</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 15px/1.5 Inter, -apple-system, "Segoe UI", system-ui, sans-serif; color: #1f2430; background: #f6f4f1; }
+      header { display: flex; align-items: center; gap: 28px; padding: 18px 48px; background: #fff; border-bottom: 1px solid #e8e4de; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+      .brand i { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #2b59c3, #6a8de6); }
+      nav { display: flex; gap: 22px; color: #5b6170; }
+      nav a { color: inherit; text-decoration: none; }
+      .cart-btn { margin-left: auto; padding: 8px 14px; border-radius: 999px; border: 1px solid #d9d4cc; background: #fff; font: inherit; }
+      main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 32px; padding: 32px 48px; }
+      h1 { margin: 0 0 4px; font-size: 28px; }
+      .lead { margin: 0 0 24px; color: #5b6170; }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+      .card { background: #fff; border-radius: 14px; border: 1px solid #e8e4de; overflow: hidden; }
+      .thumb { height: 150px; display: grid; place-items: center; }
+      .thumb svg { width: 72px; height: 72px; }
+      .card-body { padding: 14px 16px 16px; }
+      .card h3 { margin: 0; font-size: 16px; }
+      .meta { color: #7a8090; font-size: 13px; margin: 2px 0 12px; }
+      .row { display: flex; align-items: center; justify-content: space-between; }
+      .price { font-weight: 700; font-size: 17px; }
+      .add { padding: 7px 12px; border-radius: 8px; border: none; background: #2b59c3; color: #fff; font: 600 13px Inter, system-ui, sans-serif; }
+      aside { align-self: start; background: #fff; border: 1px solid #e8e4de; border-radius: 14px; padding: 18px; }
+      aside h2 { margin: 0 0 12px; font-size: 17px; }
+      .line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e8e4de; font-size: 14px; }
+      .total { display: flex; justify-content: space-between; margin-top: 12px; font-weight: 700; }
+      .checkout { width: 100%; margin-top: 14px; padding: 10px; border-radius: 10px; border: none; background: #1f2430; color: #fff; font: 600 14px Inter, system-ui, sans-serif; }
+      .note { margin-top: 18px; font-size: 12px; color: #7a8090; }
+      code { font: 12px "JetBrains Mono", Menlo, monospace; background: #f0ece6; padding: 1px 4px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <header id="site-header">
+      <div class="brand"><i></i>Acme Shop</div>
+      <nav><a href="#">Lighting</a><a href="#">Furniture</a><a href="#">Kitchen</a><a href="#">Sale</a></nav>
+      <button class="cart-btn">Cart · 2</button>
+    </header>
+    <main>
+      <section>
+        <h1>Workshop essentials</h1>
+        <p class="lead">Hand-made tools and furniture for your studio.</p>
+        <div class="grid" id="grid"></div>
+      </section>
+      <aside id="cart">
+        <h2>Your cart</h2>
+        <div class="line"><span>Forge Lamp</span><span>€89.00</span></div>
+        <div class="line"><span>Ember Mug ×2</span><span>€38.00</span></div>
+        <div class="total"><span>Total</span><span>€127.00</span></div>
+        <button class="checkout">Checkout</button>
+        <p class="note">This page fakes React and Vue development internals so you can try the extension without a dev server. Hold <code>Alt</code> and hover, or press <code>Alt+Shift+F</code>.</p>
+      </aside>
+    </main>
+    <script src="demo.js"></script>
+  </body>
+</html>

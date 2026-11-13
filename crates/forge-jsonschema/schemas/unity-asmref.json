@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/unity-asmref.json",
+  "title": "Unity Assembly Definition Reference",
+  "description": "A Unity assembly definition reference (.asmref): the scripts of its folder compile into another folder's assembly.",
+  "type": "object",
+  "required": ["reference"],
+  "additionalProperties": false,
+  "properties": {
+    "reference": {
+      "type": "string",
+      "description": "The assembly: its name, or \"GUID:<guid>\" of its .asmdef file."
+    }
+  }
+}

@@ -1,0 +1,29 @@
+[package]
+name = "forge-jsonschema"
+description = "Forge IDE: JSON Schema validation, completion, documentation and navigation for JSON, JSON5 and YAML files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Downloads of remote schemas and the SchemaStore catalog into the user cache dir
+# (`remote::RemoteCache`). The pure part builds to WebAssembly without it.
+remote = ["dep:reqwest", "dep:sha2", "dep:tokio"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex-lite = "0.1"
+flate2 = "1"
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+sha2 = { version = "0.10", optional = true }
+tokio = { workspace = true, optional = true }
+
+[build-dependencies]
+flate2 = "1"
+
+[dev-dependencies]
+forge-ports.workspace = true
+tempfile.workspace = true
+tokio.workspace = true

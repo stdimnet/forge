@@ -1,0 +1,237 @@
+//! Actions on Save IPC (Settings | Tools | Actions on Save). The UI asks which actions run
+//! for a save (`save_actions_plan`), reformats through the language server, restricts it to
+//! changed lines (`save_actions_changed_lines`), applies the PHP actions to the text
+//! (`save_actions_php`), writes the file and runs the external tools on it where the project
+//! lives (`save_actions_run_tools`). The logic is in `forge-save-actions` and
+//! `phpforge-lang-php`; the web tools' packages come from `webforge-quality-tools`.
+
+use forge_core::Result;
+use forge_save_actions::tools::{self, ToolLocation, ToolsReport};
+use forge_save_actions::{ActionsOnSave, FileTypeChoice, SavePlan, Tool, Trigger};
+use phpforge_lang_php::{cleanup, imports, rearrange};
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager, State};
+
+use crate::commands::git::with_repo;
+use crate::commands::php_quality_tools;
+use crate::commands::web_quality_tools::{web_tool, WebSave};
+use crate::commands::workspace::blocking;
+use crate::state::AppState;
+use phpforge_quality_tools::QualityTool;
+
+fn settings_of(state: &AppState) -> ActionsOnSave {
+    let settings = state.read_settings();
+    ActionsOnSave::from_settings(|k| settings.get(k).cloned())
+}
+
+/// Custom tool paths from the settings (empty: the project's own installation).
+fn custom_paths(state: &AppState) -> impl Fn(Tool) -> Option<String> + Send + 'static {
+    let settings = state.read_settings();
+    let paths: Vec<(Tool, Option<String>)> = Tool::ALL
+        .iter()
+        .map(|&t| (t, settings.get_as::<String>(t.path_key())))
+        .collect();
+    move |tool| {
+        paths
+            .iter()
+            .find(|(t, _)| *t == tool)
+            .and_then(|(_, p)| p.clone())
+            .filter(|p| !p.trim().is_empty())
+    }
+}
+
+/// Which actions run when `path` is saved.
+#[tauri::command]
+pub fn save_actions_plan(path: String, trigger: Trigger, state: State<'_, AppState>) -> SavePlan {
+    forge_save_actions::plan(&path, trigger, &settings_of(&state))
+}
+
+/// "Changed lines": `formatted` limited to the lines changed since the last commit.
+#[tauri::command]
+pub async fn save_actions_changed_lines(
+    path: String,
+    original: String,
+    formatted: String,
+    state: State<'_, AppState>,
+) -> Result<String> {
+    // Not in a repository or not committed: the whole file counts as changed.
+    let base = with_repo(&state, move |r| r.show("HEAD", &path))
+        .await
+        .ok()
+        .flatten();
+    Ok(forge_save_actions::restrict_to_changed_lines(
+        base.as_deref(),
+        &original,
+        &formatted,
+    ))
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PhpActions {
+    pub optimize_imports: bool,
+    pub rearrange: bool,
+    pub code_cleanup: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PhpActionsResult {
+    pub text: String,
+    /// Titles of the actions that changed the text.
+    pub applied: Vec<String>,
+}
+
+/// One PHP action: the changed text, `None` when nothing changes.
+type PhpStep = fn(&str) -> Option<String>;
+
+/// Apply Optimize imports, Rearrange code and Code cleanup to a PHP text.
+pub fn apply_php_actions(text: &str, actions: &PhpActions) -> PhpActionsResult {
+    let mut text = text.to_string();
+    let mut applied = Vec::new();
+    let steps: [(bool, &str, PhpStep); 3] = [
+        (actions.code_cleanup, "Code cleanup", cleanup::code_cleanup),
+        (
+            actions.optimize_imports,
+            "Optimize imports",
+            imports::optimize_imports,
+        ),
+        (actions.rearrange, "Rearrange code", rearrange::rearrange),
+    ];
+    for (on, title, step) in steps {
+        if !on {
+            continue;
+        }
+        if let Some(next) = step(&text) {
+            text = next;
+            applied.push(title.to_string());
+        }
+    }
+    PhpActionsResult { text, applied }
+}
+
+#[tauri::command]
+pub async fn save_actions_php(
+    text: String,
+    actions: PhpActions,
+    state: State<'_, AppState>,
+) -> Result<PhpActionsResult> {
+    // Optimize imports arranges them as the code style's Imports tab says.
+    let style = crate::commands::imports::import_style(&state);
+    blocking(move || {
+        Ok(imports::with_style(style, || {
+            apply_php_actions(&text, &actions)
+        }))
+    })
+    .await
+}
+
+/// Run the external tools on the saved file `path`.
+#[tauri::command]
+pub async fn save_actions_run_tools(
+    path: String,
+    tools: Vec<Tool>,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<ToolsReport> {
+    // The tools are the project's own installations (node_modules, vendor/bin).
+    state.require_trusted("Running external tools on save")?;
+    let custom = custom_paths(&state);
+    let backend = state.backend()?;
+    blocking(move || {
+        let state = app.state::<AppState>();
+        // The web tools run where they apply to the file (Biome before ESLint and
+        // Prettier), from the package found for it, with the Node.js interpreter.
+        let web = WebSave::new(&state, backend.as_ref(), &path, &tools);
+        let custom = |tool: Tool| match web_tool(tool) {
+            Some(_) => web.program(tool),
+            None => custom(tool),
+        };
+        // The PHP tools take their Quality Tools configuration (configuration file,
+        // ruleset, options) and run with its PHP interpreter.
+        let prepare =
+            |tool: Tool, cmd: forge_process::CommandLine| match (php_tool(tool), web_tool(tool)) {
+                (Some(q), _) => {
+                    php_quality_tools::save_action_command(&state, backend.as_ref(), q, cmd)
+                }
+                (_, Some(_)) => {
+                    web.command(tool, cmd.args.last().map(String::as_str).unwrap_or(""))
+                }
+                _ => Ok(cmd),
+            };
+        tools::run_tools_with(
+            backend.as_ref(),
+            &path,
+            &web.tools,
+            &custom,
+            &prepare,
+            tools::TOOL_TIMEOUT,
+        )
+    })
+    .await
+}
+
+/// The quality tool behind a PHP tool of Actions on Save.
+fn php_tool(tool: Tool) -> Option<QualityTool> {
+    match tool {
+        Tool::PhpCsFixer => Some(QualityTool::PhpCsFixer),
+        Tool::Pint => Some(QualityTool::Pint),
+        Tool::Phpcbf => Some(QualityTool::Phpcs),
+        Tool::Rector => Some(QualityTool::Rector),
+        Tool::Eslint | Tool::Prettier | Tool::Stylelint | Tool::Biome => None,
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveActionsInfo {
+    /// File types of the "Reformat code" filter.
+    pub file_types: Vec<FileTypeChoice>,
+    /// Where the external tools were found (empty without an open project).
+    pub tools: Vec<ToolLocation>,
+}
+
+/// What the Actions on Save page shows next to the checkboxes.
+#[tauri::command]
+pub async fn save_actions_info(state: State<'_, AppState>) -> Result<SaveActionsInfo> {
+    let custom = custom_paths(&state);
+    let backend = state.backend().ok();
+    blocking(move || {
+        Ok(SaveActionsInfo {
+            file_types: forge_save_actions::file_type_choices(),
+            tools: backend
+                .map(|b| tools::detect_tools(b.as_ref(), &custom))
+                .unwrap_or_default(),
+        })
+    })
+    .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn php_actions_run_in_order_and_report_what_changed() {
+        let src = "<?php\nuse B\\Two;\nuse A\\One;\nuse C\\Gone;\n\nclass X extends One\n{\n    public function f(Two $t) {}\n    const Y = 1;\n};\n";
+        let out = apply_php_actions(
+            src,
+            &PhpActions {
+                optimize_imports: true,
+                rearrange: true,
+                code_cleanup: true,
+            },
+        );
+        assert_eq!(
+            out.text,
+            "<?php\nuse A\\One;\nuse B\\Two;\n\nclass X extends One\n{\n    const Y = 1;\n    public function f(Two $t) {}\n}\n"
+        );
+        assert_eq!(
+            out.applied,
+            vec!["Code cleanup", "Optimize imports", "Rearrange code"]
+        );
+        let none = apply_php_actions(src, &PhpActions::default());
+        assert_eq!(none.text, src);
+        assert!(none.applied.is_empty());
+    }
+}

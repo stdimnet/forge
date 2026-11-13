@@ -1,0 +1,203 @@
+# Spelling and grammar: PHPStorm's "Typo" and "Grammar" inspections (crates/forge-spell).
+id = "forge.natural-languages"
+name = "Natural Languages"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Spell checking of comments, strings, identifiers, text files and commit messages with quick fixes and dictionaries, plus a small rule-based English grammar checker."
+
+# ---- Editor > Natural Languages > Spelling -----------------------------------------------
+
+[[contributions.settings]]
+key = "spelling.enabled"
+title = "Check spelling (Typo inspection)"
+type = "bool"
+default = true
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 0
+
+[[contributions.settings]]
+key = "spelling.severity"
+title = "Severity"
+type = "enum"
+options = [
+  { value = "typo", label = "Typo" },
+  { value = "grammar", label = "Grammar Error" },
+  { value = "weak", label = "Weak Warning" },
+  { value = "warning", label = "Warning" },
+  { value = "error", label = "Error" },
+]
+default = "typo"
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 1
+
+[[contributions.settings]]
+key = "spelling.checkComments"
+title = "Process comments"
+type = "bool"
+default = true
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 2
+
+[[contributions.settings]]
+key = "spelling.checkStrings"
+title = "Process literals"
+description = "String literals."
+type = "bool"
+default = true
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 3
+
+[[contributions.settings]]
+key = "spelling.checkIdentifiers"
+title = "Process code"
+description = "Names of declared variables, functions, classes and properties, split at camelCase humps and underscores."
+type = "bool"
+default = true
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 4
+
+[[contributions.settings]]
+key = "spelling.checkText"
+title = "Process Markdown and plain text files"
+type = "bool"
+default = true
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 5
+
+[[contributions.settings]]
+key = "spelling.checkCommitMessages"
+title = "Process commit messages"
+type = "bool"
+default = true
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 6
+
+[[contributions.settings]]
+key = "spelling.checkFileNames"
+title = "Process file names"
+description = "Reports typos in the name of the open file in the Problems tool window."
+type = "bool"
+default = false
+group = "editor.natural-languages.spelling"
+section = "Inspection"
+order = 7
+
+[[contributions.settings]]
+key = "spelling.projectWords"
+title = "Project-level dictionary"
+description = "Accepted words of this project, stored in the project settings (.forge/settings.toml). \"Save to project-level dictionary\" (Alt+Enter on a typo) adds words here."
+type = "list"
+default = []
+group = "editor.natural-languages.spelling"
+section = "Accepted Words"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "spelling.applicationWords"
+title = "Application-level dictionary"
+description = "Accepted words of all projects, stored in the user settings."
+type = "list"
+default = []
+group = "editor.natural-languages.spelling"
+section = "Accepted Words"
+order = 11
+
+[[contributions.settings]]
+key = "spelling.customDictionaries"
+title = "Custom dictionaries"
+description = "Hunspell dictionaries (.dic; the .aff file with the same name next to it is read too) or plain word lists with one word per line. Absolute paths, or paths relative to the project root."
+type = "list"
+default = []
+group = "editor.natural-languages.spelling"
+section = "Dictionaries"
+order = 20
+
+# ---- Editor > Natural Languages > Grammar and Style --------------------------------------
+
+[[contributions.settings]]
+key = "grammar.enabled"
+title = "Check grammar and style (Grammar inspection)"
+description = "Comments, Markdown and plain text files and commit messages."
+type = "bool"
+default = true
+group = "editor.natural-languages.grammar"
+section = "Inspection"
+order = 0
+
+[[contributions.settings]]
+key = "grammar.severity"
+title = "Severity"
+type = "enum"
+options = [
+  { value = "grammar", label = "Grammar Error" },
+  { value = "typo", label = "Typo" },
+  { value = "weak", label = "Weak Warning" },
+  { value = "warning", label = "Warning" },
+  { value = "error", label = "Error" },
+]
+default = "grammar"
+group = "editor.natural-languages.grammar"
+section = "Inspection"
+order = 1
+
+[[contributions.settings]]
+key = "grammar.rules.repeatedWord"
+title = "Repeated words"
+description = "\"the the\""
+type = "bool"
+default = true
+group = "editor.natural-languages.grammar"
+section = "Rules"
+order = 10
+
+[[contributions.settings]]
+key = "grammar.rules.articles"
+title = "Use of 'a' and 'an'"
+description = "\"a order\", \"an user\"; acronyms are read letter by letter (\"an HTML page\")."
+type = "bool"
+default = true
+group = "editor.natural-languages.grammar"
+section = "Rules"
+order = 11
+
+[[contributions.settings]]
+key = "grammar.rules.sentenceStart"
+title = "Sentences start with an uppercase letter"
+description = "Doc comments only."
+type = "bool"
+default = true
+group = "editor.natural-languages.grammar"
+section = "Rules"
+order = 12
+
+[[contributions.settings]]
+key = "grammar.rules.doubleSpace"
+title = "Repeated whitespace"
+description = "Two or more spaces between words; aligned columns and doc tags are skipped."
+type = "bool"
+default = true
+group = "editor.natural-languages.grammar"
+section = "Rules"
+order = 13
+
+[[contributions.inspections]]
+id = "SpellCheckingInspection"
+name = "Typo"
+group = "Proofreading"
+severity = "TYPO"
+external = true
+batch = false
+description = "Spelling and grammar problems in comments, strings, identifiers and commit messages."
+
+[[contributions.inspectionMappings]]
+source = "spelling"
+inspection = "SpellCheckingInspection"

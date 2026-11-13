@@ -1,0 +1,18 @@
+[package]
+name = "cforge-lang-cpp"
+description = "CForge: C/C++ language support — GCC / Clang / MSVC / linker diagnostics, compilation databases, GoogleTest and Catch2 discovery, the CTest / GoogleTest / Catch2 providers of the shared test runner with Rerun Failed Tests and gcov / llvm-cov coverage, clangd and clang-format command lines and debugger launch requests with STL pretty printers; pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+cforge-cmake.workspace = true
+
+[dev-dependencies]
+cforge-toolchains.workspace = true
+tempfile.workspace = true

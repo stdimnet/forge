@@ -1,0 +1,31 @@
+{
+  "oracle.current_schema": [["SHOP"]],
+  "oracle.schemas": [["HR"], ["SHOP"]],
+  "oracle.tables": [
+    ["CUSTOMERS", "TABLE", "Customers", "2"],
+    ["MV_SALES", "TABLE", null, "10"],
+    ["MV_SALES", "MATERIALIZED VIEW", null, null],
+    ["V_CUST", "VIEW", null, null]
+  ],
+  "oracle.columns": [
+    ["CUSTOMERS", "ID", "NUMBER(10,0)", "N", null, "YES", null],
+    ["CUSTOMERS", "NAME", "VARCHAR2(100)", "Y", "'n/a' ", "NO", "Full name"],
+    ["MV_SALES", "DAY", "DATE", "Y", null, "NO", null],
+    ["V_CUST", "ID", "NUMBER(10,0)", "N", null, "NO", null]
+  ],
+  "oracle.indexes": [["CUSTOMERS", "PK_CUSTOMERS", "UNIQUE", "Y", "ID"]],
+  "oracle.foreign_keys": [],
+  "oracle.checks": [["CUSTOMERS", "CK_NAME", "NAME IS NOT NULL OR ID < 0"]],
+  "oracle.triggers": [["CUSTOMERS", "TRG_CUST_BI", "BEFORE EACH ROW", "INSERT OR UPDATE", "TRG_CUST_BI BEFORE INSERT OR UPDATE ON CUSTOMERS FOR EACH ROW"]],
+  "oracle.routines": [["CLOSE_STALE", "procedure"], ["ORDER_PKG", "package"], ["TOTAL_FOR", "function"]],
+  "oracle.arguments": [
+    ["CLOSE_STALE", "P_DAYS", "NUMBER", "IN", "1"],
+    ["TOTAL_FOR", null, "NUMBER", "OUT", "0"],
+    ["TOTAL_FOR", "P_ID", "NUMBER", "IN", "1"],
+    ["TOTAL_FOR", "P_TAX", "NUMBER", "IN/OUT", "2"]
+  ],
+  "oracle.sequences": [["SEQ_CUST", "1", "1"]],
+  "oracle.types": [["ADDRESS_T", "OBJECT"]],
+  "oracle.catalog": [["FREEPDB1"]],
+  "oracle.roles": [["CONNECT"], ["RESOURCE"]]
+}

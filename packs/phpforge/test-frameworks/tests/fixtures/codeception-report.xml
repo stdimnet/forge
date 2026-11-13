@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Acceptance" tests="2" assertions="4" errors="0" failures="1" skipped="0" time="0.700482">
+    <testcase name="loginWithValidCredentials" class="Tests\Acceptance\LoginCest" file="/srv/app/tests/Acceptance/LoginCest.php" line="14" feature="login with valid credentials" assertions="2" time="0.412"/>
+    <testcase name="loginWithWrongPassword" class="Tests\Acceptance\LoginCest" file="/srv/app/tests/Acceptance/LoginCest.php" line="22" feature="login with wrong password" assertions="2" time="0.288">
+      <failure type="PHPUnit\Framework\AssertionFailedError">Tests\Acceptance\LoginCest: Login with wrong password
+ Failed asserting that  on page /login
+--&gt; Log in
+--&gt; contains "These credentials do not match our records.".
+/srv/app/tests/Acceptance/LoginCest.php:26</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

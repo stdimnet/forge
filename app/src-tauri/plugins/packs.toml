@@ -1,0 +1,449 @@
+# The AI plugins that ship with the core. Each table is one plugin.
+
+[[plugin]]
+id = "forge.ai"
+name = "AI Assistant"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Chat, inline completions and code generation with your own model providers."
+
+[[plugin.contributions.toolWindows]]
+id = "ai-chat"
+title = "AI Chat"
+anchor = "right"
+icon = "sparkles"
+
+[[plugin.contributions.toolWindows]]
+id = "agent-tasks"
+title = "Agent Tasks"
+anchor = "right"
+icon = "list-checks"
+
+[[plugin.contributions.aiProviders]]
+id = "anthropic"
+name = "Anthropic"
+kind = "anthropic"
+baseUrl = "https://api.anthropic.com"
+requiresApiKey = true
+
+[[plugin.contributions.aiProviders]]
+id = "openai-compatible"
+name = "OpenAI-compatible"
+kind = "openai-compatible"
+requiresApiKey = true
+
+[[plugin.contributions.aiProviders]]
+id = "gemini"
+name = "Google Gemini"
+kind = "gemini"
+requiresApiKey = true
+
+[[plugin.contributions.chatAgents]]
+id = "assistant"
+name = "Assistant"
+description = "General chat about the open project."
+
+[[plugin.contributions.codeGenerators]]
+id = "ai.generateTests"
+title = "Tests with AI"
+languages = ["php", "typescript", "lua"]
+
+[[plugin.contributions.codeGenerators]]
+id = "ai.generateDocs"
+title = "Documentation with AI"
+languages = ["php", "typescript", "lua"]
+
+# ---- Tools > AI Assistant (AI in the editor) -----------------------------------------
+
+[[plugin.contributions.settings]]
+key = "ai.enabled"
+title = "Enable AI features in this project"
+description = "Turn off to keep this project's code away from all AI providers: no inline completion, no Explain / Fix / Generate with AI. Files can also be excluded with an .aiignore file in the project root (gitignore syntax)."
+type = "bool"
+default = true
+project = true
+group = "tools.ai-assistant"
+section = "General"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "ai.completion.enabled"
+title = "Enable inline code completion"
+description = "Show AI suggestions as gray text while you type. Tab accepts, Ctrl+Right accepts the next word, Escape dismisses. Uses the Code completion model of Settings | Tools | AI Providers."
+type = "bool"
+default = false
+group = "tools.ai-assistant"
+section = "Inline Completion"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "ai.completion.multiline"
+title = "Suggestion length"
+description = "Automatic suggests several lines on an empty line and after a block opener such as `{`, else one line."
+type = "enum"
+options = [
+  { value = "auto", label = "Automatic" },
+  { value = "single", label = "Single line" },
+  { value = "multi", label = "Multi-line" },
+]
+default = "auto"
+group = "tools.ai-assistant"
+section = "Inline Completion"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "ai.completion.mode"
+title = "Request type"
+description = "Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs."
+type = "enum"
+options = [
+  { value = "auto", label = "Automatic" },
+  { value = "fim", label = "Fill-in-the-middle" },
+  { value = "chat", label = "Chat" },
+]
+default = "auto"
+group = "tools.ai-assistant"
+section = "Inline Completion"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "ai.completion.debounceMs"
+title = "Delay before asking (ms)"
+description = "How long typing must pause before a suggestion is requested."
+type = "int"
+default = 350
+min = 50
+max = 3000
+group = "tools.ai-assistant"
+section = "Inline Completion"
+order = 13
+
+[[plugin.contributions.settings]]
+key = "ai.completion.disabledLanguages"
+title = "Disable for languages"
+description = "Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript."
+type = "list"
+default = []
+group = "tools.ai-assistant"
+section = "Inline Completion"
+order = 14
+
+# ---- Tools > AI Assistant > Agent Tasks ----------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.maxSteps"
+title = "Step budget per task"
+description = "Most model turns (Forge agent) or agent CLI turns a task may take before it stops for review."
+type = "int"
+default = 40
+min = 1
+max = 500
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.maxTestRuns"
+title = "Test runs per task"
+description = "How often an agent may run the tests while it fixes failures."
+type = "int"
+default = 6
+min = 1
+max = 100
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.allowedCommands"
+title = "Commands that run without asking"
+description = "Command prefixes agents may run in their sandbox without your approval, e.g. composer test, php -l, npm run lint. Every other command asks first; network tools (curl, wget, ssh, ...) are always refused."
+type = "list"
+default = []
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 22
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.enabled"
+title = "Run new tasks in a container"
+description = "Default of \"Run in container\" in the New Agent Task form: the task's commands and tests run in a Docker or Podman container that mounts only the task's sandbox. The agent still edits the sandbox on the project's machine."
+type = "bool"
+default = false
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 23
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.image"
+title = "Container image"
+description = "Used when the project has no .devcontainer/devcontainer.json with an image or a Dockerfile, e.g. php:8.3-cli or node:22."
+type = "string"
+default = "php:8.3-cli"
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 24
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.network"
+title = "Allow network access in containers by default"
+description = "Default of \"Allow network\" in the New Agent Task form. Containers have no network otherwise (--network none). With network access every command of the agent asks for your approval, also allowlisted ones; network tools stay refused."
+type = "bool"
+default = false
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 25
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.cpus"
+title = "Container CPU limit"
+description = "CPUs a task's container may use (--cpus), e.g. 2 or 1.5. Empty: no limit."
+type = "string"
+default = "2"
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 26
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.memory"
+title = "Container memory limit"
+description = "Memory a task's container may use (--memory), e.g. 4g or 512m. Empty: no limit."
+type = "string"
+default = "4g"
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 27
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.container.engine"
+title = "Container engine"
+description = "docker, podman or the path of one of them. Empty: the Docker executable of Settings | Build, Execution, Deployment | Docker (on a remote project's host: docker)."
+type = "string"
+default = ""
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 28
+
+[[plugin]]
+id = "forge.claude-code"
+name = "Claude Code"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+depends = ["forge.ai"]
+description = "Run Claude Code agents in the IDE, several in parallel."
+
+[[plugin.contributions.aiProviders]]
+id = "claude-code"
+name = "Claude Code CLI"
+kind = "cli"
+
+[[plugin.contributions.chatAgents]]
+id = "claude-code"
+name = "Claude Code"
+description = "Agentic coding in your project, using the local `claude` CLI."
+provider = "claude-code"
+
+# ---- Tools > AI Agents ---------------------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "agents.claude-code.path"
+title = "Claude Code executable"
+description = "Leave empty to find claude on PATH."
+type = "path"
+default = ""
+group = "tools.ai-agents"
+section = "Claude Code"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "agents.claude-code.model"
+title = "Default model"
+type = "enum"
+options = [
+  { value = "default", label = "Default (CLI setting)" },
+  { value = "sonnet", label = "Sonnet" },
+  { value = "opus", label = "Opus" },
+  { value = "haiku", label = "Haiku" },
+]
+default = "default"
+group = "tools.ai-agents"
+section = "Claude Code"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "agents.claude-code.permissionMode"
+title = "Default permission mode"
+description = "How much the agent may do before asking. Can be changed per chat."
+type = "enum"
+options = [
+  { value = "default", label = "Ask before edits and commands" },
+  { value = "acceptEdits", label = "Auto-accept edits" },
+  { value = "plan", label = "Plan mode (read-only)" },
+  { value = "bypassPermissions", label = "Bypass permissions" },
+]
+default = "default"
+group = "tools.ai-agents"
+section = "Claude Code"
+order = 2
+
+[[plugin]]
+id = "forge.gemini-cli"
+name = "Gemini CLI"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+depends = ["forge.ai"]
+description = "Chat with Gemini CLI agents in the IDE, using your own Gemini CLI login."
+
+[[plugin.contributions.aiProviders]]
+id = "gemini-cli"
+name = "Gemini CLI"
+kind = "cli"
+
+[[plugin.contributions.chatAgents]]
+id = "gemini-cli"
+name = "Gemini CLI"
+description = "Agentic coding in your project, using the local `gemini` CLI."
+provider = "gemini-cli"
+
+[[plugin.contributions.settings]]
+key = "agents.gemini-cli.path"
+title = "Gemini CLI executable"
+description = "Leave empty to find gemini on PATH."
+type = "path"
+default = ""
+group = "tools.ai-agents"
+section = "Gemini CLI"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "agents.gemini-cli.model"
+title = "Default model"
+type = "enum"
+options = [
+  { value = "default", label = "Default (CLI setting)" },
+  { value = "gemini-2.5-pro", label = "Gemini 2.5 Pro" },
+  { value = "gemini-2.5-flash", label = "Gemini 2.5 Flash" },
+  { value = "gemini-2.5-flash-lite", label = "Gemini 2.5 Flash-Lite" },
+]
+default = "default"
+group = "tools.ai-agents"
+section = "Gemini CLI"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "agents.gemini-cli.permissionMode"
+title = "Default approval mode"
+description = "Gemini CLI cannot ask in the IDE, so the mode decides which tools it may use. Can be changed per chat."
+type = "enum"
+options = [
+  { value = "default", label = "Read-only (no edits or commands)" },
+  { value = "acceptEdits", label = "Auto-accept edits (no commands)" },
+  { value = "bypassPermissions", label = "YOLO (edits and commands without asking)" },
+]
+default = "default"
+group = "tools.ai-agents"
+section = "Gemini CLI"
+order = 12
+
+[[plugin]]
+id = "forge.mcp-server"
+name = "MCP Server"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+depends = ["forge.ai"]
+description = "Let external AI agents (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex) use Forge's tools on the open project through the Model Context Protocol."
+
+# ---- Tools > MCP Server -------------------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "mcp.enabled"
+title = "Enable MCP server"
+description = "Runs a Model Context Protocol server on 127.0.0.1 that external agents can use with the bearer token shown below. Off by default."
+type = "bool"
+default = false
+group = "tools.mcp-server"
+section = "Server"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "mcp.port"
+title = "Port"
+description = "If the port is taken, the next 9 ports are tried. The client configurations below always show the port in use."
+type = "int"
+min = 1024
+max = 65535
+default = 64342
+group = "tools.mcp-server"
+section = "Server"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "mcp.requireApproval"
+title = "Ask before tools that edit files, run configurations or query databases"
+description = "Shows an approval card in Forge for every such call. Terminal commands always ask."
+type = "bool"
+default = true
+group = "tools.mcp-server"
+section = "Approval"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "mcp.tools.read"
+title = "Read the project: open editors, files, search, navigation, problems, inspections"
+type = "bool"
+default = true
+group = "tools.mcp-server"
+section = "Tools"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "mcp.tools.vcs"
+title = "Version control: Git status and diffs"
+type = "bool"
+default = true
+group = "tools.mcp-server"
+section = "Tools"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "mcp.tools.edit"
+title = "Edit files: replace text, write files, reformat (undoable in the editor)"
+type = "bool"
+default = true
+group = "tools.mcp-server"
+section = "Tools"
+order = 22
+
+[[plugin.contributions.settings]]
+key = "mcp.tools.run"
+title = "Run configurations and tests"
+description = "Refused in Safe Mode."
+type = "bool"
+default = true
+group = "tools.mcp-server"
+section = "Tools"
+order = 23
+
+[[plugin.contributions.settings]]
+key = "mcp.tools.terminal"
+title = "Terminal commands (asked on every call)"
+description = "Refused in Safe Mode."
+type = "bool"
+default = false
+group = "tools.mcp-server"
+section = "Tools"
+order = 24
+
+[[plugin.contributions.settings]]
+key = "mcp.tools.database"
+title = "Data sources and read-only queries"
+description = "Only SELECT-like statements run; read-only and production data sources keep their guards."
+type = "bool"
+default = true
+group = "tools.mcp-server"
+section = "Tools"
+order = 25

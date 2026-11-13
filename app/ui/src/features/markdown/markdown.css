@@ -1,0 +1,300 @@
+/* Markdown preview: GitHub-like reading layout in Forge's colors. */
+.mdp-scroll {
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-editor);
+  user-select: text;
+}
+.mdp {
+  max-width: 880px;
+  padding: 18px 32px 48px;
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+.mdp p,
+.mdp blockquote,
+.mdp ul,
+.mdp ol,
+.mdp .mdp-pre,
+.mdp .mdp-table-wrap,
+.mdp .mdp-mermaid {
+  margin: 0 0 14px;
+}
+.mdp-h {
+  margin: 22px 0 12px;
+  color: var(--fg-strong);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.mdp-block:first-child .mdp-h,
+.mdp-front-matter + .mdp-block .mdp-h {
+  margin-top: 0;
+}
+h1.mdp-h {
+  font-size: 1.9em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+h2.mdp-h {
+  font-size: 1.45em;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+}
+h3.mdp-h {
+  font-size: 1.2em;
+}
+h4.mdp-h {
+  font-size: 1em;
+}
+h5.mdp-h,
+h6.mdp-h {
+  font-size: 0.9em;
+  color: var(--fg-muted);
+}
+.mdp-link,
+.mdp-fnref a {
+  color: var(--info);
+  text-decoration: none;
+  cursor: pointer;
+}
+.mdp-link:hover {
+  text-decoration: underline;
+}
+.mdp-fnref {
+  font-size: 0.75em;
+  margin-left: 1px;
+}
+.mdp-code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.mdp-pre {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+.mdp-code-line {
+  min-height: 1.5em;
+}
+.mdp-pre .tok-keyword,
+.mdp-pre .tok-modifier,
+.mdp-pre .tok-operatorKeyword,
+.mdp-pre .tok-controlKeyword,
+.mdp-pre .tok-definitionKeyword {
+  color: var(--syn-keyword);
+}
+.mdp-pre .tok-string,
+.mdp-pre .tok-string2 {
+  color: var(--syn-string);
+}
+.mdp-pre .tok-number,
+.mdp-pre .tok-bool,
+.mdp-pre .tok-null,
+.mdp-pre .tok-atom {
+  color: var(--syn-number);
+}
+.mdp-pre .tok-comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+.mdp-pre .tok-variableName,
+.mdp-pre .tok-variableName2 {
+  color: var(--syn-variable);
+}
+.mdp-pre .tok-function,
+.mdp-pre .tok-variableName.tok-definition {
+  color: var(--syn-function);
+}
+.mdp-pre .tok-typeName,
+.mdp-pre .tok-className,
+.mdp-pre .tok-namespace {
+  color: var(--syn-type);
+}
+.mdp-pre .tok-propertyName,
+.mdp-pre .tok-attributeName {
+  color: var(--syn-attribute);
+}
+.mdp-pre .tok-tagName {
+  color: var(--syn-tag);
+}
+.mdp-pre .tok-operator,
+.mdp-pre .tok-punctuation {
+  color: var(--syn-operator);
+}
+.mdp-quote {
+  padding: 2px 14px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--fg-muted);
+}
+.mdp-quote > :last-child {
+  margin-bottom: 0;
+}
+.mdp-alert {
+  color: var(--fg);
+  padding: 6px 14px;
+}
+.mdp-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.mdp-alert-note {
+  border-left-color: var(--info);
+}
+.mdp-alert-note .mdp-alert-title {
+  color: var(--info);
+}
+.mdp-alert-tip {
+  border-left-color: var(--success);
+}
+.mdp-alert-tip .mdp-alert-title {
+  color: var(--success);
+}
+.mdp-alert-important {
+  border-left-color: var(--graph-3);
+}
+.mdp-alert-important .mdp-alert-title {
+  color: var(--graph-3);
+}
+.mdp-alert-warning {
+  border-left-color: var(--warning);
+}
+.mdp-alert-warning .mdp-alert-title {
+  color: var(--warning);
+}
+.mdp-alert-caution {
+  border-left-color: var(--danger);
+}
+.mdp-alert-caution .mdp-alert-title {
+  color: var(--danger);
+}
+.mdp-hr {
+  height: 2px;
+  margin: 20px 0;
+  border: none;
+  background: var(--border);
+}
+.mdp-list {
+  padding-left: 26px;
+}
+.mdp-list li > p {
+  margin-bottom: 6px;
+}
+.mdp-list li > .mdp-list {
+  margin-bottom: 0;
+}
+.mdp-tasks {
+  list-style: none;
+  padding-left: 6px;
+}
+.mdp-task {
+  position: relative;
+  padding-left: 24px;
+}
+.mdp-check {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+}
+.mdp-check.done {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.mdp-table-wrap {
+  overflow-x: auto;
+}
+.mdp-table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.mdp-table th,
+.mdp-table td {
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+}
+.mdp-table th {
+  background: var(--bg-panel);
+  font-weight: 600;
+}
+.mdp-table tbody tr:nth-child(2n) td {
+  background: var(--bg-panel);
+}
+.mdp-front-matter {
+  margin-bottom: 18px;
+}
+.mdp-front-matter th {
+  text-align: left;
+  color: var(--fg-muted);
+  font-weight: 500;
+}
+.mdp-img {
+  max-width: 100%;
+  vertical-align: middle;
+}
+.mdp-img-missing {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.mdp-mermaid {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.mdp-mermaid img {
+  max-width: 100%;
+}
+.mdp-mermaid-error {
+  width: 100%;
+}
+.mdp-mermaid-error-title {
+  margin-bottom: 8px;
+  color: var(--danger);
+  font-size: 12px;
+}
+.mdp-muted {
+  color: var(--fg-muted);
+}
+.mdp-footnotes {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+.mdp-footnotes ol {
+  padding-left: 22px;
+}
+.mdp-footnotes p {
+  margin: 0 0 4px;
+}
+.mdp-empty {
+  padding: 24px 0;
+  text-align: center;
+}

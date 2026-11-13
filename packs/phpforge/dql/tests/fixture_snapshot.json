@@ -1,0 +1,205 @@
+{
+  "entities": [
+    {
+      "class": "App\\Entity\\Address",
+      "name": "Address",
+      "path": "src/Entity/Address.php",
+      "line": 7,
+      "source": "attribute",
+      "embeddable": true,
+      "fields": [
+        {
+          "name": "street",
+          "type": "string",
+          "length": 120,
+          "line": 10
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "length": 80,
+          "line": 13
+        }
+      ],
+      "associations": []
+    },
+    {
+      "class": "App\\Entity\\Customer",
+      "name": "Customer",
+      "table": "customers",
+      "repositoryClass": "App\\Repository\\CustomerRepository",
+      "path": "src/Entity/Customer.php",
+      "line": 10,
+      "source": "annotation",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer",
+          "id": true,
+          "generated": true,
+          "line": 17
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "length": 180,
+          "unique": true,
+          "line": 20
+        }
+      ],
+      "associations": [
+        {
+          "name": "orders",
+          "kind": "oneToMany",
+          "target": "App\\Entity\\Order",
+          "mappedBy": "customer",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "class": "App\\Entity\\Order",
+      "name": "Order",
+      "table": "orders",
+      "repositoryClass": "App\\Repository\\OrderRepository",
+      "path": "src/Entity/Order.php",
+      "line": 12,
+      "source": "attribute",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer",
+          "id": true,
+          "generated": true,
+          "line": 17
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "length": 32,
+          "line": 20
+        },
+        {
+          "name": "total",
+          "type": "decimal",
+          "line": 23
+        },
+        {
+          "name": "paidAt",
+          "type": "datetime_immutable",
+          "nullable": true,
+          "line": 26
+        },
+        {
+          "name": "shippingAddress",
+          "type": "App\\Entity\\Address",
+          "embedded": true,
+          "line": 37
+        }
+      ],
+      "associations": [
+        {
+          "name": "customer",
+          "kind": "manyToOne",
+          "target": "App\\Entity\\Customer",
+          "inversedBy": "orders",
+          "line": 30
+        },
+        {
+          "name": "items",
+          "kind": "oneToMany",
+          "target": "App\\Entity\\OrderItem",
+          "mappedBy": "order",
+          "line": 34
+        }
+      ]
+    },
+    {
+      "class": "App\\Entity\\OrderItem",
+      "name": "OrderItem",
+      "table": "order_items",
+      "path": "config/doctrine/OrderItem.orm.xml",
+      "line": 2,
+      "source": "xml",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer",
+          "id": true,
+          "generated": true,
+          "line": 3
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "line": 6
+        },
+        {
+          "name": "price",
+          "type": "decimal",
+          "line": 7
+        }
+      ],
+      "associations": [
+        {
+          "name": "order",
+          "kind": "manyToOne",
+          "target": "App\\Entity\\Order",
+          "inversedBy": "items",
+          "line": 8
+        },
+        {
+          "name": "product",
+          "kind": "manyToOne",
+          "target": "App\\Entity\\Product",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "class": "App\\Entity\\Product",
+      "name": "Product",
+      "table": "products",
+      "repositoryClass": "App\\Repository\\ProductRepository",
+      "path": "config/doctrine/Product.orm.yml",
+      "line": 0,
+      "source": "yaml",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer",
+          "id": true,
+          "generated": true,
+          "line": 5
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "length": 255,
+          "line": 9
+        },
+        {
+          "name": "price",
+          "type": "decimal",
+          "line": 12
+        }
+      ],
+      "associations": [
+        {
+          "name": "tags",
+          "kind": "manyToMany",
+          "target": "App\\Entity\\Tag",
+          "line": 14
+        }
+      ]
+    }
+  ],
+  "repositories": [
+    {
+      "class": "App\\Repository\\OrderRepository",
+      "entity": "App\\Entity\\Order",
+      "path": "src/Repository/OrderRepository.php",
+      "line": 11
+    }
+  ]
+}

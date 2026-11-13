@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestRun id="11111111-2222-3333-4444-555555555555" name="ci@build 2026-10-28 10:00:00" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results>
+    <UnitTestResult executionId="a1" testId="t1" testName="Reserves" duration="00:00:00.0200000" outcome="Passed" />
+    <UnitTestResult executionId="a2" testId="t2" testName="Releases" duration="00:00:00.0100000" outcome="Failed" resultType="DataDrivenTest">
+      <InnerResults>
+        <UnitTestResult executionId="a3" parentExecutionId="a2" testId="t2" testName="Releases (1)" duration="00:00:00.0050000" outcome="Failed" resultType="DataDrivenDataRow">
+          <Output>
+            <ErrorInfo>
+              <Message>Assert.AreEqual failed. Expected:&lt;3&gt;. Actual:&lt;2&gt;. </Message>
+              <StackTrace>   at Shop.Tests.StockTests.Releases(Int32 n) in C:\src\Shop\tests\StockTests.cs:line 14</StackTrace>
+            </ErrorInfo>
+          </Output>
+        </UnitTestResult>
+      </InnerResults>
+    </UnitTestResult>
+    <UnitTestResult executionId="a4" testId="t3" testName="Old" outcome="NotExecuted" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Reserves" id="t1"><TestMethod className="Shop.Tests.StockTests" name="Reserves" /></UnitTest>
+    <UnitTest name="Releases" id="t2"><TestMethod className="Shop.Tests.StockTests" name="Releases" /></UnitTest>
+    <UnitTest name="Old" id="t3"><TestMethod className="Shop.Tests.StockTests" name="Old" /></UnitTest>
+  </TestDefinitions>
+</TestRun>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="stats_tests" errors="0" failures="1" skipped="0" tests="4" hostname="tbd" time="0.000812" timestamp="2026-10-27T16:42:11Z">
+    <properties>
+      <property name="random-seed" value="2410977416"/>
+    </properties>
+    <testcase classname="stats_tests.global" name="mean of a vector" time="0.000105" status="run"/>
+    <testcase classname="stats_tests.global" name="median/odd count" time="0.000071" status="run"/>
+    <testcase classname="stats_tests.global" name="median/even count" time="0.000146" status="run">
+      <failure message="median(v) == 2.5" type="REQUIRE">
+FAILED:
+  REQUIRE( median(v) == 2.5 )
+with expansion:
+  2.0 == 2.5
+at /home/dev/shapes/tests/stats_test.cpp:21
+      </failure>
+    </testcase>
+    <testcase classname="stats_tests.global" name="empty input throws" time="0.000037" status="run"/>
+  </testsuite>
+</testsuites>

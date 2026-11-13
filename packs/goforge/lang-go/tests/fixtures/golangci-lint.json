@@ -1,0 +1,4 @@
+{"Issues": [{"FromLinter": "errcheck", "Text": "Error return value of `f.Write` is not checked", "Severity": "", "SourceLines": ["\tf.Write([]byte(a.String()))"], "Pos": {"Filename": "internal/money/money.go", "Offset": 712, "Line": 37, "Column": 9}, "ExpectNoLint": false, "ExpectedNoLintLinter": ""}, {"FromLinter": "govet", "Text": "printf: fmt.Printf call needs 1 arg but has 2 args", "Severity": "", "SourceLines": ["\tfmt.Printf(\"logged %s\\n\", a, \"extra\")"], "Pos": {"Filename": "internal/money/money.go", "Offset": 734, "Line": 38, "Column": 2}, "ExpectNoLint": false, "ExpectedNoLintLinter": ""}], "Report": {"Linters": [{"Name": "errcheck", "Enabled": true}, {"Name": "govet", "Enabled": true}, {"Name": "ineffassign", "Enabled": true}, {"Name": "staticcheck", "Enabled": true}, {"Name": "typecheck", "Enabled": true}, {"Name": "unused", "Enabled": true}]}}
+2 issues:
+* errcheck: 1
+* govet: 1

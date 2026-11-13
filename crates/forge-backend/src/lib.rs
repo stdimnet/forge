@@ -1,0 +1,566 @@
+//! Project backends: where an open project's files, git, processes, language servers and
+//! PHP index live.
+//!
+//! - [`Backend`] is what the app's workspace, file system, git, terminal, run, LSP and PHP
+//!   commands talk to. The UI never knows which implementation answers.
+//! - [`LocalBackend`] serves a folder on this machine.
+//! - [`RemoteBackend`] serves a folder on another machine through the Forge agent
+//!   (`crates/forge-remote-agent`), which is itself a [`LocalBackend`] behind the
+//!   [`protocol`]. [`rpc::RpcClient`] multiplexes calls, events and byte channels over any
+//!   stream (SSH in `crates/forge-remote`, an in-memory pipe in tests).
+
+pub mod agent_tasks;
+pub mod compare;
+pub mod frameworks;
+pub mod langservers;
+pub mod local;
+pub mod paths;
+pub mod php;
+pub mod process_io;
+pub mod protocol;
+pub mod remote;
+pub mod replace;
+pub mod rpc;
+pub mod ssr;
+pub mod tunnels;
+pub mod vcs;
+pub mod web;
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use forge_core::search::{
+    FileMatches, FindPaged, FindRequest, FindResult, TodoRequest, TodoResult,
+};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectFiles, Result, SourceFile,
+};
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
+use forge_lsp::ServerLauncher;
+use forge_process::{CommandLine, PtySink, RunSink};
+use forge_project::ProjectInfo;
+use forge_vcs::{GitExec, Repo};
+use serde::{Deserialize, Serialize};
+
+pub use forge_search_core::SymbolHit;
+pub use frameworks::{framework_call, FrameworkCall};
+pub use langservers::{
+    InstallRequest, InstallSink, InstallTarget, LangServersAnswer, LangServersRequest,
+};
+#[cfg(feature = "search")]
+pub use local::IndexOptions;
+pub use local::LocalBackend;
+pub use php::PhpBackend;
+pub use remote::RemoteBackend;
+pub use tunnels::{PortForward, TunnelStream, Tunnels};
+pub use web::{web_call, WebCall};
+
+/// A Find in Files result a window pages through.
+pub enum Found {
+    Full(FindResult),
+    #[cfg(feature = "search")]
+    Lazy(forge_search::FoundText),
+    /// Kept on another machine; rows come from there when a page asks for them.
+    Remote {
+        totals: FindPaged,
+        fetch: Arc<PageFetch>,
+    },
+}
+
+/// Fetches the rows `[offset, offset + count)` of a result kept by the remote agent.
+pub type PageFetch = dyn Fn(usize, usize) -> Vec<FileMatches> + Send + Sync;
+
+impl Found {
+    /// The totals with the first `page_size` rows.
+    pub fn paged(&self, id: u64, page_size: usize) -> FindPaged {
+        match self {
+            Found::Full(r) => r.paged(id, page_size),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.paged(id, page_size),
+            Found::Remote { totals, .. } => FindPaged {
+                id,
+                files: self.page(0, page_size),
+                ..totals.clone()
+            },
+        }
+    }
+
+    /// The rows `[offset, offset + count)`.
+    pub fn page(&self, offset: usize, count: usize) -> Vec<FileMatches> {
+        match self {
+            Found::Full(r) => r.page(offset, count),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.page(offset, count),
+            Found::Remote { fetch, .. } => fetch(offset, count),
+        }
+    }
+}
+
+/// How Forge reaches the agent of a remote project.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum RemoteKind {
+    /// Over SSH (`forge-remote`).
+    #[default]
+    Ssh,
+    /// In a dev container on this machine, over `docker exec` (`forge-devenv`).
+    #[serde(rename_all = "camelCase")]
+    DevContainer {
+        /// Container id.
+        container: String,
+        /// The local folder whose sources are mounted into the container.
+        source: String,
+        /// Absolute path of its `devcontainer.json`.
+        #[serde(default)]
+        config: String,
+    },
+    /// In a WSL distribution, over `wsl.exe --exec` (`forge-devenv`).
+    Wsl { distro: String },
+}
+
+impl RemoteKind {
+    pub fn is_ssh(&self) -> bool {
+        matches!(self, RemoteKind::Ssh)
+    }
+}
+
+/// The machine a remote project lives on. For dev containers `host` is the container's
+/// display name and for WSL the distribution; `port` is 0 for both.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteHost {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    /// Id of the saved SSH configuration, if the connection came from one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config_id: Option<String>,
+    #[serde(default, skip_serializing_if = "RemoteKind::is_ssh")]
+    pub kind: RemoteKind,
+}
+
+impl RemoteHost {
+    /// An SSH host.
+    pub fn ssh(host: impl Into<String>, port: u16, user: impl Into<String>) -> Self {
+        Self {
+            host: host.into(),
+            port,
+            user: user.into(),
+            config_id: None,
+            kind: RemoteKind::Ssh,
+        }
+    }
+
+    /// `user@host` (`user@host:2222` for a non-default port), `Dev Container: shop` or
+    /// `WSL: Ubuntu`, as shown in the UI.
+    pub fn label(&self) -> String {
+        match &self.kind {
+            RemoteKind::DevContainer { .. } => format!("Dev Container: {}", self.host),
+            RemoteKind::Wsl { distro } => format!("WSL: {distro}"),
+            RemoteKind::Ssh if self.port == 22 => format!("{}@{}", self.user, self.host),
+            RemoteKind::Ssh => format!("{}@{}:{}", self.user, self.host, self.port),
+        }
+    }
+
+    /// A project path on this host as the UI shows it: `user@host:/var/www/shop`,
+    /// `\\wsl.localhost\Ubuntu\home\me\shop` (the Windows view of a WSL folder) or
+    /// `shop [Dev Container]:/workspaces/shop`.
+    pub fn display_path(&self, path: &str) -> String {
+        match &self.kind {
+            RemoteKind::Ssh => format!("{}@{}:{}", self.user, self.host, path),
+            RemoteKind::DevContainer { .. } => format!("{} [Dev Container]:{path}", self.host),
+            RemoteKind::Wsl { distro } => {
+                let rest: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+                format!("\\\\wsl.localhost\\{distro}\\{}", rest.join("\\"))
+            }
+        }
+    }
+}
+
+/// The host of a Code With Me session whose project this backend shows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollabHost {
+    /// The host's user name.
+    pub name: String,
+    /// `name (machine)`, as shown in the title and the status bar.
+    pub label: String,
+}
+
+/// What a backend serves.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackendInfo {
+    /// Project name (the root folder's name).
+    pub name: String,
+    /// Absolute project root on the machine that serves it. For a Code With Me guest this is
+    /// a placeholder (`/<name>`): the host's real path is never sent.
+    pub root: PathBuf,
+    /// Set for projects on another machine.
+    pub remote: Option<RemoteHost>,
+    /// Set when the project is the host's in a Code With Me session (this machine is a guest).
+    pub collab: Option<CollabHost>,
+}
+
+impl BackendInfo {
+    /// The project's files are on this machine (not on an SSH host, not a guest's view of the
+    /// host's project).
+    pub fn is_local(&self) -> bool {
+        self.remote.is_none() && self.collab.is_none()
+    }
+
+    /// The root as the UI shows it: a local path, `user@host:/path`, or `cwm://host/name`
+    /// for a Code With Me guest.
+    pub fn display_root(&self) -> String {
+        let root = self.root.to_string_lossy();
+        match (&self.remote, &self.collab) {
+            (Some(r), _) => r.display_path(&root),
+            (None, Some(c)) => format!("cwm://{}/{}", c.name, self.name),
+            (None, None) => root.into_owned(),
+        }
+    }
+}
+
+/// State of a backend's search index.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchStatus {
+    /// The backend keeps a search index at all.
+    pub enabled: bool,
+    /// The index is being built or refreshed; results may be incomplete.
+    pub indexing: bool,
+    /// Files the index knows about.
+    pub files: usize,
+    /// Of those, files whose text is searched.
+    #[serde(default)]
+    pub content_files: usize,
+    /// Binary files, listed by name only.
+    #[serde(default)]
+    pub binary_files: usize,
+    /// Files over the size limit, listed by name only.
+    #[serde(default)]
+    pub oversized_files: usize,
+    /// Unix milliseconds of the last finished refresh; 0 before the first.
+    #[serde(default)]
+    pub last_refresh_ms: u64,
+}
+
+/// How to start a terminal session on the backend.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalSpec {
+    /// Shell executable; `None` uses the host's default shell.
+    #[serde(default)]
+    pub shell: Option<String>,
+    /// Arguments for `shell`; `None` uses the shell's interactive defaults.
+    #[serde(default)]
+    pub args: Option<Vec<String>>,
+    /// Absolute start directory on the backend's machine; the project root when it does not
+    /// exist.
+    pub cwd: PathBuf,
+    #[serde(default)]
+    pub env: Vec<(String, String)>,
+    pub cols: u16,
+    pub rows: u16,
+    /// Shell integration (Settings | Tools | Terminal): bash and zsh report their working
+    /// directory and command boundaries. Its scripts live in the cache dir of the machine
+    /// the shell runs on.
+    #[serde(default)]
+    pub shell_integration: bool,
+}
+
+/// A running terminal session.
+pub trait Terminal: Send + Sync {
+    fn shell(&self) -> String;
+    fn cwd(&self) -> PathBuf;
+    fn write(&self, data: &[u8]) -> Result<()>;
+    fn resize(&self, cols: u16, rows: u16) -> Result<()>;
+    fn kill(&self) -> Result<()>;
+    /// The program running in the foreground instead of the shell (`sleep`, a dev server),
+    /// or `None` at the prompt or when it cannot be told (remote and SSH sessions).
+    fn foreground_process(&self) -> Option<String> {
+        None
+    }
+}
+
+/// A started process (run configurations, tools).
+pub trait Process: Send + Sync {
+    fn write_stdin(&self, data: &[u8]) -> Result<()>;
+    /// End of input (programs that read their whole stdin, like a CLI reading a prompt).
+    fn close_stdin(&self) -> Result<()>;
+    /// Stop the process tree: terminate, then kill after `grace`.
+    fn kill(&self, grace: std::time::Duration);
+}
+
+/// Receives debounced file system changes of the project.
+pub type FsSink = Arc<dyn Fn(FsChanges) + Send + Sync>;
+
+/// Keeps a file watcher alive; dropping it stops watching.
+pub type WatchGuard = Box<dyn Send + Sync>;
+
+/// Everything the app needs from the place where a project lives. Methods block (remote
+/// calls wait for the answer), so call them off the UI thread. Paths are workspace-relative
+/// with `/` separators unless stated otherwise.
+pub trait Backend: Send + Sync {
+    fn info(&self) -> &BackendInfo;
+
+    /// Absolute path on the backend's machine for a workspace-relative path, refusing `..`
+    /// escapes and absolute paths.
+    fn resolve(&self, rel: &str) -> Result<PathBuf> {
+        paths::resolve(&self.info().root, rel)
+    }
+
+    /// One directory level: folders first, `.gitignore`d entries flagged (unless tracked).
+    fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>>;
+    fn read_file(&self, rel: &str) -> Result<String>;
+    /// The file's text, `None` when it does not exist (one round trip for remote projects).
+    fn read_optional(&self, rel: &str) -> Result<Option<String>>;
+    fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
+    /// The file's raw bytes (files in other encodings than UTF-8, see `forge-text`).
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>>;
+    /// Write raw bytes (parent folders are created).
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()>;
+    /// New empty file (parent folders included); never replaces an existing path.
+    fn create_file(&self, rel: &str) -> Result<()>;
+    /// New folder (parent folders included); never replaces an existing path.
+    fn create_dir(&self, rel: &str) -> Result<()>;
+    /// Rename or move a file or folder inside the project.
+    fn rename(&self, from: &str, to: &str) -> Result<()>;
+    /// Delete a file or a folder with its content.
+    fn delete(&self, rel: &str) -> Result<()>;
+    /// "Go to File": fuzzy file-name search honoring `.gitignore`.
+    /// `exact` matches the query as a substring instead of fuzzy.
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>>;
+    /// Find in Files: text search over the project honoring `.gitignore`.
+    fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+    /// TODO tool window: TODO patterns in comments, honoring `.gitignore`.
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult>;
+    /// The text of every project file with one of `req.extensions`, in one call (a
+    /// language index of a remote project is built from one round trip).
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>>;
+    /// Every project file (`.gitignore` respected), at most `limit`: the Scopes page's tree.
+    fn list_files(&self, limit: usize) -> Result<Vec<String>>;
+    /// Structural Search: the matches of a template in the project's files, searched where
+    /// they are.
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult>;
+    /// Compare Directories: the folder diff of two project folders, read where they are.
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare>;
+
+    /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
+    /// match ranges instead of building every row.
+    /// A search that sees `cancel` set stops early; its result is then not meaningful.
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<Found> {
+        self.find_in_files(req).map(Found::Full)
+    }
+
+    /// Classes (`types_only`) or every declared symbol matching `query`, best first. Files with
+    /// one of `skip_extensions` are left out (languages a language server answers for).
+    /// Backends without a search index return nothing.
+    fn find_symbols(
+        &self,
+        _query: &str,
+        _types_only: bool,
+        _limit: usize,
+        _skip_extensions: &[String],
+        _exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        Ok(Vec::new())
+    }
+
+    /// The project's excluded folders and "Exclude files" patterns (Settings | Directories,
+    /// "Mark Directory as" › Excluded). Listings flag excluded entries; walks, searches, the
+    /// watcher and the indexes skip them. Returns whether the excluded paths changed (the
+    /// search index refreshes itself; the PHP index needs `index_workspace`).
+    fn set_structure(&self, _config: forge_core::excludes::StructureConfig) -> Result<bool> {
+        Ok(false)
+    }
+
+    /// Whether the search index is ready or still building.
+    fn search_status(&self) -> Result<SearchStatus> {
+        Ok(SearchStatus::default())
+    }
+
+    /// Bring the search index in line with the disk (Repair IDE's "Rescan project
+    /// indexes"); returns the number of files it re-read. A backend without an index of its
+    /// own has nothing to rescan.
+    fn rescan_search_index(&self) -> Result<usize> {
+        Ok(0)
+    }
+
+    /// Where git runs for this project.
+    fn git(&self) -> Arc<dyn GitExec>;
+
+    /// The git repository containing the project.
+    fn repo(&self) -> Result<Repo> {
+        Repo::open_with(&self.info().root, self.git())
+    }
+
+    /// Languages, frameworks and tools of the project.
+    fn detect_project(&self) -> Result<ProjectInfo>;
+
+    /// Watch the project; `sink` gets every debounced batch (the PHP index is already
+    /// updated when it runs).
+    fn watch(&self, sink: FsSink) -> Result<WatchGuard>;
+
+    fn open_terminal(&self, spec: TerminalSpec, sink: PtySink) -> Result<Arc<dyn Terminal>>;
+
+    /// Start `cmd` (its `cwd` is a path on the backend's machine).
+    fn start_process(&self, cmd: &CommandLine, sink: RunSink) -> Result<Arc<dyn Process>>;
+
+    /// Starts language servers next to the project's files.
+    fn lsp_launcher(&self) -> Arc<dyn ServerLauncher>;
+
+    /// The project's PHP index and PHP language server lookup.
+    fn php(&self) -> &dyn PhpBackend;
+
+    /// Laravel, Symfony and Doctrine analysis, run next to the files. The reply is the
+    /// MessagePack encoding of the call's reply type; use [`framework_call`].
+    fn framework(&self, call: FrameworkCall) -> Result<Vec<u8>>;
+
+    /// Plan the catalog language servers of the project on the machine that has its files
+    /// and the installed servers.
+    fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer>;
+
+    /// Install a language server on the backend's machine (where the project's servers
+    /// run). `sink` gets its steps, download progress and output; notifying `cancel` stops
+    /// it. Errors are worded for the install log.
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome>;
+
+    /// Newer versions of the npm servers Forge installed on the backend's machine; `None`
+    /// when the last check was less than a day ago (and `force` is not set).
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>>;
+
+    /// WebForge analysis (npm tool window, component navigation), run next to the files.
+    /// The reply is the MessagePack encoding of the call's reply type; use [`web_call`].
+    fn web(&self, call: WebCall) -> Result<Vec<u8>>;
+
+    /// An Agent Tasks sandbox next to the project's files (in the cache folder of the
+    /// backend's machine). The reply is the MessagePack encoding of the call's reply type;
+    /// use [`agent_tasks::sandbox_call`].
+    fn agent_sandbox(&self, call: agent_tasks::SandboxCall) -> Result<Vec<u8>> {
+        let _ = call;
+        Err(forge_core::ForgeError::Other(
+            "Agent tasks are not available for this project".into(),
+        ))
+    }
+
+    /// Full path of the first of `names` found on the backend's machine (`PATH` plus the
+    /// usual package manager directories). An existing `custom` path wins.
+    fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>>;
+
+    /// [`Self::find_executable`] for programs Forge runs for itself (AI agent CLIs): never one
+    /// inside the project, such as its `node_modules/.bin`, which the project's authors
+    /// control. Only an explicit `custom` path may point there.
+    fn find_system_executable(
+        &self,
+        names: &[String],
+        custom: Option<&str>,
+    ) -> Result<Option<PathBuf>> {
+        let explicit = custom.is_some_and(|c| !c.trim().is_empty());
+        let root = &self.info().root;
+        Ok(self
+            .find_executable(names, custom)?
+            .filter(|p| explicit || !p.starts_with(root)))
+    }
+
+    /// SSH tunnels to the project's host; `None` for local projects.
+    fn tunnels(&self) -> Option<Arc<dyn Tunnels>> {
+        None
+    }
+}
+
+/// [`ProjectFiles`] of the project a backend serves (settings, data sources, breakpoints of
+/// a remote project live on its host).
+pub struct BackendFiles(pub Arc<dyn Backend>);
+
+impl ProjectFiles for BackendFiles {
+    fn read(&self, rel: &str) -> Result<Option<String>> {
+        self.0.read_optional(rel)
+    }
+
+    fn write(&self, rel: &str, text: &str) -> Result<()> {
+        self.0.write_file(rel, text)
+    }
+
+    fn describe(&self, rel: &str) -> String {
+        let info = self.0.info();
+        let path = info.root.join(rel).to_string_lossy().into_owned();
+        match (&info.remote, &info.collab) {
+            (Some(r), _) => r.display_path(&path),
+            (None, Some(c)) => format!("{} on {}", rel, c.label),
+            (None, None) => path,
+        }
+    }
+}
+
+/// Name of a project folder (last path component).
+pub fn folder_name(root: &Path) -> String {
+    root.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| root.display().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn remote_paths_are_shown_with_user_and_host() {
+        let host = RemoteHost::ssh("shop.example.com", 22, "deploy");
+        let info = BackendInfo {
+            name: "shop".into(),
+            root: PathBuf::from("/var/www/shop"),
+            remote: Some(host.clone()),
+            collab: None,
+        };
+        assert_eq!(info.display_root(), "deploy@shop.example.com:/var/www/shop");
+        assert_eq!(host.label(), "deploy@shop.example.com");
+        let other = RemoteHost { port: 2222, ..host };
+        assert_eq!(other.label(), "deploy@shop.example.com:2222");
+        // Older recent-project entries have no kind: SSH.
+        let old: RemoteHost = serde_json::from_str(r#"{"host":"h","port":22,"user":"u"}"#).unwrap();
+        assert!(old.kind.is_ssh());
+        assert!(!serde_json::to_string(&old).unwrap().contains("kind"));
+        let wsl = RemoteHost {
+            kind: RemoteKind::Wsl {
+                distro: "Ubuntu".into(),
+            },
+            ..RemoteHost::ssh("Ubuntu", 0, "me")
+        };
+        assert_eq!(wsl.label(), "WSL: Ubuntu");
+        assert_eq!(
+            wsl.display_path("/home/me/shop"),
+            r"\\wsl.localhost\Ubuntu\home\me\shop"
+        );
+        let dc = RemoteHost {
+            kind: RemoteKind::DevContainer {
+                container: "c0ffee".into(),
+                source: "/src/shop".into(),
+                config: "/src/shop/.devcontainer/devcontainer.json".into(),
+            },
+            ..RemoteHost::ssh("Shop", 0, "vscode")
+        };
+        assert_eq!(dc.label(), "Dev Container: Shop");
+        assert_eq!(
+            dc.display_path("/workspaces/shop"),
+            "Shop [Dev Container]:/workspaces/shop"
+        );
+        let json = serde_json::to_value(&dc).unwrap();
+        assert_eq!(json["kind"]["type"], "devContainer");
+        assert_eq!(serde_json::from_value::<RemoteHost>(json).unwrap(), dc);
+    }
+}

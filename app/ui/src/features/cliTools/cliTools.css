@@ -1,0 +1,382 @@
+/* Command Line Tool Support: Run Command popup, the console tool window, the input with
+   completion and Settings | Tools | Command Line Tool Support. Colors come from theme.css. */
+
+/* ---------- Input with completion ---------- */
+.cli-input {
+  position: relative;
+  flex-shrink: 0;
+}
+.cli-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--bg-input);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.cli-prompt {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.cli-input-field {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none !important;
+  outline: none;
+  background: transparent;
+  box-shadow: none !important;
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  color: var(--fg-strong);
+  padding: 0;
+}
+.cli-popup-list {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: calc(100% + 2px);
+  z-index: var(--z-popup);
+  display: flex;
+  flex-direction: column;
+  max-height: 340px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cli-input.drop-up .cli-popup-list {
+  top: auto;
+  bottom: calc(100% + 2px);
+  flex-direction: column-reverse;
+}
+.cli-items {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 3px 0;
+}
+.cli-input.drop-up .cli-items {
+  flex-direction: column-reverse;
+}
+.cli-item {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: var(--fs-ui);
+  cursor: default;
+  white-space: nowrap;
+}
+.cli-item:hover {
+  background: var(--bg-hover);
+}
+.cli-item.selected {
+  background: var(--bg-selection);
+}
+.cli-item-icon {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+}
+.cli-item-icon.tool {
+  color: var(--accent);
+}
+.cli-item-icon.command {
+  color: var(--syn-function);
+}
+.cli-item-icon.group {
+  color: var(--syn-type);
+}
+.cli-item-icon.option {
+  color: var(--syn-keyword);
+}
+.cli-item-icon.value {
+  color: var(--syn-string);
+}
+.cli-item-label {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+  flex-shrink: 0;
+}
+.cli-item-detail {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--syn-variable);
+  flex-shrink: 0;
+}
+.cli-item-desc {
+  margin-left: auto;
+  padding-left: 16px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.cli-help {
+  flex-shrink: 0;
+  max-height: 170px;
+  overflow: auto;
+  padding: 7px 12px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: var(--fs-small);
+  color: var(--fg);
+}
+.cli-input.drop-up .cli-help {
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+}
+.cli-help-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.cli-help-name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.cli-help-desc {
+  margin-top: 2px;
+  white-space: pre-wrap;
+}
+.cli-help-section {
+  margin-top: 6px;
+  color: var(--warning);
+}
+.cli-help-usage {
+  display: block;
+  padding-left: 12px;
+  font-family: var(--font-mono);
+  color: var(--fg);
+  white-space: pre-wrap;
+}
+.cli-help-row {
+  display: grid;
+  grid-template-columns: minmax(150px, max-content) 1fr;
+  gap: 12px;
+  padding: 0 0 0 12px;
+  border-radius: var(--radius-sm);
+}
+.cli-help-row code {
+  font-family: var(--font-mono);
+  color: var(--success);
+}
+.cli-help-row.active {
+  background: var(--accent-soft);
+}
+.cli-hint {
+  padding: 3px 12px;
+  font-size: var(--fs-small);
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cli-input.drop-up .cli-hint {
+  border-bottom: none;
+}
+
+/* ---------- Run Command popup ---------- */
+.cli-popup {
+  width: min(780px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+.cli-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px 8px 12px;
+}
+.cli-popup-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.cli-popup-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+  white-space: nowrap;
+}
+.cli-popup-aliases {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.cli-alias code {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+.cli-popup-shortcut {
+  margin-left: auto;
+}
+.cli-popup-notice {
+  padding: 6px 12px;
+  font-size: var(--fs-small);
+  color: var(--warning);
+  border-top: 1px solid var(--border);
+}
+.cli-popup-output {
+  display: flex;
+  flex-direction: column;
+  height: 320px;
+}
+.cli-popup-output .run-console {
+  flex: 1;
+}
+.cli-popup-footer {
+  display: flex;
+  gap: 16px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+.cli-run-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  flex-shrink: 0;
+}
+.cli-run-cmdline {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cli-run-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.cli-run-status.ok {
+  color: var(--success);
+}
+.cli-run-status.failed {
+  color: var(--danger);
+}
+
+/* ---------- Tool window ---------- */
+.cli-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cli-output {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cli-output .run-console {
+  flex: 1;
+}
+.cli-main > .cli-input .cli-input-row {
+  border-bottom: none;
+}
+.cli-welcome {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 16px;
+  font-size: var(--fs-ui);
+}
+.cli-welcome p {
+  margin: 0 0 10px;
+}
+.cli-welcome code {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+.cli-welcome b {
+  color: var(--fg-strong);
+}
+.cli-welcome-tools {
+  margin: 0 0 12px;
+  border-collapse: collapse;
+}
+.cli-welcome-tools td {
+  padding: 2px 16px 2px 0;
+}
+.cli-welcome-tools code {
+  color: var(--accent);
+}
+
+/* ---------- Settings ---------- */
+.cli-tools-editor .set-table-box {
+  max-width: 720px;
+  position: relative;
+}
+.cli-tools-path {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cli-tools-detected td {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+.cli-tools-choose {
+  position: absolute;
+  top: 30px;
+  left: 4px;
+  z-index: 10;
+  min-width: 240px;
+  padding: 4px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+.cli-tools-choose-title {
+  padding: 2px 12px 4px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.cli-tools-choose-item {
+  padding: 4px 12px;
+  cursor: default;
+}
+.cli-tools-choose-item:hover {
+  background: var(--bg-selection);
+}
+.cli-tools-editor .set-delims-form {
+  max-width: 720px;
+}
+.cli-tools-form-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.cli-tools-alias {
+  width: 120px;
+  font-family: var(--font-mono);
+}
+.cli-tools-radios {
+  display: flex;
+  gap: 16px;
+}

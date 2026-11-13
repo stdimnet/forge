@@ -1,0 +1,72 @@
+[package]
+name = "forge-collab"
+description = "Forge IDE Code With Me: session links, permissions, the collab protocol, transports and the shared editing session"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["runtime", "net", "keychain"]
+# Sessions (host and guest), the transports and the document store. Without it only the
+# pure modules are built (links, permissions, protocol, verification, excludes, presence),
+# e.g. for WebAssembly.
+runtime = [
+    "dep:tokio", "dep:tracing", "dep:yrs", "dep:forge-backend", "dep:forge-core", "dep:getrandom",
+    "dep:forge-vcs", "dep:forge-process", "dep:forge-lsp", "dep:forge-project", "dep:futures-util",
+    "dep:phpforge-lang-php", "dep:phpforge-fw-laravel", "dep:forge-codeintel", "dep:forge-langservers",
+    "dep:forge-ssr", "dep:forge-diff", "dep:phpforge-fw-wordpress", "dep:phpforge-fw-cms",
+]
+
+# The relay token in the OS keychain (`secrets::KeyringStore`).
+keychain = ["dep:keyring"]
+
+# The network transport (iroh: direct connections, optional relay, hole punching, LAN discovery).
+net = ["runtime", "dep:iroh", "dep:iroh-mdns-address-lookup"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+rmp-serde = "1.3"
+serde_bytes = "0.11"
+sha2 = "0.10"
+hmac = "0.12"
+data-encoding = "2.6"
+percent-encoding = "2.3"
+similar = "2.7"
+globset = { version = "0.4", default-features = false }
+tokio = { workspace = true, optional = true, features = ["io-util", "sync", "rt", "macros", "time"] }
+tracing = { workspace = true, optional = true }
+yrs = { version = "0.28", optional = true }
+forge-backend = { workspace = true, optional = true }
+forge-core = { workspace = true, optional = true }
+forge-vcs = { workspace = true, optional = true }
+forge-process = { workspace = true, optional = true }
+forge-lsp = { workspace = true, optional = true }
+forge-project = { workspace = true, optional = true }
+forge-codeintel = { workspace = true, optional = true }
+forge-langservers = { path = "../forge-langservers", default-features = false, optional = true }
+forge-ssr = { workspace = true, optional = true }
+forge-diff = { workspace = true, optional = true }
+futures-util = { version = "0.3", optional = true }
+phpforge-lang-php = { path = "../../packs/phpforge/lang-php", optional = true }
+phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel", optional = true }
+phpforge-fw-wordpress = { workspace = true, optional = true }
+phpforge-fw-cms = { workspace = true, optional = true }
+getrandom = { version = "0.3", optional = true }
+iroh = { version = "~1.3", optional = true, default-features = false, features = ["tls-ring"] }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+iroh-mdns-address-lookup = { version = "0.6", optional = true }
+
+[dev-dependencies]
+proptest = "~1.11"
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
+# An in-process relay server for the relay tests (no network); custom transports for the
+# simulated network of the outage tests (`tests/quic_outage.rs`).
+iroh = { version = "~1.3", default-features = false, features = ["tls-ring", "test-utils", "unstable-custom-transports"] }
+iroh-base = { version = "1.4", default-features = false }
+n0-watcher = "1"
+noq-udp = { version = "1.3", default-features = false }
+iroh-relay = { version = "~1.3", default-features = false, features = ["server", "test-utils", "tls-ring"] }
+phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }

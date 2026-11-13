@@ -1,0 +1,11 @@
+[package]
+name = "cforge-toolchains"
+description = "CForge: C/C++ toolchains on the user's machine — GCC, Clang, Apple Clang, MinGW, MSVC (vswhere) and cross compilers with CMake, Ninja, Make, GDB and LLDB; version outputs (`gcc -v`, `clang -v`, `cl`, `--version`) parsed in Rust"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-hostspawn.workspace = true
+serde.workspace = true
+serde_json.workspace = true

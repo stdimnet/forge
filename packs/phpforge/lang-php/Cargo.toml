@@ -1,0 +1,26 @@
+[package]
+name = "phpforge-lang-php"
+description = "PHPForge: PHP language support (tree-sitter index, docblocks, hover, code generation, language server config)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-codeintel.workspace = true
+forge-file-templates.workspace = true
+forge-scopes.workspace = true
+forge-inspections.workspace = true
+phpforge-composer.workspace = true
+phpforge-interpreters.workspace = true
+thiserror.workspace = true
+dirs.workspace = true
+tracing.workspace = true
+tree-sitter = "0.25"
+tree-sitter-php = "0.24"
+rayon = "1.10"
+walkdir = "2.5"
+
+[dev-dependencies]
+tempfile.workspace = true

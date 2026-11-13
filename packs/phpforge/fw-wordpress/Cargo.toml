@@ -1,0 +1,14 @@
+[package]
+name = "phpforge-fw-wordpress"
+description = "PHPForge: WordPress support (hook index, hook completion and navigation, gutter marks, hook usages, Yoda condition hints, plugin/theme detection, WP-CLI and stubs lookup; pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-codeintel.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

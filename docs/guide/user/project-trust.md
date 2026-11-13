@@ -1,0 +1,151 @@
+---
+title: Project trust and Safe Mode
+description: The "Trust and Open Project?" dialog, Safe Mode for projects you do not trust yet, the Safe Mode banner and Settings | Build, Execution, Deployment | Trusted Locations.
+order: 138
+tags: [trust, safe mode, trusted locations, security, untrusted projects]
+---
+
+# Project trust and Safe Mode
+
+A project can contain code that runs as soon as an IDE touches it: Composer and npm scripts,
+run configurations, test suites, build files, language servers or linters installed in
+`node_modules` or `vendor`. Like PHPStorm, Forge asks before it opens a project you have not
+trusted yet, and opens untrusted projects in **Safe Mode**, where none of their code runs.
+
+## Trust and Open Project?
+
+When you open a folder that is not trusted (Open…, a recent project, `forge path`, Get from
+VCS, the Browser Companion), Forge asks first:
+
+![Trust and Open Project dialog](../../screenshots/trust-open-project.png)
+
+- **Trust Project** opens the project normally and remembers the decision.
+- **Preview in Safe Mode** opens it in Safe Mode: you can browse, search and edit the files,
+  but nothing of the project runs. You can trust it later from the banner.
+- **Don't Open** leaves the current project (or the Welcome screen) as it was.
+- **Trust projects in `<parent folder>`** also trusts every project in the folder that
+  contains this one (a *trusted location*), for example `~/Projects`. The option is missing
+  when the parent is a file system root.
+
+Projects Forge creates itself (File | **New Project…**) are trusted automatically. Reopening
+the open project (Repair IDE) does not ask again.
+
+The question is always asked by the window the project opens in. A project passed on the
+command line while Forge starts (`forge path`, Open Folder in Forge), and a project opened with
+Open Project › **New Window**, opens in Safe Mode first; its window asks as soon as it is on
+screen. **Don't Open** there closes the new window (or shows the Welcome screen in the first
+one). See [Forge as the system's text editor](open-from-the-os.md#the-trust-question-opens-in-the-target-window).
+
+## Safe Mode
+
+While the project is in Safe Mode, the editor area shows a banner:
+
+![Safe Mode banner](../../screenshots/safe-mode-banner.png)
+
+Click **Trust Project…** in the banner (or run *Trust Project…* through Find Action,
+`Ctrl+Shift+A`) to trust it. The dialog offers the same "Trust projects in …" option:
+
+![Trust Project dialog from the banner](../../screenshots/safe-mode-trust-dialog.png)
+
+After trusting, everything below is available at once; language servers that were held back
+start on the next file you open.
+
+While a window switches from one project to another, Safe Mode stays on until the new
+project's trust applies, so nothing started in between runs the new project's programs with
+the old project's trust. Whether a program or file lies inside the project is checked on the
+resolved path (symlinks, `/proc/self/root/…`) and in every spelling (`\\?\C:\…`, other letter
+case on Windows and macOS), also for plugins that write project files.
+
+### What does not run in Safe Mode
+
+Forge's backend refuses these commands with an error that names the action, so they stay
+blocked even if a plugin or the UI tries to start them:
+
+| Feature | In Safe Mode |
+| --- | --- |
+| Run/Debug configurations, Before launch tasks, Run Anything, External Tools | not started (every run goes through one place in the backend) |
+| Composer and npm scripts, Artisan, Symfony console, Command Line Tool Support | not started; the Run Command popup lists only the built-in Artisan and Symfony commands |
+| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest, RSpec, Minitest) | not started |
+| Xdebug: Start Listening, PHP Web Page | refused |
+| Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
+| [Vulnerable dependency check](vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
+| Laravel routes | parsed from the route files instead of `php artisan route:list` |
+| Docker Compose up and Dockerfile ▶ in the gutter, Compose **Up** in Services | refused |
+| PHP interpreters: version and `phpinfo()` of an interpreter inside the project or a Docker Compose service | refused |
+| Language servers installed in the project (`node_modules/.bin`, `vendor/bin`, …) | not started |
+| ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin, Scala (Metals) and C# language servers | not started (they load the project's config files or build scripts) |
+| Gradle / Maven sync, Reload sbt Project | refused (the build definition is project code) |
+| Groovy scripts, sbt tasks, Android App runs (build, `adb install`, launch) | not started (they are run configurations) |
+| Actions on Save: Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint | not run |
+| Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
+| PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
+| StyLua installed in the project | not run |
+| Ruby interpreters inside the project (a `bin/ruby` chosen in the project's settings or found on the `PATH`) | not run, not even for their version |
+| Android: `adb` and the emulator of an SDK inside the project; `sdk.dir` in `local.properties` | not run; `local.properties` is not read for the SDK |
+| Groovy installed in the project (`node_modules/.bin/groovy`) | not run, not even for its version |
+| Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
+| AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
+| Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
+| SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |
+
+What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
+Declaration, completion from the built-in analysis, language servers installed outside the
+project (for example a server from npm or Forge's own install), Git, Local History,
+databases, the HTTP client and [Deployment](deployment.md) actions you start yourself (upload,
+download, compare and sync only copy files), and the [Remote Host](remote-host-and-ssh.md)
+tool window with Edit Remote File.
+
+IDE settings never come from the project, trusted or not: its `.forge/settings.toml` cannot
+choose the Git executable, the npm registry or Node.js mirror for language server installs,
+the update feed or channel, or the Android and Groovy SDKs (see
+[User and project settings](settings-and-themes.md#user-and-project-settings)).
+
+The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
+settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your
+user settings are used.
+
+> **Note:** Git runs in Safe Mode, like in PHPStorm. Git itself can run programs a repository
+> configures in `.git/config` (for example `core.fsmonitor`); Forge does not change that.
+
+## Trusted Locations
+
+Settings | Build, Execution, Deployment | **Trusted Locations** lists the folders whose
+projects open without asking, and the projects you trusted one by one:
+
+![Trusted Locations settings page](../../screenshots/trusted-locations.png)
+
+- **+** adds a folder (`~` is your home folder). Every project inside it, at any depth, is
+  trusted. A whole drive or `/` cannot be added.
+- **−** removes the selected entry. When nothing trusts the open project any more, it goes
+  back to Safe Mode right away.
+
+Changes are saved immediately. Trust decisions are stored in
+`<config dir>/forge/trusted-projects.toml` (see [File locations](../reference/file-locations.md)),
+never in the project and never in the settings files: a project's own `.forge/settings.toml`
+cannot trust itself.
+
+## Remote projects
+
+Remote projects (Welcome | Remote Development) use the same rules: the project on the host is
+trusted by itself or by a trusted location on the **same host, user and port**, stored as
+`user@host:/path`. Because the folder on the host is only known after connecting, Forge opens
+an untrusted remote project in Safe Mode first and then asks. **Don't Open** closes the project
+and the connection again; nothing of it ran in the meantime. Trusted locations on this machine
+never cover remote projects, and the other way round.
+
+Dev containers are built from a folder on this machine, so the **local folder's** trust counts:
+Forge asks before the image build and `postCreateCommand` (they run the project's code), refuses
+both for an untrusted folder, and the project in the container is trusted with its sources. A
+WSL project is trusted by its `\\wsl.localhost\<distro>\…` path. See
+[Dev Containers and WSL](dev-containers-and-wsl.md).
+
+A [Code With Me](code-with-me.md#joining-a-session) guest's window is always in Safe Mode, but
+shows no banner and offers no **Trust Project…**: the host's project is not on this machine and
+nothing of it runs here. Its trust is the host's decision. Leaving the session ends Safe Mode
+with the project.
+
+## Browser mode
+
+The demo projects of browser mode live in `~/Projects`, a trusted location, so they open
+normally. Opening any other folder (for example `~/Downloads/legacy-crm` from a screenshot
+scenario) shows the dialog, and the run mocks refuse like the desktop app does in Safe Mode.

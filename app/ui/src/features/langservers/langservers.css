@@ -1,0 +1,663 @@
+/* ---------- Settings | Languages & Frameworks | Language Servers ---------- */
+.ls-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 2px;
+}
+.ls-intro {
+  margin: 0;
+  line-height: 1.45;
+}
+.ls-general {
+  margin-top: -2px;
+}
+.ls-spacer {
+  flex: 1;
+}
+
+.ls-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ls-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  width: 210px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.ls-filter:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.ls-filter input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none !important;
+  padding: 0;
+}
+.ls-project-only {
+  white-space: nowrap;
+}
+.ls-counts {
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+/* Table */
+.ls-table {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.ls-tbody {
+  max-height: 262px;
+  overflow-y: auto;
+}
+.ls-tr {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) 178px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  height: 28px;
+  padding: 0 10px;
+  cursor: default;
+}
+.ls-tr:not(.ls-th):hover {
+  background: var(--bg-hover);
+}
+.ls-tr.selected,
+.ls-tr.selected:hover {
+  background: var(--bg-selection);
+}
+.ls-th {
+  height: 26px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.ls-group {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  margin-top: 2px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.ls-group:first-child {
+  margin-top: 0;
+}
+.ls-group-hint {
+  margin-left: 8px;
+  color: var(--accent);
+  font-weight: 400;
+  opacity: 0.85;
+}
+.ls-empty {
+  padding: 16px 10px;
+}
+.ls-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 8px;
+}
+.ls-name-cell input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--accent);
+  box-shadow: none !important;
+}
+.ls-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ls-tr.off .ls-name {
+  color: var(--fg-muted);
+}
+.ls-path-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.ls-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.ls-small-btn {
+  height: 22px;
+  padding: 0 8px;
+  gap: 5px;
+  font-size: var(--fs-small);
+}
+
+/* Status chips */
+.ls-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ls-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--fg-faint);
+}
+.ls-chip.running .ls-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+.ls-chip.installed .ls-dot {
+  background: var(--info);
+}
+.ls-chip.notInstalled {
+  color: var(--fg-muted);
+}
+.ls-chip.notInstalled .ls-dot {
+  background: transparent;
+  border: 1.5px solid var(--fg-faint);
+}
+.ls-chip.disabled {
+  color: var(--fg-faint);
+}
+.ls-chip.failed {
+  color: var(--danger);
+}
+.ls-chip.failed .ls-dot {
+  background: var(--danger);
+}
+.ls-chip-detail {
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Details of the selected server */
+.ls-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+.ls-details-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.ls-details-name {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.ls-note {
+  margin: 0;
+  color: var(--fg-muted);
+  line-height: 1.45;
+}
+.ls-form {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+.ls-form-label {
+  color: var(--fg);
+}
+.ls-code {
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  user-select: text;
+}
+.ls-input {
+  height: 26px;
+  padding: 0 8px;
+}
+.ls-path-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.ls-path-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.ls-path-text .muted,
+.ls-path-text .ls-link {
+  font-family: var(--font-ui);
+}
+.ls-install-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ls-json-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 2px;
+}
+.ls-json-head .muted {
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ls-json,
+.ls-defaults {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ls-json {
+  width: 100%;
+  min-height: 64px;
+  height: 72px;
+  padding: 6px 8px;
+  resize: vertical;
+  user-select: text;
+}
+.ls-json.invalid {
+  border-color: var(--danger);
+}
+.ls-defaults {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  user-select: text;
+}
+.ls-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.ls-link:hover {
+  text-decoration: underline;
+}
+.ls-error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.ls-start-error {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.ls-server-log {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.ls-hint {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+.ls-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warning);
+}
+
+/* ---------- Dialogs (above the Settings dialog) ---------- */
+.ls-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-app) 45%, transparent);
+}
+.ls-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.ls-install-dialog {
+  width: 620px;
+}
+.ls-remote-note {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ls-dialog-host {
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+.ls-dialog-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.ls-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  min-height: 0;
+}
+.ls-dialog-text {
+  margin: 0;
+  line-height: 1.5;
+}
+.ls-dialog-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.ls-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ls-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+}
+.ls-option:hover {
+  background: var(--bg-hover);
+}
+.ls-option input {
+  margin: 0;
+  accent-color: var(--accent);
+  box-shadow: none !important;
+}
+.ls-tool {
+  min-width: 70px;
+  font-weight: 600;
+}
+.ls-option-hint {
+  font-size: var(--fs-small);
+}
+.ls-command {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+}
+.ls-command code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-strong);
+  user-select: text;
+}
+.ls-progress-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ls-ok {
+  color: var(--success);
+}
+.ls-bad {
+  color: var(--danger);
+}
+.ls-log {
+  height: 240px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  user-select: text;
+}
+.ls-log-line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ls-log-line.stderr {
+  color: var(--warning);
+}
+.ls-log-line.info {
+  color: var(--fg-muted);
+}
+.ls-field-label {
+  margin-bottom: -4px;
+}
+.ls-secret {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ls-secret .ls-input {
+  flex: 1;
+  font-family: var(--font-mono);
+}
+.ls-remove {
+  color: var(--danger);
+}
+
+/* ---- "Language server not installed" banner above the editor ---- */
+.ls-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg-panel));
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+}
+.ls-hint[hidden] {
+  display: none;
+}
+.ls-hint-icon {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+.ls-hint-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ls-hint-text strong {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.ls-hint-btn {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+.ls-hint-btn:hover {
+  background: var(--bg-hover);
+}
+.ls-hint-btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.ls-hint-btn.primary:hover {
+  background: var(--accent-strong);
+}
+
+/* ---------- Managed installs: consent dialog, status bar progress ---------- */
+.ls-consent-dialog {
+  width: 500px;
+}
+.ls-consent-points {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--fg-muted);
+  line-height: 1.45;
+}
+.ls-consent-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--fg-strong);
+  line-height: 1.45;
+}
+.ls-consent-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent);
+}
+.ls-consent-links {
+  display: flex;
+  gap: 16px;
+}
+.ls-install-status {
+  gap: 6px;
+  max-width: 460px;
+}
+.ls-install-status-name {
+  color: var(--fg);
+}
+.ls-install-status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.ls-install-bar {
+  flex-shrink: 0;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.ls-install-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+.ls-install-bar.indeterminate > span {
+  animation: ls-indeterminate 1.1s ease-in-out infinite;
+}
+@keyframes ls-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+.ls-install-stop {
+  width: 18px;
+  height: 18px;
+}
+.ls-installing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.ls-install-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}

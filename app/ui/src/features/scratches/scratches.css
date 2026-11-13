@@ -1,0 +1,211 @@
+/* ---------- New Scratch File / Attach Data Source popups ---------- */
+.scratch-popup {
+  width: 360px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+}
+.scratch-popup-title {
+  padding: 4px 8px 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.scratch-popup-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 3px 5px;
+  padding: 0 8px;
+  height: 28px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+.scratch-popup-search:focus-within {
+  border-color: var(--accent);
+}
+.scratch-popup-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font: inherit;
+}
+.scratch-popup-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.scratch-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  cursor: default;
+  white-space: nowrap;
+}
+.scratch-popup-item.selected {
+  background: var(--accent-soft);
+}
+.scratch-popup-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scratch-popup-ext {
+  font-size: var(--fs-small);
+}
+.scratch-popup-empty {
+  padding: 6px 8px;
+}
+.scratch-ds-icon {
+  color: var(--syn-type);
+  flex-shrink: 0;
+}
+
+/* ---------- Scratch icon (tabs, Project view) ---------- */
+.scratch-icon {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.scratch-icon-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-fg);
+  box-shadow: 0 0 0 1.5px var(--bg-panel);
+}
+.scratches-root-icon {
+  color: var(--accent);
+}
+
+/* ---------- Project view ---------- */
+.scratch-rename {
+  flex: 1;
+  min-width: 60px;
+  height: 20px;
+  padding: 0 4px;
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  outline: none;
+  font: inherit;
+}
+.scratch-empty {
+  font-style: italic;
+}
+
+/* ---------- Gutter ▶ ---------- */
+.cm-line-marker.marker-run svg {
+  fill: currentColor;
+}
+
+/* ---------- Toolbar of .http editors ---------- */
+.http-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  color: var(--fg);
+}
+.http-tb-label {
+  color: var(--fg-muted);
+}
+.http-tb-env {
+  position: relative;
+}
+.http-tb-combo,
+.http-tb-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-strong);
+  font: inherit;
+  cursor: pointer;
+}
+.http-tb-combo {
+  border-color: var(--border);
+  background: var(--bg-input);
+}
+.http-tb-combo:hover,
+.http-tb-button:hover {
+  background: var(--bg-hover);
+}
+.http-tb-link {
+  margin-left: 8px;
+  color: var(--fg-muted);
+}
+.http-tb-menu {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  z-index: var(--z-popup);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.http-tb-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px 0 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+.http-tb-item:hover {
+  background: var(--bg-selection);
+}
+.http-tb-check {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  color: var(--accent);
+}
+.http-tb-hint {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.http-tb-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}
+
+.http-tb-spacer {
+  flex: 1;
+}

@@ -1,0 +1,27 @@
+{
+    "name": "{{vendor}}/{{package}}",
+    "description": "{{title}}",
+    "type": "project",
+    "require": {
+        "php": ">={{php_version}}"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "{{phpunit_version}}"
+    },
+    "autoload": {
+        "psr-4": {
+            "{{namespace_json}}\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "{{namespace_json}}\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

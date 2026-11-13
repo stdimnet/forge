@@ -1,0 +1,1272 @@
+[
+  {
+    "id": "empty-php",
+    "name": "Empty PHP Project",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A Composer project with PSR-4 autoloading, src/, tests/ and PHPUnit.",
+    "icon": "php",
+    "defaultName": "untitled",
+    "tools": [],
+    "options": [
+      {
+        "id": "phpVersion",
+        "label": "PHP version",
+        "kind": "enum",
+        "default": "8.3",
+        "choices": [
+          {
+            "value": "8.4",
+            "label": "8.4"
+          },
+          {
+            "value": "8.3",
+            "label": "8.3"
+          },
+          {
+            "value": "8.2",
+            "label": "8.2"
+          },
+          {
+            "value": "8.1",
+            "label": "8.1"
+          }
+        ]
+      },
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "laravel",
+    "name": "Laravel",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A new Laravel application, optionally with a starter kit.",
+    "icon": "laravel",
+    "defaultName": "laravel-app",
+    "tools": [
+      "composer"
+    ],
+    "fallback": "empty-php",
+    "options": [
+      {
+        "id": "starterKit",
+        "label": "Starter kit",
+        "kind": "enum",
+        "default": "none",
+        "choices": [
+          {
+            "value": "none",
+            "label": "None"
+          },
+          {
+            "value": "react",
+            "label": "React"
+          },
+          {
+            "value": "vue",
+            "label": "Vue"
+          },
+          {
+            "value": "livewire",
+            "label": "Livewire"
+          }
+        ]
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "symfony",
+    "name": "Symfony",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A Symfony skeleton (microservice, console app, API) or a full web application.",
+    "icon": "symfony",
+    "defaultName": "symfony-app",
+    "tools": [
+      "composer"
+    ],
+    "fallback": "empty-php",
+    "options": [
+      {
+        "id": "variant",
+        "label": "Project type",
+        "kind": "enum",
+        "default": "webapp",
+        "choices": [
+          {
+            "value": "webapp",
+            "label": "Web application"
+          },
+          {
+            "value": "skeleton",
+            "label": "Skeleton (microservice, console, API)"
+          }
+        ]
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "composer-package",
+    "name": "Composer Package",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A reusable library for Packagist with PHPUnit, README and MIT license.",
+    "icon": "composer",
+    "defaultName": "my-package",
+    "tools": [],
+    "options": [
+      {
+        "id": "vendor",
+        "label": "Vendor",
+        "kind": "string",
+        "default": "acme"
+      },
+      {
+        "id": "phpVersion",
+        "label": "PHP version",
+        "kind": "enum",
+        "default": "8.3",
+        "choices": [
+          {
+            "value": "8.4",
+            "label": "8.4"
+          },
+          {
+            "value": "8.3",
+            "label": "8.3"
+          },
+          {
+            "value": "8.2",
+            "label": "8.2"
+          },
+          {
+            "value": "8.1",
+            "label": "8.1"
+          }
+        ]
+      },
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "wordpress-plugin",
+    "name": "WordPress Plugin",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A plugin with header, main class, shortcode, readme.txt and uninstall hook.",
+    "icon": "wordpress",
+    "defaultName": "my-plugin",
+    "tools": [],
+    "options": [
+      {
+        "id": "phpVersion",
+        "label": "PHP version",
+        "kind": "enum",
+        "default": "8.3",
+        "choices": [
+          {
+            "value": "8.4",
+            "label": "8.4"
+          },
+          {
+            "value": "8.3",
+            "label": "8.3"
+          },
+          {
+            "value": "8.2",
+            "label": "8.2"
+          },
+          {
+            "value": "8.1",
+            "label": "8.1"
+          }
+        ]
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "empty-web",
+    "name": "Empty HTML/CSS/JS",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A static website: index.html, a stylesheet and a script.",
+    "icon": "html",
+    "defaultName": "website",
+    "tools": [],
+    "options": [
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "vite",
+    "name": "Vite + TypeScript",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A framework-free Vite app with TypeScript.",
+    "icon": "vite",
+    "defaultName": "vite-project",
+    "tools": [
+      "npm"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "react",
+    "name": "React",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A React app built with Vite.",
+    "icon": "react",
+    "defaultName": "react-app",
+    "tools": [
+      "npm"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "typescript",
+        "label": "TypeScript",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "vue",
+    "name": "Vue.js",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A Vue 3 app built with Vite.",
+    "icon": "vue",
+    "defaultName": "vue-app",
+    "tools": [
+      "npm"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "typescript",
+        "label": "TypeScript",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "angular",
+    "name": "Angular",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "An Angular workspace created with the Angular CLI.",
+    "icon": "angular",
+    "defaultName": "angular-app",
+    "tools": [
+      "npx"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "svelte",
+    "name": "Svelte",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A SvelteKit app created with the Svelte CLI (sv).",
+    "icon": "svelte",
+    "defaultName": "svelte-app",
+    "tools": [
+      "npx"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "typescript",
+        "label": "TypeScript",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "minecraft-plugin",
+    "name": "Minecraft Plugin",
+    "group": "Java",
+    "pack": "javaforge",
+    "description": "A Paper, Purpur, Folia, Spigot, Bukkit, Velocity or BungeeCord plugin with a main class, a command, a listener and the plugin descriptor.",
+    "icon": "minecraft",
+    "defaultName": "my-plugin",
+    "tools": [],
+    "options": [
+      {
+        "id": "platform",
+        "label": "Platform",
+        "kind": "enum",
+        "default": "paper",
+        "choices": [
+          {
+            "value": "paper",
+            "label": "Paper"
+          },
+          {
+            "value": "purpur",
+            "label": "Purpur"
+          },
+          {
+            "value": "folia",
+            "label": "Folia"
+          },
+          {
+            "value": "spigot",
+            "label": "Spigot"
+          },
+          {
+            "value": "bukkit",
+            "label": "Bukkit"
+          },
+          {
+            "value": "velocity",
+            "label": "Velocity"
+          },
+          {
+            "value": "bungeecord",
+            "label": "BungeeCord / Waterfall"
+          }
+        ]
+      },
+      {
+        "id": "descriptor",
+        "label": "Descriptor",
+        "kind": "enum",
+        "default": "plugin",
+        "choices": [
+          {
+            "value": "plugin",
+            "label": "plugin.yml"
+          },
+          {
+            "value": "paper-plugin",
+            "label": "paper-plugin.yml"
+          }
+        ],
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mcVersion",
+        "label": "Minecraft",
+        "kind": "enum",
+        "default": "1.21.11",
+        "choices": [
+          {
+            "value": "26.3",
+            "label": "26.3 (Java 25)"
+          },
+          {
+            "value": "26.2",
+            "label": "26.2 (Java 25)"
+          },
+          {
+            "value": "26.1.2",
+            "label": "26.1.2 (Java 25)"
+          },
+          {
+            "value": "26.1.1",
+            "label": "26.1.1 (Java 25)"
+          },
+          {
+            "value": "1.21.11",
+            "label": "1.21.11 (Java 21)"
+          },
+          {
+            "value": "1.21.10",
+            "label": "1.21.10 (Java 21)"
+          },
+          {
+            "value": "1.21.8",
+            "label": "1.21.8 (Java 21)"
+          },
+          {
+            "value": "1.21.4",
+            "label": "1.21.4 (Java 21)"
+          },
+          {
+            "value": "1.21.1",
+            "label": "1.21.1 (Java 21)"
+          },
+          {
+            "value": "1.20.6",
+            "label": "1.20.6 (Java 21)"
+          },
+          {
+            "value": "1.20.4",
+            "label": "1.20.4 (Java 17)"
+          },
+          {
+            "value": "1.20.1",
+            "label": "1.20.1 (Java 17)"
+          },
+          {
+            "value": "1.19.4",
+            "label": "1.19.4 (Java 17)"
+          },
+          {
+            "value": "1.18.2",
+            "label": "1.18.2 (Java 17)"
+          },
+          {
+            "value": "1.17.1",
+            "label": "1.17.1 (Java 16)"
+          },
+          {
+            "value": "1.16.5",
+            "label": "1.16.5 (Java 8)"
+          }
+        ],
+        "description": "Refresh reads the versions Paper publishes from repo.papermc.io.",
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia",
+              "spigot",
+              "bukkit"
+            ]
+          }
+        ],
+        "refresh": "minecraft_versions_refresh"
+      },
+      {
+        "id": "buildSystem",
+        "label": "Build system",
+        "kind": "enum",
+        "default": "gradle-kts",
+        "choices": [
+          {
+            "value": "gradle-kts",
+            "label": "Gradle Kotlin"
+          },
+          {
+            "value": "gradle-groovy",
+            "label": "Gradle Groovy"
+          },
+          {
+            "value": "maven",
+            "label": "Maven"
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "kind": "enum",
+        "default": "java",
+        "choices": [
+          {
+            "value": "java",
+            "label": "Java"
+          },
+          {
+            "value": "kotlin",
+            "label": "Kotlin"
+          }
+        ],
+        "visibleWhen": [
+          {
+            "option": "buildSystem",
+            "values": [
+              "gradle-kts",
+              "gradle-groovy"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "groupId",
+        "label": "Group ID",
+        "kind": "string",
+        "default": "com.example"
+      },
+      {
+        "id": "pluginName",
+        "label": "Plugin name",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the project name"
+      },
+      {
+        "id": "mainClass",
+        "label": "Main class",
+        "kind": "string",
+        "default": "",
+        "placeholder": "<group id>.<project>.<Project>"
+      },
+      {
+        "id": "authors",
+        "label": "Authors",
+        "kind": "string",
+        "default": "",
+        "placeholder": "Comma-separated"
+      },
+      {
+        "id": "description",
+        "label": "Description",
+        "kind": "string",
+        "default": ""
+      },
+      {
+        "id": "website",
+        "label": "Website",
+        "kind": "string",
+        "default": "",
+        "placeholder": "https://"
+      },
+      {
+        "id": "apiVersion",
+        "label": "API version",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the Minecraft version",
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia",
+              "spigot",
+              "bukkit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "runPaper",
+        "label": "Run Paper server (run-paper)",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds the runServer task and the Run Paper Server configuration.",
+        "visibleWhen": [
+          {
+            "option": "platform",
+            "values": [
+              "paper",
+              "purpur",
+              "folia",
+              "spigot",
+              "bukkit"
+            ]
+          },
+          {
+            "option": "buildSystem",
+            "values": [
+              "gradle-kts",
+              "gradle-groovy"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "shadow",
+        "label": "Shadow jar",
+        "kind": "bool",
+        "default": false,
+        "description": "Bundles libraries into the plugin jar; always on for Kotlin."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "minecraft-mod",
+    "name": "Minecraft Mod",
+    "group": "Java",
+    "pack": "javaforge",
+    "description": "A Fabric (Loom) or NeoForge (ModDevGradle) mod with a main class, a client initializer, an example item and block, mixins and the mod metadata.",
+    "icon": "minecraft",
+    "defaultName": "my-mod",
+    "tools": [],
+    "options": [
+      {
+        "id": "loader",
+        "label": "Loader",
+        "kind": "enum",
+        "default": "fabric",
+        "choices": [
+          {
+            "value": "fabric",
+            "label": "Fabric"
+          },
+          {
+            "value": "neoforge",
+            "label": "NeoForge"
+          }
+        ]
+      },
+      {
+        "id": "mcVersion",
+        "label": "Minecraft",
+        "kind": "enum",
+        "default": "26.3",
+        "choices": [
+          {
+            "value": "26.3",
+            "label": "26.3 (Java 25)"
+          },
+          {
+            "value": "26.2",
+            "label": "26.2 (Java 25)"
+          },
+          {
+            "value": "26.1.2",
+            "label": "26.1.2 (Java 25)"
+          },
+          {
+            "value": "1.21.11",
+            "label": "1.21.11 (Java 21)"
+          },
+          {
+            "value": "1.21.10",
+            "label": "1.21.10 (Java 21)"
+          },
+          {
+            "value": "1.21.8",
+            "label": "1.21.8 (Java 21)"
+          },
+          {
+            "value": "1.21.4",
+            "label": "1.21.4 (Java 21)"
+          },
+          {
+            "value": "1.21.1",
+            "label": "1.21.1 (Java 21)"
+          }
+        ],
+        "description": "Refresh reads the versions from meta.fabricmc.net and the Fabric and NeoForge Maven repositories.",
+        "refresh": "minecraft_versions_refresh"
+      },
+      {
+        "id": "loaderVersion",
+        "label": "Loader version",
+        "kind": "string",
+        "default": "",
+        "placeholder": "Newest for the Minecraft version"
+      },
+      {
+        "id": "fabricMappings",
+        "label": "Mappings",
+        "kind": "enum",
+        "default": "mojang",
+        "choices": [
+          {
+            "value": "mojang",
+            "label": "Mojang mappings"
+          },
+          {
+            "value": "yarn",
+            "label": "Yarn"
+          }
+        ],
+        "description": "For Minecraft 1.21.x; 26.1 and newer are not obfuscated and need none.",
+        "visibleWhen": [
+          {
+            "option": "loader",
+            "values": [
+              "fabric"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "neoMappings",
+        "label": "Mappings",
+        "kind": "enum",
+        "default": "parchment",
+        "choices": [
+          {
+            "value": "parchment",
+            "label": "Parchment"
+          },
+          {
+            "value": "official",
+            "label": "Official (Mojang)"
+          }
+        ],
+        "description": "For Minecraft 1.21.x; 26.1 and newer are not obfuscated and need none.",
+        "visibleWhen": [
+          {
+            "option": "loader",
+            "values": [
+              "neoforge"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "kind": "enum",
+        "default": "java",
+        "choices": [
+          {
+            "value": "java",
+            "label": "Java"
+          },
+          {
+            "value": "kotlin",
+            "label": "Kotlin"
+          }
+        ],
+        "visibleWhen": [
+          {
+            "option": "loader",
+            "values": [
+              "fabric"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "modId",
+        "label": "Mod ID",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the project name"
+      },
+      {
+        "id": "modName",
+        "label": "Mod name",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the mod ID"
+      },
+      {
+        "id": "modVersion",
+        "label": "Version",
+        "kind": "string",
+        "default": "1.0.0"
+      },
+      {
+        "id": "groupId",
+        "label": "Group ID",
+        "kind": "string",
+        "default": "com.example"
+      },
+      {
+        "id": "authors",
+        "label": "Authors",
+        "kind": "string",
+        "default": "",
+        "placeholder": "Comma-separated"
+      },
+      {
+        "id": "description",
+        "label": "Description",
+        "kind": "string",
+        "default": ""
+      },
+      {
+        "id": "license",
+        "label": "License",
+        "kind": "string",
+        "default": "All Rights Reserved"
+      },
+      {
+        "id": "environment",
+        "label": "Entrypoints",
+        "kind": "enum",
+        "default": "both",
+        "choices": [
+          {
+            "value": "both",
+            "label": "Client and server"
+          },
+          {
+            "value": "client",
+            "label": "Client only"
+          },
+          {
+            "value": "server",
+            "label": "Server only"
+          }
+        ]
+      },
+      {
+        "id": "mixins",
+        "label": "Mixins",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a mixin configuration with example mixins."
+      },
+      {
+        "id": "datagen",
+        "label": "Data generation",
+        "kind": "bool",
+        "default": false,
+        "description": "Adds a data generator and its run configuration."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "lua-script",
+    "name": "Lua Script",
+    "group": "Lua",
+    "pack": "luaforge",
+    "description": "A Lua script with a module and a LuaLS configuration.",
+    "icon": "lua",
+    "defaultName": "lua-script",
+    "tools": [],
+    "options": [
+      {
+        "id": "luaVersion",
+        "label": "Lua version",
+        "kind": "enum",
+        "default": "5.4",
+        "choices": [
+          {
+            "value": "5.4",
+            "label": "Lua 5.4"
+          },
+          {
+            "value": "5.3",
+            "label": "Lua 5.3"
+          },
+          {
+            "value": "5.1",
+            "label": "Lua 5.1"
+          },
+          {
+            "value": "luajit",
+            "label": "LuaJIT"
+          }
+        ]
+      },
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "love-game",
+    "name": "LÖVE Game",
+    "group": "Lua",
+    "pack": "luaforge",
+    "description": "A LÖVE 11 game with main.lua, conf.lua and LÖVE API completion.",
+    "icon": "love",
+    "defaultName": "love-game",
+    "tools": [],
+    "options": [
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "neovim-plugin",
+    "name": "Neovim Plugin",
+    "group": "Lua",
+    "pack": "luaforge",
+    "description": "A Neovim plugin with setup(), a user command and a help file.",
+    "icon": "neovim",
+    "defaultName": "my-plugin.nvim",
+    "tools": [],
+    "options": [
+      {
+        "id": "vendor",
+        "label": "GitHub user",
+        "kind": "string",
+        "default": "me"
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "ruby-gem",
+    "name": "Ruby Gem",
+    "group": "Ruby",
+    "pack": "rubyforge",
+    "description": "A gem created with Bundler (bundle gem): gemspec, Rakefile, tests and RuboCop.",
+    "icon": "ruby",
+    "defaultName": "my_gem",
+    "tools": [
+      "bundle"
+    ],
+    "fallback": "ruby-script",
+    "options": [
+      {
+        "id": "testFramework",
+        "label": "Test framework",
+        "kind": "enum",
+        "default": "minitest",
+        "choices": [
+          {
+            "value": "minitest",
+            "label": "Minitest"
+          },
+          {
+            "value": "rspec",
+            "label": "RSpec"
+          },
+          {
+            "value": "test-unit",
+            "label": "test-unit"
+          }
+        ]
+      },
+      {
+        "id": "rubocop",
+        "label": "RuboCop",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "exe",
+        "label": "Executable (exe/)",
+        "kind": "bool",
+        "default": false
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "ruby-script",
+    "name": "Ruby Project",
+    "group": "Ruby",
+    "pack": "rubyforge",
+    "description": "A Ruby project with a Gemfile, a Rakefile, Minitest tests and RuboCop.",
+    "icon": "ruby",
+    "defaultName": "ruby-project",
+    "tools": [],
+    "options": [
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "dotnet",
+    "name": ".NET Project",
+    "group": ".NET",
+    "pack": "dotnetforge",
+    "description": "A solution with a project from a dotnet new template: console, class library, ASP.NET Core, Blazor, worker or tests.",
+    "icon": "dotnet",
+    "defaultName": "MyApp",
+    "tools": [
+      "dotnet"
+    ],
+    "options": [
+      {
+        "id": "template",
+        "label": "Template",
+        "kind": "enum",
+        "default": "console",
+        "choices": [
+          {
+            "value": "console",
+            "label": "Console App"
+          },
+          {
+            "value": "classlib",
+            "label": "Class Library"
+          },
+          {
+            "value": "webapi",
+            "label": "ASP.NET Core Web API"
+          },
+          {
+            "value": "mvc",
+            "label": "ASP.NET Core Web App (Model-View-Controller)"
+          },
+          {
+            "value": "webapp",
+            "label": "ASP.NET Core Web App (Razor Pages)"
+          },
+          {
+            "value": "blazor",
+            "label": "Blazor Web App"
+          },
+          {
+            "value": "worker",
+            "label": "Worker Service"
+          },
+          {
+            "value": "xunit",
+            "label": "xUnit Test Project"
+          },
+          {
+            "value": "nunit",
+            "label": "NUnit Test Project"
+          },
+          {
+            "value": "mstest",
+            "label": "MSTest Test Project"
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "kind": "enum",
+        "default": "C#",
+        "choices": [
+          {
+            "value": "C#",
+            "label": "C#"
+          },
+          {
+            "value": "F#",
+            "label": "F#"
+          },
+          {
+            "value": "VB",
+            "label": "Visual Basic"
+          }
+        ]
+      },
+      {
+        "id": "framework",
+        "label": "Framework",
+        "kind": "enum",
+        "default": "",
+        "choices": [
+          {
+            "value": "",
+            "label": "The SDK's default"
+          },
+          {
+            "value": "net10.0",
+            "label": ".NET 10"
+          },
+          {
+            "value": "net9.0",
+            "label": ".NET 9"
+          },
+          {
+            "value": "net8.0",
+            "label": ".NET 8 (LTS)"
+          }
+        ]
+      },
+      {
+        "id": "otherTemplate",
+        "label": "Other template (short name)",
+        "kind": "string",
+        "default": "",
+        "description": "Any template from dotnet new list, e.g. grpc or avalonia.app; replaces the template above."
+      },
+      {
+        "id": "solution",
+        "label": "Create solution",
+        "kind": "bool",
+        "default": true,
+        "description": "Puts the project into src/ and adds it to a new .sln."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "empty",
+    "name": "Empty Project",
+    "group": "Other",
+    "pack": "core",
+    "description": "An empty folder. Language support activates for the files you add.",
+    "icon": "folder",
+    "defaultName": "untitled",
+    "tools": [],
+    "options": [
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  }
+]

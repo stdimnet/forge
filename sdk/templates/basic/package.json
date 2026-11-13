@@ -1,0 +1,18 @@
+{
+  "name": "{{packageName}}",
+  "version": "0.1.0",
+  "private": true,
+  "description": "{{description}}",
+  "license": "MIT",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=iife --global-name=__forgePlugin --target=es2020 --outfile=dist/plugin.js",
+    "typecheck": "tsc --noEmit",
+    "pack": "npm run build && node scripts/pack.mjs",
+    "validate": "node scripts/validate.mjs ."
+  },
+  "devDependencies": {
+    "@forge/plugin-api": "{{pluginApi}}",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

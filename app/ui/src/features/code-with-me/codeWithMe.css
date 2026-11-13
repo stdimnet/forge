@@ -1,0 +1,611 @@
+/* Code With Me: toolbar icon, session popup, remote carets. */
+
+.cwm-toolbar-btn.active {
+  color: var(--collab-1);
+}
+.cwm-toolbar-btn.open {
+  background: var(--bg-active);
+}
+
+.popup.cwm-popup {
+  position: fixed;
+  z-index: var(--z-popup);
+  width: 360px;
+  padding: 10px 6px 6px;
+}
+.cwm-popup-title {
+  padding: 0 8px 6px;
+  font-weight: 600;
+}
+.cwm-popup-label {
+  padding: 2px 8px 4px;
+  font-size: var(--fs-small);
+}
+.cwm-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cwm-level {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.cwm-level:hover:not(.disabled) {
+  background: var(--bg-hover);
+}
+.cwm-level.disabled {
+  cursor: default;
+  color: var(--fg-muted);
+}
+.cwm-level input {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+.cwm-level-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.cwm-level-hint {
+  font-size: var(--fs-small);
+}
+.cwm-popup-note,
+.cwm-popup-warning {
+  padding: 6px 8px 0;
+  font-size: var(--fs-small);
+}
+.cwm-popup-warning {
+  color: var(--warning);
+}
+.cwm-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 8px 4px;
+}
+.cwm-popup-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cwm-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--border);
+}
+.cwm-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.cwm-menu-item:hover,
+.cwm-menu-item:focus-visible {
+  background: var(--bg-hover);
+  outline: none;
+}
+.cwm-menu-item.danger {
+  color: var(--danger);
+}
+.cwm-notice {
+  padding: 0 8px 8px;
+}
+.cwm-participants {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 0;
+}
+
+/* Connection paths: participant rows of the popup, status bar item. */
+.cwm-participant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+}
+.cwm-participant:hover,
+.cwm-participant:focus-visible {
+  background: var(--bg-hover);
+  outline: none;
+}
+.cwm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cwm-participant-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwm-participant-perm {
+  font-size: var(--fs-small);
+}
+.cwm-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--collab-label-fg);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cwm-files {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.cwm-file-name {
+  white-space: nowrap;
+}
+.cwm-file-dir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+}
+.cwm-toolbar-count {
+  margin-left: 2px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.cwm-participant-role {
+  font-size: var(--fs-small);
+}
+.cwm-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  color: var(--success);
+}
+.cwm-path.relay {
+  color: var(--warning);
+}
+.cwm-path.pending {
+  color: var(--fg-muted);
+}
+.cwm-path-rtt {
+  color: var(--fg-muted);
+}
+.cwm-relay-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 0;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.cwm-relay-line.problem {
+  color: var(--warning);
+}
+.cwm-status.relay {
+  color: var(--warning);
+}
+.cwm-status.problem {
+  color: var(--danger);
+}
+
+/* Settings | Tools | Code With Me | Relay Server */
+.cwm-relay-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 2px;
+}
+.cwm-relay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cwm-relay-token {
+  color: var(--fg-muted);
+}
+.cwm-relay-token.set {
+  color: var(--fg);
+}
+.cwm-small-btn {
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+}
+.cwm-small-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cwm-test-result {
+  font-size: var(--fs-small);
+}
+.cwm-test-result.ok {
+  color: var(--success);
+}
+.cwm-test-result.fail {
+  color: var(--danger);
+}
+.cwm-error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.cwm-hint {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+.cwm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-app) 45%, transparent);
+}
+.cwm-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 460px;
+  max-width: calc(100vw - 48px);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cwm-dialog-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.cwm-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.cwm-dialog-text {
+  margin: 0;
+  line-height: 1.5;
+}
+.cwm-dialog-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.cwm-spacer {
+  flex: 1;
+}
+.cwm-secret {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cwm-input {
+  flex: 1;
+  height: 26px;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+}
+.cwm-remove {
+  color: var(--danger);
+}
+
+/* Participant actions (host) and the session's Permissions submenu. */
+.cwm-participant-menu {
+  margin-left: 4px;
+  opacity: 0.6;
+}
+.cwm-participant:hover .cwm-participant-menu,
+.cwm-participant:focus-visible .cwm-participant-menu,
+.cwm-participant-menu:focus-visible {
+  opacity: 1;
+}
+.cwm-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cwm-submenu-item > span:first-child {
+  flex: 1;
+}
+.cwm-submenu-value {
+  font-size: var(--fs-small);
+}
+
+/* Custom Permissions dialog. */
+.cwm-custom-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 8px 12px;
+}
+.cwm-custom-grid .form-label {
+  margin: 0;
+}
+.cwm-custom-note {
+  grid-column: 1 / -1;
+  font-size: var(--fs-small);
+  margin-top: 4px;
+}
+
+/* Session Log dialog. */
+.cwm-log {
+  height: min(360px, 50vh);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 4px 0;
+  font-size: var(--fs-small);
+}
+.cwm-log-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+}
+.cwm-log-line.warning .cwm-log-text,
+.cwm-log-icon {
+  color: var(--warning);
+}
+.cwm-log-time {
+  font-family: var(--font-mono);
+  flex: none;
+}
+.cwm-log-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cwm-log-file {
+  margin-top: 8px;
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+/* Follow (S4): participants' locations, toolbar avatars, the banner above the editor. */
+.cwm-participant.clickable {
+  cursor: pointer;
+}
+.cwm-participant.followed {
+  background: var(--accent-soft);
+}
+.cwm-participant-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 3px 0;
+}
+.cwm-participant-text .cwm-participant-name {
+  flex: none;
+}
+.cwm-participant-where {
+  overflow: hidden;
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The connection path and the location below a name in the session popup. */
+.cwm-participant-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 1px;
+}
+.cwm-participant-detail .cwm-path {
+  margin-left: 0;
+  padding: 0 6px;
+}
+.cwm-participant-following {
+  flex: none;
+  color: var(--accent);
+}
+.cwm-toolbar-avatars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 4px 0 2px;
+}
+.cwm-toolbar-avatar {
+  display: inline-flex;
+  padding: 1px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.cwm-toolbar-avatar:hover {
+  border-color: var(--border-strong);
+}
+.cwm-toolbar-avatar.followed {
+  border-color: var(--accent);
+}
+.cwm-toolbar-more {
+  font-size: var(--fs-small);
+}
+.cwm-check-item .cwm-check {
+  display: inline-flex;
+  width: 14px;
+  flex: none;
+}
+.cwm-check-item > span:first-child {
+  flex: 1;
+}
+.cwm-check-item .cwm-check {
+  color: var(--accent);
+}
+.cwm-follow-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--cwm-follow-color, var(--collab-1)) 14%, var(--bg-panel));
+  border-bottom: 2px solid var(--cwm-follow-color, var(--collab-1));
+}
+.cwm-follow-banner[hidden] {
+  display: none;
+}
+.cwm-follow-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--cwm-follow-color, var(--collab-1));
+}
+.cwm-follow-text {
+  flex: 1;
+  min-width: 0;
+}
+.cwm-tool-window {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 6px;
+  overflow: auto;
+}
+.cwm-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 8px;
+}
+.cwm-tool-actions .btn-secondary.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cwm-tool-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.cwm-tool-log .cwm-log {
+  flex: 1;
+  height: auto;
+}
+
+/* A guest whose connection dropped: the host keeps its place while it reconnects. */
+.cwm-participant.reconnecting .cwm-avatar,
+.cwm-toolbar-avatar.reconnecting .cwm-avatar {
+  opacity: 0.45;
+}
+.cwm-participant-reconnecting {
+  color: var(--warning);
+}
+
+/* Join Session dialog. */
+.cwm-join-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 12px 0 0;
+}
+.cwm-join-grid dt {
+  color: var(--fg-muted);
+}
+.cwm-join-grid dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.cwm-join-grid dd svg {
+  color: var(--collab-1);
+  flex: none;
+}
+.cwm-join-grid .link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+.cwm-join-grid .link-btn:hover {
+  text-decoration: underline;
+}
+.cwm-join-unsaved {
+  display: grid;
+  gap: 8px;
+  line-height: 1.45;
+}
+.cwm-join-files {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.cwm-join-files li {
+  overflow-wrap: anywhere;
+}
+.cwm-join-note {
+  margin-top: 10px;
+  font-size: var(--fs-small);
+}
+.cwm-join-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+.cwm-join-headline {
+  font-weight: 600;
+}
+.cwm-join-code-label {
+  margin-top: 6px;
+  font-size: var(--fs-small);
+}
+.cwm-join-code {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  letter-spacing: 0.12em;
+  color: var(--fg);
+}
+.cwm-join-hint {
+  max-width: 380px;
+  font-size: var(--fs-small);
+}
+
+/* A shared file that is read-only for everyone (too large, or binary). */
+.cwm-view-only-banner {
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}

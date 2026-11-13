@@ -1,0 +1,83 @@
+# Flatpak manifest for Forge. It repackages the release's Debian package (the same binary as
+# the AppImage and the .deb), so the Flatpak needs no Rust or Node toolchain and no generated
+# cargo/pnpm source lists. `pnpm --dir app/ui packaging:update vX.Y.Z` points the .deb source
+# at a release (url + sha256 from its SHA256SUMS); `pnpm --dir app/ui flatpak` builds it
+# locally. Details and the reasons for each permission: docs/guide/developer/release-builds.md.
+id: dev.forge.ide
+runtime: org.gnome.Platform
+# GNOME runtimes ship WebKitGTK for GTK 3 (webkit2gtk-4.1), which Tauri 2 links against.
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: forge
+finish-args:
+  # Display: Wayland with an X11 fallback, GPU acceleration for the webview.
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # AI providers, Git remotes, package managers, update checks, remote development.
+  - --share=network
+  # An IDE opens projects anywhere in the home directory (and on mounted drives).
+  - --filesystem=home
+  - --filesystem=/media
+  - --filesystem=/run/media
+  - --filesystem=/mnt
+  # Interpreters and SDKs in the host's system folders (/usr/bin/php, /usr/lib/jvm) are
+  # detected through /run/host; they run on the host through flatpak-spawn --host.
+  - --filesystem=host-os:ro
+  # Git over SSH and remote development use the user's SSH agent.
+  - --socket=ssh-auth
+  # AI keys and database passwords live in the OS keychain (Secret Service).
+  - --talk-name=org.freedesktop.secrets
+  # Balloon notifications.
+  - --talk-name=org.freedesktop.Notifications
+  # `flatpak-spawn --host`: PHP, Composer, Node, Git, language servers, Docker and the
+  # terminal's shell are installed on the host; Forge starts them there (crates/forge-hostspawn).
+  - --talk-name=org.freedesktop.Flatpak
+modules:
+  - name: forge
+    buildsystem: simple
+    build-commands:
+      - ar x forge.deb
+      - tar -xf data.tar.*
+      - install -Dm755 usr/bin/forge /app/bin/forge
+      # Tauri finds its resources (notices, remote agents) in ../lib/Forge next to the binary.
+      - mkdir -p /app/lib && cp -r usr/lib/Forge /app/lib/Forge
+      - install -Dm644 dev.forge.ide.desktop /app/share/applications/dev.forge.ide.desktop
+      - install -Dm644 dev.forge.ide.metainfo.xml /app/share/metainfo/dev.forge.ide.metainfo.xml
+      - install -Dm644 icon-32.png /app/share/icons/hicolor/32x32/apps/dev.forge.ide.png
+      - install -Dm644 icon-64.png /app/share/icons/hicolor/64x64/apps/dev.forge.ide.png
+      - install -Dm644 icon-128.png /app/share/icons/hicolor/128x128/apps/dev.forge.ide.png
+      - install -Dm644 icon-256.png /app/share/icons/hicolor/256x256/apps/dev.forge.ide.png
+      - install -Dm644 icon-512.png /app/share/icons/hicolor/512x512/apps/dev.forge.ide.png
+    sources:
+      - type: file
+        dest-filename: forge.deb
+        only-arches: [x86_64]
+        url: https://github.com/Reeperk/Forge/releases/download/v0.1.0/Forge_0.1.0_amd64.deb
+        sha256: 0000000000000000000000000000000000000000000000000000000000000000
+        # Flathub's external data checker proposes updates from the newest stable release.
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/Reeperk/Forge/releases/latest
+          version-query: .tag_name | sub("^v"; "")
+          url-query: '"https://github.com/Reeperk/Forge/releases/download/v" + $version + "/Forge_" + $version + "_amd64.deb"'
+      - type: file
+        path: dev.forge.ide.desktop
+      - type: file
+        path: dev.forge.ide.metainfo.xml
+      - type: file
+        path: ../../app/src-tauri/icons/32x32.png
+        dest-filename: icon-32.png
+      - type: file
+        path: ../../app/src-tauri/icons/64x64.png
+        dest-filename: icon-64.png
+      - type: file
+        path: ../../app/src-tauri/icons/128x128.png
+        dest-filename: icon-128.png
+      - type: file
+        path: ../../app/src-tauri/icons/128x128@2x.png
+        dest-filename: icon-256.png
+      - type: file
+        path: ../../app/src-tauri/icons/icon.png
+        dest-filename: icon-512.png

@@ -1,0 +1,199 @@
+/* The editor's Find/Replace bar (PHPStorm New UI), a CodeMirror panel at the top. Colors
+   come from theme.css only; the Cc / W / .* toggles reuse .find-toggle from find.css. */
+.cm-panels-top .cm-find-bar {
+  border-bottom: 1px solid var(--border);
+}
+.cm-find-bar {
+  background: var(--bg-panel);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+}
+.fb {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px;
+}
+.fb-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.fb-field {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 0 1 420px;
+  min-width: 160px;
+  min-height: 26px;
+  padding: 1px 3px 1px 2px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+}
+.fb-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+.fb-field.error,
+.fb-field.error:focus-within {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+.fb-field > .find-toggle,
+.fb-field > .fb-icon {
+  margin-top: 1px;
+}
+.fb-input,
+.fb-input:focus {
+  flex: 1;
+  min-width: 60px;
+  min-height: 22px;
+  margin: 0;
+  padding: 3px 2px;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--fg-strong);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  line-height: 16px;
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+}
+.fb-field.multiline .fb-input {
+  overflow: auto;
+}
+.fb-history-button {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin-top: 1px;
+  padding: 0 2px 0 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.fb-history-button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.fb-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.fb-field > .fb-icon {
+  width: 22px;
+  height: 22px;
+}
+.fb-icon:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.fb-icon.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.fb-icon:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.fb-expand,
+.fb-indent {
+  width: 20px;
+  flex: none;
+  margin-top: 1px;
+}
+.fb-status {
+  min-width: 72px;
+  padding: 0 6px;
+  line-height: 26px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.fb-status.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+.fb-sep {
+  width: 1px;
+  height: 18px;
+  margin: 4px 2px 0;
+  background: var(--border);
+}
+.fb-spacer {
+  flex: 1;
+}
+.fb-button {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fb-button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+.fb-button:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.fb-history {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: -1px;
+  z-index: 5;
+  min-width: 220px;
+  max-width: 420px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+.fb-history-row {
+  padding: 3px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fb-history-row.active {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.fb-history-empty {
+  padding: 3px 10px;
+  color: var(--fg-muted);
+}
+/* The "In Selection" scope stays marked while the bar searches inside it. */
+.cm-findScope {
+  background: var(--accent-soft);
+}

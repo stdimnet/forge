@@ -1,0 +1,698 @@
+/* ---------- Settings applied to the workbench (see apply.ts) ---------- */
+:root[data-compact] {
+  --toolbar-h: 34px;
+  --statusbar-h: 22px;
+  --stripe-w: 34px;
+}
+:root[data-compact] .stripe-btn {
+  width: 26px;
+  height: 26px;
+}
+:root[data-hide-stripes] .tool-stripe {
+  display: none;
+}
+:root[data-no-caret-blink] .cm-cursorLayer {
+  animation: none !important;
+}
+:root[data-smooth-scroll] .cm-scroller {
+  scroll-behavior: smooth;
+}
+/* Appearance | Smooth scrolling: lists, trees and panels animate keyboard and reveal scrolls. */
+:root[data-smooth-lists] .tool-window-body,
+:root[data-smooth-lists] .tool-window-body *,
+:root[data-smooth-lists] [role="tree"],
+:root[data-smooth-lists] [role="listbox"],
+:root[data-smooth-lists] .set-body * {
+  scroll-behavior: smooth;
+}
+/* Appearance | Show tool window numbers: the Alt+<n> digit on stripe buttons. */
+.stripe-num {
+  display: none;
+}
+:root[data-tool-window-numbers] .stripe-num {
+  display: block;
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+:root:not([data-show-whitespace]) .cm-highlightSpace,
+:root:not([data-show-whitespace]) .cm-highlightTab {
+  background-image: none !important;
+}
+:root[data-no-caret-row] .cm-activeLine {
+  background-color: transparent !important;
+}
+:root[data-no-line-numbers] .cm-lineNumbers {
+  display: none !important;
+}
+
+/* ---------- Dialog content (the frame is shell/window/WindowFrame) ---------- */
+.set-dialog {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.set-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------- Sidebar: search + tree ---------- */
+.set-sidebar {
+  width: 248px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-toolbar);
+}
+.set-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 10px 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+}
+.set-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.set-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none !important;
+  padding: 0;
+  height: 100%;
+}
+.set-search-clear {
+  display: inline-flex;
+  color: var(--fg-muted);
+}
+.set-search-clear:hover {
+  color: var(--fg);
+}
+.set-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 6px 10px;
+}
+.set-tree-row {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding-right: 8px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  white-space: nowrap;
+}
+.set-tree-row:hover {
+  background: var(--bg-hover);
+}
+.set-tree-row.selected {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.set-tree-row.modified .set-tree-title {
+  color: var(--accent);
+}
+.set-tree-chevron {
+  display: inline-flex;
+  width: 16px;
+  flex-shrink: 0;
+  color: var(--fg-muted);
+}
+.set-tree-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.set-hl {
+  background: color-mix(in srgb, var(--warning) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* ---------- Main: header + page ---------- */
+.set-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+}
+.set-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 20px;
+}
+.set-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+.set-breadcrumb > span {
+  cursor: default;
+  white-space: nowrap;
+}
+.set-breadcrumb > span.last {
+  color: var(--fg-strong);
+}
+.set-breadcrumb-sep {
+  color: var(--fg-faint);
+}
+.set-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+  font-weight: 400;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.set-reset {
+  color: var(--accent);
+  white-space: nowrap;
+}
+.set-reset:hover {
+  text-decoration: underline;
+}
+.set-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 20px 20px;
+}
+.set-page {
+  max-width: 620px;
+}
+.set-empty {
+  padding: 16px 4px;
+  color: var(--fg-muted);
+}
+.set-group-page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 4px;
+}
+.set-link {
+  color: var(--accent);
+}
+.set-link:hover {
+  text-decoration: underline;
+}
+
+/* Sections: PHPStorm's titled separators */
+.set-section + .set-section {
+  margin-top: 14px;
+}
+.set-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.set-section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.set-section-body.indented {
+  padding-left: 16px;
+}
+
+/* Rows: each section is a two-column grid (label | control) so controls line up like
+   PHPStorm's forms; rows use subgrid so search hits can still highlight a whole row. */
+.set-section-body {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 12px;
+}
+.set-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: var(--radius-sm);
+}
+.set-row > * {
+  grid-column: 1 / -1;
+}
+.set-row.hit {
+  background: color-mix(in srgb, var(--warning) 9%, transparent);
+}
+.set-row.modified .set-label,
+.set-row.modified .set-check span {
+  color: var(--accent);
+}
+.set-line {
+  display: contents;
+}
+.set-line > .set-label {
+  grid-column: 1;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+}
+.set-line > :not(.set-label) {
+  grid-column: 2;
+  justify-self: start;
+}
+.set-line + .set-desc {
+  grid-column: 2;
+}
+.set-label {
+  min-width: 120px;
+}
+.set-label-block {
+  display: block;
+  margin-bottom: 6px;
+}
+.set-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  justify-self: start;
+}
+.set-check input,
+.plugin-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  box-shadow: none;
+}
+.set-indent {
+  padding-left: 23px;
+}
+.set-indent:empty {
+  display: none;
+}
+.set-desc {
+  margin-top: 2px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+.set-input {
+  height: 28px;
+  padding: 0 8px;
+}
+.set-input.invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+.set-select {
+  min-width: 200px;
+  padding-right: 4px;
+}
+.set-number {
+  width: 90px;
+}
+.set-text {
+  width: 100%;
+  max-width: 420px;
+}
+.set-line > .set-text {
+  justify-self: stretch;
+}
+.set-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+/* List editor */
+.set-list {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  max-width: 470px;
+}
+.set-list-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.set-list-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.set-list-toolbar .icon-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.set-list-items {
+  display: flex;
+  flex-direction: column;
+  min-height: 84px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 2px 0;
+}
+.set-list-item {
+  height: 24px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  box-shadow: none !important;
+}
+.set-list-item.selected {
+  background: var(--accent-soft);
+}
+.set-list-empty {
+  padding: 26px 0;
+  text-align: center;
+  color: var(--fg-faint);
+}
+
+/* Table editor (lists of tables, e.g. template delimiters) */
+.set-table-box {
+  max-width: 560px;
+}
+.set-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.set-table th {
+  padding: 4px 8px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border);
+}
+.set-table td {
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.set-table tbody tr {
+  cursor: default;
+}
+.set-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.set-table tbody tr.selected {
+  background: var(--accent-soft);
+}
+.set-table-mono {
+  font-family: var(--font-mono);
+}
+.set-delims-form {
+  max-width: 560px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.set-delims-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 6px 12px;
+}
+.set-delims-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.set-delims-input {
+  width: 110px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.set-delims-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.set-delims-actions .set-error {
+  margin-right: auto;
+}
+
+/* ---------- Footer ---------- */
+.set-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 14px 0 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.set-error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-footer-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.set-btn {
+  min-width: 76px;
+  justify-content: center;
+}
+.set-btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ---------- Plugins page ---------- */
+.plugins-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.set-content:has(.plugins-page) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.plugins-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.plugins-tab {
+  height: 30px;
+  padding: 0 10px;
+  border-bottom: 2px solid transparent;
+  color: var(--fg-muted);
+}
+.plugins-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.plugins-tab:disabled {
+  cursor: default;
+}
+.plugins-count {
+  margin-left: auto;
+  font-size: var(--fs-small);
+}
+.plugins-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+.plugins-list-pane {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.plugins-search {
+  margin: 8px;
+}
+.plugins-list {
+  flex: 1;
+  overflow: auto;
+  padding-bottom: 6px;
+}
+.plugins-group {
+  padding: 8px 12px 4px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+.plugin-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  cursor: default;
+}
+.plugin-item:hover {
+  background: var(--bg-hover);
+}
+.plugin-item.selected {
+  background: var(--accent-soft);
+}
+.plugin-item.disabled .plugin-item-name,
+.plugin-item.disabled .plugin-icon {
+  opacity: 0.5;
+}
+.plugin-item-text {
+  flex: 1;
+  min-width: 0;
+}
+.plugin-item-name {
+  color: var(--fg-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plugin-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+}
+.plugin-icon {
+  --pack: var(--fg-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: var(--pack);
+  background: color-mix(in srgb, var(--pack) 16%, transparent);
+}
+.plugin-icon.lg {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+.pack-badge {
+  --pack: var(--fg-muted);
+  padding: 0 6px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--pack);
+  background: color-mix(in srgb, var(--pack) 15%, transparent);
+}
+.pack-phpforge {
+  --pack: var(--syn-variable);
+}
+.pack-webforge {
+  --pack: var(--info);
+}
+.pack-luaforge {
+  --pack: var(--syn-type);
+}
+.pack-pyforge {
+  --pack: var(--syn-keyword);
+}
+.pack-goforge {
+  --pack: var(--info);
+}
+.pack-javaforge {
+  --pack: var(--danger);
+}
+.pack-kotlinforge {
+  --pack: var(--accent);
+}
+.pack-cforge {
+  --pack: var(--syn-function);
+}
+.pack-scriptforge {
+  --pack: var(--success);
+}
+.pack-configforge {
+  --pack: var(--warning);
+}
+.plugin-details {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 4px 2px;
+}
+.plugin-details-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.plugin-details-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  margin-bottom: 4px;
+}
+.plugin-details-actions {
+  margin: 14px 0 10px;
+}
+.plugin-details-desc {
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+.plugin-details-row {
+  margin-bottom: 8px;
+}
+.plugin-details-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-muted);
+  line-height: 1.7;
+}
+.plugins-note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: var(--fs-small);
+}
+/* The note about the packs Forge was started with sits above the list. */
+.plugins-profile-note {
+  margin: 0 0 10px;
+}

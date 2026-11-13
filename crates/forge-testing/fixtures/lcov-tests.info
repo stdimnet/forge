@@ -1,0 +1,20 @@
+TN:adds items
+SF:src/cart.js
+FN:1,2,addItem
+FN:3,4,clear
+FNDA:1,addItem
+FNDA:0,clear
+DA:1,1
+DA:2,1
+DA:3,0
+end_of_record
+TN:computes the total
+SF:src/cart.js
+FN:1,2,addItem
+FN:3,4,clear
+FNDA:1,addItem
+FNDA:0,clear
+DA:1,2
+DA:2,0
+DA:3,0
+end_of_record

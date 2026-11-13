@@ -1,0 +1,1091 @@
+# WebForge: HTML, CSS, JavaScript and TypeScript, npm, and the React, Vue.js and Angular
+# frameworks. Each table is one plugin. Logic lives in packs/webforge/*.
+
+[[plugin]]
+id = "forge.web"
+name = "HTML, CSS & JavaScript"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "HTML, CSS, JavaScript and TypeScript editing with language servers, npm scripts and package managers."
+projectTypes = ["webforge"]
+
+[plugin.contributions]
+languages = ["html", "css", "scss", "js", "mjs", "ts", "tsx", "jsx"]
+
+[[plugin.contributions.lspServers]]
+id = "typescript-language-server"
+languageId = "typescript"
+command = "typescript-language-server"
+args = ["--stdio"]
+fileExtensions = ["js", "mjs", "cjs", "jsx", "ts", "tsx"]
+
+[[plugin.contributions.lspServers]]
+id = "vscode-css-language-server"
+languageId = "css"
+command = "vscode-css-language-server"
+args = ["--stdio"]
+fileExtensions = ["css", "scss", "less"]
+
+[[plugin.contributions.lspServers]]
+id = "vscode-html-language-server"
+languageId = "html"
+command = "vscode-html-language-server"
+args = ["--stdio"]
+fileExtensions = ["html", "htm"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "npm"
+name = "npm"
+description = "Run a package.json script."
+icon = "package"
+debuggable = true
+
+[[plugin.contributions.toolWindows]]
+id = "npm"
+title = "npm"
+anchor = "left"
+icon = "hexagon"
+order = 30
+
+[[plugin.contributions.commands]]
+id = "npm.reload"
+title = "Reload npm Scripts"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "npm.install"
+title = "Install Dependencies"
+category = "Tools"
+
+# ---- Languages & Frameworks > Node.js -------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "web.packageManager"
+title = "Package manager"
+description = "Auto uses the packageManager field of package.json, else the lock file (pnpm-lock.yaml, yarn.lock, bun.lock, package-lock.json)."
+type = "enum"
+options = [
+  { value = "auto", label = "Auto (packageManager field or lock file)" },
+  { value = "npm", label = "npm" },
+  { value = "pnpm", label = "pnpm" },
+  { value = "yarn", label = "yarn" },
+  { value = "bun", label = "bun" },
+]
+default = "auto"
+group = "lang.node"
+section = "Package Manager"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "web.npm.gutterIcons"
+title = "Show run icons next to scripts in package.json"
+type = "bool"
+default = true
+group = "lang.node"
+section = "npm Scripts"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "web.npm.debugArguments"
+title = "Node options when debugging scripts"
+description = "Set as NODE_OPTIONS for Debug; attach Chrome DevTools or another inspector client to the port."
+type = "string"
+default = "--inspect"
+group = "lang.node"
+section = "npm Scripts"
+order = 11
+
+# ---- Languages & Frameworks > TypeScript ----------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "web.navigation.components"
+title = "Navigate from JSX and template tags to components, props and events"
+description = "Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked."
+type = "bool"
+default = true
+group = "lang.typescript"
+section = "Frameworks"
+order = 0
+
+# ---- Tools > Actions on Save (JavaScript tools) -----------------------------------------
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.eslint"
+title = "Run eslint --fix"
+description = "Fix ESLint problems in saved files that match ESLint's Run for files patterns."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 40
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.biome"
+title = "Run biome check --write"
+description = "Fix and format saved files where Biome is configured."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 38
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.stylelint"
+title = "Run stylelint --fix"
+description = "Fix Stylelint problems in saved CSS, SCSS, Less and Vue files."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 45
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.prettier.enabled"
+title = "Run Prettier"
+description = "Run `prettier --write` on saved files that match Prettier's Run for files patterns."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 50
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.prettier.files"
+title = "Run for files"
+description = "Patterns separated by `;`; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro"
+group = "tools.actions-on-save"
+project = true
+order = 51
+
+# ---- Languages & Frameworks > JavaScript > Code Quality Tools (ESLint, Prettier, Stylelint, Biome)
+[[plugin.contributions.settings]]
+key = "web.tools.onTheFly"
+title = "Run inspections on the fly"
+description = "Check the edited file while you type (after a short pause) with ESLint, Stylelint and Biome. They also check a file when it is opened and saved."
+type = "bool"
+default = true
+group = "lang.web.quality-tools"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "web.tools.timeout"
+title = "Timeout (seconds)"
+description = "Longer runs are stopped (Inspect Code: at least 300 seconds)."
+type = "int"
+min = 1
+max = 3600
+default = 30
+group = "lang.web.quality-tools"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "web.eslint.mode"
+title = "ESLint"
+description = "Automatic: node_modules/eslint nearest to the file, for files below a configuration file (eslint.config.* or .eslintrc*). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "web.eslint.path"
+title = "ESLint package"
+description = "Manual: the package folder (node_modules/eslint) or an executable; relative paths start at the project root. Empty: node_modules/eslint nearest to the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 11
+
+[[plugin.contributions.settings]]
+key = "web.eslint.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 12
+
+[[plugin.contributions.settings]]
+key = "web.eslint.workingDirectories"
+title = "Working directories"
+description = "Manual: folders separated by `;`. ESLint runs in the deepest one holding the file. Empty: the folder of the nearest configuration file."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 13
+
+[[plugin.contributions.settings]]
+key = "web.eslint.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 14
+
+[[plugin.contributions.settings]]
+key = "web.eslint.files"
+title = "Run for files"
+description = "Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}"
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 15
+
+[[plugin.contributions.settings]]
+key = "web.prettier.mode"
+title = "Prettier"
+description = "Automatic: node_modules/prettier nearest to the file, for files below a configuration file (.prettierrc*, prettier.config.* or the prettier key of package.json). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 20
+
+[[plugin.contributions.settings]]
+key = "web.prettier.path"
+title = "Prettier package"
+description = "Manual: the package folder (node_modules/prettier) or an executable; relative paths start at the project root. Empty: node_modules/prettier nearest to the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 21
+
+[[plugin.contributions.settings]]
+key = "web.prettier.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 22
+
+[[plugin.contributions.settings]]
+key = "web.prettier.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 24
+
+[[plugin.contributions.settings]]
+key = "web.prettier.onReformat"
+title = "Run on Reformat Code action"
+description = "Reformat Code (Ctrl+Alt+L) formats matching files with Prettier instead of the built-in formatter."
+type = "bool"
+default = false
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 26
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.mode"
+title = "Stylelint"
+description = "Automatic: node_modules/stylelint nearest to the file, for files below a configuration file (stylelint.config.* or .stylelintrc*). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.path"
+title = "Stylelint package"
+description = "Manual: the package folder (node_modules/stylelint) or an executable; relative paths start at the project root. Empty: node_modules/stylelint nearest to the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 31
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 32
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 34
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.files"
+title = "Run for files"
+description = "Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "{**/*,*}.{css,scss,less,vue}"
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 35
+
+[[plugin.contributions.settings]]
+key = "web.biome.mode"
+title = "Biome"
+description = "Automatic: node_modules/@biomejs/biome nearest to the file, for files below a configuration file (biome.json or biome.jsonc). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 40
+
+[[plugin.contributions.settings]]
+key = "web.biome.path"
+title = "Biome package"
+description = "Manual: the package folder (node_modules/@biomejs/biome) or an executable; relative paths start at the project root. Empty: node_modules/@biomejs/biome nearest to the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 41
+
+[[plugin.contributions.settings]]
+key = "web.biome.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 42
+
+[[plugin.contributions.settings]]
+key = "web.biome.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 44
+
+[[plugin.contributions.settings]]
+key = "web.biome.files"
+title = "Run for files"
+description = "Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "{**/*,*}.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,jsonc,css}"
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 45
+
+[[plugin.contributions.settings]]
+key = "web.biome.onReformat"
+title = "Run on Reformat Code action"
+description = "Reformat Code (Ctrl+Alt+L) formats matching files with Biome instead of the built-in formatter."
+type = "bool"
+default = false
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 46
+
+[[plugin.contributions.settings]]
+key = "web.biome.priority"
+title = "Prefer Biome over ESLint and Prettier"
+description = "Where Biome is configured, it checks, fixes and formats its file types and ESLint and Prettier do not."
+type = "bool"
+default = true
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 47
+
+# ---- Inspections: the web code quality tools' problems -----------------------------------
+
+[[plugin.contributions.inspections]]
+id = "Eslint"
+name = "ESLint"
+group = "JavaScript and TypeScript/Code quality tools"
+language = "javascript"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by ESLint (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity."
+
+[[plugin.contributions.inspections]]
+id = "Stylelint"
+name = "Stylelint"
+group = "CSS/Code quality tools"
+language = "css"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by Stylelint (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity."
+
+[[plugin.contributions.inspections]]
+id = "Biome"
+name = "Biome"
+group = "JavaScript and TypeScript/Code quality tools"
+language = "javascript"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by Biome (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity."
+
+[[plugin.contributions.inspectionMappings]]
+source = "ESLint"
+inspection = "Eslint"
+
+[[plugin.contributions.inspectionMappings]]
+source = "Stylelint"
+inspection = "Stylelint"
+
+[[plugin.contributions.inspectionMappings]]
+source = "Biome"
+inspection = "Biome"
+
+# ---- Editor > General > Auto Import (JavaScript and TypeScript) --------------------------
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.addOnTheFly"
+title = "Add unambiguous imports on the fly"
+description = "Import names the TypeScript server can resolve to exactly one module after you stop typing."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.optimizeOnTheFly"
+title = "Optimize imports on the fly"
+description = "Remove unused imports while you edit, but not on the lines you are editing."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.showPopup"
+title = "Show import popup"
+description = "Show a hint with the module to import from on unresolved names; press Alt+Enter to import."
+type = "bool"
+default = true
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.pathStyle"
+title = "Use paths relative to"
+description = "How completion and Auto Import write the module path of a new import."
+type = "enum"
+options = [
+  { value = "shortest", label = "Shortest path" },
+  { value = "project-relative", label = "Project root (or path mapping)" },
+  { value = "relative", label = "Current file" },
+  { value = "non-relative", label = "Module (non-relative)" },
+]
+default = "shortest"
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 13
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.typeImports"
+title = "Use type imports in TypeScript"
+description = "Import types with 'import type' when nothing else is imported from the module."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 14
+
+[[plugin]]
+id = "forge.react"
+name = "React"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "JSX components and props: navigation from tags to components and from components to their usages."
+projectTypes = ["react", "next"]
+
+[[plugin]]
+id = "forge.vue"
+name = "Vue.js"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Single-file components via the Vue language server, with navigation to components, props and emits."
+projectTypes = ["vue", "nuxt"]
+
+[plugin.contributions]
+languages = ["vue"]
+
+[[plugin.contributions.lspServers]]
+id = "vue-language-server"
+languageId = "vue"
+command = "vue-language-server"
+args = ["--stdio"]
+fileExtensions = ["vue"]
+
+[[plugin]]
+id = "forge.angular"
+name = "Angular"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Components, directives and pipes: selector, binding and pipe navigation, template and style line markers."
+projectTypes = ["angular"]
+
+[[plugin.contributions.lspServers]]
+id = "ngserver"
+languageId = "html"
+command = "ngserver"
+args = ["--stdio"]
+fileExtensions = ["html"]
+
+[[plugin.contributions.settings]]
+key = "angular.gutterIcons"
+title = "Show line markers between components, templates and styles"
+type = "bool"
+default = true
+group = "lang.typescript"
+section = "Angular"
+order = 10
+
+# ---- JavaScript debugger (js-debug over the Debug Adapter Protocol) ----------------------
+# Microsoft's js-debug (MIT) is downloaded on first use, with consent, from its GitHub
+# release (pinned version, SHA-256 checked) and runs on Node.js. The adapters pwa-node,
+# pwa-chrome and pwa-msedge are registered in Rust (packs/webforge/js-debug).
+
+[[plugin]]
+id = "forge.js-debugger"
+name = "JavaScript Debugger"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web", "forge.debugger"]
+description = "Debug Node.js programs, npm scripts, tests and pages in Chrome or Edge with js-debug: breakpoints in TypeScript through source maps, attach to Node.js and Chrome."
+projectTypes = ["webforge"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "node"
+name = "Node.js"
+description = "Run a JavaScript or TypeScript file with Node.js; Debug starts it under js-debug."
+icon = "hexagon"
+debuggable = true
+command = ["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]
+defaultInterpreter = "node"
+interpreterSetting = "web.node.interpreter"
+fields = [
+  { key = "file", label = "JavaScript file", kind = "path", required = true },
+]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "javascript-debug"
+name = "JavaScript Debug"
+description = "Open a URL in Chrome or Edge; Debug launches the browser under js-debug."
+icon = "globe"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "js-attach"
+name = "Attach to Node.js/Chrome"
+description = "Attach the debugger to a Node.js process started with --inspect or a browser with remote debugging."
+icon = "plug"
+debuggable = true
+
+[[plugin.contributions.commands]]
+id = "jsDebug.install"
+title = "Download JavaScript Debugger (js-debug)"
+category = "Run"
+
+[[plugin.contributions.settings]]
+key = "web.node.interpreter"
+title = "Node interpreter"
+description = "Runs Node.js configurations, test runners and the JavaScript debugger. Empty: node on the PATH, else the Node.js Forge downloaded. Enter bun (or the path of a bun executable) to run them with Bun instead."
+type = "path"
+default = ""
+group = "lang.node"
+section = "Node Interpreter"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "web.jsDebug.path"
+title = "js-debug folder"
+description = "A js-debug DAP server you unpacked yourself (the folder with src/dapDebugServer.js). Empty: the version Forge downloads."
+type = "path"
+default = ""
+group = "lang.node"
+section = "JavaScript Debugger"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "web.jsDebug.browser"
+title = "Browser for JavaScript Debug"
+description = "Auto picks the first installed of Chrome, Edge and Chromium."
+type = "enum"
+options = [
+  { value = "auto", label = "Auto (first installed)" },
+  { value = "chrome", label = "Google Chrome" },
+  { value = "edge", label = "Microsoft Edge" },
+  { value = "chromium", label = "Chromium" },
+]
+default = "auto"
+group = "lang.node"
+section = "JavaScript Debugger"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "web.jsDebug.skipFiles"
+title = "Do not step into"
+description = "Glob patterns of scripts the debugger steps over, separated by `;` (`<node_internals>/**` are Node.js' own modules)."
+type = "string"
+default = "<node_internals>/**"
+group = "lang.node"
+section = "JavaScript Debugger"
+order = 22
+
+# ---- Node.js test runners on the shared test runner (forge-testing) --------------------
+# Each runner's CLI script runs with Node.js (packs/webforge/js-testing wraps these specs):
+# gutter icons on describe/it/test, a run configuration type, the test tree from the
+# runner's report, Rerun Failed Tests, Run with Coverage (LCOV) and Debug through js-debug.
+
+[[plugin]]
+id = "forge.js-testing"
+name = "JavaScript Test Runners"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Jest, Vitest, Mocha, Playwright Test, Cypress and node --test: gutter icons, the test tree, Rerun Failed Tests, coverage and Debug."
+projectTypes = ["webforge"]
+
+[[plugin.contributions.commands]]
+id = "playwright.showReport"
+title = "Show Playwright Report"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "cypress.open"
+title = "Open Cypress"
+category = "Tools"
+
+[[plugin.contributions.testFrameworks]]
+id = "playwright"
+name = "Playwright"
+description = "Run Playwright tests: all tests, a directory, a file, a test or describe block, or a title pattern."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["playwright.config.ts", "playwright.config.js", "playwright.config.mts", "playwright.config.mjs"], dependencies = [{ file = "package.json", contains = "\"@playwright/test\"" }] }
+testFiles = ["*.spec.ts", "*.spec.js", "*.spec.mts", "*.spec.mjs", "*.test.ts", "*.test.js", "e2e/**/*.ts", "e2e/**/*.js"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["test", "--reporter=list,json"]
+report = "jUnitFile"
+nameSeparator = " "
+rerun = { join = "|" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Playwright package", kind = "path", placeholder = "node_modules/@playwright/test" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "playwright.config.ts" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--grep=${testPattern}"]
+pattern = ["--grep=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "cypress"
+name = "Cypress"
+description = "Run Cypress specs headlessly: all specs, a directory, a spec file, or tests by name with @cypress/grep."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["cypress.config.ts", "cypress.config.js", "cypress.config.mjs", "cypress.config.cjs", "cypress.json"], dependencies = [{ file = "package.json", contains = "\"cypress\"" }] }
+testFiles = ["*.cy.ts", "*.cy.js", "*.cy.tsx", "*.cy.jsx", "cypress/e2e/**/*.ts", "cypress/e2e/**/*.js", "cypress/integration/**/*.js"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["run", "--reporter", "junit", "--reporter-options", "mochaFile=${reportDir}/cypress-[hash].xml"]
+report = "jUnitFile"
+nameSeparator = " "
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "package", label = "Cypress package", kind = "path", placeholder = "node_modules/cypress" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "cypress.config.ts" },
+  { key = "browser", label = "Browser", placeholder = "electron, chrome, edge, firefox" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["--spec", "${directory}/**/*"]
+file = ["--spec", "${file}"]
+test = ["--spec", "${file}", "--env", "grep=${test}"]
+pattern = ["--env", "grep=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "vitest"
+name = "Vitest"
+description = "Run Vitest tests: all tests, a directory, a file, a test or describe block, or a name pattern."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs", "vitest.config.cts", "vitest.config.cjs", "vitest.workspace.ts", "vitest.workspace.js"], dependencies = [{ file = "package.json", contains = "\"vitest\"" }] }
+testFiles = ["*.test.ts", "*.test.tsx", "*.test.js", "*.test.jsx", "*.test.mts", "*.test.mjs", "*.test.cts", "*.test.cjs", "*.spec.ts", "*.spec.tsx", "*.spec.js", "*.spec.jsx", "*.spec.mts", "*.spec.mjs"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["run", "--reporter=default", "--reporter=json", "--outputFile.json=${reportDir}/vitest.json"]
+report = "jUnitFile"
+nameSeparator = " "
+rerun = { join = "|" }
+coverage = { args = ["--coverage.enabled=true", "--coverage.reporter=json", "--coverage.reportsDirectory=${coverageFile}"], file = "${coverageFile}/coverage-final.json", format = "istanbulJson" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Vitest package", kind = "path", placeholder = "node_modules/vitest" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "vitest.config.ts" },
+  { key = "coverageProvider", label = "Coverage provider", kind = "enum", default = "", options = [
+    { value = "", label = "From the configuration file" },
+    { value = "v8", label = "v8 (@vitest/coverage-v8)" },
+    { value = "istanbul", label = "istanbul (@vitest/coverage-istanbul)" },
+  ] },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--testNamePattern=^${testPattern}"]
+pattern = ["--testNamePattern=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "jest"
+name = "Jest"
+description = "Run Jest tests: all tests, a directory, a file, a test or describe block, or a name pattern."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["jest.config.js", "jest.config.ts", "jest.config.mjs", "jest.config.cjs", "jest.config.json"], dependencies = [{ file = "package.json", contains = "\"jest\"" }] }
+testFiles = ["*.test.js", "*.test.jsx", "*.test.ts", "*.test.tsx", "*.test.mjs", "*.test.cjs", "*.spec.js", "*.spec.jsx", "*.spec.ts", "*.spec.tsx", "*.spec.mjs", "*.spec.cjs", "__tests__/**/*.js", "__tests__/**/*.jsx", "__tests__/**/*.ts", "__tests__/**/*.tsx"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["--json", "--outputFile=${reportDir}/jest.json", "--testLocationInResults"]
+report = "jUnitFile"
+nameSeparator = " "
+rerun = { join = "|" }
+coverage = { args = ["--coverage", "--coverageReporters=json", "--coverageDirectory=${coverageFile}"], file = "${coverageFile}/coverage-final.json", format = "istanbulJson" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Jest package", kind = "path", placeholder = "node_modules/jest" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "jest.config.ts" },
+  { key = "coverageProvider", label = "Coverage provider", kind = "enum", default = "", options = [
+    { value = "", label = "From the configuration file" },
+    { value = "babel", label = "babel (Istanbul instrumentation)" },
+    { value = "v8", label = "v8" },
+  ] },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--testNamePattern=^${testPattern}"]
+pattern = ["--testNamePattern=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "mocha"
+name = "Mocha"
+description = "Run Mocha tests: all tests, a directory, a file, a test or describe block, or a grep pattern; coverage through c8 or nyc."
+icon = "flask-conical"
+language = "javascript"
+detect = { files = [".mocharc.js", ".mocharc.cjs", ".mocharc.mjs", ".mocharc.json", ".mocharc.jsonc", ".mocharc.yml", ".mocharc.yaml"], dependencies = [{ file = "package.json", contains = "\"mocha\"" }] }
+testFiles = ["test/**/*.js", "test/**/*.mjs", "test/**/*.cjs", "test/**/*.ts", "*.spec.js", "*.spec.ts", "*.spec.mjs", "*.test.js", "*.test.ts", "*.test.mjs"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["--reporter=tap"]
+report = "tap"
+nameSeparator = " "
+rerun = { join = "|", template = "^(?:${names})$" }
+coverage = { file = "${coverageFile}/lcov.info", format = "lcov" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Mocha package", kind = "path", placeholder = "node_modules/mocha" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = ".mocharc.yml" },
+  { key = "coverageTool", label = "Coverage tool", kind = "enum", default = "c8", options = [
+    { value = "c8", label = "c8 (V8 coverage)" },
+    { value = "nyc", label = "nyc (Istanbul)" },
+  ] },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}", "--recursive"]
+file = ["${file}"]
+test = ["${file}", "--grep=^${testPattern}"]
+pattern = ["--grep=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "node-test"
+name = "Node.js Test Runner"
+description = "Run node --test: all tests, a file, a test or a name pattern; coverage with Node's LCOV reporter."
+icon = "flask-conical"
+language = "javascript"
+detect = { dependencies = [{ file = "package.json", contains = "node --test" }] }
+testFiles = ["*.test.js", "*.test.mjs", "*.test.cjs", "*.test.ts", "*.test.mts", "test/**/*.js", "test/**/*.mjs"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["--test", "--test-reporter=tap"]
+report = "tap"
+nameSeparator = " "
+rerun = { join = "|" }
+coverage = { args = ["--experimental-test-coverage", "--test-reporter-destination=stdout", "--test-reporter=lcov", "--test-reporter-destination=${coverageFile}.info"], file = "${coverageFile}.info", format = "lcov" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+file = ["${file}"]
+test = ["${file}", "--test-name-pattern=^${testPattern}"]
+pattern = ["--test-name-pattern=${pattern}"]
+
+# ---- Web tooling (packs/webforge/web-tooling) -----------------------------------------------
+
+[[plugin]]
+id = "forge.graphql"
+name = "GraphQL"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "GraphQL files: highlighting, validation and completion against the project's schema (SDL files or introspection), graphql.config files and GRAPHQL requests in the HTTP client."
+
+[[plugin.contributions.commands]]
+id = "GraphQL.Introspect"
+title = "Get GraphQL Schema from Endpoint"
+category = "Tools"
+
+[[plugin.contributions.settings]]
+key = "graphql.validation"
+title = "Check queries against the schema"
+type = "bool"
+default = true
+group = "lang.graphql"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "graphql.endpoint"
+title = "Introspection endpoint"
+description = "URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint."
+type = "string"
+default = ""
+group = "lang.graphql"
+project = true
+order = 1
+
+[[plugin]]
+id = "forge.openapi"
+name = "OpenAPI Specifications"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "OpenAPI 3 and Swagger 2 files: validation with the bundled official schemas, endpoints in the Endpoints tool window, a native Swagger-UI-like preview and Generate HTTP Request."
+
+[[plugin.contributions.commands]]
+id = "OpenAPI.GenerateHttpRequest"
+title = "Generate HTTP Request"
+category = "Tools"
+
+[[plugin.contributions.settings]]
+key = "openapi.preview"
+title = "Show the preview next to OpenAPI files"
+type = "bool"
+default = true
+group = "lang.openapi"
+order = 0
+
+[[plugin]]
+id = "forge.prisma"
+name = "Prisma"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "Prisma schema files: highlighting, the Prisma language server and prisma generate / migrate actions."
+projectTypes = ["prisma"]
+
+[[plugin.contributions.commands]]
+id = "Prisma.Generate"
+title = "Prisma: Generate Client"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "Prisma.MigrateDev"
+title = "Prisma: Migrate Dev…"
+category = "Tools"
+
+[[plugin]]
+id = "forge.nx"
+name = "Nx"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "Nx workspaces: projects, targets and the project graph in the Nx tool window, targets as run configurations and in Run Anything."
+projectTypes = ["nx"]
+
+[[plugin.contributions.toolWindows]]
+id = "nx"
+title = "Nx"
+anchor = "left"
+icon = "network"
+order = 32
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "nx"
+name = "Nx"
+description = "Run an Nx target (nx run project:target)."
+icon = "network"
+
+[[plugin]]
+id = "forge.deno"
+name = "Deno"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "Deno projects (deno.json): deno lsp instead of the TypeScript server, deno tasks, and Deno run configurations."
+projectTypes = ["deno"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "deno"
+name = "Deno"
+description = "Run a script with deno run, a task with deno task, or deno test."
+icon = "feather"
+defaultInterpreter = "deno"
+interpreterSetting = "deno.executable"
+command = ["${interpreter}", "${command}", "${interpreterOptions}", "${file}", "${arguments}"]
+
+[[plugin.contributions.runConfigurationTypes.fields]]
+key = "command"
+label = "Command"
+kind = "string"
+required = true
+
+[[plugin.contributions.runConfigurationTypes.fields]]
+key = "file"
+label = "Script or task"
+kind = "string"
+
+[[plugin.contributions.settings]]
+key = "deno.executable"
+title = "Deno executable"
+type = "string"
+default = "deno"
+group = "lang.deno"
+order = 0
+
+[[plugin]]
+id = "forge.bun"
+name = "Bun"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "Bun projects (bun.lock, bunfig.toml): bun run and bun test run configurations, and Bun as the JavaScript runtime."
+projectTypes = ["bun"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "bun"
+name = "Bun"
+description = "Run a file or package.json script with bun run, or tests with bun test."
+icon = "croissant"
+defaultInterpreter = "bun"
+interpreterSetting = "bun.executable"
+command = ["${interpreter}", "${command}", "${interpreterOptions}", "${file}", "${arguments}"]
+
+[[plugin.contributions.runConfigurationTypes.fields]]
+key = "command"
+label = "Command"
+kind = "string"
+required = true
+
+[[plugin.contributions.runConfigurationTypes.fields]]
+key = "file"
+label = "File or script"
+kind = "string"
+
+[[plugin.contributions.settings]]
+key = "bun.executable"
+title = "Bun executable"
+type = "string"
+default = "bun"
+group = "lang.bun"
+order = 0

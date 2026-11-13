@@ -1,0 +1,114 @@
+[package]
+name = "forge-wasm"
+description = "WebAssembly build of Forge's pure Rust logic for the browser-mode UI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+forge-runtargets.workspace = true
+regex-lite = "0.1"
+forge-sql.workspace = true
+forge-dataedit.workspace = true
+forge-dbmodel.workspace = true
+forge-dbschema.workspace = true
+forge-sqlcode.workspace = true
+forge-dbtransfer.workspace = true
+forge-markdown.workspace = true
+forge-viewers.workspace = true
+base64 = "0.22"
+forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
+forge-ai-editor.workspace = true
+forge-mcp = { workspace = true, default-features = false }
+phpforge-dql = { path = "../../packs/phpforge/dql" }
+phpforge-composer = { path = "../../packs/phpforge/composer" }
+phpforge-interpreters = { path = "../../packs/phpforge/interpreters" }
+phpforge-cli-tools = { path = "../../packs/phpforge/cli-tools" }
+phpforge-fw-wordpress.workspace = true
+phpforge-fw-cms.workspace = true
+phpforge-test-frameworks = { path = "../../packs/phpforge/test-frameworks" }
+luaforge-lang-lua.workspace = true
+webforge-js-testing.workspace = true
+pyforge-lang-python.workspace = true
+pyforge-interpreters.workspace = true
+pyforge-packages.workspace = true
+goforge-lang-go.workspace = true
+goforge-pprof.workspace = true
+forge-profiler.workspace = true
+rustforge-lang-rust.workspace = true
+rubyforge-lang-ruby.workspace = true
+rubyforge-fw-rails.workspace = true
+dotnetforge-lang-dotnet.workspace = true
+pyforge-testing.workspace = true
+pyforge-frameworks.workspace = true
+pyforge-jupyter.workspace = true
+javaforge-build.workspace = true
+javaforge-lang-java.workspace = true
+javaforge-fw-spring.workspace = true
+kotlinforge-lang-kotlin.workspace = true
+cforge-cmake.workspace = true
+cforge-lang-cpp.workspace = true
+cforge-analyzers.workspace = true
+cforge-embedded.workspace = true
+javaforge-lang-groovy.workspace = true
+javaforge-lang-scala.workspace = true
+javaforge-android.workspace = true
+javaforge-minecraft.workspace = true
+forge-keymap.workspace = true
+forge-i18n.workspace = true
+forge-vim.workspace = true
+forge-vcs = { path = "../forge-vcs", default-features = false }
+forge-livetemplates.workspace = true
+forge-injections.workspace = true
+forge-emmet.workspace = true
+forge-colors.workspace = true
+forge-colorscheme.workspace = true
+forge-spell.workspace = true
+forge-jsonschema.workspace = true
+forge-vulns.workspace = true
+wasm-bindgen = "=0.2.129"
+forge-fuzzy.workspace = true
+forge-find.workspace = true
+forge-scopes.workspace = true
+forge-inspections.workspace = true
+forge-diff.workspace = true
+forge-ssr = { path = "../forge-ssr", default-features = false }
+forge-search-core.workspace = true
+forge-bookmarks.workspace = true
+forge-localhistory.workspace = true
+forge-codeintel.workspace = true
+forge-filetypes.workspace = true
+forge-icons.workspace = true
+forge-maintenance.workspace = true
+forge-text.workspace = true
+forge-codestyle.workspace = true
+forge-save-actions.workspace = true
+forge-editing.workspace = true
+forge-file-templates.workspace = true
+forge-plugin-api.workspace = true
+forge-plugins.workspace = true
+forge-window.workspace = true
+forge-scratches.workspace = true
+forge-containers = { path = "../forge-containers", default-features = false }
+forge-remote = { path = "../forge-remote", default-features = false }
+forge-devenv = { path = "../forge-devenv", default-features = false }
+forge-deploy = { path = "../forge-deploy", default-features = false }
+webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features = false }
+webforge-fw-react = { path = "../../packs/webforge/fw-react" }
+webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
+webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
+webforge-web-tooling.workspace = true
+
+# apollo-compiler (GraphQL) hashes with ahash, whose random seeds need getrandom's
+# JavaScript backend in the browser.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom_03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }

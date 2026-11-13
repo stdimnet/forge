@@ -1,0 +1,662 @@
+//! A project folder on this machine.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
+
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, SourceFile, Workspace,
+};
+use forge_lsp::{LocalLauncher, ServerLauncher};
+use forge_process::{CommandLine, PtyOptions, PtySession, PtySink, RunSink, RunningProcess};
+use forge_project::ProjectInfo;
+#[cfg(feature = "search")]
+pub use forge_search::IndexOptions;
+#[cfg(feature = "search")]
+use forge_search::SearchService;
+use forge_vcs::{GitExec, LocalGit, Repo};
+#[cfg(feature = "search")]
+use std::sync::OnceLock;
+
+use crate::frameworks::{FrameworkCall, LocalFrameworks};
+use crate::langservers::{
+    self, InstallRequest, InstallSink, LangServersAnswer, LangServersRequest, LocalLangServers,
+};
+use crate::php::LocalPhp;
+use crate::web::{LocalWeb, WebCall};
+use crate::{
+    folder_name, Backend, BackendInfo, FsSink, PhpBackend, Process, SearchStatus, SymbolHit,
+    Terminal, TerminalSpec, WatchGuard,
+};
+use forge_core::ForgeError;
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
+
+/// Serves a local folder: the desktop app's own projects, and the Forge agent on a remote
+/// host.
+pub struct LocalBackend {
+    info: BackendInfo,
+    workspace: Workspace,
+    php: Arc<LocalPhp>,
+    #[cfg(feature = "search")]
+    /// Set once the background thread has loaded the saved index; `None` when indexing is off.
+    search: Option<Arc<OnceLock<Arc<SearchService>>>>,
+    frameworks: LocalFrameworks,
+    langservers: LocalLangServers,
+    web: LocalWeb,
+}
+
+impl LocalBackend {
+    /// Open `root` (must be an existing directory; symlinks are resolved).
+    pub fn open(root: impl AsRef<Path>) -> Result<Self> {
+        let workspace = Workspace::open(root)?;
+        let root = workspace.root().to_path_buf();
+        Ok(Self {
+            info: BackendInfo {
+                name: folder_name(&root),
+                root: root.clone(),
+                remote: None,
+                collab: None,
+            },
+            php: Arc::new(LocalPhp::new(workspace.clone())),
+            frameworks: LocalFrameworks::new(workspace.clone()),
+            langservers: LocalLangServers::default(),
+            web: LocalWeb::new(&root),
+            workspace,
+            #[cfg(feature = "search")]
+            search: None,
+        })
+    }
+
+    /// Keep a persistent search index of the project: built in the background, kept current by
+    /// [`Backend::watch`]. Until it covers the project, searches walk the directory instead.
+    #[cfg(feature = "search")]
+    pub fn with_search_index(mut self, options: IndexOptions) -> Self {
+        let root = self.root().to_path_buf();
+        let excludes = self.workspace.excludes().clone();
+        let slot = Arc::new(OnceLock::new());
+        let filler = slot.clone();
+        std::thread::spawn(move || {
+            let service = Arc::new(
+                SearchService::open_with(&root, SearchService::cache_path(&root), options)
+                    .with_excludes(excludes),
+            );
+            let _ = filler.set(service.clone());
+            service.refresh();
+        });
+        self.search = Some(slot);
+        self
+    }
+
+    #[cfg(feature = "search")]
+    fn service(&self) -> Option<&Arc<SearchService>> {
+        self.search.as_ref()?.get()
+    }
+
+    #[cfg(feature = "search")]
+    fn index(&self) -> Option<&Arc<SearchService>> {
+        self.service().filter(|s| s.ready())
+    }
+
+    pub fn workspace(&self) -> &Workspace {
+        &self.workspace
+    }
+
+    pub fn root(&self) -> &Path {
+        self.workspace.root()
+    }
+}
+
+/// Unmark entries that are tracked: a file listed in `tracked`, or a folder with tracked
+/// files below it. Ignoring only applies to untracked content.
+pub fn clear_tracked(entries: &mut [FileEntry], tracked: &[String]) {
+    for e in entries.iter_mut().filter(|e| e.ignored) {
+        let prefix = format!("{}/", e.path);
+        e.ignored = !tracked
+            .iter()
+            .any(|t| t == &e.path || t.starts_with(&prefix));
+    }
+}
+
+struct LocalTerminal {
+    session: PtySession,
+    cwd: PathBuf,
+}
+
+impl Terminal for LocalTerminal {
+    fn shell(&self) -> String {
+        self.session.shell().to_string()
+    }
+    fn cwd(&self) -> PathBuf {
+        self.cwd.clone()
+    }
+    fn write(&self, data: &[u8]) -> Result<()> {
+        self.session.write(data)
+    }
+    fn resize(&self, cols: u16, rows: u16) -> Result<()> {
+        self.session.resize(cols, rows)
+    }
+    fn kill(&self) -> Result<()> {
+        self.session.kill()
+    }
+    fn foreground_process(&self) -> Option<String> {
+        self.session.foreground_process()
+    }
+}
+
+impl Process for RunningProcess {
+    fn write_stdin(&self, data: &[u8]) -> Result<()> {
+        RunningProcess::write_stdin(self, data)
+    }
+    fn close_stdin(&self) -> Result<()> {
+        RunningProcess::close_stdin(self);
+        Ok(())
+    }
+    fn kill(&self, grace: Duration) {
+        RunningProcess::kill(self, grace)
+    }
+}
+
+impl Backend for LocalBackend {
+    fn info(&self) -> &BackendInfo {
+        &self.info
+    }
+
+    fn resolve(&self, rel: &str) -> Result<PathBuf> {
+        self.workspace.resolve(rel)
+    }
+
+    fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>> {
+        let mut entries = self.workspace.list_dir(rel)?;
+        let candidates: Vec<String> = entries
+            .iter()
+            .filter(|e| e.ignored)
+            .map(|e| e.path.clone())
+            .collect();
+        if !candidates.is_empty() {
+            // Files git tracks keep their VCS status even when a pattern matches them, so
+            // they must not be grayed out (`git add -f`, files ignored after being committed).
+            let tracked = Repo::open(self.root())
+                .and_then(|r| r.tracked_among(&candidates))
+                .unwrap_or_default();
+            clear_tracked(&mut entries, &tracked);
+        }
+        Ok(entries)
+    }
+
+    fn read_file(&self, rel: &str) -> Result<String> {
+        self.workspace.read_file(rel)
+    }
+
+    fn read_optional(&self, rel: &str) -> Result<Option<String>> {
+        if self.workspace.resolve(rel)?.is_file() {
+            self.workspace.read_file(rel).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn write_file(&self, rel: &str, contents: &str) -> Result<()> {
+        self.workspace.write_file(rel, contents)
+    }
+
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        self.workspace.read_bytes(rel)
+    }
+
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        self.workspace.write_bytes(rel, bytes)
+    }
+
+    fn create_file(&self, rel: &str) -> Result<()> {
+        self.workspace.create_file(rel)
+    }
+
+    fn create_dir(&self, rel: &str) -> Result<()> {
+        self.workspace.create_dir(rel)
+    }
+
+    fn rename(&self, from: &str, to: &str) -> Result<()> {
+        self.workspace.rename(from, to)
+    }
+
+    fn delete(&self, rel: &str) -> Result<()> {
+        self.workspace.delete(rel)
+    }
+
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return Ok(index.find_ranked(query, limit, exact));
+        }
+        self.workspace.find_files_with(
+            query,
+            limit,
+            forge_core::MatchOptions {
+                strict: false,
+                exact,
+                typo: !exact,
+            },
+        )
+    }
+
+    fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return index.find_text(req);
+        }
+        self.workspace.find_in_files(req)
+    }
+
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::Found> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return index.find_text_lazy(req, cancel).map(crate::Found::Lazy);
+        }
+        #[cfg(not(feature = "search"))]
+        let _ = cancel;
+        self.find_in_files(req).map(crate::Found::Full)
+    }
+
+    fn find_symbols(
+        &self,
+        query: &str,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: &[String],
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        #[cfg(feature = "search")]
+        if let Some(search) = self.service() {
+            return Ok(search.find_symbols(query, types_only, limit, skip_extensions, exact));
+        }
+        let _ = (query, types_only, limit, skip_extensions, exact);
+        Ok(Vec::new())
+    }
+
+    fn set_structure(&self, config: forge_core::excludes::StructureConfig) -> Result<bool> {
+        let changed = self.workspace.excludes().set(config);
+        // Refresh in place: a background refresh could finish after a later change's and
+        // leave the index on the older excludes.
+        #[cfg(feature = "search")]
+        if changed {
+            if let Some(search) = self.service() {
+                search.refresh();
+            }
+        }
+        Ok(changed)
+    }
+
+    fn rescan_search_index(&self) -> Result<usize> {
+        #[cfg(feature = "search")]
+        if let Some(search) = self.service() {
+            let stats = search.refresh();
+            return Ok(stats.added + stats.changed + stats.removed);
+        }
+        Ok(0)
+    }
+
+    fn search_status(&self) -> Result<SearchStatus> {
+        #[cfg(feature = "search")]
+        if let Some(slot) = &self.search {
+            return Ok(match slot.get() {
+                Some(search) => {
+                    let (stats, last_refresh_ms) = search.stats();
+                    SearchStatus {
+                        enabled: true,
+                        indexing: search.indexing() || !search.ready(),
+                        files: stats.files,
+                        content_files: stats.content,
+                        binary_files: stats.binary,
+                        oversized_files: stats.oversized,
+                        last_refresh_ms,
+                    }
+                }
+                None => SearchStatus {
+                    enabled: true,
+                    indexing: true,
+                    ..SearchStatus::default()
+                },
+            });
+        }
+        Ok(SearchStatus::default())
+    }
+
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        self.workspace.find_todos(req)
+    }
+
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        self.workspace.collect_files(req)
+    }
+
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult> {
+        crate::ssr::search_workspace(&self.workspace, req)
+    }
+
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare> {
+        let (l, r) = (self.resolve(left)?, self.resolve(right)?);
+        forge_diff::compare_trees(&l, &r).map_err(|e| forge_core::ForgeError::Other(e.to_string()))
+    }
+
+    fn list_files(&self, limit: usize) -> Result<Vec<String>> {
+        let mut files = self.workspace.list_files();
+        files.sort();
+        files.truncate(limit);
+        Ok(files)
+    }
+
+    fn git(&self) -> Arc<dyn GitExec> {
+        Arc::new(LocalGit)
+    }
+
+    fn detect_project(&self) -> Result<ProjectInfo> {
+        Ok(forge_project::detect(self.root()))
+    }
+
+    fn watch(&self, sink: FsSink) -> Result<WatchGuard> {
+        let php = self.php.clone();
+        #[cfg(feature = "search")]
+        let search = self.search.clone();
+        let excludes = self.workspace.excludes().clone();
+        let watcher = ProjectWatcher::start_with_excludes(
+            self.root(),
+            excludes,
+            move |changes: FsChanges| {
+                php.apply_fs_changes(&changes);
+                #[cfg(feature = "search")]
+                if let Some(search) = search.as_ref().and_then(|slot| slot.get()) {
+                    search.apply_changes(&changes);
+                }
+                sink(changes);
+            },
+        )?;
+        Ok(Box::new(watcher))
+    }
+
+    fn open_terminal(&self, spec: TerminalSpec, sink: PtySink) -> Result<Arc<dyn Terminal>> {
+        let cwd = if spec.cwd.is_dir() {
+            spec.cwd
+        } else {
+            self.root().to_path_buf()
+        };
+        let session = PtySession::spawn(
+            PtyOptions {
+                shell: spec.shell.filter(|s| !s.trim().is_empty()),
+                args: spec.args,
+                cwd: cwd.clone(),
+                env: spec.env,
+                // Forge's crates share the app's version, so this reports the app version
+                // here and on a remote agent alike.
+                version: String::new(),
+                cols: spec.cols,
+                rows: spec.rows,
+                integration_dir: spec
+                    .shell_integration
+                    .then(|| dirs::cache_dir().map(|d| d.join("forge").join("shell-integration")))
+                    .flatten(),
+            },
+            sink,
+        )?;
+        Ok(Arc::new(LocalTerminal { session, cwd }))
+    }
+
+    fn start_process(&self, cmd: &CommandLine, sink: RunSink) -> Result<Arc<dyn Process>> {
+        Ok(Arc::new(RunningProcess::start(cmd, sink)?))
+    }
+
+    fn lsp_launcher(&self) -> Arc<dyn ServerLauncher> {
+        Arc::new(LocalLauncher)
+    }
+
+    fn php(&self) -> &dyn PhpBackend {
+        self.php.as_ref()
+    }
+
+    fn framework(&self, call: FrameworkCall) -> Result<Vec<u8>> {
+        self.frameworks.call(call)
+    }
+
+    fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer> {
+        self.langservers.plan(self.root(), &req)
+    }
+
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome> {
+        let mut on = |e| sink(e);
+        langservers::block_on(langservers::install(&req, cancel, &mut on))?
+            .map_err(ForgeError::Other)
+    }
+
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>> {
+        langservers::block_on(langservers::check_updates(
+            registry.as_deref(),
+            node_mirror.as_deref(),
+            force,
+        ))?
+        .map_err(ForgeError::Other)
+    }
+
+    fn web(&self, call: WebCall) -> Result<Vec<u8>> {
+        self.web.call(call)
+    }
+
+    fn agent_sandbox(&self, call: crate::agent_tasks::SandboxCall) -> Result<Vec<u8>> {
+        crate::agent_tasks::handle(self.root(), call)
+    }
+
+    fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
+        Ok(find_executable(self.root(), names, custom))
+    }
+
+    fn find_system_executable(
+        &self,
+        names: &[String],
+        custom: Option<&str>,
+    ) -> Result<Option<PathBuf>> {
+        Ok(find_executable_in(
+            forge_langservers::Detector::system(),
+            names,
+            custom,
+        ))
+    }
+}
+
+/// Find one of `names` like the language server detection does (project `node_modules/.bin`,
+/// `PATH`, npm/nvm/volta, `~/.local/bin`, cargo, go, ...), plus the places agent CLIs install
+/// themselves (`~/.claude/local`, `~/.npm-global/bin`). An existing `custom` file wins.
+pub fn find_executable(root: &Path, names: &[String], custom: Option<&str>) -> Option<PathBuf> {
+    find_executable_in(
+        forge_langservers::Detector::for_project(root),
+        names,
+        custom,
+    )
+}
+
+fn find_executable_in(
+    detector: forge_langservers::Detector,
+    names: &[String],
+    custom: Option<&str>,
+) -> Option<PathBuf> {
+    if let Some(c) = custom.map(str::trim).filter(|c| !c.is_empty()) {
+        let p = PathBuf::from(c);
+        return p.is_file().then_some(p);
+    }
+    if let Some(found) = names.iter().find_map(|n| detector.find(n)) {
+        return Some(found);
+    }
+    let home = detector.env().home.clone()?;
+    let extra = [home.join(".claude/local"), home.join(".npm-global/bin")];
+    extra
+        .iter()
+        .flat_map(|d| names.iter().map(move |n| d.join(n)))
+        .find(|p| p.is_file())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use forge_core::FileKind;
+
+    #[cfg(unix)]
+    #[test]
+    fn agent_clis_are_not_taken_from_the_project() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("node_modules/.bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let fake = bin.join("forge-test-agent-cli");
+        std::fs::write(&fake, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let names = ["forge-test-agent-cli".to_string()];
+        // Project tools are found there; agent CLIs are not.
+        assert!(backend.find_executable(&names, None).unwrap().is_some());
+        assert_eq!(backend.find_system_executable(&names, None).unwrap(), None);
+        // Unless the user points at it.
+        let custom = fake.to_string_lossy();
+        assert_eq!(
+            backend
+                .find_system_executable(&names, Some(&custom))
+                .unwrap(),
+            Some(fake.clone())
+        );
+    }
+
+    fn entry(path: &str, kind: FileKind, ignored: bool) -> FileEntry {
+        FileEntry {
+            name: path.rsplit('/').next().unwrap().to_string(),
+            path: path.to_string(),
+            kind,
+            ignored,
+            excluded: false,
+        }
+    }
+
+    #[test]
+    fn tracked_files_and_folders_with_tracked_files_are_not_ignored() {
+        let mut entries = vec![
+            entry("vendor", FileKind::Dir, true),
+            entry("cache", FileKind::Dir, true),
+            entry("forced.log", FileKind::File, true),
+            entry("other.log", FileKind::File, true),
+            entry("src", FileKind::Dir, false),
+        ];
+        let tracked = vec!["vendor/forced.php".to_string(), "forced.log".to_string()];
+        clear_tracked(&mut entries, &tracked);
+        let flags: Vec<bool> = entries.iter().map(|e| e.ignored).collect();
+        assert_eq!(flags, vec![false, true, false, true, false]);
+    }
+
+    #[test]
+    fn a_folder_name_prefix_is_not_a_tracked_folder() {
+        let mut entries = vec![entry("vendor", FileKind::Dir, true)];
+        clear_tracked(&mut entries, &["vendor-extra/a.php".to_string()]);
+        assert!(entries[0].ignored);
+    }
+
+    #[test]
+    fn serves_files_of_a_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.php"), "<?php\n").unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        backend.write_file("src/A.php", "<?php class A {}").unwrap();
+        let names: Vec<String> = backend
+            .list_dir("")
+            .unwrap()
+            .into_iter()
+            .map(|e| e.name)
+            .collect();
+        assert_eq!(names, vec!["src", "index.php"]);
+        // Excluded folders are flagged in listings and skipped by searches.
+        backend
+            .write_file("build/A.php", "<?php class A {}")
+            .unwrap();
+        assert!(backend
+            .set_structure(forge_core::excludes::StructureConfig {
+                folders: vec![forge_scopes::structure::FolderMark {
+                    path: "build".into(),
+                    kind: forge_scopes::structure::FolderKind::Excluded,
+                }],
+                ..Default::default()
+            })
+            .unwrap());
+        let build = backend.list_dir("").unwrap();
+        assert!(build.iter().any(|e| e.name == "build" && e.excluded));
+        assert_eq!(backend.find_files("A.php", 10, false).unwrap().len(), 1);
+        assert_eq!(backend.read_file("src/A.php").unwrap(), "<?php class A {}");
+        assert!(backend.resolve("../x").is_err());
+        let found = backend.find_files("A", 10, false).unwrap();
+        assert_eq!(found[0].path, "src/A.php");
+        assert_eq!(backend.read_optional("missing.php").unwrap(), None);
+        assert_eq!(
+            backend.read_optional("index.php").unwrap().as_deref(),
+            Some("<?php\n")
+        );
+    }
+
+    #[cfg(feature = "search")]
+    #[test]
+    fn the_index_answers_once_ready_and_follows_the_watcher() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("Order.php"),
+            "<?php
+class OrderBook {}
+",
+        )
+        .unwrap();
+        let backend = LocalBackend::open(dir.path())
+            .unwrap()
+            .with_search_index(IndexOptions::default());
+        let wait = |done: &dyn Fn() -> bool| {
+            for _ in 0..100 {
+                if done() {
+                    return;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            panic!("search index never caught up");
+        };
+        wait(&|| backend.search_status().unwrap().files == 1 && backend.index().is_some());
+        let status = backend.search_status().unwrap();
+        assert!(status.enabled);
+
+        let req = FindRequest {
+            query: "OrderBook".into(),
+            ..FindRequest::default()
+        };
+        assert_eq!(backend.find_in_files(&req).unwrap().files.len(), 1);
+        assert_eq!(
+            backend
+                .find_symbols("orderbook", true, 5, &[], false)
+                .unwrap()[0]
+                .name,
+            "OrderBook"
+        );
+
+        let _guard = backend.watch(Arc::new(|_| {})).unwrap();
+        std::fs::write(
+            dir.path().join("Late.php"),
+            "<?php
+// OrderBook
+",
+        )
+        .unwrap();
+        wait(&|| backend.find_in_files(&req).unwrap().files.len() == 2);
+    }
+}

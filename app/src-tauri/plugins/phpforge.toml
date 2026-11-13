@@ -1,0 +1,955 @@
+# Smaller PHPForge plugins that build on forge.php. Each table is one plugin.
+
+[[plugin]]
+id = "forge.composer"
+name = "Composer"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "composer.json support, dependency install/update and autoload-aware indexing."
+projectTypes = ["composer"]
+
+[[plugin.contributions.commands]]
+id = "Composer.AddDependency"
+title = "Add Dependency…"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Install"
+title = "Install"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Update"
+title = "Update"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Validate"
+title = "Validate"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.ShowOutdated"
+title = "Show Outdated"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Audit"
+title = "Audit"
+category = "Composer"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Composer"
+items = [
+  { type = "action", id = "Composer.AddDependency", label = "_Add Dependency..." },
+  { type = "separator" },
+  { type = "action", id = "Composer.Install", label = "_Install" },
+  { type = "action", id = "Composer.Update", label = "_Update" },
+  { type = "action", id = "Composer.Validate", label = "_Validate" },
+  { type = "action", id = "Composer.ShowOutdated", label = "Show _Outdated" },
+  { type = "action", id = "Composer.Audit", label = "Au_dit" },
+]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "composer"
+name = "Composer Script"
+description = "Run a script from composer.json."
+icon = "package"
+
+[[plugin.contributions.settings]]
+key = "php.composer.executable"
+title = "Path to composer"
+description = "A composer executable, or a composer.phar (run with the PHP interpreter of Settings | PHP). Empty: `composer` from PATH."
+type = "path"
+default = "composer"
+group = "lang.php.composer"
+section = "Execution"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "php.composer.json"
+title = "Path to composer.json"
+description = "Relative to the project root."
+type = "path"
+default = "composer.json"
+group = "lang.php.composer"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "php.composer.syncWithComposerJson"
+title = "Synchronize IDE settings with composer.json"
+description = "The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint."
+type = "bool"
+default = true
+group = "lang.php.composer"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "php.composer.addPackagesAsLibraries"
+title = "Add packages as libraries"
+description = "Classes in vendor/ are resolved for navigation, completion and the language server (php-lsp). Off: vendor/ is left out."
+type = "bool"
+default = true
+group = "lang.php.composer"
+project = true
+order = 3
+
+[[plugin.contributions.settings]]
+key = "php.composer.checkUpdates"
+title = "Check for package updates on project open"
+description = "Runs `composer outdated --direct` on the project's machine and reports updates in a balloon."
+type = "bool"
+default = false
+group = "lang.php.composer"
+order = 4
+
+[[plugin.contributions.settings]]
+key = "php.composer.packagist"
+title = "Use Packagist for completion, versions and outdated packages"
+description = "Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist."
+type = "bool"
+default = true
+group = "lang.php.composer"
+order = 5
+
+[[plugin.contributions.inspections]]
+id = "ComposerOutdatedPackages"
+name = "Outdated Composer packages"
+group = "PHP/Composer"
+language = "json"
+severity = "WEAK WARNING"
+external = true
+batch = false
+description = "Dependencies of composer.json with a newer version available."
+
+[[plugin.contributions.inspectionMappings]]
+source = "composer-outdated"
+inspection = "ComposerOutdatedPackages"
+
+[[plugin]]
+id = "forge.command-line-tools"
+name = "Command Line Tool Support"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush and custom tools in a console with command, option and argument completion (Tools | Run Command…, Ctrl+Shift+X)."
+projectTypes = ["php", "composer"]
+
+[[plugin.contributions.commands]]
+id = "CommandLineToolsAction"
+title = "Run Command…"
+category = "Tools"
+
+[[plugin.contributions.keybindings]]
+command = "CommandLineToolsAction"
+key = "Ctrl+Shift+X"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "RunAnything"
+items = [
+  { type = "action", id = "CommandLineToolsAction", label = "Run _Command..." },
+]
+
+[[plugin.contributions.toolWindows]]
+id = "commandLineTools"
+title = "Command Line Tools Console"
+anchor = "bottom"
+icon = "square-terminal"
+order = 45
+
+[[plugin.contributions.settings]]
+key = "commandLineTools.tools"
+title = "Command line tools"
+description = "Tools that Tools | Run Command… (Ctrl+Shift+X) runs. The alias starts the command line, e.g. c install or a make:model Order. Tools run with the PHP interpreter of the project unless they name another one."
+type = "objects"
+unique = ["alias"]
+default = []
+group = "tools.command-line-tools"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "commandLineTools.autoDetect"
+title = "Add the tools the project uses automatically"
+description = "Composer (composer.json), Laravel Artisan (artisan), Symfony Console (bin/console), WP-CLI (wp-cli.phar, vendor/bin/wp or a WordPress site) and Drush (vendor/bin/drush), unless a tool of that kind or alias is configured."
+type = "bool"
+default = true
+group = "tools.command-line-tools"
+project = true
+order = 1
+
+[[plugin]]
+id = "forge.phpunit"
+name = "PHPUnit"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run, debug and navigate PHPUnit and Pest tests."
+projectTypes = ["phpunit", "pest"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "phpunit"
+name = "PHPUnit"
+description = "Run a test class, method, directory or phpunit.xml configuration."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin.contributions.codeGenerators]]
+id = "phpunit.testMethod"
+title = "Test Method"
+languages = ["php"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "pest"
+name = "Pest"
+description = "Run Pest tests: a directory, a file, a test or describe block, or phpunit.xml."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.codeception"
+name = "Codeception Framework"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run and debug Codeception suites, Cest/Cept files and tests, with groups and environments."
+projectTypes = ["codeception"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "codeception"
+name = "Codeception"
+description = "Run a Codeception suite, directory, file or test."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.behat"
+name = "Behat"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run Behat features and scenarios, navigate from steps to their definitions."
+projectTypes = ["behat"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "behat"
+name = "Behat"
+description = "Run Behat features, a feature file or a scenario."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.phpspec"
+name = "PHPSpec"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run PHPSpec specs and examples."
+projectTypes = ["phpspec"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "phpspec"
+name = "PHPSpec"
+description = "Run PHPSpec specs: a directory, a spec file or an example."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.xdebug"
+name = "Xdebug"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Step debugging with Xdebug 3 via DBGp."
+projectTypes = ["php"]
+
+[[plugin.contributions.toolWindows]]
+id = "debug"
+title = "Debug"
+anchor = "bottom"
+icon = "bug"
+order = 20
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-remote-debug"
+name = "PHP Remote Debug"
+description = "Listen for incoming Xdebug connections."
+icon = "bug"
+debuggable = true
+
+[[plugin.contributions.commands]]
+id = "PhpListenDebugAction"
+title = "Start Listening for PHP Debug Connections"
+category = "Run"
+
+[[plugin.contributions.mainMenu]]
+path = "Run"
+after = "XDebugger.MuteBreakpoints"
+items = [
+  { type = "separator" },
+  { type = "action", id = "PhpListenDebugAction", label = "Start _Listening for PHP Debug Connections", checkable = true },
+  { type = "action", id = "WebServerDebugValidation", label = "_Web Server Debug Validation..." },
+]
+
+[[plugin.contributions.commands]]
+id = "WebServerDebugValidation"
+title = "Web Server Debug Validation"
+category = "Run"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-web-page"
+name = "PHP Web Page"
+description = "Open a page of a server in the browser; Debug adds the Xdebug trigger."
+icon = "globe"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-http-request"
+name = "PHP HTTP Request"
+description = "Send an HTTP request to a server; Debug adds the Xdebug session cookie."
+icon = "send"
+debuggable = true
+
+# ---- Languages & Frameworks > PHP > Debug ----------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "php.debug.port"
+title = "Debug port"
+description = "Forge listens here for Xdebug (xdebug.client_port, 9003 by default)."
+type = "int"
+min = 1
+max = 65535
+default = 9003
+group = "lang.php.debug"
+section = "Xdebug"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "php.debug.ignoreExternalConnections"
+title = "Ignore external connections through unregistered server configurations"
+description = "Connections that match no server and no project file are detached silently."
+type = "bool"
+default = false
+group = "lang.php.debug"
+section = "Xdebug"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "php.debug.breakAtFirstLine"
+title = "Break at first line in PHP scripts"
+type = "bool"
+default = false
+group = "lang.php.debug"
+section = "Settings"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "php.debug.ignoreUnmappedFiles"
+title = "Step out of files that are not mapped into the project"
+description = "Stepping never stops in code without a local file (e.g. PHAR internals or eval'd code)."
+type = "bool"
+default = true
+group = "lang.php.debug"
+section = "Settings"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "php.debug.showInlineValues"
+title = "Show variable values in editor while debugging"
+type = "bool"
+default = true
+group = "lang.php.debug"
+section = "Settings"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "php.debug.validation.documentRoot"
+title = "Path to create validation script"
+description = "Project folder served by the web server (its document root), e.g. public. Run | Web Server Debug Validation places a temporary script there and deletes it after the check."
+type = "string"
+default = "public"
+group = "lang.php.debug"
+section = "Web Server Debug Validation"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "php.debug.validation.url"
+title = "URL to validation script"
+description = "The URL of that folder, e.g. http://localhost:8080."
+type = "string"
+default = "http://localhost:8080"
+group = "lang.php.debug"
+section = "Web Server Debug Validation"
+project = true
+order = 31
+
+[[plugin.contributions.settings]]
+key = "php.debug.maxChildren"
+title = "Max. children"
+description = "Array elements and object properties loaded per page."
+type = "int"
+min = 1
+max = 10000
+default = 100
+group = "lang.php.debug"
+section = "Evaluation"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "php.debug.maxDepth"
+title = "Max. depth"
+description = "Nesting levels fetched at once; deeper levels load when expanded."
+type = "int"
+min = 1
+max = 16
+default = 1
+group = "lang.php.debug"
+section = "Evaluation"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "php.profiler.spxDataDir"
+title = "SPX data directory"
+description = "spx.data_dir of your php.ini, where Run | Profile with SPX reads the reports of local runs. Empty: Forge passes a temporary folder of its own (-dspx.data_dir) to each run."
+type = "path"
+default = ""
+group = "lang.php.debug"
+section = "Profiler"
+order = 40
+
+[[plugin.contributions.settings]]
+key = "php.debug.maxData"
+title = "Max. string length"
+description = "Bytes of string data fetched per value."
+type = "int"
+min = 128
+max = 10485760
+default = 65536
+group = "lang.php.debug"
+section = "Evaluation"
+order = 22
+
+[[plugin]]
+id = "forge.laravel"
+name = "Laravel"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.composer"]
+description = "Routes, Blade, Eloquent and artisan integration."
+projectTypes = ["laravel"]
+
+[[plugin.contributions.commands]]
+id = "Laravel.RunArtisan"
+title = "Run Artisan Command…"
+category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Laravel"
+items = [
+  { type = "action", id = "Laravel.RunArtisan", label = "Run _Artisan Command..." },
+  { type = "action", id = "Laravel.ShowRoutes", label = "Show _Routes" },
+  { type = "action", id = "Laravel.ShowLogs", label = "Show _Logs" },
+  { type = "action", id = "Laravel.ShowDashboard", label = "Show Laravel _Tool Window" },
+]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "artisan"
+name = "Artisan"
+description = "Run an artisan command of a Laravel application."
+icon = "terminal"
+debuggable = true
+
+[[plugin.contributions.codeGenerators]]
+id = "laravel.model"
+title = "Eloquent Model"
+languages = ["php"]
+
+[[plugin.contributions.toolWindows]]
+id = "laravel.routes"
+title = "Routes"
+anchor = "bottom"
+icon = "route"
+order = 35
+
+[[plugin.contributions.toolWindows]]
+id = "laravel"
+title = "Laravel"
+anchor = "bottom"
+icon = "layout-dashboard"
+order = 36
+
+[[plugin.contributions.settings]]
+key = "laravel.routes.source"
+title = "Read routes from"
+description = "php artisan route:list also sees routes registered by packages, but needs a bootable application."
+type = "enum"
+options = [
+  { value = "auto", label = "artisan route:list when available, else route files" },
+  { value = "artisan", label = "artisan route:list" },
+  { value = "static", label = "Route files (no PHP needed)" },
+]
+default = "auto"
+group = "lang.php.laravel"
+section = "Routes"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.enabled"
+title = "Complete routes, views, config, translations and model attributes"
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.columns"
+title = "Complete database columns in query builder calls"
+description = "where(), orderBy(), pluck() and similar, with columns read from the migrations."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "laravel.gutter.routes"
+title = "Show route icons for controller actions"
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Gutter Icons"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "laravel.gutter.views"
+title = "Show view icons for view() calls and Blade includes"
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Gutter Icons"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.ideJson"
+title = "Complete values from ide.json files"
+description = "Completions of the project's ide.json and of the ide.json files of installed packages."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "laravel.logs.follow"
+title = "Follow log files"
+description = "Reload the Logs tab while it is open and scroll to new entries."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Logs"
+order = 25
+
+[[plugin.contributions.settings]]
+key = "laravel.blade.customDirectives"
+title = "Additional Blade directives"
+description = "Directive names without @, e.g. datetime. They are highlighted and completed like built-in ones."
+type = "list"
+default = []
+group = "lang.php.laravel"
+section = "Blade"
+project = true
+order = 30
+
+[[plugin]]
+id = "forge.symfony"
+name = "Symfony"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.composer"]
+description = "Services, routing, Twig templates and console commands."
+projectTypes = ["symfony"]
+
+[[plugin.contributions.commands]]
+id = "symfony.runConsoleCommand"
+title = "Run Console Command…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "symfony.refresh"
+title = "Refresh Symfony Index"
+category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Symfony"
+items = [
+  { type = "action", id = "Symfony.RunConsoleCommand", label = "Run _Console Command..." },
+  { type = "action", id = "Symfony.ShowRoutes", label = "Show _Routes" },
+  { type = "separator" },
+  { type = "action", id = "symfony.refresh", label = "Re_fresh Symfony Index" },
+]
+
+[[plugin.contributions.toolWindows]]
+id = "symfony"
+title = "Symfony"
+anchor = "bottom"
+icon = "route"
+order = 35
+
+[[plugin.contributions.settings]]
+key = "symfony.environment"
+title = "Environment"
+description = "Kernel environment used for the compiled container and console commands."
+type = "enum"
+options = [
+  { value = "dev", label = "dev" },
+  { value = "test", label = "test" },
+  { value = "prod", label = "prod" },
+]
+default = "dev"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "symfony.appDirectory"
+title = "App directory"
+description = "Scanned for controllers, console commands and Twig extensions."
+type = "path"
+default = "src"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "symfony.templatesDirectory"
+title = "Templates directory"
+type = "path"
+default = "templates"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "symfony.consolePath"
+title = "Console"
+description = "Path to the console script, relative to the project root."
+type = "path"
+default = "bin/console"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 3
+
+[[plugin.contributions.settings]]
+key = "symfony.containerXml"
+title = "Container XML"
+description = "Compiled container dump; leave empty to use var/cache/<environment>/*Container.xml."
+type = "path"
+default = ""
+group = "lang.php.symfony"
+section = "Container"
+project = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "symfony.gutterIcons"
+title = "Show line markers for routes, templates and commands"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Editor"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "symfony.twigCompletion"
+title = "Complete Twig tags, filters and functions"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Editor"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "symfony.translations.folding"
+title = "Show translated text in place of translation keys"
+description = "Folds 'key'|trans and ->trans('key') to the text of the default locale; the key shows while the caret is on it."
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Translations"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "symfony.translations.inspection"
+title = "Report missing translation keys and locales"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Translations"
+order = 31
+
+[[plugin]]
+id = "forge.symfony-services"
+name = "Symfony Services"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.yaml"]
+description = "services.yaml: service, parameter and tag completion, @service and %parameter% highlighting."
+projectTypes = ["symfony"]
+
+[[plugin.contributions.fileTypes]]
+id = "symfony-services"
+name = "Symfony Services"
+fileNames = ["config/services*.yaml", "config/services*.yml", "config/services/*.yaml", "config/services/*.yml"]
+
+[[plugin]]
+id = "forge.doctrine"
+name = "Doctrine"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Entity mapping, repositories and DQL completion."
+projectTypes = ["doctrine"]
+
+[[plugin.contributions.commands]]
+id = "doctrine.refresh"
+title = "Refresh Doctrine Entities"
+category = "Tools"
+
+[[plugin.contributions.toolWindows]]
+id = "doctrine"
+title = "Doctrine"
+anchor = "right"
+icon = "boxes"
+order = 15
+
+[[plugin.contributions.settings]]
+key = "doctrine.sourceDirectories"
+title = "Entity source directories"
+description = "Scanned for #[ORM\\Entity] classes and repositories."
+type = "list"
+default = ["src"]
+group = "lang.php.doctrine"
+section = "Mapping"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "doctrine.mappingDirectories"
+title = "Mapping file directories"
+description = "Directories with *.orm.xml and *.orm.yml mapping files."
+type = "list"
+default = ["config/doctrine", "src/Resources/config/doctrine"]
+group = "lang.php.doctrine"
+section = "Mapping"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "doctrine.annotations"
+title = "Read legacy @ORM annotations"
+description = "Docblock annotations are used when a class has no mapping attributes."
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "Mapping"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "doctrine.dqlInjection"
+title = "Highlight DQL in createQuery() and QueryBuilder strings"
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "DQL"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "doctrine.dqlCompletion"
+title = "Complete entities, aliases and fields in DQL"
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "DQL"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "doctrine.dqlInspections"
+title = "Report unknown entities and fields"
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "DQL"
+order = 12
+
+[[plugin]]
+id = "forge.wordpress"
+name = "WordPress"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.command-line-tools"]
+description = "Hooks (completion, navigation between add_action and do_action, gutter icons, Find Usages), WP-CLI, the WordPress code style with Yoda condition hints, plugin and theme file templates."
+projectTypes = ["wordpress"]
+
+[[plugin.contributions.commands]]
+id = "WordPress.RunWpCli"
+title = "WP-CLI…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "WordPress.ShowHooks"
+title = "WordPress Hooks"
+category = "View"
+
+[[plugin.contributions.commands]]
+id = "WordPress.InstallStubs"
+title = "Install WordPress Stubs…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "wordpress.refresh"
+title = "Refresh WordPress Hook Index"
+category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "CommandLineToolsAction"
+items = [
+  { type = "action", id = "WordPress.RunWpCli", label = "_WP-CLI..." },
+]
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/WordPress"
+items = [
+  { type = "action", id = "WordPress.RunWpCli", label = "Run _WP-CLI Command..." },
+  { type = "action", id = "WordPress.ShowHooks", label = "Show _Hooks" },
+  { type = "separator" },
+  { type = "action", id = "WordPress.InstallStubs", label = "Install WordPress _Stubs..." },
+  { type = "action", id = "wordpress.refresh", label = "Re_fresh Hook Index" },
+]
+
+[[plugin.contributions.toolWindows]]
+id = "wordpress"
+title = "WordPress"
+anchor = "bottom"
+icon = "webhook"
+order = 36
+
+[[plugin.contributions.settings]]
+key = "wordpress.hookCompletion"
+title = "Complete hook names"
+description = "Inside add_action, add_filter, do_action, apply_filters and their variants: the project's hooks first, then frequently used WordPress core hooks."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Hooks"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "wordpress.gutterIcons"
+title = "Show gutter icons for hooks"
+description = "A registration links to where its hook fires, an invocation to the registered callbacks."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Hooks"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "wordpress.yodaConditions"
+title = "Suggest Yoda conditions"
+description = "A weak warning on comparisons like `$status === 'publish'` with the quick-fix 'Flip to Yoda condition' (WordPress Coding Standards)."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Code Style"
+order = 2
+
+[[plugin.contributions.settings]]
+key = "wordpress.offerStubs"
+title = "Offer to install the WordPress stubs"
+description = "When php-stubs/wordpress-stubs is not in vendor/, a notification offers `composer require --dev php-stubs/wordpress-stubs`. Forge never ships the stubs."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Stubs"
+project = true
+order = 3
+
+[[plugin]]
+id = "forge.cms"
+name = "Drupal, Joomla and Shopware"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.command-line-tools"]
+description = "CMS basics: detection, Drupal's .module/.install/.theme/.inc files as PHP, Drupal hook completion with Go to the hook docs, Shopware's Twig tags and Smarty templates, Joomla manifests, Drush and Shopware console runners."
+projectTypes = ["drupal", "joomla", "shopware"]
+
+[[plugin.contributions.fileTypes]]
+id = "php"
+name = "PHP"
+extensions = ["php", "phtml", "inc", "module", "install", "theme", "profile", "engine"]
+interpreters = ["php", "php-cgi", "hhvm"]
+
+[[plugin.contributions.commands]]
+id = "Cms.RunDrush"
+title = "Drush…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "Cms.RunShopwareConsole"
+title = "Shopware Console…"
+category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "CommandLineToolsAction"
+items = [
+  { type = "action", id = "Cms.RunDrush", label = "_Drush..." },
+  { type = "action", id = "Cms.RunShopwareConsole", label = "Shopware _Console..." },
+]
+
+[[plugin.contributions.settings]]
+key = "cms.drupal.hookCompletion"
+title = "Complete Drupal hook implementations"
+description = "After `function` in .module, .install, .theme, .profile and .inc files: `<module>_<hook>` with the hook's parameters."
+type = "bool"
+default = true
+group = "lang.php.cms"
+section = "Drupal"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "cms.drupal.gutterIcons"
+title = "Show gutter icons for hook implementations"
+description = "Clicking one opens the hook's documentation: its `hook_…` function in the project's *.api.php files, else api.drupal.org."
+type = "bool"
+default = true
+group = "lang.php.cms"
+section = "Drupal"
+order = 1

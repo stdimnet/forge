@@ -1,0 +1,12 @@
+[package]
+name = "webforge-quality-tools"
+description = "WebForge: web code quality tools (ESLint, Prettier, Stylelint, Biome): configurations, automatic detection of packages and config files, command lines, and parsing of their JSON reports"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-filetypes.workspace = true
+forge-runtools.workspace = true

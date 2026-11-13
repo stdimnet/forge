@@ -1,0 +1,85 @@
+# Open files in Forge from the browser, error pages and the command line.
+id = "forge.browser-companion"
+name = "Browser Companion"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Click a component in the browser to open its source, forge:// links for error pages (Ignition, Symfony, Xdebug) and the forge file:line launcher."
+
+[[contributions.commands]]
+id = "BrowserCompanion.Settings"
+title = "Browser Companion Settings"
+category = "Tools"
+
+[[contributions.settings]]
+key = "browserCompanion.enabled"
+title = "Accept open requests from paired browsers"
+description = "Runs a small server on 127.0.0.1 that only paired browser extensions can use."
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Built-in Server"
+order = 0
+
+[[contributions.settings]]
+key = "browserCompanion.port"
+title = "Port"
+description = "If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range."
+type = "int"
+min = 1024
+max = 65535
+default = 63342
+group = "tools.browser-companion"
+section = "Built-in Server"
+order = 1
+
+[[contributions.settings]]
+key = "browserCompanion.focusWindow"
+title = "Bring Forge to the front when a file is opened"
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Built-in Server"
+order = 2
+
+# ---- Live Edit ----------------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "liveEdit.enabled"
+title = "Live Edit: update open pages in paired browsers"
+description = "Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them."
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 10
+
+[[contributions.settings]]
+key = "liveEdit.updateWhileTyping"
+title = "Update style sheets while typing"
+description = "Push the editor's CSS into the page after a short pause, before the file is saved."
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 11
+
+[[contributions.settings]]
+key = "liveEdit.reloadOnSave"
+title = "Reload pages when HTML, scripts or templates are saved"
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 12
+
+[[contributions.settings]]
+key = "liveEdit.delayMs"
+title = "Delay before updating (ms)"
+type = "int"
+min = 100
+max = 5000
+default = 400
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 13

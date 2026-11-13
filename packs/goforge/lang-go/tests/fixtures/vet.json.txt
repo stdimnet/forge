@@ -1,0 +1,15 @@
+# github.com/acme/ledger/cmd/ledger
+# [github.com/acme/ledger/cmd/ledger]
+{}
+# github.com/acme/ledger/internal/money
+# [github.com/acme/ledger/internal/money]
+{
+	"github.com/acme/ledger/internal/money": {
+		"printf": [
+			{
+				"posn": "/work/ledger/internal/money/money.go:38:2",
+				"message": "fmt.Printf call needs 1 arg but has 2 args"
+			}
+		]
+	}
+}

@@ -1,0 +1,112 @@
+/**
+ * Project trust (PHPStorm's "Trust and Open Project?" and Safe Mode): the dialog before an
+ * untrusted project opens, the Safe Mode banner in the editor area and Settings | Build,
+ * Execution, Deployment | Trusted Locations. Rust decides and enforces (`forge-trust`); the
+ * UI only asks and shows.
+ */
+import { Show } from "solid-js";
+import { ShieldAlert } from "lucide-solid";
+import { trustApi } from "@/ipc/trust";
+import { showBalloon } from "@/keymap";
+import { registerCommand } from "@/state/commands";
+import { closeWorkspace, setTrustPrompt, type TrustDecision } from "@/state/workspace";
+import { windowApi } from "@/ipc/window";
+import { registerSettingsPage } from "@/features/settingsPages";
+import { askTrust } from "./TrustDialog";
+import { canTrustProject, refreshTrust, safeMode, trustStatus } from "./store";
+import { TrustedLocationsPage } from "./TrustedLocationsPage";
+import "./trust.css";
+import { t } from "@/i18n";
+
+export { canTrustProject, safeMode, trustStatus };
+
+async function decide(check: Parameters<typeof askTrust>[0], path?: string): Promise<TrustDecision> {
+  const answer = await askTrust(check, "open");
+  if (answer.decision !== "trust") return answer.decision;
+  try {
+    await trustApi.trust(path, answer.trustLocation ? check.parent : undefined);
+  } catch (e) {
+    showBalloon(t("tools.trust.cannotTrustTheProject"), String(e));
+    return "safe";
+  }
+  return "trust";
+}
+
+setTrustPrompt({
+  async beforeOpen(path) {
+    const check = await trustApi.check(path).catch(() => null);
+    if (!check || check.trusted) return "trust";
+    return decide(check, path);
+  },
+  async afterRemoteOpen() {
+    const status = await trustApi.status().catch(() => null);
+    if (!status || status.trusted) return "trust";
+    const decision = await decide(status);
+    await refreshTrust();
+    return decision;
+  },
+});
+
+/**
+ * "Trust and Open Project?" for the project a launch opened in this window (the command
+ * line, "Open Folder in Forge", Open Project › New Window). Rust opened it in Safe Mode; the
+ * question comes here, in the window it opened in, once the window is on screen. Don't Open
+ * closes a window that was opened for the project, else it shows the Welcome screen.
+ */
+export async function askLaunchTrust(): Promise<void> {
+  const prompt = await trustApi.launchPrompt().catch(() => null);
+  if (!prompt) return;
+  const decision = await decide(prompt.status);
+  await refreshTrust();
+  if (decision !== "cancel") return;
+  if (prompt.closeWindowOnCancel) await windowApi.exit().catch(() => closeWorkspace());
+  else closeWorkspace();
+}
+
+/** "Trust Project…" in the banner: trust the open project (and maybe its folder). */
+export async function trustOpenProject(): Promise<void> {
+  const status = trustStatus();
+  if (!status || !canTrustProject()) return;
+  const answer = await askTrust(status, "trust");
+  if (answer.decision !== "trust") return;
+  try {
+    await trustApi.trust(undefined, answer.trustLocation ? status.parent : undefined);
+    await refreshTrust();
+    showBalloon(t("tools.trust.projectTrusted"), t("tools.trust.scriptsRunConfigurationsAndTools"));
+  } catch (e) {
+    showBalloon(t("tools.trust.cannotTrustTheProject"), String(e));
+  }
+}
+
+registerCommand({
+  id: "forge.trustProject",
+  title: "Trust Project…",
+  category: "File",
+  run: () => void trustOpenProject(),
+});
+
+/** The banner above the editors while the project is in Safe Mode. */
+export function SafeModeBanner() {
+  return (
+    <Show when={canTrustProject()}>
+      <div class="safe-mode-banner" role="status" data-testid="safe-mode-banner">
+        <ShieldAlert size={14} class="safe-mode-banner-icon" />
+        <span class="safe-mode-banner-text">
+          <strong>{t("tools.trust.safeModeLimitedFunctionality")}</strong> {t("tools.trust.trustTheProjectToRun")}
+        </span>
+        <button class="safe-mode-banner-link" onClick={() => void trustOpenProject()} data-testid="safe-mode-trust">
+          {t("tools.trust.trustProjectEllipsis")}
+        </button>
+      </div>
+    </Show>
+  );
+}
+
+registerSettingsPage({
+  id: "build.trusted-locations",
+  title: t("settings.page.build.trusted-locations"),
+  group: "Build, Execution, Deployment",
+  order: 40,
+  keywords: ["trust", "safe mode", "trusted", "untrusted", "security", "location"],
+  component: TrustedLocationsPage,
+});

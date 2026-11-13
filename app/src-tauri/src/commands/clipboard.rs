@@ -1,0 +1,89 @@
+//! Clipboard history for Paste from History (`forge_editing::clipboard`). The history lives
+//! in memory for the session; the UI passes the configured limit
+//! (`editor.clipboard.maxContents`) with every call.
+//!
+//! Also the system clipboard itself (`clipboard_read_text`, `clipboard_write_text`): the
+//! WebView's `navigator.clipboard` is unreliable (WebKitGTK refuses `readText()` outside a
+//! native paste event), so the desktop app reads and writes it natively.
+
+use std::sync::Mutex;
+
+use forge_core::{ForgeError, Result};
+use forge_editing::{ClipEntry, ClipItem, ClipboardHistory};
+use tauri::{AppHandle, State};
+use tauri_plugin_clipboard_manager::ClipboardExt;
+
+#[derive(Default)]
+pub struct ClipboardState(Mutex<ClipboardHistory>);
+
+impl ClipboardState {
+    fn with<T>(&self, max: Option<usize>, f: impl FnOnce(&mut ClipboardHistory) -> T) -> T {
+        let mut history = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(max) = max {
+            history.set_max(max);
+        }
+        f(&mut history)
+    }
+}
+
+/// Remember a text that was copied or cut in Forge.
+#[tauri::command]
+pub fn clipboard_history_add(
+    entry: ClipEntry,
+    max: Option<usize>,
+    state: State<'_, ClipboardState>,
+) -> bool {
+    state.with(max, |h| h.add(entry))
+}
+
+/// The entries matching `query`, newest first.
+#[tauri::command]
+pub fn clipboard_history_list(
+    query: Option<String>,
+    max: Option<usize>,
+    state: State<'_, ClipboardState>,
+) -> Vec<ClipItem> {
+    state.with(max, |h| h.items(query.as_deref().unwrap_or("")))
+}
+
+/// Remove an entry (Delete in the popup).
+#[tauri::command]
+pub fn clipboard_history_remove(index: usize, state: State<'_, ClipboardState>) -> bool {
+    state.with(None, |h| h.remove(index).is_some())
+}
+
+/// Move a pasted entry to the top and return it.
+#[tauri::command]
+pub fn clipboard_history_promote(
+    index: usize,
+    state: State<'_, ClipboardState>,
+) -> Option<ClipEntry> {
+    state.with(None, |h| h.promote(index))
+}
+
+/// The text on the system clipboard ("" when it holds no text).
+#[tauri::command]
+pub fn clipboard_read_text(app: AppHandle) -> Result<String> {
+    match app.clipboard().read_text() {
+        Ok(text) => Ok(text),
+        Err(e) => {
+            let msg = e.to_string();
+            // An empty clipboard or one holding only an image is not an error for paste.
+            if msg.contains("empty") || msg.contains("not available in the requested format") {
+                Ok(String::new())
+            } else {
+                Err(ForgeError::Other(format!(
+                    "Cannot read the clipboard: {msg}"
+                )))
+            }
+        }
+    }
+}
+
+/// Put `text` on the system clipboard.
+#[tauri::command]
+pub fn clipboard_write_text(text: String, app: AppHandle) -> Result<()> {
+    app.clipboard()
+        .write_text(text)
+        .map_err(|e| ForgeError::Other(format!("Cannot write the clipboard: {e}")))
+}

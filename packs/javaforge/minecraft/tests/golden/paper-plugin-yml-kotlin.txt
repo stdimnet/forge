@@ -1,0 +1,165 @@
+==== .forge/runConfigurations.toml ====
+selected = "Run Paper Server"
+
+[[configuration]]
+name = "Run Paper Server"
+type = "gradle"
+
+[configuration.options]
+tasks = "runServer"
+==== .gitignore ====
+# Gradle and Maven
+.gradle/
+build/
+target/
+
+# The test server of run-paper (runServer)
+run/
+
+# IDEs
+.idea/
+*.iml
+out/
+.vscode/
+.DS_Store
+==== README.md ====
+# BetterChat
+
+A Paper plugin for Minecraft 1.21.11, written in Kotlin (Java 21).
+
+## Build
+
+The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer (Shadow 9 does not load on Gradle 8):
+
+```sh
+gradle wrapper
+```
+
+Then build the plugin (a missing JDK of the project's Java release is downloaded by Gradle's toolchain resolver, foojay):
+
+```sh
+./gradlew build
+```
+
+The plugin jar is `build/libs/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the `plugins/` folder of your server.
+
+## Test server
+
+`./gradlew runServer` (or the **Run Paper Server** run configuration in Forge) downloads Paper 1.21.11 with [run-paper](https://github.com/jpenilla/run-gradle), builds the plugin and starts a server in `run/` with the plugin installed. Accept the Minecraft EULA in `run/eula.txt` on the first start.
+
+## Structure
+
+- `src/main/kotlin/dev/alex/betterchat/BetterChat.kt`: the main class
+- `src/main/kotlin/dev/alex/betterchat/command/HelloCommand.kt`: the `/hello` command
+- `src/main/kotlin/dev/alex/betterchat/listener/JoinListener.kt`: greets players when they join
+- `src/main/resources/paper-plugin.yml`: the plugin descriptor
+
+The Kotlin standard library is bundled into the plugin jar with Shadow.
+==== build.gradle.kts ====
+plugins {
+    kotlin("jvm") version "2.4.21"
+    id("com.gradleup.shadow") version "9.6.1"
+    id("xyz.jpenilla.run-paper") version "3.1.0"
+}
+
+group = "dev.alex"
+version = "1.0.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+tasks {
+    processResources {
+        val props = mapOf("version" to version)
+        inputs.properties(props)
+        filteringCharset = "UTF-8"
+        filesMatching("paper-plugin.yml") {
+            expand(props)
+        }
+    }
+    shadowJar {
+        archiveClassifier.set("")
+    }
+    build {
+        dependsOn(shadowJar)
+    }
+    runServer {
+        // The Paper version of the test server (./run).
+        minecraftVersion("1.21.11")
+    }
+}
+==== settings.gradle.kts ====
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+rootProject.name = "better-chat"
+==== src/main/kotlin/dev/alex/betterchat/BetterChat.kt ====
+package dev.alex.betterchat
+
+import dev.alex.betterchat.command.HelloCommand
+import dev.alex.betterchat.listener.JoinListener
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
+import org.bukkit.plugin.java.JavaPlugin
+
+class BetterChat : JavaPlugin() {
+
+    override fun onEnable() {
+        server.pluginManager.registerEvents(JoinListener(), this)
+        // paper-plugin.yml has no commands section: commands are registered with Brigadier.
+        lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS) { event ->
+            event.registrar().register("hello", "Says hello", HelloCommand())
+        }
+        logger.info("BetterChat enabled")
+    }
+
+    override fun onDisable() {
+        logger.info("BetterChat disabled")
+    }
+}
+==== src/main/kotlin/dev/alex/betterchat/command/HelloCommand.kt ====
+package dev.alex.betterchat.command
+
+import io.papermc.paper.command.brigadier.BasicCommand
+import io.papermc.paper.command.brigadier.CommandSourceStack
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+
+/** `/hello`: greets whoever runs it. */
+class HelloCommand : BasicCommand {
+
+    override fun execute(source: CommandSourceStack, args: Array<out String>) {
+        source.sender.sendMessage(Component.text("Hello, ${source.sender.name}!", NamedTextColor.GREEN))
+    }
+}
+==== src/main/kotlin/dev/alex/betterchat/listener/JoinListener.kt ====
+package dev.alex.betterchat.listener
+
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerJoinEvent
+
+class JoinListener : Listener {
+
+    @EventHandler
+    fun onPlayerJoin(event: PlayerJoinEvent) {
+        event.player.sendMessage(Component.text("Welcome, ${event.player.name}!", NamedTextColor.YELLOW))
+    }
+}
+==== src/main/resources/paper-plugin.yml ====
+name: BetterChat
+version: '${version}'
+main: dev.alex.betterchat.BetterChat
+api-version: '1.21'

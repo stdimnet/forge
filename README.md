@@ -1,3 +1,73 @@
 # Forge
 
-Forge is an IDE for Windows, Linux and macOS, built with Rust, Tauri 2 and SolidJS.
+A fast, memory-safe IDE in the spirit of PHPStorm — built with **Rust + Tauri 2** and a
+**SolidJS** UI. Runs on Windows, Linux and macOS.
+
+Forge is the core. Languages and big feature sets ship as **packs** of plugins:
+
+| Pack | Focus |
+| --- | --- |
+| **PHPForge** | PHP, Laravel, Symfony, Doctrine (DQL), WordPress, Drupal / Joomla / Shopware basics, Composer, PHPUnit, Xdebug |
+| **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun scripts, React, Vue, Angular |
+| **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim: EmmyLua/LuaLS annotations, lua-language-server, StyLua |
+| **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black; Django, Flask, FastAPI and Celery; Jupyter notebooks |
+| **GoForge** | Go: SDK / GOPATH with SDK downloads, go.mod / go.work, gofmt / goimports, go vet, golangci-lint, go generate, Go Build / Go Test (benchmarks, fuzzing, coverage), Delve (attach, remote), pprof Profiler |
+| **RubyForge** | Ruby: interpreters of rbenv, rvm, chruby, asdf and mise (.ruby-version, .tool-versions), Bundler with gems in External Libraries, the Rake tool window, Ruby / Rake configurations, RSpec and Minitest, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB, the IRB console; Rails: routes in Endpoints, Go to Related, route helper / partial / translation / Stimulus navigation and completion, generators, the Rails console and server, data sources from database.yml, I18n |
+| **RustForge** | Rust: rustup toolchains and rust-toolchain.toml, the Cargo tool window (targets, features, dependencies), Cargo / Cargo Test configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS (installed on request), JDK detection and Temurin downloads, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug); Groovy (scripts, Spock), Scala (sbt tool window, Metals, ScalaTest / MUnit) and Android (Device Manager, Logcat, Android App runs) |
+| **CForge** | C and C++: clangd with clang-tidy, toolchains (GCC, Clang, MSVC, MinGW, cross), CMake profiles / presets and tool window, compilation databases, build problems, CTest / GoogleTest / Catch2 with coverage, LLDB / GDB with STL renderers, sanitizers, Valgrind, perf, vcpkg / Conan, PlatformIO, ESP-IDF, Zephyr, OpenOCD with the SVD Peripherals view |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS (installed on request), JDK detection and Temurin downloads, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug); Groovy (scripts, Spock), Scala (sbt tool window, Metals, ScalaTest / MUnit) and Android (Device Manager, Logcat, Android App runs); Spring Boot and Jakarta EE (beans, endpoints, `application.yml` completion, run dashboard) |
+| **DotNetForge** | .NET (C#, F#, Visual Basic): SDKs and global.json, .sln / .slnx solutions and MSBuild projects, the Build tool window with build problems, .NET Project runs with launch profiles and dotnet watch, xUnit / NUnit / MSTest with TRX results, netcoredbg, the NuGet tool window, dotnet new templates, Code Cleanup with dotnet format, the Roslyn language server (downloaded on request) |
+| **KotlinForge** | Kotlin/JVM: kotlin-lsp (installed on request), Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with a Coroutines view, ktlint and detekt |
+
+AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),
+AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp
+or another OpenAI-compatible API.
+
+Language servers for JavaScript/TypeScript, Vue, Python, Go, Rust, C/C++, YAML, Docker and ~25 more
+languages are detected and started per project, and can be installed from
+Settings | Languages & Frameworks | Language Servers.
+Code review is built in as well: pull and merge requests with inline threads, issues and CI
+pipelines for GitLab (also self-managed), Forgejo/Gitea and GitHub.
+
+Deployment works like PHPStorm's Tools | Deployment: SFTP, FTP/FTPS and local-folder servers with
+path mappings, upload on save, Sync with Deployed and the File Transfer tool window.
+
+**Code With Me**: invite guests into your project and edit together, with everyone's carets,
+following, shared terminals and runs. Connections go directly from guest to host over QUIC
+(through your own relay when needed), the host approves every guest with a verification code,
+and its Forge enforces the permissions ([guide](docs/guide/user/code-with-me.md)).
+
+The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
+Vim users get IdeaVim-style emulation (Tools | Vim) that reads `~/.ideavimrc`.
+
+**Browser Companion**: click a React, Vue, Angular or Svelte component in your running app and
+its source opens in Forge ([browser-extension/](browser-extension/README.md)). Error pages
+(Ignition, Symfony, Whoops, Xdebug) and dev overlays open files through `forge://open` links and
+the `forge path/to/file:12` launcher.
+
+![Forge workbench](docs/screenshots/workbench-dark.png)
+
+## Development
+
+Requirements: Rust (stable), Node 22 + pnpm, and on Linux the
+[Tauri system dependencies](https://tauri.app/start/prerequisites/).
+
+```sh
+cd app/ui && pnpm install
+pnpm tauri dev            # desktop app
+pnpm dev                  # UI only in the browser, backed by a mocked demo project
+                          # (Laravel; open /?project=symfony for the Symfony + Doctrine demo)
+pnpm screenshots          # capture docs/screenshots (needs `pnpm dev` running)
+cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for step-by-step guides (also usable as coding-agent
+skills in `.claude/skills/`), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+[docs/ROADMAP.md](docs/ROADMAP.md).
+
+## License
+
+MIT. The built-in PHP language server php-lsp (MIT OR Apache-2.0) and the components listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) keep their own licences. Third-party language
+servers you install and AI providers keep their own licences and may need your own API key.

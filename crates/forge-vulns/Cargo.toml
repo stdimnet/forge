@@ -1,0 +1,15 @@
+[package]
+name = "forge-vulns"
+description = "Vulnerable dependency check: a shared vulnerability model, the JSON reports of each ecosystem's audit tool (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP dependency-check), what to audit in a project, where dependencies are declared and the Upgrade quick fix (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-jsonschema.workspace = true
+phpforge-composer.workspace = true
+pyforge-lang-python.workspace = true
+goforge-lang-go.workspace = true
+webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features = false }

@@ -1,0 +1,328 @@
+name: Release
+
+# Runs only when a version tag `v*` is pushed (`v0.2.0`, `v0.3.0-beta.1`; never on branch
+# pushes or pull requests; the trigger is guarded by `pnpm workflows:check`). It creates a draft
+# GitHub release for the tag (a pre-release when the version has a `-label`), builds Forge for
+# Linux, Windows and macOS, signs the bundles and the updater artifacts, uploads them plus
+# `latest.json` (the update feed Forge's updater reads), `SHA256SUMS` and, for pre-releases,
+# `latest-beta.json`, and then publishes the release.
+#
+# Repository settings (all signing material comes from secrets; a missing secret skips that
+# signing step and the build still succeeds). Full list: docs/guide/developer/release-builds.md.
+#   secrets.TAURI_SIGNING_PRIVATE_KEY(_PASSWORD)  updater signatures (minisign)
+#   FORGE_UPDATER_PUBKEY                          the matching public key (secret or variable)
+#   secrets.WINDOWS_CERTIFICATE(_PASSWORD)        Authenticode: base64 .pfx and its password
+#   secrets.AZURE_CLIENT_ID/_SECRET/AZURE_TENANT_ID + vars.AZURE_SIGNING_ENDPOINT/_ACCOUNT,
+#     vars.AZURE_CERTIFICATE_PROFILE              Authenticode via Azure Trusted Signing instead
+#   secrets.APPLE_CERTIFICATE(_PASSWORD), APPLE_SIGNING_IDENTITY
+#                                                 macOS codesign (Developer ID Application)
+#   secrets.APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID or APPLE_API_KEY/APPLE_API_ISSUER/APPLE_API_KEY_P8
+#                                                 macOS notarisation
+#   secrets.RELEASE_GPG_PRIVATE_KEY(_PASSPHRASE)  detached signature SHA256SUMS.asc
+#   secrets.PHP_LSP_TOKEN                         read access to the private stdimnet/php-lsp
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  meta:
+    # Which update channel the release feeds: vX.Y.Z is stable, vX.Y.Z-beta.N (a pre-release)
+    # beta. Fails when the tag does not match the app version. Then creates the draft release
+    # the other jobs upload to (or reuses the draft of an earlier, failed run of this tag).
+    runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.channel.outputs.channel }}
+      id: ${{ steps.release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: channel
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_PRERELEASE: ${{ contains(github.ref_name, '-') }}
+        run: node app/ui/scripts/release-tools.mjs channel
+      - name: Create the draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ steps.channel.outputs.channel == 'beta' }}
+        run: |
+          id="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n 1)"
+          if [ -z "$id" ]; then
+            id="$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$TAG" -f name="Forge ${TAG#v}" \
+              -F draft=true -F prerelease="$PRERELEASE" -F generate_release_notes=true \
+              --jq .id)"
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  agents:
+    needs: meta
+    # Static Linux agents for remote development; every desktop bundle ships them.
+    # Runs on the project's self-hosted Linux runner.
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Access to php-lsp
+        # php-lsp (packs/phpforge/builtin-lsp) is a private git dependency. The token is passed
+        # to git through job-scoped GIT_CONFIG_* variables, so it never lands in a git config
+        # file on the self-hosted runner; cargo fetches git dependencies with the git CLI.
+        shell: bash
+        env:
+          PHP_LSP_TOKEN: ${{ secrets.PHP_LSP_TOKEN }}
+        run: |
+          if [ -z "$PHP_LSP_TOKEN" ]; then
+            echo "::warning::No PHP_LSP_TOKEN secret: cargo can only fetch the private php-lsp repository with credentials the runner already has."
+            exit 0
+          fi
+          {
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=url.https://x-access-token:${PHP_LSP_TOKEN}@github.com/stdimnet/php-lsp.insteadOf"
+            echo "GIT_CONFIG_VALUE_0=https://github.com/stdimnet/php-lsp"
+          } >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Linux system dependencies
+        run: .github/scripts/linux-deps.sh
+      - name: Build the remote agents
+        run: node app/ui/scripts/build-agents.mjs x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remote-agents
+          path: target/agents/
+          if-no-files-found: error
+
+  bundles:
+    needs: [meta, agents]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: '["self-hosted","Linux","X64"]'
+            args: ""
+          - os: '"windows-latest"'
+            args: ""
+          - os: '"macos-latest"'
+            args: "--target aarch64-apple-darwin"
+          - os: '"macos-latest"'
+            args: "--target x86_64-apple-darwin"
+    runs-on: ${{ fromJSON(matrix.os) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Access to php-lsp
+        # php-lsp (packs/phpforge/builtin-lsp) is a private git dependency. The token is passed
+        # to git through job-scoped GIT_CONFIG_* variables, so it never lands in a git config
+        # file on the self-hosted runner; cargo fetches git dependencies with the git CLI.
+        shell: bash
+        env:
+          PHP_LSP_TOKEN: ${{ secrets.PHP_LSP_TOKEN }}
+        run: |
+          if [ -z "$PHP_LSP_TOKEN" ]; then
+            echo "::warning::No PHP_LSP_TOKEN secret: cargo can only fetch the private php-lsp repository with credentials the runner already has."
+            exit 0
+          fi
+          {
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=url.https://x-access-token:${PHP_LSP_TOKEN}@github.com/stdimnet/php-lsp.insteadOf"
+            echo "GIT_CONFIG_VALUE_0=https://github.com/stdimnet/php-lsp"
+          } >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/ui/pnpm-lock.yaml
+      - name: Linux system dependencies
+        if: runner.os == 'Linux'
+        run: .github/scripts/linux-deps.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: remote-agents
+          path: target/agents/
+      - run: pnpm install --frozen-lockfile
+        working-directory: app/ui
+      - name: Windows code signing
+        # Authenticode for the exe, the NSIS installer and the MSI. A .pfx certificate is
+        # imported into the user's store and signtool signs by thumbprint (scripts/tauriArgs.mjs
+        # sets bundle.windows.certificateThumbprint); without one, Azure Trusted Signing is used
+        # when it is configured; without both the bundles stay unsigned.
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_CERTIFICATE_PROFILE: ${{ vars.AZURE_CERTIFICATE_PROFILE }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          if ($env:WINDOWS_CERTIFICATE) {
+            $pfx = Join-Path $env:RUNNER_TEMP "forge-signing.pfx"
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+            $password = ConvertTo-SecureString -String "$env:WINDOWS_CERTIFICATE_PASSWORD" -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password |
+              Where-Object HasPrivateKey | Select-Object -First 1
+            Remove-Item $pfx
+            if (-not $cert) { throw "WINDOWS_CERTIFICATE contains no certificate with a private key" }
+            "FORGE_WINDOWS_CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+            "Signing with $($cert.Subject), valid until $($cert.NotAfter)"
+          } elseif ($env:AZURE_SIGNING_ENDPOINT -and $env:AZURE_SIGNING_ACCOUNT -and $env:AZURE_CERTIFICATE_PROFILE -and $env:AZURE_CLIENT_ID) {
+            cargo install trusted-signing-cli --locked
+            "FORGE_AZURE_SIGNING_ENDPOINT=$env:AZURE_SIGNING_ENDPOINT" >> $env:GITHUB_ENV
+            "FORGE_AZURE_SIGNING_ACCOUNT=$env:AZURE_SIGNING_ACCOUNT" >> $env:GITHUB_ENV
+            "FORGE_AZURE_SIGNING_PROFILE=$env:AZURE_CERTIFICATE_PROFILE" >> $env:GITHUB_ENV
+            "Signing with Azure Trusted Signing ($env:AZURE_SIGNING_ACCOUNT / $env:AZURE_CERTIFICATE_PROFILE)"
+          } else {
+            "::notice::No WINDOWS_CERTIFICATE secret and no Azure Trusted Signing: the Windows bundles are not Authenticode signed."
+          }
+      - name: macOS signing and notarisation
+        # Tauri signs with the hardened runtime (src-tauri/Entitlements.plist), notarises with
+        # notarytool and staples the ticket when these variables are set. Only the secrets
+        # that exist are exported: an empty APPLE_CERTIFICATE would make the build fail.
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          put() { { echo "$1<<FORGE_ENV_EOF"; printf '%s\n' "$2"; echo "FORGE_ENV_EOF"; } >> "$GITHUB_ENV"; }
+          if [ -z "$APPLE_CERTIFICATE" ] || [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "::notice::No APPLE_CERTIFICATE / APPLE_SIGNING_IDENTITY secret: the macOS bundles are not signed or notarised."
+            exit 0
+          fi
+          put APPLE_CERTIFICATE "$APPLE_CERTIFICATE"
+          put APPLE_CERTIFICATE_PASSWORD "$APPLE_CERTIFICATE_PASSWORD"
+          put APPLE_SIGNING_IDENTITY "$APPLE_SIGNING_IDENTITY"
+          if [ -n "$APPLE_API_KEY" ] && [ -n "$APPLE_API_ISSUER" ] && [ -n "$APPLE_API_KEY_P8" ]; then
+            key="$RUNNER_TEMP/AuthKey_$APPLE_API_KEY.p8"
+            printf '%s\n' "$APPLE_API_KEY_P8" > "$key"
+            put APPLE_API_KEY "$APPLE_API_KEY"
+            put APPLE_API_ISSUER "$APPLE_API_ISSUER"
+            put APPLE_API_KEY_PATH "$key"
+            echo "Signing and notarising with an App Store Connect API key."
+          elif [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            put APPLE_ID "$APPLE_ID"
+            put APPLE_PASSWORD "$APPLE_PASSWORD"
+            put APPLE_TEAM_ID "$APPLE_TEAM_ID"
+            echo "Signing and notarising with an Apple ID."
+          else
+            echo "::warning::macOS bundles are signed but not notarised: set APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID or APPLE_API_KEY/APPLE_API_ISSUER/APPLE_API_KEY_P8."
+          fi
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          # AppImage tooling without FUSE (e.g. in a container).
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FORGE_UPDATER_PUBKEY: ${{ secrets.FORGE_UPDATER_PUBKEY || vars.FORGE_UPDATER_PUBKEY }}
+          # Read by trusted-signing-cli (Azure Trusted Signing); unused otherwise.
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        with:
+          # tauri-action looks for tauri.conf.json below projectPath, so it must include
+          # src-tauri; the Forge wrapper (scripts/tauri.mjs) lives in app/ui. It adds the signing
+          # settings and the numeric MSI version WiX needs for pre-releases (workflows:check).
+          projectPath: app
+          tauriScript: pnpm --dir ui tauri
+          args: --config src-tauri/tauri.agents.conf.json ${{ matrix.args }}
+          releaseId: ${{ needs.meta.outputs.id }}
+          tagName: ${{ github.ref_name }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+
+  checksums:
+    # SHA256SUMS of every asset (optionally GPG-signed) and, for pre-releases, the beta update
+    # feed. latest-beta.json goes to the pre-release itself and to the long-lived release tagged
+    # `beta` (created once by hand, see release-builds.md), whose URL beta installations read.
+    needs: [meta, bundles]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download the release assets
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dist
+      - name: SHA256SUMS
+        run: |
+          rm -f dist/SHA256SUMS dist/SHA256SUMS.asc dist/latest-beta.json
+          (cd dist && sha256sum -- *) > SHA256SUMS
+          cat SHA256SUMS
+      - name: Sign SHA256SUMS
+        env:
+          RELEASE_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
+          RELEASE_GPG_PASSPHRASE: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
+        run: |
+          if [ -z "$RELEASE_GPG_PRIVATE_KEY" ]; then
+            echo "::notice::No RELEASE_GPG_PRIVATE_KEY secret: SHA256SUMS is not signed."
+            exit 0
+          fi
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -m 700 -p "$GNUPGHOME"
+          printf '%s\n' "$RELEASE_GPG_PRIVATE_KEY" | gpg --batch --import
+          printf '%s' "$RELEASE_GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --armor --detach-sign --output SHA256SUMS.asc SHA256SUMS
+          rm -rf "$GNUPGHOME"
+      - name: Upload SHA256SUMS
+        run: gh release upload "$TAG" SHA256SUMS $(ls SHA256SUMS.asc 2>/dev/null) --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Beta update feed
+        if: needs.meta.outputs.channel == 'beta'
+        run: |
+          node app/ui/scripts/release-tools.mjs feed beta dist/latest.json latest-beta.json
+          gh release upload "$TAG" latest-beta.json --repo "$GITHUB_REPOSITORY" --clobber
+          if gh release view beta --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload beta latest-beta.json --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            echo "::warning::There is no release tagged beta, so beta installations do not see $TAG yet. Create it once as a pre-release (docs/guide/developer/release-builds.md)."
+          fi
+
+  publish:
+    # Publishes the draft once every asset is uploaded, so the updater never sees a partial release.
+    needs: [meta, checksums]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/${{ needs.meta.outputs.id }}" \
+            -F draft=false --silent

@@ -1,0 +1,27 @@
+/* Analyze Stack Trace dialog */
+.stacktrace-dialog {
+  width: min(820px, calc(100vw - 48px));
+}
+.stacktrace-body {
+  gap: 6px;
+}
+.stacktrace-text {
+  height: 320px;
+  resize: vertical;
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--fg);
+  background: var(--bg-editor);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  white-space: pre;
+}
+.stacktrace-text:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.stacktrace-hint {
+  font-size: var(--fs-small);
+}

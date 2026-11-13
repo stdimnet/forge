@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A trimmed sample in the shape of https://repo.purpurmc.org/snapshots/org/purpurmc/purpur/purpur-api/maven-metadata.xml
+     (build numbers other than 26.3.build.2655 are illustrative). -->
+<metadata>
+  <groupId>org.purpurmc.purpur</groupId>
+  <artifactId>purpur-api</artifactId>
+  <versioning>
+    <versions>
+      <version>1.21.11-R0.1-SNAPSHOT</version>
+      <version>26.2.build.2500-stable</version>
+      <version>26.3.build.2600-stable</version>
+      <version>26.3.build.2655-stable</version>
+    </versions>
+  </versioning>
+</metadata>

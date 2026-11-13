@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5c1f6a8e-1b2c-4d3e-8f90-0a1b2c3d4e5f" name="anna@forge-dev 2026-10-28 09:14:03" runUser="anna" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-28T09:14:03.120Z" queuing="2026-10-28T09:14:03.120Z" start="2026-10-28T09:14:01.880Z" finish="2026-10-28T09:14:03.200Z" />
+  <TestSettings name="default" id="0f3d5c1e-2222-4bbb-9ccc-111111111111">
+    <Deployment runDeploymentRoot="anna_forge-dev_2026-10-28_09_14_03" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e0000001-0000-0000-0000-000000000001" testId="70000001-0000-0000-0000-000000000001" testName="Bookstore.Tests.CartTests.Total_IsZero_ForAnEmptyCart" computerName="forge-dev" duration="00:00:00.0031000" startTime="2026-10-28T09:14:02.500Z" endTime="2026-10-28T09:14:02.503Z" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e0000001-0000-0000-0000-000000000001" />
+    <UnitTestResult executionId="e0000001-0000-0000-0000-000000000002" testId="70000001-0000-0000-0000-000000000002" testName="Bookstore.Tests.CartTests.Total_AddsLines" computerName="forge-dev" duration="00:00:00.0120000" startTime="2026-10-28T09:14:02.504Z" endTime="2026-10-28T09:14:02.516Z" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e0000001-0000-0000-0000-000000000002">
+      <Output>
+        <StdOut>Adding Dune x2</StdOut>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 19.98
+Actual:   19.97</Message>
+          <StackTrace>   at Bookstore.Tests.CartTests.Total_AddsLines() in /home/anna/Projects/Bookstore/tests/Bookstore.Tests/CartTests.cs:line 22
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e0000001-0000-0000-0000-000000000003" testId="70000001-0000-0000-0000-000000000003" testName="Bookstore.Tests.CartTests.Add_RejectsNonPositiveQuantities(quantity: 0)" computerName="forge-dev" duration="00:00:00.0050000" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected a &lt;System.ArgumentOutOfRangeException&gt; to be thrown, but no exception was thrown.</Message>
+          <StackTrace>   at Bookstore.Tests.CartTests.Add_RejectsNonPositiveQuantities(Int32 quantity) in /home/anna/Projects/Bookstore/tests/Bookstore.Tests/CartTests.cs:line 30</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e0000001-0000-0000-0000-000000000004" testId="70000001-0000-0000-0000-000000000004" testName="Bookstore.Tests.CartTests.Add_RejectsNonPositiveQuantities(quantity: -1)" computerName="forge-dev" duration="00:00:00.0010000" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <UnitTestResult executionId="e0000001-0000-0000-0000-000000000005" testId="70000001-0000-0000-0000-000000000005" testName="Bookstore.Tests.CartTests.Total_AppliesVouchers" computerName="forge-dev" duration="00:00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d">
+      <Output>
+        <ErrorInfo>
+          <Message>Discounts are not implemented yet</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e0000001-0000-0000-0000-000000000006" testId="70000001-0000-0000-0000-000000000006" testName="Bookstore.Tests.CartTests+WhenEmpty.HasNoLines" computerName="forge-dev" duration="00:00:00.0004000" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Bookstore.Tests.CartTests.Total_IsZero_ForAnEmptyCart" storage="/home/anna/projects/bookstore/tests/bookstore.tests/bin/debug/net8.0/bookstore.tests.dll" id="70000001-0000-0000-0000-000000000001">
+      <Execution id="e0000001-0000-0000-0000-000000000001" />
+      <TestMethod codeBase="/home/anna/Projects/Bookstore/tests/Bookstore.Tests/bin/Debug/net8.0/Bookstore.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Bookstore.Tests.CartTests" name="Total_IsZero_ForAnEmptyCart" />
+    </UnitTest>
+    <UnitTest name="Bookstore.Tests.CartTests.Total_AddsLines" storage="/home/anna/projects/bookstore/tests/bookstore.tests/bin/debug/net8.0/bookstore.tests.dll" id="70000001-0000-0000-0000-000000000002">
+      <Execution id="e0000001-0000-0000-0000-000000000002" />
+      <TestMethod codeBase="/home/anna/Projects/Bookstore/tests/Bookstore.Tests/bin/Debug/net8.0/Bookstore.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Bookstore.Tests.CartTests" name="Total_AddsLines" />
+    </UnitTest>
+    <UnitTest name="Bookstore.Tests.CartTests.Add_RejectsNonPositiveQuantities(quantity: 0)" storage="/home/anna/projects/bookstore/tests/bookstore.tests/bin/debug/net8.0/bookstore.tests.dll" id="70000001-0000-0000-0000-000000000003">
+      <Execution id="e0000001-0000-0000-0000-000000000003" />
+      <TestMethod codeBase="/home/anna/Projects/Bookstore/tests/Bookstore.Tests/bin/Debug/net8.0/Bookstore.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Bookstore.Tests.CartTests" name="Add_RejectsNonPositiveQuantities" />
+    </UnitTest>
+    <UnitTest name="Bookstore.Tests.CartTests.Add_RejectsNonPositiveQuantities(quantity: -1)" storage="/home/anna/projects/bookstore/tests/bookstore.tests/bin/debug/net8.0/bookstore.tests.dll" id="70000001-0000-0000-0000-000000000004">
+      <Execution id="e0000001-0000-0000-0000-000000000004" />
+      <TestMethod codeBase="/home/anna/Projects/Bookstore/tests/Bookstore.Tests/bin/Debug/net8.0/Bookstore.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Bookstore.Tests.CartTests" name="Add_RejectsNonPositiveQuantities" />
+    </UnitTest>
+    <UnitTest name="Bookstore.Tests.CartTests.Total_AppliesVouchers" storage="/home/anna/projects/bookstore/tests/bookstore.tests/bin/debug/net8.0/bookstore.tests.dll" id="70000001-0000-0000-0000-000000000005">
+      <Execution id="e0000001-0000-0000-0000-000000000005" />
+      <TestMethod codeBase="/home/anna/Projects/Bookstore/tests/Bookstore.Tests/bin/Debug/net8.0/Bookstore.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Bookstore.Tests.CartTests" name="Total_AppliesVouchers" />
+    </UnitTest>
+    <UnitTest name="Bookstore.Tests.CartTests+WhenEmpty.HasNoLines" storage="/home/anna/projects/bookstore/tests/bookstore.tests/bin/debug/net8.0/bookstore.tests.dll" id="70000001-0000-0000-0000-000000000006">
+      <Execution id="e0000001-0000-0000-0000-000000000006" />
+      <TestMethod codeBase="/home/anna/Projects/Bookstore/tests/Bookstore.Tests/bin/Debug/net8.0/Bookstore.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Bookstore.Tests.CartTests+WhenEmpty" name="HasNoLines" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries />
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="6" executed="5" passed="3" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="1" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

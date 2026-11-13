@@ -1,0 +1,31 @@
+[package]
+name = "forge-langservers"
+description = "Forge IDE: catalog, detection, configuration and installation of language servers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# The tiny HTTP server of the download tests, for packs that test their own downloads.
+testserver = []
+
+[dependencies]
+forge-hostspawn.workspace = true
+forge-lsp.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+dirs.workspace = true
+ignore.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+sha2 = "0.10"
+sha1 = "0.10"
+base64 = "0.22"
+flate2 = "1"
+tar = { version = "0.4", default-features = false }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile.workspace = true

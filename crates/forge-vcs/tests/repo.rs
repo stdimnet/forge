@@ -1,0 +1,502 @@
+//! End-to-end tests against throwaway repositories created with the real git CLI.
+
+use std::fs;
+use std::io::Write;
+use std::path::Path;
+use std::process::{Command, Stdio};
+use std::sync::Arc;
+
+use forge_core::Result;
+use forge_vcs::{FileState, GitExec, GitOutput, GitRequest, LogQuery, RefKind, Repo};
+use tempfile::TempDir;
+
+/// Isolates a git invocation from the machine's git setup: no system or global config
+/// (`core.autocrlf`, aliases, hooks paths, …), so results only depend on the test repo.
+fn isolate(cmd: &mut Command, dir: &Path) {
+    cmd.env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", dir.join(".no-global-config"))
+        .env("HOME", dir)
+        .env("GIT_EDITOR", "true")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("LC_ALL", "C");
+}
+
+/// Runs the repository's git commands like [`forge_vcs::LocalGit`], but isolated from the
+/// user's global and system git config.
+struct IsolatedGit;
+
+impl GitExec for IsolatedGit {
+    fn exec(&self, req: &GitRequest) -> Result<GitOutput> {
+        let cwd = Path::new(&req.cwd);
+        let mut cmd = Command::new(forge_vcs::git_binary());
+        cmd.current_dir(cwd)
+            .args(["-c", "core.quotepath=off", "-c", "color.ui=never"])
+            .args(&req.args)
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .env("GIT_PAGER", "cat")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdin(if req.stdin.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            });
+        isolate(&mut cmd, cwd);
+        let mut child = cmd.spawn().expect("git runs");
+        if let (Some(input), Some(mut stdin)) = (&req.stdin, child.stdin.take()) {
+            stdin.write_all(input.as_bytes()).expect("git stdin");
+        }
+        let out = child.wait_with_output().expect("git runs");
+        Ok(GitOutput {
+            ok: out.status.success(),
+            stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
+        })
+    }
+}
+
+/// Open the repository containing `dir` with [`IsolatedGit`].
+fn open(dir: impl AsRef<Path>) -> Result<Repo> {
+    Repo::open_with(dir, Arc::new(IsolatedGit))
+}
+
+fn sh(dir: &Path, args: &[&str]) -> String {
+    let mut cmd = Command::new("git");
+    cmd.current_dir(dir).args(args);
+    isolate(&mut cmd, dir);
+    let out = cmd.output().expect("git runs");
+    assert!(
+        out.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
+fn write(dir: &Path, path: &str, contents: &str) {
+    let p = dir.join(path);
+    fs::create_dir_all(p.parent().unwrap()).unwrap();
+    fs::write(p, contents).unwrap();
+}
+
+/// A repo with one commit on `main` containing `a.php` and `src/b.php`.
+fn fixture() -> TempDir {
+    let tmp = TempDir::new().unwrap();
+    let d = tmp.path();
+    sh(d, &["init", "-q", "-b", "main"]);
+    sh(d, &["config", "user.name", "Marlon"]);
+    sh(d, &["config", "user.email", "marlon@example.com"]);
+    sh(d, &["config", "commit.gpgsign", "false"]);
+    write(d, "a.php", "<?php\necho 1;\necho 2;\n");
+    write(d, "src/b.php", "<?php\nclass B {}\n");
+    sh(d, &["add", "-A"]);
+    sh(d, &["commit", "-q", "-m", "Initial commit"]);
+    tmp
+}
+
+#[test]
+fn status_reports_staged_unstaged_untracked() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "a.php", "<?php\necho 1;\necho 3;\n");
+    write(d, "new file.php", "<?php\n");
+    write(d, "staged.php", "<?php\n");
+    sh(d, &["add", "staged.php"]);
+    fs::remove_file(d.join("src/b.php")).unwrap();
+
+    let repo = open(d).unwrap();
+    let st = repo.status().unwrap();
+    assert_eq!(st.branch.as_deref(), Some("main"));
+    assert!(st.head.is_some());
+    let get = |p: &str| st.entries.iter().find(|e| e.path == p).unwrap();
+    assert_eq!(get("a.php").worktree, FileState::Modified);
+    assert!(get("new file.php").is_untracked());
+    assert_eq!(get("staged.php").index, FileState::Added);
+    assert_eq!(get("src/b.php").worktree, FileState::Deleted);
+}
+
+#[test]
+fn diff_show_and_blame() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "a.php", "<?php\necho 1;\necho 3;\n");
+    let repo = open(d).unwrap();
+
+    let head = repo.show("HEAD", "a.php").unwrap().unwrap();
+    assert_eq!(head, "<?php\necho 1;\necho 2;\n");
+    assert_eq!(repo.show("HEAD", "missing.php").unwrap(), None);
+
+    let diff = repo.diff(&["a.php".into()], false).unwrap();
+    assert_eq!(diff.len(), 1);
+    assert_eq!(diff[0].path, "a.php");
+    assert!(repo.diff(&[], true).unwrap().is_empty());
+    assert!(repo.diff_head_text(&[]).unwrap().contains("+echo 3;"));
+
+    let blame = repo.blame("a.php", None).unwrap();
+    assert_eq!(blame.lines.len(), 3);
+    let c = blame.commit_for_line(0).unwrap();
+    assert_eq!(c.author, "Marlon");
+    assert_eq!(c.summary, "Initial commit");
+    assert!(blame.commit_for_line(2).unwrap().uncommitted);
+
+    let buffer = repo
+        .blame("a.php", Some("<?php\necho 1;\necho 2;\nnew();\n"))
+        .unwrap();
+    assert_eq!(buffer.lines.len(), 4);
+    assert!(!buffer.commit_for_line(2).unwrap().uncommitted);
+    assert!(buffer.commit_for_line(3).unwrap().uncommitted);
+}
+
+#[test]
+fn stage_unstage_rollback() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "a.php", "changed\n");
+    write(d, "added.php", "<?php\n");
+    let repo = open(d).unwrap();
+
+    repo.stage(&["a.php".into(), "added.php".into()]).unwrap();
+    let st = repo.status().unwrap();
+    assert!(st.entries.iter().all(|e| e.is_staged()));
+
+    repo.unstage(&["a.php".into()]).unwrap();
+    let st = repo.status().unwrap();
+    let a = st.entries.iter().find(|e| e.path == "a.php").unwrap();
+    assert!(!a.is_staged() && a.is_unstaged());
+
+    repo.rollback(&["a.php".into(), "added.php".into()])
+        .unwrap();
+    assert_eq!(
+        fs::read_to_string(d.join("a.php")).unwrap(),
+        "<?php\necho 1;\necho 2;\n"
+    );
+    // The added file is unstaged but kept on disk.
+    assert!(d.join("added.php").exists());
+    let st = repo.status().unwrap();
+    assert_eq!(st.entries.len(), 1);
+    assert!(st.entries[0].is_untracked());
+}
+
+#[test]
+fn commit_selected_paths_and_amend() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "a.php", "one\n");
+    write(d, "src/b.php", "two\n");
+    write(d, "new.php", "three\n");
+    let repo = open(d).unwrap();
+
+    let sha = repo
+        .commit(
+            "Add new file\n\nWith a body.",
+            false,
+            Some(&["a.php".into(), "new.php".into()]),
+        )
+        .unwrap();
+    assert_eq!(sha.len(), 40);
+    let st = repo.status().unwrap();
+    assert_eq!(st.entries.len(), 1, "only src/b.php stays modified");
+    assert_eq!(st.entries[0].path, "src/b.php");
+
+    let details = repo.commit_details(&sha).unwrap();
+    assert_eq!(details.message, "Add new file\n\nWith a body.");
+    let mut files: Vec<_> = details.files.iter().map(|f| f.path.as_str()).collect();
+    files.sort();
+    assert_eq!(files, vec!["a.php", "new.php"]);
+
+    repo.stage(&["src/b.php".into()]).unwrap();
+    let amended = repo.commit("Add new file and edit b", true, None).unwrap();
+    assert_ne!(amended, sha);
+    let log = repo.log(&LogQuery::default()).unwrap();
+    assert_eq!(log.len(), 2);
+    assert_eq!(log[0].subject, "Add new file and edit b");
+    assert!(repo.status().unwrap().entries.is_empty());
+
+    assert!(repo.commit("  ", false, None).is_err());
+}
+
+#[test]
+fn signs_off_commits_and_reads_config() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "a.php", "signed\n");
+    let repo = open(d).unwrap();
+    let sha = repo
+        .commit_with("Sign this", false, Some(&["a.php".into()]), true)
+        .unwrap();
+    let message = repo.commit_details(&sha).unwrap().message;
+    assert!(message.contains("Signed-off-by: "), "{message}");
+    assert_eq!(repo.config_value("core.autocrlf"), None);
+    sh(d, &["config", "core.autocrlf", "true"]);
+    assert_eq!(repo.config_value("core.autocrlf").as_deref(), Some("true"));
+}
+
+#[test]
+fn branches_checkout_merge_and_log_graph() {
+    let tmp = fixture();
+    let d = tmp.path();
+    let repo = open(d).unwrap();
+
+    repo.create_branch("feature/login", None, true).unwrap();
+    write(d, "login.php", "<?php\n");
+    repo.commit("Add login", false, Some(&["login.php".into()]))
+        .unwrap();
+    repo.checkout("main").unwrap();
+    write(d, "a.php", "main change\n");
+    repo.commit("Change a", false, Some(&["a.php".into()]))
+        .unwrap();
+    repo.merge("feature/login").unwrap();
+    sh(d, &["tag", "v1.0"]);
+
+    let b = repo.branches().unwrap();
+    assert_eq!(b.current.as_deref(), Some("main"));
+    assert_eq!(b.local.len(), 2);
+    assert_eq!(b.tags[0].name, "v1.0");
+    assert_eq!(b.recent, vec!["feature/login"]);
+
+    let log = repo
+        .log(&LogQuery {
+            all: true,
+            ..LogQuery::default()
+        })
+        .unwrap();
+    assert_eq!(log.len(), 4);
+    assert_eq!(log[0].parents.len(), 2, "merge commit first");
+    let head_ref = log[0].refs.iter().find(|r| r.current).unwrap();
+    assert_eq!(head_ref.name, "main");
+    assert!(log[0]
+        .refs
+        .iter()
+        .any(|r| r.kind == RefKind::Tag && r.name == "v1.0"));
+
+    let page = repo
+        .log(&LogQuery {
+            skip: 1,
+            limit: 2,
+            ..LogQuery::default()
+        })
+        .unwrap();
+    assert_eq!(page.len(), 2);
+    assert_eq!(page[0].sha, log[1].sha);
+
+    let merge = repo.commit_details(&log[0].sha).unwrap();
+    assert_eq!(merge.files.len(), 1);
+    assert_eq!(merge.files[0].path, "login.php");
+
+    let filtered = repo
+        .log(&LogQuery {
+            path: Some("login.php".into()),
+            ..LogQuery::default()
+        })
+        .unwrap();
+    assert_eq!(filtered.len(), 1);
+
+    repo.delete_branch("feature/login", false).unwrap();
+    assert_eq!(repo.branches().unwrap().local.len(), 1);
+    assert!(repo.checkout("--orphan").is_err());
+}
+
+#[test]
+fn push_pull_fetch_against_local_remote() {
+    let remote = TempDir::new().unwrap();
+    sh(remote.path(), &["init", "-q", "--bare", "-b", "main"]);
+    let tmp = fixture();
+    let d = tmp.path();
+    sh(
+        d,
+        &["remote", "add", "origin", remote.path().to_str().unwrap()],
+    );
+    let repo = open(d).unwrap();
+
+    repo.push(false).unwrap();
+    let st = repo.status().unwrap();
+    assert_eq!(st.upstream.as_deref(), Some("origin/main"));
+
+    write(d, "a.php", "pushed\n");
+    repo.commit("Second", false, Some(&["a.php".into()]))
+        .unwrap();
+    assert_eq!(repo.status().unwrap().ahead, 1);
+    repo.push(false).unwrap();
+    repo.fetch().unwrap();
+    repo.pull(Some(false)).unwrap();
+    let st = repo.status().unwrap();
+    assert_eq!((st.ahead, st.behind), (0, 0));
+    assert!(repo
+        .branches()
+        .unwrap()
+        .remote
+        .iter()
+        .any(|b| b.name == "origin/main"));
+
+    // Review refs (as code hosts publish them) can be fetched into a local branch.
+    sh(
+        remote.path(),
+        &["update-ref", "refs/pull/7/head", "refs/heads/main"],
+    );
+    assert!(repo.remote_verbose().unwrap().contains("origin\t"));
+    assert!(!repo.has_branch("pr-7"));
+    repo.fetch_refspec("origin", "+refs/pull/7/head:refs/heads/pr-7")
+        .unwrap();
+    assert!(repo.has_branch("pr-7"));
+    assert!(repo.fetch_refspec("origin", "--upload-pack=x").is_err());
+}
+
+#[test]
+fn push_without_remote_reports_error() {
+    let tmp = fixture();
+    let repo = open(tmp.path()).unwrap();
+    let err = repo.push(false).unwrap_err().to_string();
+    assert!(err.contains("no remote"), "{err}");
+}
+
+#[test]
+fn workspace_in_subdirectory_uses_relative_paths() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "src/b.php", "<?php\nclass B { }\n");
+    write(d, "a.php", "outside\n");
+    let repo = open(d.join("src")).unwrap();
+    let st = repo.status().unwrap();
+    assert_eq!(st.entries.len(), 1);
+    assert_eq!(st.entries[0].path, "b.php");
+    assert_eq!(
+        repo.show("HEAD", "b.php").unwrap().as_deref(),
+        Some("<?php\nclass B {}\n")
+    );
+    let diff = repo.diff(&[], false).unwrap();
+    assert_eq!(diff.len(), 1);
+    assert_eq!(diff[0].path, "b.php");
+}
+
+#[test]
+fn open_outside_repository_fails() {
+    let tmp = TempDir::new().unwrap();
+    assert!(open(tmp.path()).is_err());
+}
+
+#[test]
+fn tracked_among_lists_tracked_files_even_when_ignored() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, ".gitignore", "vendor/\n*.log\n");
+    write(d, "vendor/forced.php", "<?php\n");
+    write(d, "vendor/other.php", "<?php\n");
+    write(d, "debug.log", "x\n");
+    sh(d, &["add", ".gitignore"]);
+    sh(d, &["add", "-f", "vendor/forced.php"]);
+    sh(d, &["commit", "-q", "-m", "Force add"]);
+
+    let repo = open(d).unwrap();
+    let paths: Vec<String> = [
+        "vendor",
+        "vendor/forced.php",
+        "vendor/other.php",
+        "debug.log",
+        "a.php",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    let mut tracked = repo.tracked_among(&paths).unwrap();
+    tracked.sort();
+    assert_eq!(tracked, vec!["a.php", "vendor/forced.php"]);
+    assert!(repo.tracked_among(&[]).unwrap().is_empty());
+}
+
+#[test]
+fn tracked_among_uses_workspace_relative_paths() {
+    let tmp = fixture();
+    let d = tmp.path();
+    let repo = open(d.join("src")).unwrap();
+    assert_eq!(
+        repo.tracked_among(&["b.php".to_string()]).unwrap(),
+        vec!["b.php"]
+    );
+}
+
+#[test]
+fn add_to_gitignore_writes_anchored_patterns_once() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, ".gitignore", "/vendor/");
+    write(d, "app/debug.log", "x\n");
+    write(d, "build/out.js", "x\n");
+    let repo = open(d).unwrap();
+
+    let added = repo
+        .add_to_gitignore(&["app/debug.log".into(), "build".into()])
+        .unwrap();
+    assert_eq!(added, vec!["/app/debug.log", "/build/"]);
+    repo.add_to_gitignore(&["app/debug.log".into()]).unwrap();
+    assert_eq!(
+        fs::read_to_string(d.join(".gitignore")).unwrap(),
+        "/vendor/\n/app/debug.log\n/build/\n"
+    );
+    let st = repo.status().unwrap();
+    assert!(st.entries.iter().all(|e| e.path == ".gitignore"));
+
+    assert!(repo.add_to_gitignore(&["../outside".into()]).is_err());
+}
+
+#[test]
+fn add_to_gitignore_from_workspace_subdirectory() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "src/tmp.txt", "x\n");
+    let repo = open(d.join("src")).unwrap();
+    repo.add_to_gitignore(&["tmp.txt".into()]).unwrap();
+    assert_eq!(
+        fs::read_to_string(d.join(".gitignore")).unwrap(),
+        "/src/tmp.txt\n"
+    );
+}
+
+#[test]
+fn tags_stashes_and_remotes() {
+    let tmp = fixture();
+    let d = tmp.path();
+    let repo = open(d).unwrap();
+
+    repo.create_tag("v1.0.0", None, None).unwrap();
+    repo.create_tag("v1.0.1", Some("HEAD"), Some("Release 1.0.1"))
+        .unwrap();
+    let tags: Vec<String> = repo
+        .branches()
+        .unwrap()
+        .tags
+        .into_iter()
+        .map(|t| t.name)
+        .collect();
+    assert!(tags.contains(&"v1.0.0".to_string()) && tags.contains(&"v1.0.1".to_string()));
+    assert!(repo.create_tag("-bad", None, None).is_err());
+
+    assert!(repo.stash_list().unwrap().is_empty());
+    write(d, "a.php", "stashed\n");
+    write(d, "new.php", "untracked\n");
+    repo.stash("Half-done work", false, true).unwrap();
+    assert!(repo.status().unwrap().entries.is_empty());
+    let list = repo.stash_list().unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].index, 0);
+    assert_eq!(list[0].branch.as_deref(), Some("main"));
+    assert_eq!(list[0].message, "Half-done work");
+
+    repo.unstash(0, true, false).unwrap();
+    assert_eq!(fs::read_to_string(d.join("a.php")).unwrap(), "stashed\n");
+    assert!(d.join("new.php").exists());
+    assert!(repo.stash_list().unwrap().is_empty());
+
+    repo.stash("", false, false).unwrap();
+    repo.drop_stash(0).unwrap();
+    assert!(repo.stash_list().unwrap().is_empty());
+
+    assert!(repo.remote_list().unwrap().is_empty());
+    repo.add_remote("origin", "https://example.com/acme/shop.git")
+        .unwrap();
+    let remotes = repo.remote_list().unwrap();
+    assert_eq!(remotes.len(), 1);
+    assert_eq!(remotes[0].fetch_url, "https://example.com/acme/shop.git");
+    assert!(repo.add_remote("other", "--upload-pack=evil").is_err());
+    repo.remove_remote("origin").unwrap();
+    assert!(repo.remote_list().unwrap().is_empty());
+}

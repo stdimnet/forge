@@ -1,0 +1,1395 @@
+shapes_app 41235/41235 81342.417615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.417865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.418115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.418365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.418615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.418865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.419115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.419365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.419615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.419865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.420115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.420365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.420615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.420865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.421115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.421365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.421615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.421865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.422115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.422365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.422615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.422865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.423115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.423365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.423615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.423865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.424115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.424365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.424615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.424865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.425115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.425365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.425615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.425865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.426115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.426365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.426615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.426865:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.427115:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.427365:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.427615:     250000 cpu-clock:ppp: 
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.427865:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.428115:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.428365:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.428615:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.428865:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.429115:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.429365:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.429615:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.429865:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.430115:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.430365:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.430615:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.430865:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.431115:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.431365:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.431615:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.431865:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.432115:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.432365:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.432615:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.432865:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.433115:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.433365:     250000 cpu-clock:ppp: 
+	    55d0c0a01712 std::abs(double)+0x12 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/std_abs.h:72
+	    55d0c0a01a2e Polygon::area() const+0x2e (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:17
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.433615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.433865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.434115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.434365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.434615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.434865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.435115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.435365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.435615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.435865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.436115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.436365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.436615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.436865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.437115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.437365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.437615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.437865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.438115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.438365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.438615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.438865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.439115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.439365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.439615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.439865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.440115:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.440365:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.440615:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.440865:     250000 cpu-clock:ppp: 
+	    7f3e2a6c1a10 __hypot_finite+0x30 (/usr/lib/x86_64-linux-gnu/libm.so.6)
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.441115:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.441365:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.441615:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.441865:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.442115:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.442365:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.442615:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.442865:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.443115:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.443365:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.443615:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.443865:     250000 cpu-clock:ppp: 
+	    55d0c0a01b80 Polygon::perimeter() const+0x40 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/geometry/polygon.cpp:28
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.444115:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.444365:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.444615:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.444865:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.445115:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.445365:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.445615:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.445865:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.446115:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.446365:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.446615:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.446865:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.447115:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.447365:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.447615:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.447865:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.448115:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.448365:     250000 cpu-clock:ppp: 
+	    55d0c0a02990 void std::__introsort_loop<__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, __gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, long, __gnu_cxx::__ops::_Iter_less_iter)+0x90 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /usr/include/c++/13/bits/stl_algo.h:1890
+	    55d0c0a02210 stats::median(std::vector<double, std::allocator<double> >)+0x50 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:14
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.448615:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.448865:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.449115:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.449365:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.449615:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.449865:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.450115:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.450365:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.450615:     250000 cpu-clock:ppp: 
+	    55d0c0a02100 stats::mean(std::vector<double, std::allocator<double> > const&)+0x30 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/stats.cpp:8
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.450865:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.451115:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.451365:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.451615:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.451865:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.452115:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.452365:     250000 cpu-clock:ppp: 
+	    7f3e2a47f1d2 printf+0xb2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a48b5c0 __vfprintf_internal+0x4a0 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a4a0f12 __printf_fp_l+0x1d2 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.452615:     250000 cpu-clock:ppp: 
+	    ffffffffb2a00f20 [unknown] ([kernel.kallsyms])
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+
+shapes_app 41235/41235 81342.452865:     250000 cpu-clock:ppp: 
+	    ffffffffb2a00f20 [unknown] ([kernel.kallsyms])
+	    55d0c0a01c4d main+0x9d (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+  /home/anna/Projects/shapes/src/main.cpp:31
+	    7f3e2a42a1c9 __libc_start_call_main+0x79 (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    7f3e2a42a28a __libc_start_main@@GLIBC_2.34+0x8a (/usr/lib/x86_64-linux-gnu/libc.so.6)
+	    55d0c0a01384 _start+0x24 (/home/anna/Projects/shapes/cmake-build-release/shapes_app)
+

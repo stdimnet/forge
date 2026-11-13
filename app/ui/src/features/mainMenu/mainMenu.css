@@ -1,0 +1,91 @@
+/* Main menu: hamburger popup, menu bar and the About dialog. Colors come from theme.css only. */
+.context-menu.main-menu-popup {
+  min-width: 190px;
+}
+
+.main-menu-bar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  height: 28px;
+  padding: 0 6px;
+  flex-shrink: 0;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.main-menu-bar.inline {
+  height: auto;
+  padding: 0 4px 0 0;
+  background: none;
+  border: none;
+}
+.main-menu-bar-item {
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--fs-ui);
+  cursor: default;
+}
+.main-menu-bar-item:hover {
+  background: var(--bg-hover);
+}
+.main-menu-bar-item.open {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.main-menu-bar-item .mnemonic,
+.main-menu-bar-item u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.about-dialog {
+  width: min(460px, calc(100vw - 32px));
+  outline: none;
+}
+.about-body {
+  display: flex;
+  gap: 16px;
+  padding: 22px 22px 18px;
+}
+.about-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.about-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.about-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.about-version {
+  color: var(--fg);
+}
+.about-lines {
+  margin-top: 8px;
+  display: grid;
+  gap: 2px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.about-tagline {
+  margin-top: 10px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}

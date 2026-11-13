@@ -1,0 +1,28 @@
+{
+  "$schema": "https://laravel-ide.com/schema/laravel-ide-v2.json",
+  "completions": [
+    {
+      "complete": "staticStrings",
+      "options": { "strings": ["paid", "shipped", "cancelled"] },
+      "condition": [{ "functionNames": ["order_status"], "parameters": [1] }]
+    },
+    {
+      "complete": "routeName",
+      "condition": [{ "classFqn": ["App\\Models\\Order"], "methodNames": ["linkTo"], "parameters": [1] }]
+    }
+  ],
+  "codeGenerations": [
+    {
+      "id": "shop:dto",
+      "name": "Create DTO",
+      "classSuffix": "Data",
+      "files": [
+        {
+          "appNamespace": "Data",
+          "name": "${INPUT_CLASS|className|upperCamelCase}.php",
+          "template": { "type": "stub", "path": "/stubs/dto.stub" }
+        }
+      ]
+    }
+  ]
+}

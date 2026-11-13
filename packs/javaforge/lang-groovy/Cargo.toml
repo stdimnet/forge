@@ -1,0 +1,14 @@
+[package]
+name = "javaforge-lang-groovy"
+description = "JavaForge: Groovy basics (tolerant source scanner, scripts and main classes, Spock specification discovery and commands for the shared test runner, Groovy script command lines with groovy or through Gradle, Groovy SDK lookup; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+javaforge-lang-java.workspace = true

@@ -1,0 +1,165 @@
+//! Third-party plugin models (`forge-plugins` without disk and network): manifest
+//! validation, the permission prompt and the marketplace index, mirroring the
+//! `plugin_inspect` and `marketplace_list` IPC commands in browser mode.
+
+use forge_plugin_api::profile::{self, LaunchProfile, PluginFacts};
+use forge_plugins::manifest::{Permissions, PluginManifest};
+use forge_plugins::marketplace::{self, Index, InstalledVersion};
+use serde::Deserialize;
+use wasm_bindgen::prelude::*;
+
+use crate::to_json;
+
+fn error(e: impl std::fmt::Display) -> String {
+    to_json(&serde_json::json!({ "error": e.to_string() }))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MarketplaceRequest {
+    index: String,
+    forge_version: String,
+    #[serde(default)]
+    installed: Vec<InstalledVersion>,
+    #[serde(default)]
+    query: String,
+}
+
+/// `{ index, forgeVersion, installed, query }` → `{ name, entries, warnings }`.
+#[wasm_bindgen]
+pub fn plugins_marketplace(request_json: &str) -> String {
+    let req: MarketplaceRequest = match serde_json::from_str(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    match Index::parse(&req.index) {
+        Ok((index, warnings)) => {
+            let entries = marketplace::entries(&index, &req.forge_version, &req.installed);
+            to_json(&serde_json::json!({
+                "name": index.name,
+                "entries": marketplace::search(&entries, &req.query),
+                "warnings": warnings,
+            }))
+        }
+        Err(e) => error(e),
+    }
+}
+
+/// Permissions → the lines of the install prompt.
+#[wasm_bindgen]
+pub fn plugins_permission_lines(permissions_json: &str) -> String {
+    match serde_json::from_str::<Permissions>(permissions_json) {
+        Ok(p) => to_json(&forge_plugins::permissions::summary(&p)),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ValidateRequest {
+    manifest: String,
+    forge_version: String,
+}
+
+/// `{ manifest, forgeVersion }` → the manifest's problems (`[]` when valid).
+#[wasm_bindgen]
+pub fn plugins_validate_manifest(request_json: &str) -> String {
+    let req: ValidateRequest = match serde_json::from_str(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    match PluginManifest::parse(&req.manifest) {
+        Ok(m) => to_json(&m.validate(&req.forge_version)),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LaunchProfileRequest {
+    /// The packs asked for, as `--packs` takes them (`phpforge,webforge`, `none`, `all`).
+    spec: String,
+    plugins: Vec<PluginFacts>,
+}
+
+/// `{ spec, plugins: [{ id, pack, depends, required }] }` → `ProfileView`, as the
+/// `launch_profile` command answers for a Forge started with those packs.
+#[wasm_bindgen]
+pub fn plugins_launch_profile(request_json: &str) -> String {
+    match serde_json::from_str::<LaunchProfileRequest>(request_json) {
+        Ok(req) => to_json(&profile::resolve(
+            &LaunchProfile::parse(&req.spec),
+            &req.plugins,
+        )),
+        Err(e) => error(e),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolves_a_launch_profile() {
+        let req = serde_json::json!({ "spec": "luaforge", "plugins": [
+            { "id": "forge.core", "pack": "core", "depends": [], "required": true },
+            { "id": "forge.lua", "pack": "luaforge", "depends": [] },
+            { "id": "forge.php", "pack": "phpforge", "depends": [] },
+        ]});
+        let out: serde_json::Value =
+            serde_json::from_str(&plugins_launch_profile(&req.to_string())).unwrap();
+        assert_eq!(out["all"], false);
+        assert_eq!(out["packs"], serde_json::json!(["luaforge"]));
+        assert_eq!(out["hidden"], serde_json::json!(["forge.php"]));
+        assert!(plugins_launch_profile("{}").contains("error"));
+    }
+
+    #[test]
+    fn bridges_json() {
+        let index = r#"{"formatVersion":1,"name":"Demo","plugins":[{"id":"acme.tool","name":"Tool",
+            "versions":[{"version":"1.0.0","engines":{"forge":">=0.1.0"},"url":"t.forgeplugin",
+            "sha256":"0000000000000000000000000000000000000000000000000000000000000000",
+            "permissions":{"network":["api.acme.dev"]}}]}]}"#;
+        let req = serde_json::json!({ "index": index, "forgeVersion": "0.1.0", "query": "tool" });
+        let out = plugins_marketplace(&req.to_string());
+        assert!(
+            out.contains(r#""id":"acme.tool""#) && out.contains("Connect to the internet"),
+            "{out}"
+        );
+        assert!(plugins_permission_lines(r#"{"editor":["read"]}"#).contains("editor.read"));
+        let bad = serde_json::json!({ "manifest": "{}", "forgeVersion": "0.1.0" });
+        assert!(plugins_validate_manifest(&bad.to_string()).contains("error"));
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct IconThemeRequest {
+    manifest: String,
+    theme: String,
+    /// Package path → text.
+    files: std::collections::BTreeMap<String, String>,
+}
+
+/// `{ manifest, theme, files }` → `LoadedIconTheme`, as `icon_theme_load` reads it from an
+/// installed plugin.
+#[wasm_bindgen]
+pub fn plugins_load_icon_theme(request_json: &str) -> String {
+    let req: IconThemeRequest = match serde_json::from_str(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    let manifest = match PluginManifest::parse(&req.manifest) {
+        Ok(m) => m,
+        Err(e) => return error(e),
+    };
+    match forge_plugins::icon_themes::load(&manifest, &req.theme, |p| {
+        req.files
+            .get(p)
+            .map(|t| t.as_bytes().to_vec())
+            .ok_or_else(|| format!("{p} is not in the package"))
+    }) {
+        Ok(t) => to_json(&t),
+        Err(e) => error(e),
+    }
+}

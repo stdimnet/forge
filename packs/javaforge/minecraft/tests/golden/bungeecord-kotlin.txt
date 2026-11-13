@@ -1,0 +1,142 @@
+==== .gitignore ====
+# Gradle and Maven
+.gradle/
+build/
+target/
+
+# The test server of run-paper (runServer)
+run/
+
+# IDEs
+.idea/
+*.iml
+out/
+.vscode/
+.DS_Store
+==== README.md ====
+# LobbyProxy
+
+A BungeeCord / Waterfall proxy plugin, written in Kotlin (Java 17).
+
+## Build
+
+The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer (Shadow 9 does not load on Gradle 8):
+
+```sh
+gradle wrapper
+```
+
+Then build the plugin (a missing JDK of the project's Java release is downloaded by Gradle's toolchain resolver, foojay):
+
+```sh
+./gradlew build
+```
+
+The plugin jar is `build/libs/lobby-proxy-1.0.0-SNAPSHOT.jar`. Copy it into the `plugins/` folder of your proxy.
+
+## Structure
+
+- `src/main/kotlin/com/example/lobbyproxy/LobbyProxy.kt`: the main class
+- `src/main/kotlin/com/example/lobbyproxy/command/HelloCommand.kt`: the `/hello` command
+- `src/main/kotlin/com/example/lobbyproxy/listener/JoinListener.kt`: greets players when they join
+- `src/main/resources/bungee.yml`: the plugin descriptor
+
+The Kotlin standard library is bundled into the plugin jar with Shadow.
+==== build.gradle.kts ====
+plugins {
+    kotlin("jvm") version "2.4.21"
+    id("com.gradleup.shadow") version "9.6.1"
+}
+
+group = "com.example"
+version = "1.0.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly("net.md-5:bungeecord-api:1.21-R0.4")
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+tasks {
+    processResources {
+        val props = mapOf("version" to version)
+        inputs.properties(props)
+        filteringCharset = "UTF-8"
+        filesMatching("bungee.yml") {
+            expand(props)
+        }
+    }
+    shadowJar {
+        archiveClassifier.set("")
+    }
+    build {
+        dependsOn(shadowJar)
+    }
+}
+==== settings.gradle.kts ====
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+rootProject.name = "lobby-proxy"
+==== src/main/kotlin/com/example/lobbyproxy/LobbyProxy.kt ====
+package com.example.lobbyproxy
+
+import com.example.lobbyproxy.command.HelloCommand
+import com.example.lobbyproxy.listener.JoinListener
+import net.md_5.bungee.api.plugin.Plugin
+
+class LobbyProxy : Plugin() {
+
+    override fun onEnable() {
+        proxy.pluginManager.registerListener(this, JoinListener())
+        proxy.pluginManager.registerCommand(this, HelloCommand())
+        logger.info("LobbyProxy enabled")
+    }
+
+    override fun onDisable() {
+        logger.info("LobbyProxy disabled")
+    }
+}
+==== src/main/kotlin/com/example/lobbyproxy/command/HelloCommand.kt ====
+package com.example.lobbyproxy.command
+
+import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.CommandSender
+import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.plugin.Command
+
+/** `/hello`: greets whoever runs it. */
+class HelloCommand : Command("hello") {
+
+    override fun execute(sender: CommandSender, args: Array<out String>) {
+        val message = TextComponent("Hello from the proxy!")
+        message.color = ChatColor.GREEN
+        sender.sendMessage(message)
+    }
+}
+==== src/main/kotlin/com/example/lobbyproxy/listener/JoinListener.kt ====
+package com.example.lobbyproxy.listener
+
+import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.event.PostLoginEvent
+import net.md_5.bungee.api.plugin.Listener
+import net.md_5.bungee.event.EventHandler
+
+class JoinListener : Listener {
+
+    @EventHandler
+    fun onPostLogin(event: PostLoginEvent) {
+        event.player.sendMessage(TextComponent("Welcome, ${event.player.name}!"))
+    }
+}
+==== src/main/resources/bungee.yml ====
+name: LobbyProxy
+version: '${version}'
+main: com.example.lobbyproxy.LobbyProxy

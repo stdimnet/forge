@@ -1,0 +1,100 @@
+/* Settings | Editor | Code Style */
+.cs-page {
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.cs-scheme-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 10px;
+}
+.cs-scheme-label {
+  color: var(--fg);
+}
+.cs-scheme-select {
+  min-width: 220px;
+}
+.cs-gear {
+  width: 26px;
+  height: 26px;
+  color: var(--fg-muted);
+}
+.cs-gear:hover {
+  color: var(--fg);
+}
+.cs-set-from {
+  margin-left: auto;
+}
+.cs-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.cs-tab {
+  height: 30px;
+  padding: 0 10px;
+  color: var(--fg-muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.cs-tab:hover {
+  color: var(--fg);
+}
+.cs-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.cs-split,
+.cs-general-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.cs-general-body:not(:has(.cs-preview)) {
+  grid-template-columns: minmax(0, 620px);
+}
+.cs-options {
+  min-width: 0;
+}
+.cs-options .set-section-body {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+.cs-options .set-select {
+  min-width: 140px;
+  max-width: 100%;
+}
+.cs-options .set-line > :not(.set-label) {
+  min-width: 0;
+  max-width: 100%;
+}
+.cs-row.modified .set-label,
+.cs-row.modified .set-check span {
+  color: var(--accent);
+}
+.cs-preview {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+  height: 440px;
+  max-height: calc(100vh - 260px);
+  min-height: 240px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.cs-preview .cm-editor {
+  height: 100%;
+  font-size: var(--fs-small);
+}
+.cs-preview .cm-scroller {
+  font-family: var(--font-mono);
+}

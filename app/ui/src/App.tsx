@@ -1,0 +1,86 @@
+import { onMount, Show } from "solid-js";
+import { Workbench } from "./shell/Workbench";
+import { WelcomeScreen } from "./shell/welcome/WelcomeScreen";
+import { openWorkspace, restoreWorkspace, workspace } from "./state/workspace";
+import { openFile } from "./state/editor";
+import { isTauri } from "./ipc";
+import { drawsControls, trackMaximized } from "./shell/window/chrome";
+import { startPrewarmingDialogs } from "./shell/window/dialogs";
+import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
+import { reportWorkbenchReady } from "./features/updates";
+import { askLaunchTrust } from "./features/trust";
+// The project's tool window layout and editor tabs are restored and saved (main window only).
+import "./state/layoutPersistence";
+import { installSystemBehaviour } from "./features/system";
+
+export function App() {
+  onMount(async () => {
+    trackMaximized();
+    installSystemBehaviour();
+    if (isTauri()) {
+      await restoreWorkspace();
+      // The window is shown (and the splash closed) once the first screen has rendered.
+      // The window is still hidden here, so no animation frame would ever run: use a task.
+      setTimeout(
+        () =>
+          void reportWorkbenchReady().then(() => {
+            // The window is on screen: the Settings window can be built in the background.
+            startPrewarmingDialogs();
+            return askLaunchTrust();
+          }),
+        0,
+      );
+      return;
+    }
+    // In browser mode open the demo project so the IDE is explorable without a backend,
+    // unless `?welcome` asks for the Welcome screen.
+    if (new URLSearchParams(location.search).has("welcome")) return;
+    await openWorkspace("demo");
+    const INITIAL: Record<string, string> = {
+      symfony: "src/Controller/OrderController.php",
+      lua: "main.lua",
+      python: "src/shop_api/main.py",
+      django: "catalog/views.py",
+      go: "cmd/ledger/main.go",
+      rust: "crates/shop-cli/src/main.rs",
+      ruby: "lib/pantry/inventory.rb",
+      rails: "app/controllers/articles_controller.rb",
+      java: "src/main/java/com/acme/inventory/App.java",
+      kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
+      spring: "src/main/java/com/acme/inventory/InventoryApplication.java",
+      scala: "core/src/main/scala/com/acme/shop/Cart.scala",
+      android: "app/src/main/java/com/acme/notes/NoteRepository.kt",
+      cpp: "src/geometry/polygon.cpp",
+      dotnet: "tests/Bookstore.Tests/CartTests.cs",
+      unity: "Assets/Scripts/PlayerController.cs",
+      godot: "player.gd",
+      wordpress: "acme-events.php",
+      drupal: "acme_tools.module",
+      react: "src/App.tsx",
+      vue: "src/views/DashboardView.vue",
+      angular: "src/app/users/user-card.component.ts",
+      node: "src/orders/pricing.ts",
+      webtools: "apps/api/openapi.yaml",
+    };
+    const params = new URLSearchParams(location.search);
+    // A Code With Me guest that follows the host shows the host's file instead.
+    if (params.get("project") === "cwm-guest" && params.has("follow")) return;
+    await openFile(INITIAL[params.get("project") ?? ""] ?? "app/Models/User.php");
+  });
+  const welcome = () => (
+    <Show when={drawsControls()} fallback={<WelcomeScreen />}>
+      <div class="welcome-window">
+        <WindowTitleBar title="Welcome to Forge" />
+        <WelcomeScreen />
+      </div>
+    </Show>
+  );
+  return (
+    <>
+      <Show when={workspace()} fallback={welcome()}>
+        <Workbench />
+      </Show>
+      <ResizeEdges />
+    </>
+  );
+}

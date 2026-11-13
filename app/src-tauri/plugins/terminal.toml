@@ -1,0 +1,228 @@
+id = "forge.terminal"
+name = "Terminal"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Integrated terminal emulator with shell integration and SSH sessions."
+
+[[contributions.commands]]
+id = "terminal.open"
+title = "Terminal"
+category = "View"
+
+[[contributions.keybindings]]
+command = "terminal.open"
+key = "Alt+F12"
+
+[[contributions.commands]]
+id = "RunSshConsole"
+title = "Start SSH Session…"
+category = "Tools"
+
+[[contributions.mainMenu]]
+path = "Tools"
+after = "Terminal.NewTab"
+items = [
+  { type = "action", id = "RunSshConsole", label = "Start SSH _Session..." },
+]
+
+[[contributions.toolWindows]]
+id = "terminal"
+title = "Terminal"
+anchor = "bottom"
+icon = "square-terminal"
+order = 40
+
+[[contributions.settings]]
+key = "terminal.shellPath"
+title = "Shell path"
+description = "Leave empty to use the system default shell."
+type = "path"
+default = ""
+group = "tools.terminal"
+section = "Application Settings"
+order = 0
+
+[[contributions.settings]]
+key = "terminal.tabName"
+title = "Default tab name"
+type = "string"
+default = "Local"
+group = "tools.terminal"
+section = "Application Settings"
+order = 1
+
+[[contributions.settings]]
+key = "terminal.audibleBell"
+title = "Audible bell"
+description = "Play a short tone when a program rings the terminal bell."
+type = "bool"
+default = false
+group = "tools.terminal"
+section = "Application Settings"
+order = 2
+
+[[contributions.settings]]
+key = "terminal.copyOnSelection"
+title = "Copy to clipboard on selection"
+type = "bool"
+default = false
+group = "tools.terminal"
+section = "Application Settings"
+order = 3
+
+[[contributions.settings]]
+key = "terminal.shellIntegration"
+title = "Shell integration"
+description = "bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 4
+
+[[contributions.settings]]
+key = "terminal.startDirectory"
+title = "Start directory"
+description = "Leave empty to start in the project root."
+type = "path"
+default = ""
+group = "tools.terminal"
+section = "Project Settings"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "terminal.environment"
+title = "Environment variables"
+description = "One NAME=value pair per entry."
+type = "list"
+default = []
+group = "tools.terminal"
+section = "Project Settings"
+project = true
+order = 11
+
+[[contributions.settings]]
+key = "terminal.showApplicationTitle"
+title = "Show application title"
+description = "Name terminal tabs after the title the running program sets, e.g. Claude Code's current task."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 5
+
+[[contributions.settings]]
+key = "terminal.showProgressInStatusBar"
+title = "Show progress in the status bar"
+description = "Programs such as Claude Code, winget and systemd report progress (OSC 9;4). It is always shown on the terminal tab."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 6
+
+[[contributions.settings]]
+key = "terminal.restoreScrollback"
+title = "Restore terminal history"
+description = "Terminal tabs come back when a project opens again; with this option also what they showed (up to 256 KB per tab, kept in the user cache directory, never in the project)."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 7
+
+[[contributions.settings]]
+key = "terminal.optionAsMeta"
+title = "Use Option as Meta key"
+description = "macOS only."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 7
+
+[[contributions.settings]]
+key = "terminal.cursorShape"
+title = "Cursor shape"
+type = "enum"
+options = [
+  { value = "block", label = "Block" },
+  { value = "underline", label = "Underline" },
+  { value = "vertical", label = "Vertical" },
+]
+default = "block"
+group = "tools.terminal"
+section = "Application Settings"
+order = 8
+
+[[contributions.settings]]
+key = "terminal.cursorBlink"
+title = "Blinking cursor"
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 9
+
+[[contributions.settings]]
+key = "terminal.font.family"
+title = "Font"
+description = "Leave empty to use the editor font. Missing symbols fall back to installed Nerd Fonts and emoji fonts."
+type = "string"
+default = ""
+group = "tools.terminal"
+section = "Font"
+order = 20
+
+[[contributions.settings]]
+key = "terminal.font.size"
+title = "Size"
+type = "number"
+min = 6
+max = 72
+step = 0.5
+default = 13
+group = "tools.terminal"
+section = "Font"
+order = 21
+
+[[contributions.settings]]
+key = "terminal.font.lineHeight"
+title = "Line height"
+type = "number"
+min = 1.0
+max = 3.0
+step = 0.1
+default = 1.2
+group = "tools.terminal"
+section = "Font"
+order = 22
+
+[[contributions.settings]]
+key = "terminal.renderer"
+title = "Renderer"
+description = "WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable."
+type = "enum"
+options = [
+  { value = "auto", label = "Automatic" },
+  { value = "webgl", label = "WebGL" },
+  { value = "dom", label = "DOM" },
+]
+default = "auto"
+group = "tools.terminal"
+section = "Rendering"
+order = 30
+
+[[contributions.settings]]
+key = "terminal.scrollback"
+title = "Scrollback buffer"
+description = "Number of lines kept above the visible area."
+type = "int"
+min = 0
+max = 1000000
+default = 10000
+group = "tools.terminal"
+section = "Rendering"
+order = 31

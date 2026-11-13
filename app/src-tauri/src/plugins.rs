@@ -1,0 +1,442 @@
+//! Built-in plugins. Their manifests are TOML files in `app/src-tauri/plugins/`, compiled
+//! into the binary. A test keeps `app/ui/src/mock/builtinPlugins.json` (the browser-mode
+//! copy) in sync with them.
+
+use forge_core::Result;
+use forge_plugin_api::{profile, LaunchProfile, PluginDescriptor, PluginRegistry};
+
+const MANIFESTS: &[(&str, &str)] = &[
+    ("core.toml", include_str!("../plugins/core.toml")),
+    ("git.toml", include_str!("../plugins/git.toml")),
+    (
+        "code-hosts.toml",
+        include_str!("../plugins/code-hosts.toml"),
+    ),
+    ("terminal.toml", include_str!("../plugins/terminal.toml")),
+    ("vim.toml", include_str!("../plugins/vim.toml")),
+    ("run.toml", include_str!("../plugins/run.toml")),
+    ("debugger.toml", include_str!("../plugins/debugger.toml")),
+    ("database.toml", include_str!("../plugins/database.toml")),
+    ("services.toml", include_str!("../plugins/services.toml")),
+    (
+        "deployment.toml",
+        include_str!("../plugins/deployment.toml"),
+    ),
+    ("php.toml", include_str!("../plugins/php.toml")),
+    (
+        "langservers.toml",
+        include_str!("../plugins/langservers.toml"),
+    ),
+    ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
+    ("webforge.toml", include_str!("../plugins/webforge.toml")),
+    ("luaforge.toml", include_str!("../plugins/luaforge.toml")),
+    ("pyforge.toml", include_str!("../plugins/pyforge.toml")),
+    ("goforge.toml", include_str!("../plugins/goforge.toml")),
+    ("rustforge.toml", include_str!("../plugins/rustforge.toml")),
+    ("rubyforge.toml", include_str!("../plugins/rubyforge.toml")),
+    ("javaforge.toml", include_str!("../plugins/javaforge.toml")),
+    (
+        "kotlinforge.toml",
+        include_str!("../plugins/kotlinforge.toml"),
+    ),
+    ("spring.toml", include_str!("../plugins/spring.toml")),
+    (
+        "javaforge-groovy.toml",
+        include_str!("../plugins/javaforge-groovy.toml"),
+    ),
+    (
+        "javaforge-scala.toml",
+        include_str!("../plugins/javaforge-scala.toml"),
+    ),
+    (
+        "javaforge-android.toml",
+        include_str!("../plugins/javaforge-android.toml"),
+    ),
+    (
+        "javaforge-minecraft.toml",
+        include_str!("../plugins/javaforge-minecraft.toml"),
+    ),
+    ("cforge.toml", include_str!("../plugins/cforge.toml")),
+    (
+        "dotnetforge.toml",
+        include_str!("../plugins/dotnetforge.toml"),
+    ),
+    (
+        "dotnetforge-gamedev.toml",
+        include_str!("../plugins/dotnetforge-gamedev.toml"),
+    ),
+    ("packs.toml", include_str!("../plugins/packs.toml")),
+    ("langs.toml", include_str!("../plugins/langs.toml")),
+    (
+        "browser-companion.toml",
+        include_str!("../plugins/browser-companion.toml"),
+    ),
+    (
+        "code-with-me.toml",
+        include_str!("../plugins/code-with-me.toml"),
+    ),
+    (
+        "natural-languages.toml",
+        include_str!("../plugins/natural-languages.toml"),
+    ),
+    (
+        "json-schema.toml",
+        include_str!("../plugins/json-schema.toml"),
+    ),
+    (
+        "vulnerabilities.toml",
+        include_str!("../plugins/vulnerabilities.toml"),
+    ),
+];
+
+/// Setting holding the ids of plugins the user disabled.
+pub const DISABLED_PLUGINS_KEY: &str = "plugins.disabled";
+
+/// Look up the launch profile of this process (`forge_plugin_api::profile`: the `--packs`
+/// flag, `FORGE_PACKS`, the program name) and export it as `FORGE_PACKS`, so
+/// [`launch_profile`], the project windows Forge starts and a restart all see the same
+/// one. Returns `args` without the flag. Call it first in `main`, before any thread runs.
+pub fn init_launch_profile(args: Vec<String>) -> Vec<String> {
+    let env = std::env::var(profile::PACKS_ENV).ok();
+    // An AppImage runs the binary inside its mount; `ARGV0` is the name it was started as.
+    let argv0 = std::env::var_os("APPIMAGE").and_then(|_| std::env::var("ARGV0").ok());
+    let profile = LaunchProfile::detect(&args, env.as_deref(), argv0.as_deref());
+    std::env::set_var(profile::PACKS_ENV, profile.spec());
+    profile::strip_args(args)
+}
+
+/// The launch profile [`init_launch_profile`] found (every pack without it).
+pub fn launch_profile() -> LaunchProfile {
+    std::env::var(profile::PACKS_ENV)
+        .map(|spec| LaunchProfile::parse(&spec))
+        .unwrap_or_default()
+}
+
+pub fn builtin_descriptors() -> Result<Vec<PluginDescriptor>> {
+    let mut out = Vec::new();
+    for (name, src) in MANIFESTS {
+        let parsed = PluginDescriptor::parse_many(src).map_err(|e| {
+            forge_core::ForgeError::Other(format!("built-in plugin manifest {name}: {e}"))
+        })?;
+        out.extend(parsed);
+    }
+    Ok(out)
+}
+
+pub fn builtin_registry() -> Result<PluginRegistry> {
+    let mut registry = PluginRegistry::new();
+    for d in builtin_descriptors()? {
+        registry.register_descriptor(d)?;
+    }
+    Ok(registry)
+}
+
+/// Settings with the built-in schema (defaults, user-only keys) and the project layer of
+/// `root`, without the user's own files (for tests).
+#[cfg(test)]
+pub(crate) fn test_settings(root: &std::path::Path) -> forge_core::Settings {
+    let mut settings = forge_core::Settings::new();
+    forge_plugin_api::apply_setting_specs(
+        &mut settings,
+        builtin_registry().unwrap().all_settings(),
+    );
+    settings.load_project(root).unwrap();
+    settings
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+    use std::path::PathBuf;
+
+    #[test]
+    fn ide_settings_are_user_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let settings = test_settings(dir.path());
+        // Programs, servers and feeds Forge uses for the user.
+        for key in [
+            "vcs.git.path",
+            "langservers.download.npmRegistry",
+            "langservers.download.nodeMirror",
+            "updates.endpoint",
+            "updates.channel",
+            "android.sdk.path",
+            "groovy.sdk.path",
+            "terminal.shellPath",
+        ] {
+            assert!(settings.is_user_only(key), "{key}");
+        }
+        // Project settings stay with the project, including the keys the Code Style and
+        // Inspections pages store in it.
+        for spec in builtin_registry().unwrap().all_settings() {
+            assert_eq!(
+                settings.is_user_only(&spec.key),
+                !spec.project,
+                "{}",
+                spec.key
+            );
+        }
+        for key in [
+            forge_codestyle::scheme::SCHEME_KEY,
+            forge_codestyle::scheme::LEGACY_BRACES_KEY,
+            forge_inspections::store::SELECTED_KEY,
+            forge_inspections::store::PROJECT_PROFILES_KEY,
+            "projectStructure.folders",
+            "jsonSchema.mappings",
+            "deployment.autoUpload",
+            "editor.codeStyle.detectIndents",
+            "ruby.interpreter",
+        ] {
+            assert!(!settings.is_user_only(key), "{key}");
+        }
+        let model = forge_codestyle::model();
+        for full in model.defaults().into_keys() {
+            if let Some(key) = forge_codestyle::scheme::settings_key(&full) {
+                assert!(!settings.is_user_only(&key), "{key}");
+            }
+        }
+    }
+
+    #[test]
+    fn manifests_are_consistent() {
+        let registry = builtin_registry().unwrap();
+        assert!(registry.get("forge.core").unwrap().manifest.required);
+
+        let mut keys = HashSet::new();
+        for spec in registry.all_settings() {
+            assert!(keys.insert(&spec.key), "duplicate setting {}", spec.key);
+            spec.kind
+                .validate(&spec.default)
+                .unwrap_or_else(|e| panic!("default of {}: {e}", spec.key));
+        }
+        for p in registry.list() {
+            for dep in &p.manifest.depends {
+                assert!(registry.get(dep).is_some(), "{} needs {dep}", p.manifest.id);
+            }
+        }
+        assert_eq!(
+            registry
+                .lsp_server_for_extension("php")
+                .map(|s| s.id.as_str()),
+            Some("php-lsp")
+        );
+        let mut adapters = HashSet::new();
+        for a in registry.debug_adapters() {
+            assert!(
+                adapters.insert(&a.r#type),
+                "duplicate debug adapter {}",
+                a.r#type
+            );
+            if let Some(key) = &a.command_setting {
+                assert!(
+                    registry.find_setting(key).is_some(),
+                    "{key} is not a setting"
+                );
+            }
+        }
+        assert!(adapters.contains(&"lldb".to_string()));
+    }
+
+    #[test]
+    fn file_types_are_sane() {
+        let registry = builtin_registry().unwrap();
+        let mut ids = HashSet::new();
+        for t in registry.file_types() {
+            assert!(ids.insert(&t.id), "duplicate file type {}", t.id);
+            assert!(
+                !t.extensions.is_empty() || !t.file_names.is_empty(),
+                "file type {} matches nothing",
+                t.id
+            );
+            assert!(t
+                .extensions
+                .iter()
+                .all(|e| !e.starts_with('.') && *e == e.to_lowercase()));
+        }
+        for id in [
+            "shell",
+            "python",
+            "yaml",
+            "json",
+            "dotenv",
+            "ignore",
+            "dockerfile",
+            "docker-compose",
+            "postfix",
+            "postfix-master",
+            "eml",
+            "symfony-services",
+        ] {
+            assert!(ids.contains(&id.to_string()), "missing file type {id}");
+        }
+    }
+
+    /// File type detection over the real manifests (bundled types plus language packs).
+    #[test]
+    fn file_types_detect_like_phpstorm() {
+        let types = builtin_registry().unwrap().file_type_registry();
+        let id =
+            |path: &str, first: Option<&str>| types.detect(path, first, &[]).map(|t| t.id.as_str());
+        for (path, expected) in [
+            ("src/app.py", "python"),
+            ("Assets/Shaders/Toon.shader", "shaderlab"),
+            ("Assets/Shaders/Lighting.hlsl", "hlsl"),
+            ("Assets/Shaders/Common.cginc", "hlsl"),
+            ("Assets/Scripts/Game.asmdef", "json"),
+            ("player.gd", "gdscript"),
+            ("scenes/main.tscn", "godot-resource"),
+            ("project.godot", "godot-resource"),
+            ("export_presets.cfg", "godot-resource"),
+            ("shaders/water.gdshader", "gdshader"),
+            ("scripts/deploy.sh", "shell"),
+            ("config/a.yml", "yaml"),
+            ("composer.json", "json"),
+            ("Dockerfile", "dockerfile"),
+            ("docker/Dockerfile.prod", "dockerfile"),
+            ("docker-compose.override.yml", "docker-compose"),
+            ("compose.yaml", "docker-compose"),
+            ("composer.yml", "yaml"),
+            ("/etc/postfix/main.cf", "postfix"),
+            ("/etc/postfix/master.cf", "postfix-master"),
+            ("pgsql-aliases.cf", "postfix"),
+            ("mail/msg.eml", "eml"),
+            ("a.EML", "eml"),
+            ("src/Kernel.php", "php"),
+            ("templates/x.blade.php", "blade"),
+            (".env", "dotenv"),
+            (".env.local", "dotenv"),
+            (".env.test.local", "dotenv"),
+            (".env.dist", "dotenv"),
+            ("prod.env", "dotenv"),
+            (".env.local.php", "php"),
+            (".gitignore", "ignore"),
+            (".dockerignore", "ignore"),
+            ("app/.npmignore", "ignore"),
+            (".prettierignore", "ignore"),
+            (".ignore", "ignore"),
+            ("config/services.yaml", "symfony-services"),
+            ("config/services_test.yaml", "symfony-services"),
+            ("app/config/services_dev.yml", "symfony-services"),
+            ("app/config/services/api.yml", "symfony-services"),
+            ("config/services/mail.yaml", "symfony-services"),
+            ("config/packages/framework.yaml", "yaml"),
+            ("php.ini", "ini"),
+            ("/etc/mysql/my.cnf", "ini"),
+            (".editorconfig", "ini"),
+            ("nginx.conf", "nginx"),
+            ("sysctl.conf", "conf"),
+            ("supervisord.conf", "ini"),
+            ("a.PY", "python"),
+            ("src/game/world.lua", "lua"),
+            ("penlight-1.14.0-1.rockspec", "lua"),
+            (".luacheckrc", "lua"),
+            ("cmd/ledger/main.go", "go"),
+            ("go.mod", "go-mod"),
+            ("services/api/go.mod", "go-mod"),
+            ("go.work", "go-work"),
+            ("go.sum", "go-sum"),
+            ("go.work.sum", "go-sum"),
+            ("crates/shop-core/src/cart.rs", "rust"),
+            ("Cargo.toml", "toml"),
+            ("Cargo.lock", "toml"),
+            ("rust-toolchain", "toml"),
+            ("Gemfile", "ruby"),
+            ("Gemfile.lock", "gemfile-lock"),
+            ("lib/tasks/db.rake", "ruby"),
+            ("shop.gemspec", "ruby"),
+            ("config.ru", "ruby"),
+            (".irbrc", "ruby"),
+            ("app/views/carts/show.html.erb", "erb"),
+            ("src/Bookstore.Api/Bookstore.Api.csproj", "msbuild"),
+            ("Directory.Build.props", "msbuild"),
+            ("Bookstore.slnx", "msbuild"),
+            ("Bookstore.sln", "sln"),
+            ("src/Bookstore.Api/Program.cs", "csharp"),
+            ("Pages/Index.cshtml", "razor"),
+        ] {
+            assert_eq!(id(path, None), Some(expected), "{path}");
+        }
+        assert_eq!(
+            id("bin/run", Some("#!/usr/bin/env python3")),
+            Some("python")
+        );
+        assert_eq!(id("bin/run", Some("#!/bin/bash")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/bin/sh")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env luajit")), Some("lua"));
+        // Laravel's `artisan`, Symfony's `bin/console` and other PHP scripts.
+        assert_eq!(id("bin/run", Some("#!/usr/bin/php")), Some("php"));
+        assert_eq!(id("artisan", Some("#!/usr/bin/env php")), Some("php"));
+        assert_eq!(id("bin/console", Some("#!/usr/bin/env php")), Some("php"));
+        assert_eq!(
+            id("bin/run", Some("#!/usr/bin/env node")),
+            Some("javascript")
+        );
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env fish")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env ruby")), Some("ruby"));
+        assert_eq!(id("bin/run", None), None);
+        assert_eq!(id("notes.txt", None), None);
+
+        // Outside Symfony projects the services files are plain YAML.
+        let inactive = ["forge.symfony-services".to_string()];
+        assert_eq!(
+            types
+                .detect("config/services.yaml", None, &inactive)
+                .map(|t| t.name.as_str()),
+            Some("YAML")
+        );
+    }
+
+    /// The UI's browser mode serves the same plugins from a JSON copy. Run with
+    /// `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app` after editing a manifest.
+    #[test]
+    fn ignored_files_default_matches_forge_filetypes() {
+        let registry = builtin_registry().unwrap();
+        let spec = registry
+            .all_settings()
+            .find(|s| s.key == crate::commands::workspace::IGNORED_FILES_KEY)
+            .unwrap();
+        assert_eq!(spec.default, forge_filetypes::DEFAULT_IGNORED_FILES);
+    }
+
+    #[test]
+    fn browser_mock_snapshot_is_current() {
+        let registry = builtin_registry().unwrap();
+        let json = serde_json::to_string_pretty(registry.list()).unwrap() + "\n";
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../ui/src/mock/builtinPlugins.json");
+        if std::env::var_os("FORGE_UPDATE_SNAPSHOTS").is_some() {
+            std::fs::write(&path, &json).unwrap();
+        }
+        let current = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(
+            current.replace("\r\n", "\n") == json,
+            "{} is out of date; rerun with FORGE_UPDATE_SNAPSHOTS=1",
+            path.display()
+        );
+    }
+
+    /// `crates/forge-i18n/locales/en/plugins.json`, the English source of the manifests'
+    /// translatable text, follows the manifests (`FORGE_UPDATE_SNAPSHOTS=1` rewrites it).
+    #[test]
+    fn english_plugin_catalog_is_current() {
+        let registry = builtin_registry().unwrap();
+        let actions = forge_keymap::catalog::action_messages();
+        let menu = forge_keymap::menu::menu_messages();
+        let messages = forge_plugin_api::l10n::manifest_messages(registry.list(), |k| {
+            actions.contains_key(k) || menu.contains_key(k)
+        });
+        let json = serde_json::to_string_pretty(&messages).unwrap() + "\n";
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../crates/forge-i18n/locales/en/plugins.json");
+        if std::env::var_os("FORGE_UPDATE_SNAPSHOTS").is_some() {
+            std::fs::write(&path, &json).unwrap();
+        }
+        let current = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(
+            current.replace("\r\n", "\n") == json,
+            "{} is out of date; rerun with FORGE_UPDATE_SNAPSHOTS=1",
+            path.display()
+        );
+    }
+}

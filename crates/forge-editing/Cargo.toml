@@ -1,0 +1,13 @@
+[package]
+name = "forge-editing"
+description = "Editor actions computed in Rust: postfix completion templates, Complete Current Statement, Cyclic Expand Word and the edit history (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Pure logic (no file system, processes or tokio) so it also compiles to wasm32 for
+# browser mode (crates/forge-wasm).
+[dependencies]
+forge-bookmarks.workspace = true
+serde.workspace = true
+serde_json.workspace = true

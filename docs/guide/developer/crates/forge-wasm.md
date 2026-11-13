@@ -1,0 +1,96 @@
+---
+title: forge-wasm
+description: "WebAssembly build of Forge's pure Rust logic for the browser-mode UI."
+order: 260
+tags: [crate, rust]
+---
+
+# forge-wasm
+
+`crates/forge-wasm` — WebAssembly build of Forge's pure Rust logic for the browser-mode UI.
+
+## Purpose
+
+WebAssembly bridge for the browser-mode UI.
+
+Forge's rule is "Rust computes, TypeScript renders". In the desktop app the UI calls Rust
+through Tauri IPC; in browser mode (`pnpm dev`, screenshots, tests) the same Rust code runs
+as WebAssembly so mocks never re-implement logic in TypeScript.
+
+Only **pure** crates belong here (no file system, processes, network or tokio). Each area
+adds a module that wraps its crate with `#[wasm_bindgen]` functions taking and returning
+JSON strings, mirroring the matching IPC command:
+
+```rust
+#[wasm_bindgen]
+pub fn keymap_resolve(request_json: &str) -> String { … }
+```
+
+Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `cli_tools.rs` | Command Line Tool Support (`phpforge-cli-tools`), mirroring the `cli_tools_*` commands: the effective tools from the demo files and settings, parsing of recorded `list --format=json` output, completion and the command line of a console input. |
+| `ai_editor.rs` | AI in the editor (`forge_ai_editor`) for the browser-mode mock: the fake provider's canned answers go through the same post-processing, prompts, proposals and `.aiignore` policy as the desktop app's `ai_inline_complete`, `ai_action` and `ai_explain`. |
+| `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
+| `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
+| `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
+| `dotnet.rs` | DotNetForge (`dotnetforge-lang-dotnet`), mirroring the `dotnet_*` and `nuget_*` commands for the `Bookstore` demo: the workspace from the demo files, build output as problems, test discovery and source scans, run / build / NuGet / `dotnet new` / `dotnet format` command lines, `dotnet new list`, NuGet search answers and upgrades; ASP.NET Core endpoints and `.http` requests, Blazor components, the EF Core model, `dotnet ef` command lines and output, Aspire AppHosts, run output (dashboard URL, Hot Reload), Dockerfiles and `.NET Docker` / `.NET Aspire` command lines, `UserSecretsId` in project files. |
+| `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
+| `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
+| `hierarchy.rs` | The Hierarchy tool window's views (`forge_codeintel::hierarchy`), called synchronously in the desktop app and in browser mode alike: `hierarchy_type_view`, `hierarchy_method_view` and `hierarchy_call_view` recompute a tree from the data the `code_*_hierarchy` commands answered when the view, scope or sorting changes. |
+| `json_schema.rs` | JSON Schema (`forge-jsonschema`), mirroring the `json_schema_*` commands for the browser-mode mock: bundled schemas and the demo project's schema files (an answer with `needs` asks the mock for more files); no downloads. |
+| `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
+| `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
+| `keymap.rs` | Keymap bridge (`forge-keymap`). |
+| `spring.rs` | Spring Boot and Jakarta EE (`javaforge-fw-spring`): `spring_overview` (model and tool window rows, with canned actuator answers), `spring_gutter`, `spring_config` (complete, inspect, hover, goto with canned metadata), `spring_http_request`, `spring_launch`, `spring_observe` and `spring_dashboard` (nodes and details). |
+| `kotlin.rs` | KotlinForge (`kotlinforge-lang-kotlin`): `kotlin_main_functions`, `kotlin_coroutines`, `kotlin_lint_report` (ktlint JSON, SARIF, Checkstyle) and `kotlin_command_line` (Kotlin applications, scripts, Kotest). `testing.rs` registers `KotlinTests` like the app. |
+| `jvm_extras.rs` | JavaForge's JVM extras (`javaforge-lang-groovy`, `javaforge-lang-scala`, `javaforge-android`): `groovy_runnable`, `groovy_script_command`, `scala_main_objects`, `scala_sbt_build` (static build, optionally merged with a recorded import), `scala_command_line` (sbt Task, ScalaTest, MUnit), `android_adb`, `android_module`, `android_app_command`, `android_logcat_view`. `testing.rs` registers `SpockTests` and both `ScalaTests` like the app. |
+| `java.rs` | JavaForge (`javaforge-build`, `javaforge-lang-java`), mirroring `java_main_methods`, `java_build_info` and the backend's Java run building (`java_command_line`: Application, Maven, Gradle, JUnit and TestNG with their `TestCommand`). `testing.rs` registers `JavaTests` like the app. |
+| `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
+| `parsers.rs` | Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the IPC commands of the desktop app for the browser-mode mocks. |
+| `parsers/chat.rs` | The AI chat conversation (`forge_agent_cli::conversation`) for the browser-mode agent: the mock feeds its scripted events into a `Chat` and emits the `chat` updates like the desktop backend. |
+| `parsers/dql.rs` | DQL in PHP strings (`phpforge-dql`) for the browser-mode Doctrine backend. Sites are found by the lexical finder (the desktop app uses tree-sitter); the entity snapshot comes from the mock's demo mappings. |
+| `parsers/markdown.rs` | Markdown (`forge-markdown`) for browser mode, mirroring `markdown_parse`, `markdown_hover`, `markdown_document` and `markdown_anchor_line`. |
+| `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
+| `dbobjects.rs` | Database objects (`forge-dbmodel` design and Generate DDL, `forge-dbtransfer` import, Excel export and dump command lines) for the browser-mode backend. |
+| `parsers/dbmodel.rs` | The Database Explorer model (`forge-dbmodel`) for the browser-mode database backend: schema filter, DDL data sources, virtual objects, Quick Documentation and full-text search over demo rows. |
+| `parsers/dbschema.rs` | The schema tools (`forge-dbschema`) for the browser-mode database backend: ER diagram layout, Compare Structure with the migration script, and Explain Plan (explain statements and plan parsing). |
+| `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
+| `inspections.rs` | Inspections (`forge-inspections`), called synchronously by the UI in the desktop app and in browser mode: `inspections_configure` / `inspections_apply` (the selected profile applied to every published diagnostic: inspection ids, severities, disabled inspections, suppression comments), `inspections_view` and `inspections_profile_op` (the Settings page), `inspections_suppress_actions` (Alt+Enter), `inspections_find` (Run Inspection by Name), `inspections_report_tree`, profile export / import; for the browser-mode mock `inspections_run`, `inspections_cleanup_plan`, `inspections_apply_edits` and `inspections_export_report`. |
+| `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
+| `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
+| `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
+| `viewers.rs` | Image metadata and CSV/TSV tables (`forge-viewers`) for browser mode, mirroring `image_read` (from the mock's demo bytes), `csv_parse`, `csv_edit` and `csv_sort_order`. |
+| `settings.rs` | The Settings dialog model (`forge_plugin_api::settings_model`), mirroring the `settings_search` and `settings_validate` IPC commands. |
+| `structure.rs` | The editor's code structure, called synchronously by the editor in the desktop app and in browser mode alike (like the keymap and the terminal sequences): `editor_structure` (scopes and folding regions for Sticky Lines, breadcrumbs and folding), `editor_doc_comments` (rendered doc comments), `structure_group_by_regions` (Structure view) and `editor_structure_languages`. |
+| `terminal.rs` | Terminal sequences (`forge_output::osc`), called synchronously by the terminal in the desktop app and in browser mode alike: xterm.js runs OSC handlers inside its parser, so the answer is needed before the handler returns, which an IPC round trip cannot give. |
+| `web.rs` | WebForge (`packs/webforge/*`) for the browser-mode mock: npm packages and scripts, package manager detection, and React/Vue/Angular component navigation over the demo project's files, mirroring the `npm_*` and `web_*` IPC commands. |
+| `window.rs` | Window chrome (`forge_window`), mirroring the `window_chrome` IPC command for browser mode. |
+
+## Main public items
+
+```rust
+pub fn bridge_version() -> String { … }
+```
+
+## Used by
+
+- IPC: none: it mirrors IPC commands as WebAssembly functions for browser mode
+- UI: `app/ui/src/wasm/`, `app/ui/src/mock/`
+- Browser mode: is the WebAssembly bridge
+
+## Dependencies
+
+- Workspace crates: [`forge-agent-cli`](forge-agent-cli.md), [`forge-ai-editor`](forge-ai-editor.md), [`forge-containers`](forge-containers.md), [`forge-colors`](forge-colors.md), [`forge-dbmodel`](forge-dbmodel.md), [`forge-dbschema`](forge-dbschema.md), [`forge-dbtransfer`](forge-dbtransfer.md), [`forge-editing`](forge-editing.md), [`forge-emmet`](forge-emmet.md), [`forge-filetypes`](forge-filetypes.md), [`forge-find`](forge-find.md), [`forge-fuzzy`](forge-fuzzy.md), [`forge-jsonschema`](forge-jsonschema.md), [`forge-keymap`](forge-keymap.md), [`forge-markdown`](forge-markdown.md), [`forge-output`](forge-output.md), [`forge-plugin-api`](forge-plugin-api.md), [`forge-remote`](forge-remote.md), [`forge-scratches`](forge-scratches.md), [`forge-spell`](forge-spell.md), [`forge-sql`](forge-sql.md), [`forge-viewers`](forge-viewers.md), [`forge-window`](forge-window.md), [`luaforge-lang-lua`](luaforge-lang-lua.md), [`phpforge-dql`](phpforge-dql.md), [`webforge-fw-angular`](webforge-fw-angular.md), [`webforge-fw-react`](webforge-fw-react.md), [`webforge-fw-vue`](webforge-fw-vue.md), [`webforge-lang-web`](webforge-lang-web.md)
+- External: `serde`, `serde_json`, `wasm-bindgen`
+
+## Tests
+
+21 source files, about 2924 lines; 27 unit tests.
+
+```sh
+cargo test -p forge-wasm
+```

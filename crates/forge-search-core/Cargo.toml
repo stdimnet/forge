@@ -1,0 +1,20 @@
+[package]
+name = "forge-search-core"
+description = "Pure engine of Forge code search: trigram index, query matching, symbol extraction"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+parallel = ["dep:rayon"]
+
+[dependencies]
+serde.workspace = true
+globset = "0.4"
+regex = "1"
+regex-syntax = "0.8"
+bincode = "1"
+roaring = { version = "0.10", features = ["serde"] }
+nucleo-matcher = "0.3"
+rayon = { version = "1", optional = true }
