@@ -120,12 +120,28 @@ export interface BranchInfo {
   worktree?: string | null;
 }
 
+/** A node of the branches grouped into folders at each `/` (`forge_vcs::branch_tree`). */
+export interface BranchNode {
+  kind: "remote" | "folder" | "branch";
+  /** The last segment of the name: `tabs` of `feat/ui/tabs`. */
+  label: string;
+  /** A branch: its name (`feat/ui/tabs`, `origin/main`); a folder or remote: its prefix (`feat/ui`, `origin`). */
+  path: string;
+  /** The current branch, or a folder that contains it. */
+  current: boolean;
+  children: BranchNode[];
+}
+
 export interface Branches {
   current: string | null;
   local: BranchInfo[];
   remote: BranchInfo[];
   tags: BranchInfo[];
   recent: string[];
+  /** `local` in folders: folders first, then branches, the current one leading. */
+  localTree: BranchNode[];
+  /** `remote` below the remotes, then in folders. */
+  remoteTree: BranchNode[];
 }
 
 export interface RemoteResult {

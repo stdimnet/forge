@@ -2322,6 +2322,8 @@
   "setting.vcs.git.autoFetch.description": "Im Hintergrund, für Repositorys, deren Branch einen Upstream hat. Fehler werden ignoriert.",
   "setting.vcs.git.autoFetch.title": "Remotes automatisch abrufen (Fetch)",
   "setting.vcs.git.autoFetchInterval.title": "Abrufen alle (Minuten)",
+  "setting.vcs.git.branches.groupByDirectory.description": "Im Branches-Popup und im Git-Toolfenster: Branches mit einem Schrägstrich im Namen werden in Ordnern angezeigt (feat/ui/tabs in feat > ui). Die Suche findet auch Branches in geschlossenen Ordnern.",
+  "setting.vcs.git.branches.groupByDirectory.title": "Branches nach Verzeichnis gruppieren",
   "setting.vcs.git.cherryPickSuffix.title": "Beim Cherry-Pick von Commits, die auf geschützte Branches gepusht wurden, das Suffix „cherry-picked from <hash>“ hinzufügen",
   "setting.vcs.git.commit.blankLineAfterSubject.title": "Leerzeile zwischen Betreff und Text verlangen",
   "setting.vcs.git.commit.bodyRightMargin.title": "Rechter Rand für den Text (Spalten)",

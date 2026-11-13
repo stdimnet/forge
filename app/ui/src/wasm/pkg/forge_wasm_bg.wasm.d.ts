@@ -508,6 +508,7 @@ export const text_prepare_save: (a: number, b: number, c: number) => void;
 export const text_read: (a: number, b: number, c: number) => void;
 export const text_write: (a: number, b: number, c: number) => void;
 export const todo_scan: (a: number, b: number, c: number) => void;
+export const vcs_branch_tree: (a: number, b: number, c: number) => void;
 export const vcs_change_hunks: (a: number, b: number, c: number) => void;
 export const vcs_changelists: (a: number, b: number, c: number) => void;
 export const vcs_log_action_states: (a: number, b: number, c: number) => void;

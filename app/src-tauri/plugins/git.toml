@@ -85,6 +85,15 @@ group = "vcs.git"
 order = 4
 
 [[contributions.settings]]
+key = "vcs.git.branches.groupByDirectory"
+title = "Group branches by directory"
+description = "In the Branches popup and the Git tool window: branches whose names contain a slash are shown in folders (feat/ui/tabs in feat > ui). Search still finds branches in collapsed folders."
+type = "bool"
+default = true
+group = "vcs.git"
+order = 5
+
+[[contributions.settings]]
 key = "vcs.git.commit.subjectMaxLength"
 title = "Limit subject line length"
 type = "int"

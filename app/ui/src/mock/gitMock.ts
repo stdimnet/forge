@@ -123,6 +123,7 @@ const otherBranches = (shas: string[]) =>
         ["main", shaOf("c6")],
         ["feature/checkout-flow", shaOf("c3")],
         ["bugfix/login-redirect", shaOf("c9")],
+        ["feature/ui/dark-mode", shaOf("c12")],
       ]
     : demo.branches.map((b, i): [string, string] => [b, shaOf(shas[i % shas.length])]);
 
@@ -146,6 +147,8 @@ const state = {
       ? ([
           ["origin/feature/checkout-flow", shaOf("c3")],
           ["origin/release/1.1", shaOf("c10")],
+          ["origin/feature/ui/dark-mode", shaOf("c12")],
+          ["origin/bugfix/cart-rounding", shaOf("c14")],
         ] as [string, string][])
       : []),
   ]),
@@ -439,7 +442,7 @@ function log(q: LogQuery): Commit[] {
   });
 }
 
-function branches(): Branches {
+function branches(): Omit<Branches, "localTree" | "remoteTree"> {
   const info = (name: string, sha: string, upstream?: string): BranchInfo => {
     const c = bySha.get(sha);
     const ab = upstream && state.remote.get(upstream) ? aheadBehind(sha, state.remote.get(upstream)!) : { ahead: 0, behind: 0 };
@@ -598,7 +601,16 @@ registerMock("git_commit_details", ({ sha }): CommitDetails => {
     })(),
   };
 });
-registerMock("git_branches", () => branches());
+/** The folders of the branch trees come from Rust (`forge_vcs::branch_tree`), like in the desktop app. */
+registerMock("git_branches", async (): Promise<Branches> => {
+  const b = branches();
+  const trees = await callWasm<Pick<Branches, "localTree" | "remoteTree">>((await forgeWasm()).vcs_branch_tree, {
+    local: b.local.map(({ name, current }) => ({ name, current })),
+    remote: b.remote.map(({ name }) => ({ name })),
+    remotes: state.remotes.map((r) => r.name),
+  });
+  return { ...b, ...trees };
+});
 registerMock("git_checkout", async ({ rev, remote }) => {
   await delay(150);
   let name = String(rev);

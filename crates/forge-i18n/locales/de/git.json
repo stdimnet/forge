@@ -583,5 +583,8 @@
   "git.actions.noRemoteBranches": "Keine Remote-Branches",
   "git.actions.pull": "Pull",
   "git.branchesPopup.pullIntoCurUsingRebase": "Pull in ''{cur}'' per Rebase",
-  "git.branchesPopup.pullIntoCurUsingMerge": "Pull in ''{cur}'' per Merge"
+  "git.branchesPopup.pullIntoCurUsingMerge": "Pull in ''{cur}'' per Merge",
+  "git.branchesPopup.branches": "Branches",
+  "git.branchesPopup.settings": "Einstellungen",
+  "git.branchesPopup.groupByDirectory": "Nach Verzeichnis gruppieren"
 }

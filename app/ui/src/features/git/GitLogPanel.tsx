@@ -5,11 +5,11 @@
  * with click, Ctrl+click and Shift+click; the context menu holds the Log actions
  * (`logActions.ts`).
  */
-import { createEffect, createMemo, createResource, createSignal, For, on, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
 import {
   ChevronDown,
-  ChevronRight,
   Cloud,
+  Folder,
   GitBranch,
   Monitor,
   RefreshCw,
@@ -20,7 +20,10 @@ import {
   X,
 } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
-import { gitApi, type Branches, type Commit, type RefLabel } from "./api";
+import { TreeArrow } from "@/shell/TreeArrow";
+import { navigate } from "@/features/project/treeNavigation";
+import { gitApi, type BranchNode, type Branches, type Commit, type RefLabel } from "./api";
+import { flattenBranchTree, groupByDirectory, isFolder, toggled, ungrouped, type Expansion } from "./branchTree";
 import { revision, status } from "./store";
 import { layoutGraph, type GraphRow } from "./graph";
 import { fullDate, logDate } from "./format";
@@ -101,73 +104,144 @@ function RefPill(props: { r: RefLabel }) {
   );
 }
 
+/** A row of the branches tree: HEAD, a section, a remote or folder, a branch or a tag. */
+interface BranchTreeItem {
+  key: string;
+  kind: "head" | "section" | "remote" | "folder" | "branch" | "tag";
+  label: string;
+  depth: number;
+  /** What the row filters the log by; folders and sections filter nothing. */
+  rev?: string;
+  expanded?: boolean;
+  current?: boolean;
+  remote?: boolean;
+}
+
+/** Element id of a row (`aria-activedescendant`). */
+const branchRowIds = new Map<string, string>();
+const branchRowId = (key: string): string => {
+  let id = branchRowIds.get(key);
+  if (!id) branchRowIds.set(key, (id = `log-branch-row-${branchRowIds.size + 1}`));
+  return id;
+};
+
 function BranchTree(props: { branches: Branches | undefined }) {
-  const [closed, setClosed] = createSignal<Set<string>>(new Set(["Tags"]));
-  const toggle = (k: string) =>
-    setClosed((p) => {
-      const n = new Set(p);
-      n.has(k) ? n.delete(k) : n.add(k);
-      return n;
-    });
-  const remotes = createMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const b of props.branches?.remote ?? []) {
-      const [remote, ...rest] = b.name.split("/");
-      map.set(remote, [...(map.get(remote) ?? []), rest.join("/")]);
-    }
-    return [...map.entries()];
+  /** Opened and closed rows; sections start open except Tags, folders as in the Branches popup. */
+  const [expansion, setExpansion] = createSignal<Expansion>(new Map([["section:tags", false]]));
+  /** The row the arrow keys are on. */
+  const [cursor, setCursor] = createSignal<string | null>(null);
+
+  const rows = createMemo(() => {
+    const out: BranchTreeItem[] = [{ key: "head", kind: "head", label: tr("git.gitLogPanel.headCurrentBranch"), depth: 0, rev: "HEAD" }];
+    const section = (id: string, label: string, children: () => BranchTreeItem[]) => {
+      const key = `section:${id}`;
+      const expanded = expansion().get(key) ?? true;
+      out.push({ key, kind: "section", label, depth: 0, expanded });
+      if (expanded) out.push(...children());
+    };
+    const tree = (name: string, nodes: BranchNode[]) =>
+      flattenBranchTree(nodes, { section: name, expansion: expansion(), depth: 1 }).map(
+        ({ key, node, depth, expanded }): BranchTreeItem =>
+          isFolder(node)
+            ? { key, kind: node.kind === "remote" ? "remote" : "folder", label: node.label, depth, expanded }
+            : { key, kind: "branch", label: node.label, depth, rev: node.path, current: node.current, remote: name === "remote" },
+      );
+    const b = props.branches;
+    const grouped = groupByDirectory();
+    section("local", tr("git.gitLogPanel.local"), () =>
+      grouped
+        ? tree("local", b?.localTree ?? [])
+        : (b?.local ?? []).map((x): BranchTreeItem => ({ key: `local:branch:${x.name}`, kind: "branch", label: x.name, depth: 1, rev: x.name, current: x.current })),
+    );
+    section("remote", tr("git.gitLogPanel.remote"), () => tree("remote", grouped ? (b?.remoteTree ?? []) : ungrouped(b?.remoteTree ?? [], (b?.remote ?? []).map((x) => x.name))));
+    section("tags", tr("git.gitLogPanel.tags"), () => (b?.tags ?? []).map((x): BranchTreeItem => ({ key: `tag:${x.name}`, kind: "tag", label: x.name, depth: 1, rev: x.name })));
+    return out;
   });
-  const Node = (p: { label: string; rev: string | null; icon: "branch" | "head" | "tag"; depth: number; current?: boolean; remote?: boolean }) => (
-    <div
-      class="tree-row"
-      classList={{ selected: filterRev() === p.rev }}
-      style={{ "padding-left": `${8 + p.depth * 16}px` }}
-      onClick={() => setFilterRev(p.rev)}
-      onDblClick={() => p.rev && p.icon === "branch" && !p.current && void checkout(p.rev, p.remote)}
-      title={p.rev ?? tr("tools.git.showAllBranches")}
-    >
-      <span class="tree-chevron" />
-      <Show when={p.icon === "head"} fallback={p.icon === "tag" ? <Tag size={14} class="muted" /> : <GitBranch size={14} class="muted" />}>
-        <Monitor size={14} class="muted" />
-      </Show>
-      <span class="tree-label">{p.label}</span>
-      <Show when={p.current}>
-        <Star size={12} class="log-current-star" fill="currentColor" />
-      </Show>
-    </div>
+
+  const isDir = (row: BranchTreeItem) => row.expanded !== undefined;
+  const toggle = (row: BranchTreeItem, open = !row.expanded) => setExpansion((e) => toggled(e, { key: row.key, expanded: !!row.expanded }, open));
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const action = navigate(
+      rows().map((r) => ({ path: r.key, isDir: isDir(r), expanded: !!r.expanded, depth: r.depth })),
+      cursor(),
+      e.key,
+    );
+    if (action.type === "none") return;
+    e.preventDefault();
+    const row = rows().find((r) => r.key === action.path);
+    if (!row) return;
+    if (action.type === "select") {
+      setCursor(row.key);
+      queueMicrotask(() => document.getElementById(branchRowId(row.key))?.scrollIntoView?.({ block: "nearest" }));
+    } else if (action.type === "open") setFilterRev(row.rev ?? null);
+    else toggle(row, action.type === "expand");
+  };
+
+  const Icon = (p: { row: BranchTreeItem }) => (
+    <Switch>
+      <Match when={p.row.kind === "head"}>
+        <Monitor size={14} class="muted" aria-hidden="true" />
+      </Match>
+      <Match when={p.row.kind === "remote"}>
+        <Cloud size={14} class="muted" aria-hidden="true" />
+      </Match>
+      <Match when={p.row.kind === "folder"}>
+        <Folder size={14} class="muted" aria-hidden="true" />
+      </Match>
+      <Match when={p.row.kind === "branch"}>
+        <GitBranch size={14} class="muted" aria-hidden="true" />
+      </Match>
+      <Match when={p.row.kind === "tag"}>
+        <Tag size={14} class="muted" aria-hidden="true" />
+      </Match>
+    </Switch>
   );
-  const Section = (p: { label: string; depth: number; icon?: "cloud"; children: any }) => (
-    <>
-      <div class="tree-row" style={{ "padding-left": `${8 + p.depth * 16}px` }} onClick={() => toggle(p.label)}>
-        <span class="tree-chevron">{closed().has(p.label) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</span>
-        <Show when={p.icon === "cloud"}>
-          <Cloud size={14} class="muted" />
-        </Show>
-        <span class="tree-label">{p.label}</span>
-      </div>
-      <Show when={!closed().has(p.label)}>{p.children}</Show>
-    </>
-  );
+
   return (
-    <div class="log-branches">
-      <Node label={tr("git.gitLogPanel.headCurrentBranch")} rev="HEAD" icon="head" depth={0} />
-      <Section label={tr("git.gitLogPanel.local")} depth={0}>
-        <For each={props.branches?.local ?? []}>
-          {(b) => <Node label={b.name} rev={b.name} icon="branch" depth={1} current={b.current} />}
-        </For>
-      </Section>
-      <Section label={tr("git.gitLogPanel.remote")} depth={0}>
-        <For each={remotes()}>
-          {([remote, names]) => (
-            <Section label={remote} depth={1} icon="cloud">
-              <For each={names}>{(n) => <Node label={n} rev={`${remote}/${n}`} icon="branch" depth={2} remote />}</For>
-            </Section>
-          )}
-        </For>
-      </Section>
-      <Section label={tr("git.gitLogPanel.tags")} depth={0}>
-        <For each={props.branches?.tags ?? []}>{(t) => <Node label={t.name} rev={t.name} icon="tag" depth={1} />}</For>
-      </Section>
+    <div
+      class="log-branches"
+      tabIndex={0}
+      role="tree"
+      aria-label={tr("git.branchesPopup.branches")}
+      aria-activedescendant={cursor() ? branchRowId(cursor()!) : undefined}
+      onKeyDown={onKeyDown}
+    >
+      <For each={rows()}>
+        {(row) => (
+          <div
+            class="tree-row"
+            classList={{ selected: row.rev !== undefined && filterRev() === row.rev }}
+            style={{ "padding-left": `${8 + row.depth * 16}px` }}
+            id={branchRowId(row.key)}
+            role="treeitem"
+            aria-level={row.depth + 1}
+            aria-expanded={isDir(row) ? row.expanded : undefined}
+            aria-selected={cursor() === row.key}
+            aria-current={row.current ? "true" : undefined}
+            data-branch={row.kind === "branch" ? row.rev : undefined}
+            data-folder={row.kind === "folder" || row.kind === "remote" ? row.key : undefined}
+            title={row.rev ?? undefined}
+            onClick={() => {
+              setCursor(row.key);
+              if (isDir(row)) toggle(row);
+              else setFilterRev(row.rev ?? null);
+            }}
+            onDblClick={() => row.kind === "branch" && !row.current && void checkout(row.rev!, row.remote)}
+          >
+            <span class="tree-chevron" aria-hidden="true">
+              <Show when={isDir(row)}>
+                <TreeArrow open={!!row.expanded} />
+              </Show>
+            </span>
+            <Icon row={row} />
+            <span class="tree-label">{row.label}</span>
+            <Show when={row.current}>
+              <Star size={12} class="log-current-star" fill="currentColor" aria-hidden="true" />
+            </Show>
+          </div>
+        )}
+      </For>
     </div>
   );
 }

@@ -25,6 +25,42 @@ pub fn vcs_merge(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+struct BranchName {
+    name: String,
+    #[serde(default)]
+    current: bool,
+}
+
+#[derive(Deserialize)]
+struct BranchTreeRequest {
+    #[serde(default)]
+    local: Vec<BranchName>,
+    #[serde(default)]
+    remote: Vec<BranchName>,
+    /// Configured remote names.
+    #[serde(default)]
+    remotes: Vec<String>,
+}
+
+/// `{ local: [{ name, current }], remote: [{ name }], remotes }` → `{ localTree, remoteTree }`:
+/// the branches grouped into folders, as `git_branches` answers (`forge_vcs::branch_tree`).
+#[wasm_bindgen]
+pub fn vcs_branch_tree(request_json: &str) -> String {
+    match parse::<BranchTreeRequest>(request_json) {
+        Ok(r) => to_json(&serde_json::json!({
+            "localTree": forge_vcs::branch_tree::local_branch_tree(
+                r.local.iter().map(|b| (b.name.as_str(), b.current)),
+            ),
+            "remoteTree": forge_vcs::branch_tree::remote_branch_tree(
+                r.remote.iter().map(|b| b.name.as_str()),
+                &r.remotes,
+            ),
+        })),
+        Err(e) => e,
+    }
+}
+
 /// `SelectionFacts` → `LogActionStates`: which Git Log actions the git mock's selection allows.
 #[wasm_bindgen]
 pub fn vcs_log_action_states(facts_json: &str) -> String {

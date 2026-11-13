@@ -405,6 +405,12 @@ impl Repo {
         if let Ok(reflog) = self.git(&["reflog", "--format=%gs", "-n", "300"]) {
             b.recent = parse_recent_checkouts(&reflog, &b.local, b.current.as_deref());
         }
+        // A remote name may contain a slash, so group with the configured remotes.
+        if let Ok(remotes) = self.remotes() {
+            if remotes.iter().any(|r| r.contains('/')) {
+                b.group(&remotes);
+            }
+        }
         Ok(b)
     }
 

@@ -678,6 +678,33 @@
   background: var(--accent-soft);
   color: var(--fg-strong);
 }
+.popup-row.active {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+/* The search field keeps the focus; the ring is on the row the arrow keys are on. */
+.branches-popup:focus-within .popup-row.active {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+/* Faint text is too weak on the selection. */
+.popup-row.active .popup-hint {
+  color: var(--fg-muted);
+}
+/* Rows that are buttons (menu items) look like the other rows. */
+button.popup-row {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.popup-row:hover,
+button.popup-row:focus-visible {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
 .popup-row.danger {
   color: var(--danger);
 }
@@ -722,6 +749,37 @@
 }
 .branch-track.incoming {
   color: var(--vcs-modified);
+}
+/* The submenu arrow stays at the right edge, also without a tracked branch before it. */
+.branch-row > svg:last-child {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.branch-row .popup-hint + svg:last-child {
+  margin-left: 0;
+}
+/* What the search found in a branch or folder name. */
+.branch-hl {
+  background: color-mix(in srgb, var(--warning) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+/* Folders of the grouped list: arrow, icon, name; children are indented per level. */
+.branches-popup .tree-chevron {
+  margin-right: -3px;
+}
+.branch-folder .popup-label {
+  color: var(--fg);
+}
+/* The settings menu under the gear in the search row. */
+.branches-popup .popup-search .icon-btn {
+  flex-shrink: 0;
+}
+.branch-settings-menu {
+  position: absolute;
+  top: 38px;
+  right: 5px;
+  min-width: 200px;
 }
 .branch-submenu {
   min-width: 260px;

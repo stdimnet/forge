@@ -2617,6 +2617,12 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `{ local: [{ name, current }], remote: [{ name }], remotes }` → `{ localTree, remoteTree }`:
+ * the branches grouped into folders, as `git_branches` answers (`forge_vcs::branch_tree`).
+ */
+export function vcs_branch_tree(request_json: string): string;
+
+/**
  * `{ base, current }` → `ChangeHunk[]`; with `include` (hunk ids) → the text a partial
  * commit stores (`string`).
  */
@@ -3311,6 +3317,7 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_branch_tree: (a: number, b: number, c: number) => void;
     readonly vcs_change_hunks: (a: number, b: number, c: number) => void;
     readonly vcs_changelists: (a: number, b: number, c: number) => void;
     readonly vcs_log_action_states: (a: number, b: number, c: number) => void;

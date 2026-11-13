@@ -26,6 +26,7 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 | --- | --- |
 | `blame.rs` | Parser for `git blame --porcelain`. |
 | `branch.rs` | Branches and tags from `git for-each-ref`, plus recently checked out branches from the reflog. |
+| `branch_tree.rs` | Branches grouped into folders at each `/` ("Group By Directory"): `local_branch_tree` and `remote_branch_tree` (one node per remote, remote names may contain slashes) build `BranchNode` trees, folders first, then branches with the current one leading, names in natural order. `Branches` carries them as `local_tree` / `remote_tree`; browser mode builds them with `vcs_branch_tree` (`forge-wasm`). Pure. |
 | `changelists.rs` | `Changelists`: the changelist model of the Commit tool window (lists, active list, file → list, moved hunks → list): `sync` with the status, `create`/`edit`/`delete`/`set_active`/`ensure`, `move_files`, `move_hunks`, `normalize_file`, `view`. Pure (also WebAssembly). |
 | `cmd.rs` | Running the `git` executable. No shell is involved: arguments are passed as-is, so paths with spaces or quotes need no escaping on any platform. |
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
@@ -52,6 +53,7 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 ```rust
 pub use blame::{parse_blame, Blame, BlameCommit};
 pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
+pub use branch_tree::{BranchNode, BranchNodeKind};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use history::{parse_block_history, parse_file_history, BlockRevision, FileRevision, HistoryQuery};
 pub use log::{…};

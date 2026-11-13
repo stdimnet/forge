@@ -462,6 +462,7 @@ Page id `vcs.git`.
 | `vcs.git.autoFetch` | bool | `true` | user |  | Fetch remotes automatically — In the background, for repositories whose branch has an upstream. Failures are ignored. |
 | `vcs.git.autoFetchInterval` | int (1–240) | `10` | user |  | Fetch every (minutes) |
 | `vcs.git.inlineBlame` | bool | `true` | user |  | Show inline blame — At the end of the line with the caret: who last changed it, when, and the commit message. Annotate with Git Blame works either way. |
+| `vcs.git.branches.groupByDirectory` | bool | `true` | user |  | Group branches by directory — In the Branches popup and the Git tool window: branches whose names contain a slash are shown in folders (feat/ui/tabs in feat > ui). Search still finds branches in collapsed folders. |
 | `vcs.git.commit.subjectMaxLength` | int (20–200) | `72` | user | Commit Message Inspections | Limit subject line length |
 | `vcs.git.commit.blankLineAfterSubject` | bool | `true` | user | Commit Message Inspections | Require blank line between subject and body |
 | `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user | Commit Message Inspections | Right margin for body (columns) |

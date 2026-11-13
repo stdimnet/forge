@@ -49,7 +49,7 @@ export default {
   "vcs-branches": async (page) => {
     await page.click('.main-toolbar [title="Git Branches"]');
     await page.waitForSelector(".branch-row");
-    await page.locator(".popup-section:text('Local') + .branch-row").first().waitFor();
+    await page.locator(".popup-section:text('Local') ~ .branch-row").first().waitFor();
     const row = page.locator(".branch-row", { hasText: "main" }).first();
     await row.hover();
     await page.waitForSelector(".branch-submenu");

@@ -2322,6 +2322,8 @@
   "setting.vcs.git.autoFetch.description": "In the background, for repositories whose branch has an upstream. Failures are ignored.",
   "setting.vcs.git.autoFetch.title": "Fetch remotes automatically",
   "setting.vcs.git.autoFetchInterval.title": "Fetch every (minutes)",
+  "setting.vcs.git.branches.groupByDirectory.description": "In the Branches popup and the Git tool window: branches whose names contain a slash are shown in folders (feat/ui/tabs in feat > ui). Search still finds branches in collapsed folders.",
+  "setting.vcs.git.branches.groupByDirectory.title": "Group branches by directory",
   "setting.vcs.git.cherryPickSuffix.title": "Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches",
   "setting.vcs.git.commit.blankLineAfterSubject.title": "Require blank line between subject and body",
   "setting.vcs.git.commit.bodyRightMargin.title": "Right margin for body (columns)",
