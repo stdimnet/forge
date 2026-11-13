@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { callWasm, forgeWasm } from "@/wasm";
 import type { Branches, BranchNode } from "./api";
-import { flattenBranchTree, toggled, ungrouped, type BranchTreeRow, type Expansion } from "./branchTree";
+import { flattenBranchTree, matchRange, searchQuery, toggled, ungrouped, type BranchTreeRow, type Expansion } from "./branchTree";
 
 /** The trees as `git_branches` answers them: built by Rust (`forge_vcs::branch_tree`). */
 async function trees(local: string[], remote: string[], current = ""): Promise<Pick<Branches, "localTree" | "remoteTree">> {
@@ -35,15 +35,44 @@ describe("branch tree rows", () => {
     expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion }))).toEqual(["bugfix v", "  login", "feat v", "  ui v", "    tabs", "main"]);
   });
 
-  it("finds branches in closed folders and shows only their folders, open", async () => {
+  it("finds branches in closed folders and shows the folders above them open", async () => {
     const t = await trees(["main", "feat/ui/tabs", "feat/api", "bugfix/login-tabs", "chore/deps"], ["origin/feat/ui/tabs", "origin/main"]);
-    const match = (name: string) => name.includes("tabs");
     const closed = new Map([["local:dir:feat", false]]);
-    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: closed, match }))).toEqual(["bugfix v", "  login-tabs", "feat v", "  ui v", "    tabs"]);
-    expect(outline(flattenBranchTree(t.remoteTree, { section: "remote", expansion: none, match }))).toEqual(["origin v", "  feat v", "    ui v", "      tabs"]);
-    // The folder name is part of the branch name, so it finds every branch in the folder.
-    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: none, match: (n) => n.includes("feat/") }))).toEqual(["feat v", "  ui v", "    tabs", "  api"]);
-    expect(flattenBranchTree(t.localTree, { section: "local", expansion: none, match: () => false })).toEqual([]);
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: closed, query: "tabs" }))).toEqual(["bugfix v", "  login-tabs", "feat v", "  ui v", "    tabs"]);
+    expect(outline(flattenBranchTree(t.remoteTree, { section: "remote", expansion: none, query: "tabs" }))).toEqual(["origin v", "  feat v", "    ui v", "      tabs"]);
+    expect(flattenBranchTree(t.localTree, { section: "local", expansion: none, query: "nothing" })).toEqual([]);
+  });
+
+  it("shows a folder whose name matches, closed until it is opened", async () => {
+    const t = await trees(["main", "bugfix/phpfixforsmarty", "feature/smarty-to-twig/step-1", "feature/smarty-to-twig/step-2", "feature/api"], []);
+    // Like PHPStorm: the branch by its name, the folder by its name; the folder stays closed.
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: none, query: "smarty" }))).toEqual(["bugfix v", "  phpfixforsmarty", "feature v", "  smarty-to-twig >"]);
+    // Opened, it shows everything in it, also what does not match itself.
+    const open = new Map([["local:dir:feature/smarty-to-twig", true]]);
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: open, query: "smarty" }))).toEqual([
+      "bugfix v",
+      "  phpfixforsmarty",
+      "feature v",
+      "  smarty-to-twig v",
+      "    step-1",
+      "    step-2",
+    ]);
+    // A match inside a matching folder opens it and shows only the match.
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: none, query: "t" }).slice(-3))).toEqual(["  smarty-to-twig v", "    step-1", "    step-2"]);
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: none, query: "step-2" }))).toEqual(["feature v", "  smarty-to-twig v", "    step-2"]);
+  });
+
+  it("matches the full name when the search has a slash", async () => {
+    const t = await trees(["feat/ui/tabs", "feat/api", "fix/api"], []);
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: none, query: "feat/" }))).toEqual(["feat v", "  ui v", "    tabs", "  api"]);
+    expect(outline(flattenBranchTree(t.localTree, { section: "local", expansion: none, query: "feat/a" }))).toEqual(["feat v", "  api"]);
+  });
+
+  it("says where the search is found in a name", () => {
+    expect(matchRange("phpfixforSmarty", searchQuery(" SMARTY "))).toEqual([9, 15]);
+    expect(matchRange("smarty-to-twig", "smarty")).toEqual([0, 6]);
+    expect(matchRange("main", "smarty")).toBeNull();
+    expect(matchRange("main", "")).toBeNull();
   });
 
   it("keeps a branch and a folder of the same name apart", async () => {

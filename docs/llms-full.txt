@@ -16892,12 +16892,16 @@ Branch names are grouped into folders at each `/`, like PHPStorm's **Group By Di
   from the search field, `Right` opens a folder (and then goes to its first branch), `Left`
   closes it (or goes to the folder a branch is in), `Home` / `End` jump to the first and last
   row, `Enter` opens or closes a folder, checks out a branch or runs an action.
-- The search also finds branches in closed folders: while you type, only the matching branches
-  are shown, in their folders, which are all open. `Enter` checks out the first branch found.
-  The folder names are part of the branch name, so `feat/` finds every branch in `feat`.
+- The search also finds branches in closed folders: while you type, the branches and folders
+  whose name contains the text are shown, with the match highlighted, and the folders above
+  them are open. A folder whose own name matches (`smarty-to-twig` for "smarty") is shown
+  closed; open it to reach its branches. `Enter` checks out the first branch found. A search
+  with a slash (`feat/a`) is compared with the full branch name.
 - A branch in a folder has the same submenu as before (Checkout, Update, Pull into, …).
 
 ![Search in folders](docs/screenshots/git-branches-folders-search.png)
+
+![A folder found by its name](docs/screenshots/git-branches-folders-search-folder.png)
 
 The gear button next to the search field has **Group By Directory**. Switch it off to get the
 flat lists of full names back. The option is the setting `vcs.git.branches.groupByDirectory`

@@ -123,6 +123,7 @@ const otherBranches = (shas: string[]) =>
         ["main", shaOf("c6")],
         ["feature/checkout-flow", shaOf("c3")],
         ["bugfix/login-redirect", shaOf("c9")],
+        ["feature/ui/dark-mode", shaOf("c12")],
       ]
     : demo.branches.map((b, i): [string, string] => [b, shaOf(shas[i % shas.length])]);
 

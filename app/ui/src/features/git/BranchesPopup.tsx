@@ -21,7 +21,7 @@ import {
 import { TreeArrow } from "@/shell/TreeArrow";
 import { saveSetting } from "@/state/settings";
 import { navigate, type VisibleRow } from "@/features/project/treeNavigation";
-import { flattenBranchTree, GROUP_BY_DIRECTORY, groupByDirectory, isFolder, toggled, type BranchTreeRow, type Expansion } from "./branchTree";
+import { flattenBranchTree, GROUP_BY_DIRECTORY, groupByDirectory, isFolder, matchRange, searchQuery, toggled, type BranchTreeRow, type Expansion } from "./branchTree";
 import { newWorktreeDialog, openWorktree } from "./extras";
 import { gitApi, type BranchInfo, type BranchNode } from "./api";
 import { revision, status } from "./store";
@@ -96,13 +96,14 @@ export function BranchesPopup() {
   let gear!: HTMLButtonElement;
   const current = () => branches()?.current ?? status()?.branch ?? null;
 
-  const match = (name: string) => name.toLowerCase().includes(query().trim().toLowerCase());
-  const searching = () => query().trim() !== "";
+  const needle = createMemo(() => searchQuery(query()));
+  const match = (name: string) => name.toLowerCase().includes(needle());
+  const searching = () => needle() !== "";
   const grouped = groupByDirectory;
 
   /**
    * The rows of a section: the folders from Rust when grouping, a flat list of full names
-   * otherwise. While searching, every folder with a matching branch is shown open.
+   * otherwise. While searching, the folders above a matching branch or folder are shown open.
    */
   const section = (name: "local" | "remote", list: BranchInfo[], tree: BranchNode[]): Item[] => {
     const remote = name === "remote";
@@ -110,7 +111,7 @@ export function BranchesPopup() {
       return list.filter((b) => match(b.name)).map((b) => ({ type: "branch", key: `${name}:branch:${b.name}`, branch: b, remote, label: b.name, depth: 0 }));
     }
     const byName = new Map(list.map((b) => [b.name, b]));
-    return flattenBranchTree(tree, { section: name, expansion: expansion(), match: searching() ? match : undefined }).flatMap((row): Item[] => {
+    return flattenBranchTree(tree, { section: name, expansion: expansion(), query: needle() }).flatMap((row): Item[] => {
       if (isFolder(row.node)) return [{ type: "folder", key: row.key, row }];
       const branch = byName.get(row.node.path);
       return branch ? [{ type: "branch", key: row.key, branch, remote, label: row.node.label, depth: row.depth }] : [];
@@ -214,6 +215,24 @@ export function BranchesPopup() {
     window.removeEventListener("mousedown", onDown, true);
   });
 
+  /** A name with the part the search found highlighted. */
+  const Name = (p: { text: string }) => {
+    const range = () => matchRange(p.text, needle());
+    return (
+      <span class="popup-label">
+        <Show when={range()} fallback={p.text}>
+          {(r) => (
+            <>
+              {p.text.slice(0, r()[0])}
+              <mark class="branch-hl">{p.text.slice(r()[0], r()[1])}</mark>
+              {p.text.slice(r()[1])}
+            </>
+          )}
+        </Show>
+      </span>
+    );
+  };
+
   /** Indent per tree level; a grouped list also keeps room for the folders' arrows. */
   const indent = (depth: number) => ({ "padding-left": `${8 + depth * 16}px` });
   const Twisty = (p: { row?: BranchTreeRow }) => (
@@ -240,7 +259,7 @@ export function BranchesPopup() {
     >
       <Twisty row={p.row} />
       <span class="popup-icon">{p.row.node.kind === "remote" ? <Cloud size={14} /> : <Folder size={14} />}</span>
-      <span class="popup-label">{p.row.node.label}</span>
+      <Name text={p.row.node.label} />
     </div>
   );
 
@@ -269,7 +288,7 @@ export function BranchesPopup() {
             <Star size={14} class="branch-current" fill="currentColor" />
           </Show>
         </span>
-        <span class="popup-label">{row.label}</span>
+        <Name text={row.label} />
         <Show when={b.ahead > 0}>
           <span class="branch-track outgoing" title={tr("tools.git.outgoingCommits", { ahead: b.ahead })}>
             ↑{b.ahead}

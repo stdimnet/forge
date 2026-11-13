@@ -117,6 +117,7 @@ describe("Git Branches popup: folders", () => {
     expect(outline("local")).toEqual([
       "> bugfix",
       "v feature",
+      "  > ui",
       "  order-totals",
       "  checkout-flow",
       "main",
@@ -214,6 +215,30 @@ describe("Git Branches popup: folders", () => {
     type("");
     await vi.waitFor(() => expect(popupRow("origin/release/1.1")).toBeNull());
     expect(folder("origin/release")!.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("highlights what the search found, in branch and in folder names", async () => {
+    await loaded();
+    type("ui");
+    // The folder `ui` matches by its own name: shown under its open parents, itself closed.
+    await vi.waitFor(() => expect(folder("feature/ui")).not.toBeNull());
+    expect(outline("local")).toEqual(["v feature", "  > ui"]);
+    expect(outline("remote")).toEqual(["v origin", "  v feature", "    > ui"]);
+    expect(folder("feature/ui")!.querySelector("mark.branch-hl")!.textContent).toBe("ui");
+    expect(folder("feature")!.querySelector("mark")).toBeNull();
+    // Its branches stay reachable: open it.
+    folder("feature/ui")!.click();
+    await vi.waitFor(() => expect(popupRow("feature/ui/dark-mode")).not.toBeNull());
+    expect(popupRow("feature/ui/dark-mode")!.querySelector(".popup-label")!.textContent).toBe("dark-mode");
+    folder("feature/ui")!.click();
+
+    type("TOTAL");
+    await vi.waitFor(() => expect(popupRow("feature/order-totals")!.querySelector("mark.branch-hl")).not.toBeNull());
+    const label = popupRow("feature/order-totals")!.querySelector(".popup-label")!;
+    expect(label.textContent).toBe("order-totals");
+    expect(label.querySelector("mark")!.textContent).toBe("total");
+    type("");
+    await vi.waitFor(() => expect(document.querySelector("mark.branch-hl")).toBeNull());
   });
 
   it("leaves Left and Right to the caret while typing", async () => {

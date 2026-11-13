@@ -758,6 +758,12 @@ button.popup-row:focus-visible {
 .branch-row .popup-hint + svg:last-child {
   margin-left: 0;
 }
+/* What the search found in a branch or folder name. */
+.branch-hl {
+  background: color-mix(in srgb, var(--warning) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
 /* Folders of the grouped list: arrow, icon, name; children are indented per level. */
 .branches-popup .tree-chevron {
   margin-right: -3px;

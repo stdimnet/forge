@@ -36,30 +36,43 @@ export interface FlattenOptions {
   /** Depth of the top level. */
   depth?: number;
   /**
-   * Speed search: only branches whose full name matches, in their folders, which are all
-   * shown open, whatever their state is.
+   * Speed search (see `searchQuery`): the branches and folders whose name contains it. The
+   * folders above a match are shown open, whatever their state is; a folder whose own name
+   * matches is shown in its state, with everything in it when it is open.
    */
-  match?: (name: string) => boolean;
+  query?: string;
+}
+
+/** The speed search text as it is compared: trimmed, without regard to case. */
+export const searchQuery = (text: string): string => text.trim().toLowerCase();
+
+/** Where `query` (from `searchQuery`) is found in `text`, for the highlight; null when it is not. */
+export function matchRange(text: string, query: string): [number, number] | null {
+  const at = query ? text.toLowerCase().indexOf(query) : -1;
+  return at < 0 ? null : [at, at + query.length];
 }
 
 export function flattenBranchTree(nodes: readonly BranchNode[], o: FlattenOptions): BranchTreeRow[] {
-  const rows: BranchTreeRow[] = [];
-  const walk = (level: readonly BranchNode[], depth: number): void => {
-    for (const node of level) {
+  const q = o.query ?? "";
+  const hit = (text: string) => matchRange(text, q) !== null;
+  /** Without a search, and inside an open folder that matches by its own name. */
+  const walk = (level: readonly BranchNode[], depth: number): BranchTreeRow[] =>
+    level.flatMap((node): BranchTreeRow[] => {
       const key = branchRowKey(o.section, node);
-      if (!isFolder(node)) {
-        if (!o.match || o.match(node.path)) rows.push({ key, node, depth, expanded: false });
-        continue;
-      }
-      const expanded = o.match ? true : (o.expansion.get(key) ?? expandedByDefault(node));
-      const at = rows.push({ key, node, depth, expanded });
-      if (expanded) walk(node.children, depth + 1);
-      // Searching: a folder without a matching branch is not shown.
-      if (o.match && rows.length === at) rows.pop();
-    }
-  };
-  walk(nodes, o.depth ?? 0);
-  return rows;
+      if (!isFolder(node)) return [{ key, node, depth, expanded: false }];
+      const expanded = o.expansion.get(key) ?? expandedByDefault(node);
+      return [{ key, node, depth, expanded }, ...(expanded ? walk(node.children, depth + 1) : [])];
+    });
+  const search = (level: readonly BranchNode[], depth: number): BranchTreeRow[] =>
+    level.flatMap((node): BranchTreeRow[] => {
+      const key = branchRowKey(o.section, node);
+      // A branch by its name in the folder, or by its full name when the search has a slash.
+      if (!isFolder(node)) return hit(node.label) || (q.includes("/") && hit(node.path)) ? [{ key, node, depth, expanded: false }] : [];
+      const inside = search(node.children, depth + 1);
+      if (inside.length) return [{ key, node, depth, expanded: true }, ...inside];
+      return hit(node.label) ? walk([node], depth) : [];
+    });
+  return q ? search(nodes, o.depth ?? 0) : walk(nodes, o.depth ?? 0);
 }
 
 export function toggled(expansion: Expansion, row: Pick<BranchTreeRow, "key" | "expanded">, open = !row.expanded): Map<string, boolean> {

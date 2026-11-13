@@ -42,6 +42,7 @@ describe("Git tool window, Log tab: branches tree", () => {
       "v Local",
       "  > bugfix",
       "  v feature",
+      "    > ui",
       "    order-totals",
       "    checkout-flow",
       "  main",
@@ -99,9 +100,9 @@ describe("Git tool window, Log tab: branches tree", () => {
       "  main",
       "  feature/checkout-flow",
       "  bugfix/login-redirect",
+      "  feature/ui/dark-mode",
       "v Remote",
       "  v origin",
-      "    main",
     ]);
     expect(byLabel("release/1.1").getAttribute("aria-level")).toBe("3");
   });
