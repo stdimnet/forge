@@ -8,6 +8,7 @@ import { listen } from "@/ipc";
 import {
   SETTINGS_CHANGED_EVENT,
   settingsApi,
+  type LaunchProfile,
   type PluginInfo,
   type SettingsChange,
   type SettingsScope,
@@ -26,6 +27,8 @@ interface SettingsState {
   hasProject: boolean;
   schema: SettingSpec[];
   plugins: PluginInfo[];
+  /** The packs Forge was started with (`phpforge`, `--packs …`); all of them by default. */
+  launchProfile: LaunchProfile;
 }
 
 const [settingsState, setState] = createStore<SettingsState>({
@@ -37,6 +40,7 @@ const [settingsState, setState] = createStore<SettingsState>({
   hasProject: false,
   schema: [],
   plugins: [],
+  launchProfile: { all: true, packs: [], hidden: [], unknown: [] },
 });
 
 export { settingsState };
@@ -112,8 +116,8 @@ const refreshSnapshot = newestWins(
 );
 
 const refreshPlugins = newestWins(
-  () => Promise.all([settingsApi.schema(), settingsApi.plugins()]),
-  ([schema, plugins]) => setState({ schema, plugins }),
+  () => Promise.all([settingsApi.schema(), settingsApi.plugins(), settingsApi.launchProfile()]),
+  ([schema, plugins, launchProfile]) => setState({ schema, plugins, launchProfile }),
 );
 
 let listening = false;

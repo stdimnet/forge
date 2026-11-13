@@ -40,6 +40,25 @@ export default {
     await selectNode(page, "plugins");
     await page.click('.plugin-item[data-plugin="forge.php"]');
   },
+  // Started as `phpforge` (browser mode: `?packs=phpforge`): a note names the packs and the
+  // plugins of the other packs cannot be switched.
+  "settings-plugins-launch-profile": Object.assign(
+    async (page) => {
+      await openSettings(page);
+      await selectNode(page, "plugins");
+      const note = await page.textContent('[data-testid="plugins-profile-note"]');
+      if (!note?.includes("PHPForge")) throw new Error(`launch profile note: ${note}`);
+      const lua = page.locator('.plugin-item[data-plugin="forge.lua"]');
+      await lua.scrollIntoViewIfNeeded();
+      await lua.click();
+      const box = lua.locator('input[type="checkbox"]');
+      if (!(await box.isDisabled()) || (await box.isChecked())) throw new Error("forge.lua must be off and locked");
+      if (await page.locator('.plugin-item[data-plugin="forge.laravel"] input[type="checkbox"]').isDisabled()) {
+        throw new Error("forge.laravel must stay switchable");
+      }
+    },
+    { query: "?packs=phpforge" },
+  ),
   "settings-search": async (page) => {
     await openSettings(page);
     await page.fill(".set-sidebar .set-search input", "font");

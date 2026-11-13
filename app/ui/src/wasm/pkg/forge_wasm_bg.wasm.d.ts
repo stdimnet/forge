@@ -349,6 +349,7 @@ export const php_interpreter_wrap: (a: number, b: number, c: number) => void;
 export const php_source_roots: (a: number, b: number, c: number) => void;
 export const pio_command: (a: number, b: number, c: number) => void;
 export const pio_project: (a: number, b: number, c: number) => void;
+export const plugins_launch_profile: (a: number, b: number, c: number) => void;
 export const plugins_load_icon_theme: (a: number, b: number, c: number) => void;
 export const plugins_marketplace: (a: number, b: number, c: number) => void;
 export const plugins_permission_lines: (a: number, b: number, c: number) => void;
