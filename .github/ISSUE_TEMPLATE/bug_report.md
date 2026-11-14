@@ -8,14 +8,6 @@ type: Bug
 
 ---
 
----
-name: Bug report
-about: Report something that is not working as expected
-title: ""
-labels: bug
-assignees: ""
----
-
 <!-- Short description: what happens, and why is it a problem? -->
 
 **Steps to reproduce**
