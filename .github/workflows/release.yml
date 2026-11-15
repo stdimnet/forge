@@ -19,6 +19,7 @@ name: Release
 #   secrets.APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID or APPLE_API_KEY/APPLE_API_ISSUER/APPLE_API_KEY_P8
 #                                                 macOS notarisation
 #   secrets.RELEASE_GPG_PRIVATE_KEY(_PASSPHRASE)  detached signature SHA256SUMS.asc
+#   secrets.DIST_DISPATCH_TOKEN                   notifies forge-dist (apt repository, AUR) after publishing
 on:
   push:
     tags: ["v*"]
@@ -289,3 +290,17 @@ jobs:
         run: |
           gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/${{ needs.meta.outputs.id }}" \
             -F draft=false --silent
+      - name: Notify the distribution repository
+        # forge-dist rebuilds the apt repository and updates the AUR package `forge-ide-bin`
+        # from the published release (repository_dispatch event `forge-release`).
+        env:
+          GH_TOKEN: ${{ secrets.DIST_DISPATCH_TOKEN }}
+          DIST_REPO: ${{ vars.DIST_REPO || 'stdimnet/forge-dist' }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::No DIST_DISPATCH_TOKEN secret: $DIST_REPO was not notified."
+            exit 0
+          fi
+          gh api "repos/$DIST_REPO/dispatches" -f event_type=forge-release \
+            -f "client_payload[tag]=$TAG" -f "client_payload[repo]=$GITHUB_REPOSITORY" --silent

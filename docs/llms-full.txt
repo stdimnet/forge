@@ -29907,7 +29907,9 @@ Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
 5. `checksums`: uploads `SHA256SUMS` (and `SHA256SUMS.asc` with a GPG key) and, for a
    pre-release, the beta feed `latest-beta.json` (see [Channels](#channels)),
 6. `publish`: publishes the release once every asset is uploaded. If a job fails, the release
-   stays a draft; fix the cause and re-run the workflow.
+   stays a draft; fix the cause and re-run the workflow. With `DIST_DISPATCH_TOKEN` it then
+   sends the `forge-release` event to `stdimnet/forge-dist`, which rebuilds the apt repository
+   and pushes the new version of the AUR package `forge-ide-bin`.
 
 Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what stable users get offered.
@@ -29940,6 +29942,8 @@ and a missing one skips that step with a notice in the log. Never commit certifi
 | `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` | secrets | notarisation with an Apple ID and an app-specific password |
 | `APPLE_API_KEY`, `APPLE_API_ISSUER`, `APPLE_API_KEY_P8` | secrets | notarisation with an App Store Connect API key instead: key ID, issuer ID and the contents of `AuthKey_<id>.p8` |
 | `RELEASE_GPG_PRIVATE_KEY`, `RELEASE_GPG_PASSPHRASE` | secrets | armored private key and passphrase for `SHA256SUMS.asc` |
+| `DIST_DISPATCH_TOKEN` | secret | fine-grained token with Contents: read and write on `stdimnet/forge-dist`; lets the release notify it |
+| `DIST_REPO` | variable | the distribution repository, if not `stdimnet/forge-dist` |
 
 Keep the private key offline as well: losing it means installed copies can no longer verify
 updates.
