@@ -271,6 +271,11 @@ jobs:
       - name: Beta update feed
         if: needs.meta.outputs.channel == 'beta'
         run: |
+          # latest.json only exists when the updater artifacts were signed.
+          if [ ! -f dist/latest.json ]; then
+            echo "::notice::No latest.json (no TAURI_SIGNING_PRIVATE_KEY secret): no beta update feed."
+            exit 0
+          fi
           node app/ui/scripts/release-tools.mjs feed beta dist/latest.json latest-beta.json
           gh release upload "$TAG" latest-beta.json --repo "$GITHUB_REPOSITORY" --clobber
           if gh release view beta --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then

@@ -46,7 +46,8 @@ Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
    [signing](#code-signing) them when the certificates are configured,
 4. signs the updater artifacts and uploads everything plus `latest.json` to the draft,
 5. `checksums`: uploads `SHA256SUMS` (and `SHA256SUMS.asc` with a GPG key) and, for a
-   pre-release, the beta feed `latest-beta.json` (see [Channels](#channels)),
+   pre-release, the beta feed `latest-beta.json` (see [Channels](#channels); only with the
+   updater key, which produces `latest.json`),
 6. `publish`: publishes the release once every asset is uploaded. If a job fails, the release
    stays a draft; fix the cause and re-run the workflow. With `DIST_DISPATCH_TOKEN` it then
    sends the `forge-release` event to `stdimnet/forge-dist`, which rebuilds the apt repository
