@@ -15,19 +15,21 @@ const CHAIN = /^\s*(\?->|->|\.(?=[A-Za-z_$]))/;
 
 /**
  * Continuation indent: a chain line is indented one continuation step deeper than the
- * statement it continues, and further chain lines keep that indent.
+ * statement it continues, and further chain lines keep that indent. Other lines are left
+ * to the language (`undefined`): `null` would end the lookup with "no indentation", and
+ * Enter would then only copy the line's indentation, never indent after `{`.
  */
 function continuationIndent(continuation: number): Extension {
   return [
     indentService.of((context, pos) => {
       const after = context.textAfterPos(pos);
-      if (!CHAIN.test(after)) return null;
+      if (!CHAIN.test(after)) return undefined;
       let line = context.state.doc.lineAt(pos);
       while (line.number > 1) {
         line = context.state.doc.line(line.number - 1);
         if (line.text.trim()) break;
       }
-      if (!line.text.trim()) return null;
+      if (!line.text.trim()) return undefined;
       const base = context.lineIndent(line.from);
       return CHAIN.test(line.text) ? base : base + continuation;
     }),

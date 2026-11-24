@@ -6,7 +6,7 @@
  * the setting `editor.renderDocComments` (and Reader mode) is the default. Comments are
  * found and parsed in Rust (`forge_markdown::doc_comments`); this module only draws them.
  */
-import { Facet, StateEffect, StateField, type EditorState, type Extension, type Range } from "@codemirror/state";
+import { Facet, StateEffect, StateField, countColumn, type EditorState, type Extension, type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
 import { PencilLine } from "lucide-solid";
 import { buildHoverDom } from "@/features/lsp/hoverDoc";
@@ -41,9 +41,11 @@ class RenderedDoc extends WidgetType {
   constructor(
     readonly info: DocCommentInfo,
     readonly language: string,
+    /** The comment's indent in columns, with tabs expanded to the tab size. */
+    readonly indent: number,
   ) {
     super();
-    this.key = `${info.column}:${JSON.stringify(info.doc)}`;
+    this.key = `${indent}:${JSON.stringify(info.doc)}`;
   }
 
   eq(other: RenderedDoc): boolean {
@@ -60,7 +62,7 @@ class RenderedDoc extends WidgetType {
     // widgets without their margins, so margins would push the line numbers out of line.
     const block = document.createElement("div");
     block.className = "cm-rendered-doc-block";
-    block.style.paddingLeft = `${this.info.column}ch`;
+    block.style.paddingLeft = `${this.indent}ch`;
     const wrap = document.createElement("div");
     wrap.className = "cm-rendered-doc";
     block.append(wrap);
@@ -106,7 +108,8 @@ function decorations(state: EditorState, all: boolean, flipped: ReadonlySet<numb
     const from = commentStart(state, c);
     if (all === flipped.has(from)) continue;
     const to = state.doc.line(c.endLine + 1).to;
-    ranges.push(Decoration.replace({ widget: new RenderedDoc(c, language), block: true }).range(from, to));
+    const indent = countColumn(state.doc.sliceString(from, from + c.column), state.tabSize);
+    ranges.push(Decoration.replace({ widget: new RenderedDoc(c, language, indent), block: true }).range(from, to));
   }
   return Decoration.set(ranges, true);
 }
