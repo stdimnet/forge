@@ -5,6 +5,8 @@ import { registerToolWindow } from "@/features/registry";
 import { affectedDirs, onFsChanged, startReloadingChangedTabs } from "@/state/fsWatch";
 import { ProjectActions, ProjectView, refreshDirs } from "./ProjectView";
 import { newEntryFromSelection } from "./fileMenu";
+// Ctrl+X / Ctrl+C / Ctrl+V on the selected files.
+import "./fileClipboard";
 import { t } from "@/i18n";
 import { setObjectionPrompt } from "@/state/projectLifecycle";
 import { askChoice } from "@/features/contextMenu/dialogs";

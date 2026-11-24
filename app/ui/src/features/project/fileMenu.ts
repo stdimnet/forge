@@ -16,6 +16,7 @@ import { openFindInFiles } from "@/features/find/state";
 import { copyEntries, moveEntries, safeDeleteEntries } from "@/features/codeintel/moveRefactorings";
 import { t } from "@/i18n";
 import { writeClipboardText } from "@/features/clipboard/system";
+import { canPasteFiles, copyFiles, pasteFiles } from "./fileClipboard";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
@@ -187,26 +188,34 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
         separator,
       ]
     : [];
+  // The selected rows (Ctrl+click) are cut, copied, moved and deleted together.
+  const paths = () => {
+    if (!entry) return [];
+    // Not the virtual rows (libraries, scratches).
+    const selected = projectTree.selectedPaths().filter((p) => !p.includes("://"));
+    return selected.includes(entry.path) ? selected : [entry.path];
+  };
+  if (entry && canEdit) entries.push(item(t("project.menu.cut"), () => void copyFiles(paths(), true), "$Cut"));
   if (entry) {
     entries.push(
+      item(t("project.menu.copyEntries"), () => void copyFiles(paths(), false), "$Copy"),
       submenu(t("project.menu.copyPathReference"), [
         // The host's path is not shared with guests.
         ...(guest ? [] : [item(t("project.menu.absolutePath"), () => void copy(absolute(entry.path), "path"), "CopyPaths")]),
         item(t("project.menu.pathFromRoot"), () => void copy(entry.path, "path")),
         item(t("project.menu.fileName"), () => void copy(entry.name, "name")),
       ]),
-      separator,
     );
   }
+  if (canEdit) entries.push(item(t("project.menu.paste"), () => void pasteFiles(dir), "$Paste", { disabled: !canPasteFiles() }));
+  entries.push(separator);
   entries.push(item(t("project.menu.findInFiles"), () => openFindInFiles({ directory: dir }), "FindInPath"));
   if (entry && canEdit) {
-    // The selected rows (Ctrl+click) move and are deleted together.
-    const paths = () => (projectTree.selectedPaths().includes(entry.path) ? projectTree.selectedPaths() : [entry.path]);
     entries.push(
       submenu(t("project.menu.refactor"), [
         item(t("project.menu.rename"), () => void rename(entry), "RenameElement"),
         item(t("project.menu.move"), () => void moveEntries(paths()), "Move"),
-        item(t("project.menu.copy"), () => void copyEntries([entry.path]), "CopyElement"),
+        item(t("project.menu.copy"), () => void copyEntries(paths()), "CopyElement"),
         item(t("project.menu.safeDelete"), () => void safeDeleteEntries(paths()), "SafeDelete"),
       ]),
       item(t("project.menu.delete"), () => void remove(entry), "$Delete"),
