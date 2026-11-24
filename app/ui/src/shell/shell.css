@@ -350,6 +350,9 @@
   white-space: nowrap;
   cursor: default;
   border-radius: 0;
+  /* A double click opens; it must not select text. WebKit (Linux, macOS) needs the prefix. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .tree-row:hover {
   background: var(--bg-hover);

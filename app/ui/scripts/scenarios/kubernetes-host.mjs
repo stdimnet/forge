@@ -64,8 +64,8 @@ export default {
 
   "services-kube-apply": remote(async (page) => {
     await openKube(page);
-    await page.click('.tree-row[data-path="k8s"]');
-    await page.click('.tree-row[data-path="k8s/deployment.yaml"]');
+    await page.dblclick('.tree-row[data-path="k8s"]');
+    await page.dblclick('.tree-row[data-path="k8s/deployment.yaml"]');
     await page.waitForSelector('.editor-tab.active[title="k8s/deployment.yaml"]');
     await page.waitForSelector(".cm-line-marker.marker-run");
     await page.locator(".cm-line-marker.marker-run").first().click();

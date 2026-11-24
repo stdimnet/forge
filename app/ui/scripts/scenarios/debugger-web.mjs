@@ -7,9 +7,9 @@
 /** @param {import("playwright-core").Page} page */
 async function openController(page) {
   for (const dir of ["app/Http", "app/Http/Controllers"]) {
-    await page.click(`.tree-row[data-path="${dir}"]`);
+    await page.dblclick(`.tree-row[data-path="${dir}"]`);
   }
-  await page.click('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
+  await page.dblclick('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
   await page.waitForSelector(".cm-bp-dot");
 }
 
@@ -118,7 +118,7 @@ export default {
     if ((await app.getAttribute("data-expanded")) !== null) await app.locator(".tree-chevron").click();
     await page.locator('.tree-row[data-path="scratches-and-consoles://"] .tree-chevron').click();
     await page.locator('.tree-row[data-path="scratches-and-consoles://scratches"] .tree-chevron').click();
-    await page.locator('.tree-row[data-path="scratch://rest-api.http"]').click();
+    await page.locator('.tree-row[data-path="scratch://rest-api.http"]').dblclick();
     await page.waitForSelector(".cm-line-marker.marker-run");
     await page.waitForTimeout(150);
     await page.locator(".cm-line-marker.marker-run").nth(1).click();
@@ -130,7 +130,7 @@ export default {
     if ((await app.getAttribute("data-expanded")) !== null) await app.locator(".tree-chevron").click();
     await page.locator('.tree-row[data-path="scratches-and-consoles://"] .tree-chevron').click();
     await page.locator('.tree-row[data-path="scratches-and-consoles://scratches"] .tree-chevron').click();
-    await page.locator('.tree-row[data-path="scratch://rest-api.http"]').click();
+    await page.locator('.tree-row[data-path="scratch://rest-api.http"]').dblclick();
     await page.waitForSelector(".cm-line-marker.marker-run");
     await page.waitForTimeout(150);
     await page.locator(".cm-line-marker.marker-run").nth(2).click();

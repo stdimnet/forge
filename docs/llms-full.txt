@@ -813,7 +813,6 @@ what is not there yet.
 | PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md#php-php-lsp). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](docs/guide/user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
-| Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
 | AI | AI Assistant subscription | bring your own provider (Anthropic, OpenAI-compatible, OpenRouter, Ollama, LM Studio, llama.cpp) or your installed Claude Code / Gemini CLI |
 | Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge, JavaForge); no Marketplace yet |
 | Remote development | Gateway | built in: SSH connection, Forge uploads a small agent to the host |
@@ -1163,9 +1162,11 @@ older Forge versions still open; their tool windows start at their default place
 
 The Project tool window (`Alt+1`) shows the project folder as a tree.
 
-- **Single click opens** a file and expands a folder by default. To work like PHPStorm (single
-  click selects, double click opens), turn off Settings | Appearance & Behavior | Appearance |
-  Project View | **Open files with single click** (`projectView.openFilesWithSingleClick`).
+- **Single click selects**, **double click opens** a file or expands/collapses a folder, like
+  PHPStorm. A single click on a folder's arrow expands or collapses it. To open with a single
+  click instead, turn on **Open Files with Single Click** in the Options menu (⋮) or in
+  Settings | Appearance & Behavior | Appearance | Project View
+  (`projectView.openFilesWithSingleClick`).
 - **Keyboard**: `Up`/`Down` move the selection, `Right` expands, `Left` collapses or goes to
   the parent, `Home`/`End` jump to the first/last row, `Enter` or `F4` opens.
 - Files and folders ignored by Git (`.gitignore`, `.git/info/exclude`, the global excludes
@@ -1188,8 +1189,8 @@ they apply to every project.
 | Entry | What it does | Setting |
 | --- | --- | --- |
 | Behavior › Always Select Opened File | The tree follows the active editor (PHPStorm's "Autoscroll from Source"). With **Show Members** the member at the caret is selected as the caret moves. | `projectView.autoscrollFromSource` |
-| Behavior › Open Files with Single Click | A single click opens files and expands folders | `projectView.openFilesWithSingleClick` |
-| Appearance › Show Members | PHP, JavaScript, TypeScript and Lua files get an expand arrow and list their classes, functions, methods, properties and constants (from the same providers as the [Structure tool window](docs/guide/user/code-structure.md)). A click on a member opens the file at it. | `projectView.showMembers` |
+| Behavior › Open Files with Single Click | A single click opens files and expands folders (off: a double click does) | `projectView.openFilesWithSingleClick` |
+| Appearance › Show Members | PHP, JavaScript, TypeScript and Lua files get an expand arrow and list their classes, functions, methods, properties and constants (from the same providers as the [Structure tool window](docs/guide/user/code-structure.md)). A double click on a member (a single click with Open Files with Single Click) opens the file at it. | `projectView.showMembers` |
 | Appearance › Show Excluded Files | Excluded folders and files stay in the tree (orange); off hides them | `projectView.showExcludedFiles` |
 | Appearance › Compact Middle Packages | A folder that only contains one folder is shown as one row, e.g. `src/Acme/Shop` | `projectView.compactMiddlePackages` |
 | Appearance › File Nesting… | Opens the **File Nesting** dialog (below) | `projectView.fileNesting.enabled`, `projectView.fileNesting.rules` |
@@ -9648,7 +9649,7 @@ contrast and draw borders and strong focus rings; see [Accessibility](docs/guide
 | Main menu (Hamburger menu, Merged with main toolbar, Show in separate toolbar) — see [Main menu](docs/guide/user/workbench.md#main-menu) | `appearance.mainMenu` | Hamburger menu |
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
-| Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
+| Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | off |
 | Always select opened file (Project view) | `projectView.autoscrollFromSource` | off |
 | Autoscroll to source / from source (Structure view) | `structureView.autoscrollToSource`, `structureView.autoscrollFromSource` | on |
 
@@ -24332,7 +24333,7 @@ Page id `appearance`.
 | `workbench.layouts` | objects (unique `name`) | `[]` | user | — | Layouts — Tool window layouts saved with Window \| Layouts \| Save Current Layout as New…; each entry has a name and the layout as JSON. |
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
-| `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
+| `projectView.openFilesWithSingleClick` | bool | `false` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
 | `projectView.autoscrollFromSource` | bool | `false` | user | Project View | Always select opened file — The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu. |
 | `projectView.showExcludedFiles` | bool | `true` | user | Project View | Show excluded files — The Project tool window lists excluded folders and files (orange) instead of hiding them. Options menu (⋮) › Show Excluded Files. |
 | `projectView.showMembers` | bool | `false` | user | Project View | Show members — PHP, JavaScript, TypeScript and Lua files expand to their classes, functions, methods and properties; a click on a member opens it. Options menu (⋮) › Show Members. |
@@ -29157,7 +29158,7 @@ key = "projectView.openFilesWithSingleClick"
 title = "Open files with single click"
 description = "Shown under the option."
 type = "bool"            # bool | int | number | string | enum | path | list
-default = true
+default = false
 group = "appearance"     # settings page id
 section = "Project View" # optional heading on the page
 order = 40

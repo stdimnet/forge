@@ -46,7 +46,6 @@ what is not there yet.
 | PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](../user/language-servers.md#php-php-lsp). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](../user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
-| Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
 | AI | AI Assistant subscription | bring your own provider (Anthropic, OpenAI-compatible, OpenRouter, Ollama, LM Studio, llama.cpp) or your installed Claude Code / Gemini CLI |
 | Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge, JavaForge); no Marketplace yet |
 | Remote development | Gateway | built in: SSH connection, Forge uploads a small agent to the host |

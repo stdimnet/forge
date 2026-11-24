@@ -162,7 +162,7 @@ export function ProjectActions() {
       [
         group(t("project.view.behavior"), [
           toggle(ALWAYS_SELECT, t("project.view.alwaysSelect"), false),
-          toggle("projectView.openFilesWithSingleClick", t("project.view.singleClick"), true),
+          toggle("projectView.openFilesWithSingleClick", t("project.view.singleClick"), false),
         ]),
         group(t("project.view.appearance"), [
           toggle(VIEW_KEYS.showMembers, t("project.view.showMembers"), false),
@@ -203,7 +203,7 @@ export function ProjectActions() {
   );
 }
 
-const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", true);
+const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", false);
 
 /** Double click (or single click with the setting on): expand/collapse folders, open files. */
 function activate(entry: FileEntry): void {
@@ -255,7 +255,10 @@ function MemberRows(props: { file: string; nodes: StructureNode[]; parent: strin
               title={node.detail || undefined}
               onClick={() => {
                 selectOnly(key);
-                revealStructureNode(props.file, node);
+                if (singleClickOpens()) revealStructureNode(props.file, node);
+              }}
+              onDblClick={() => {
+                if (!singleClickOpens()) revealStructureNode(props.file, node);
               }}
             >
               <span
@@ -265,6 +268,7 @@ function MemberRows(props: { file: string; nodes: StructureNode[]; parent: strin
                   e.stopPropagation();
                   toggle(key);
                 }}
+                onDblClick={(e) => kids() && e.stopPropagation()}
               >
                 <Show when={kids()}>
                   <TreeArrow open={open()} />
@@ -410,6 +414,8 @@ function TreeNode(props: { row: TreeRow; depth: number }) {
             selectOnly(props.row.path);
             toggle(props.row.path);
           }}
+          // Its two clicks already toggled; the row's double click must not toggle a third time.
+          onDblClick={(e) => expandable() && e.stopPropagation()}
         >
           <Show when={expandable()}>
             <TreeArrow open={isOpen()} />

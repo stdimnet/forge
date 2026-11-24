@@ -23,15 +23,15 @@ const TEXT = `(() => {
 
 const light = (page) => page.evaluate(() => (document.documentElement.dataset.theme = "light"));
 
-/** Open OrderController.php from the project tree (single clicks). */
+/** Open OrderController.php from the project tree (double clicks). */
 async function openController(page) {
   await page.waitForSelector(".tree-row");
   for (const dir of ["app/Http", "app/Http/Controllers"]) {
-    if (!(await page.$(`.tree-row[data-path="${dir}"]`))) await page.click(`.tree-row[data-path="${dir.split("/").slice(0, -1).join("/")}"]`);
+    if (!(await page.$(`.tree-row[data-path="${dir}"]`))) await page.dblclick(`.tree-row[data-path="${dir.split("/").slice(0, -1).join("/")}"]`);
     await page.waitForSelector(`.tree-row[data-path="${dir}"]`);
-    if (!(await page.$(`.tree-row[data-path^="${dir}/"]`))) await page.click(`.tree-row[data-path="${dir}"]`);
+    if (!(await page.$(`.tree-row[data-path^="${dir}/"]`))) await page.dblclick(`.tree-row[data-path="${dir}"]`);
   }
-  await page.click('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
+  await page.dblclick('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
   await page.waitForFunction(`${ACTIVE}?.textContent.includes("OrderController")`);
 }
 

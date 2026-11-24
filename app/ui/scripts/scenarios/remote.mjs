@@ -70,8 +70,8 @@ projectStep.waitFor = "[data-testid=ssh-new]";
 
 const workbench = async (page) => {
   await page.waitForSelector("[data-testid=remote-status]");
-  await page.dblclick('.tree-row[data-path="app"]');
-  await page.dblclick('.tree-row[data-path="app/Models"]');
+  if (!(await page.$('.tree-row[data-path^="app/"]'))) await page.dblclick('.tree-row[data-path="app"]');
+  if (!(await page.$('.tree-row[data-path^="app/Models/"]'))) await page.dblclick('.tree-row[data-path="app/Models"]');
 };
 workbench.query = "?project=remote";
 

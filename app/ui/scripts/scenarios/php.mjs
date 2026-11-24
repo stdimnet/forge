@@ -8,9 +8,9 @@ async function openFile(page, path) {
     const row = page.locator(`.tree-row[data-path="${dir}"]`);
     // Expand folders that are not open yet (their first child is not rendered).
     const child = page.locator(`.tree-row[data-path^="${dir}/"]`).first();
-    if (!(await child.isVisible().catch(() => false))) await row.click();
+    if (!(await child.isVisible().catch(() => false))) await row.dblclick();
   }
-  await page.locator(`.tree-row[data-path="${path}"]`).click();
+  await page.locator(`.tree-row[data-path="${path}"]`).dblclick();
   await page.waitForSelector(`.editor-tab.active[title="${path}"]`);
   await page.waitForTimeout(150);
 }

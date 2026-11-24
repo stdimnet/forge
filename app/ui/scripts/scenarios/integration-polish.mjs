@@ -51,7 +51,7 @@ async function hoverWord(page, lineText, word) {
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
   "chat-permission-edit": async (page) => {
-    await page.click('[data-path="app/Models/Order.php"]');
+    await page.dblclick('[data-path="app/Models/Order.php"]');
     await openChat(page);
     await ask(page, "Add a scope for paid orders to Order model");
     await page.waitForSelector(".chat-permission-card", { timeout: 30000 });
@@ -106,9 +106,9 @@ export default {
   },
   "php-hover-index-fallback": async (page) => {
     // No language server answer here, so the index hover fills in.
-    await page.click('[data-path="app/Http"]');
-    await page.click('[data-path="app/Http/Controllers"]');
-    await page.click('[data-path="app/Http/Controllers/OrderController.php"]');
+    await page.dblclick('[data-path="app/Http"]');
+    await page.dblclick('[data-path="app/Http/Controllers"]');
+    await page.dblclick('[data-path="app/Http/Controllers/OrderController.php"]');
     await page.waitForFunction(() => document.querySelector(".editor-tab.active")?.textContent?.includes("OrderController.php"));
     await page.waitForTimeout(300);
     await hoverWord(page, "public function show", "show");

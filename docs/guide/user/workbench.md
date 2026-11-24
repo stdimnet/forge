@@ -194,9 +194,11 @@ older Forge versions still open; their tool windows start at their default place
 
 The Project tool window (`Alt+1`) shows the project folder as a tree.
 
-- **Single click opens** a file and expands a folder by default. To work like PHPStorm (single
-  click selects, double click opens), turn off Settings | Appearance & Behavior | Appearance |
-  Project View | **Open files with single click** (`projectView.openFilesWithSingleClick`).
+- **Single click selects**, **double click opens** a file or expands/collapses a folder, like
+  PHPStorm. A single click on a folder's arrow expands or collapses it. To open with a single
+  click instead, turn on **Open Files with Single Click** in the Options menu (⋮) or in
+  Settings | Appearance & Behavior | Appearance | Project View
+  (`projectView.openFilesWithSingleClick`).
 - **Keyboard**: `Up`/`Down` move the selection, `Right` expands, `Left` collapses or goes to
   the parent, `Home`/`End` jump to the first/last row, `Enter` or `F4` opens.
 - Files and folders ignored by Git (`.gitignore`, `.git/info/exclude`, the global excludes
@@ -219,8 +221,8 @@ they apply to every project.
 | Entry | What it does | Setting |
 | --- | --- | --- |
 | Behavior › Always Select Opened File | The tree follows the active editor (PHPStorm's "Autoscroll from Source"). With **Show Members** the member at the caret is selected as the caret moves. | `projectView.autoscrollFromSource` |
-| Behavior › Open Files with Single Click | A single click opens files and expands folders | `projectView.openFilesWithSingleClick` |
-| Appearance › Show Members | PHP, JavaScript, TypeScript and Lua files get an expand arrow and list their classes, functions, methods, properties and constants (from the same providers as the [Structure tool window](code-structure.md)). A click on a member opens the file at it. | `projectView.showMembers` |
+| Behavior › Open Files with Single Click | A single click opens files and expands folders (off: a double click does) | `projectView.openFilesWithSingleClick` |
+| Appearance › Show Members | PHP, JavaScript, TypeScript and Lua files get an expand arrow and list their classes, functions, methods, properties and constants (from the same providers as the [Structure tool window](code-structure.md)). A double click on a member (a single click with Open Files with Single Click) opens the file at it. | `projectView.showMembers` |
 | Appearance › Show Excluded Files | Excluded folders and files stay in the tree (orange); off hides them | `projectView.showExcludedFiles` |
 | Appearance › Compact Middle Packages | A folder that only contains one folder is shown as one row, e.g. `src/Acme/Shop` | `projectView.compactMiddlePackages` |
 | Appearance › File Nesting… | Opens the **File Nesting** dialog (below) | `projectView.fileNesting.enabled`, `projectView.fileNesting.rules` |

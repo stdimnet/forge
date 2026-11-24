@@ -193,7 +193,7 @@ contrast and draw borders and strong focus rings; see [Accessibility](accessibil
 | Main menu (Hamburger menu, Merged with main toolbar, Show in separate toolbar) — see [Main menu](workbench.md#main-menu) | `appearance.mainMenu` | Hamburger menu |
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
-| Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
+| Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | off |
 | Always select opened file (Project view) | `projectView.autoscrollFromSource` | off |
 | Autoscroll to source / from source (Structure view) | `structureView.autoscrollToSource`, `structureView.autoscrollFromSource` | on |
 

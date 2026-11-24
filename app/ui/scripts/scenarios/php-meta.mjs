@@ -11,9 +11,9 @@ async function openFile(page, path) {
     const dir = parts.slice(0, i).join("/");
     const row = page.locator(`.tree-row[data-path="${dir}"]`);
     const child = page.locator(`.tree-row[data-path^="${dir}/"]`).first();
-    if (!(await child.isVisible().catch(() => false))) await row.click();
+    if (!(await child.isVisible().catch(() => false))) await row.dblclick();
   }
-  await page.locator(`.tree-row[data-path="${path}"]`).click();
+  await page.locator(`.tree-row[data-path="${path}"]`).dblclick();
   await page.waitForSelector(`.editor-tab.active[title="${path}"]`);
   await page.waitForTimeout(1200);
 }
@@ -154,10 +154,10 @@ export default {
     await page.keyboard.press("Enter");
     await page.getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForSelector('.tree-row[data-path="external-libraries://"]');
-    await page.locator('.tree-row[data-path="external-libraries://"]').click();
-    await page.locator('.tree-row[data-path="external-libraries:///usr/share/php"]').click();
-    await page.locator('.tree-row[data-path="external-libraries:///usr/share/php/Net"]').click();
-    await page.locator('.tree-row[data-path="external-libraries:///usr/share/php/Net/URL2.php"]').click();
+    await page.locator('.tree-row[data-path="external-libraries://"]').dblclick();
+    await page.locator('.tree-row[data-path="external-libraries:///usr/share/php"]').dblclick();
+    await page.locator('.tree-row[data-path="external-libraries:///usr/share/php/Net"]').dblclick();
+    await page.locator('.tree-row[data-path="external-libraries:///usr/share/php/Net/URL2.php"]').dblclick();
     await page.waitForTimeout(800);
   },
 };

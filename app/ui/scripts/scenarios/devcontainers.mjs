@@ -44,8 +44,8 @@ export default {
   "devcontainers-gutter": async (page) => {
     await page.waitForSelector(".balloon-close", { timeout: 3000 }).catch(() => undefined);
     for (const b of await page.locator(".balloon-close").all()) await b.click().catch(() => undefined);
-    await page.click('.tree-row[data-path=".devcontainer"]');
-    await page.click('.tree-row[data-path=".devcontainer/devcontainer.json"]');
+    await page.dblclick('.tree-row[data-path=".devcontainer"]');
+    await page.dblclick('.tree-row[data-path=".devcontainer/devcontainer.json"]');
     await page.waitForSelector('.editor-tab.active[title=".devcontainer/devcontainer.json"]');
     await page.waitForSelector(".cm-line-markers .marker-run");
     await page.click(".cm-line-markers .marker-run");

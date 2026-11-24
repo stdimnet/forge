@@ -30,7 +30,7 @@ async function reveal(page, path) {
   for (let i = 1; i < parts.length; i++) {
     const dir = parts.slice(0, i).join("/");
     const child = page.locator(`.tree-row[data-path^="${dir}/"]`).first();
-    if (!(await child.isVisible().catch(() => false))) await page.locator(`.tree-row[data-path="${dir}"]`).first().click();
+    if (!(await child.isVisible().catch(() => false))) await page.locator(`.tree-row[data-path="${dir}"]`).first().dblclick();
     await page.waitForTimeout(120);
   }
 }

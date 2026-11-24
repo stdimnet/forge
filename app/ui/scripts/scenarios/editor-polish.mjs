@@ -4,15 +4,15 @@
  * the demo projects.
  */
 
-/** Open a project file through the Project view (single clicks expand folders). */
+/** Open a project file through the Project view (double clicks expand folders). */
 async function openFromTree(page, path) {
   const parts = path.split("/");
   for (let i = 1; i < parts.length; i++) {
     const dir = parts.slice(0, i).join("/");
     const child = page.locator(`.tree-row[data-path^="${dir}/"]`).first();
-    if (!(await child.isVisible().catch(() => false))) await page.locator(`.tree-row[data-path="${dir}"]`).click();
+    if (!(await child.isVisible().catch(() => false))) await page.locator(`.tree-row[data-path="${dir}"]`).dblclick();
   }
-  await page.locator(`.tree-row[data-path="${path}"]`).click();
+  await page.locator(`.tree-row[data-path="${path}"]`).dblclick();
   await page.waitForSelector(`.editor-tab.active[title="${path}"]`);
   await page.waitForTimeout(400);
 }
@@ -86,7 +86,7 @@ async function openScratch(page, name) {
   if ((await app.getAttribute("data-expanded")) !== null) await app.locator(".tree-chevron").click();
   await page.locator('.tree-row[data-path="scratches-and-consoles://"] .tree-chevron').click();
   await page.locator('.tree-row[data-path="scratches-and-consoles://scratches"] .tree-chevron').click();
-  await page.locator(`.tree-row[data-path="scratch://${name}"]`).click();
+  await page.locator(`.tree-row[data-path="scratch://${name}"]`).dblclick();
   await page.waitForSelector(`.editor-tab.active[title="scratch://${name}"]`);
   await page.waitForSelector(".http-toolbar");
   await page.waitForSelector(".cm-line-marker.marker-run");
