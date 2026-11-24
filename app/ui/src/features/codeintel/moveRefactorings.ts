@@ -68,9 +68,10 @@ export interface MoveFilesRequest extends Request<{ directory: string; searchFor
   directory: string;
   php: boolean;
 }
-export interface CopyFilesRequest extends Request<{ name: string; directory: string }> {
+export interface CopyFilesRequest extends Request<{ name: string | null; directory: string }> {
   what: string;
-  name: string;
+  /** The new name of a single entry; `null` when several keep their names. */
+  name: string | null;
   directory: string;
 }
 export interface SafeDeleteRequest extends Request<{ searchInComments: boolean }> {
@@ -187,10 +188,10 @@ export async function moveAt(path: string, view: EditorView): Promise<void> {
   else if (found.class) await moveClass(found.class, path, view);
 }
 
-async function moveClass(target: ClassTarget, editorPath: string | null, view: EditorView | null): Promise<void> {
+async function moveClass(target: ClassTarget, editorPath: string | null, view: EditorView | null): Promise<boolean> {
   const choice = await ask("moveClass", { target });
   view?.focus();
-  if (!choice) return;
+  if (!choice) return false;
   let answer: RefactorAnswer;
   try {
     answer = await moveApi.moveClass(
@@ -199,9 +200,10 @@ async function moveClass(target: ClassTarget, editorPath: string | null, view: E
       dirtyBuffers(),
     );
   } catch (e) {
-    return fail(view, "Move", e);
+    fail(view, "Move", e);
+    return false;
   }
-  await applyAnswer(tr("codeintel.moveRefactorings.moveClassName", { name: target.name }), answer, { preview: choice.preview });
+  return applyAnswer(tr("codeintel.moveRefactorings.moveClassName", { name: target.name }), answer, { preview: choice.preview });
 }
 
 async function moveMembers(target: MembersTarget, editorPath: string, view: EditorView): Promise<void> {
@@ -242,18 +244,17 @@ export function describeEntries(entries: { path: string; kind: "file" | "dir" }[
 }
 
 /**
- * Move files and folders (Project view F6, drag and drop): a PHP class file uses Move
- * Class; otherwise the Move dialog with the target folder. PHP files that follow PSR-4 get
- * the namespace of their new folder.
+ * Move files and folders (Project view F6, drag and drop, Paste after Cut): a PHP class file
+ * uses Move Class; otherwise the Move dialog with the target folder. PHP files that follow
+ * PSR-4 get the namespace of their new folder. `true` once they are moved.
  */
-export async function moveEntries(paths: string[], targetDir?: string): Promise<void> {
+export async function moveEntries(paths: string[], targetDir?: string): Promise<boolean> {
   const entries = (await Promise.all(paths.map(entryOf))).filter((e): e is FileEntry => !!e);
-  if (!entries.length) return;
+  if (!entries.length) return false;
   if (entries.length === 1 && entries[0].kind === "file" && targetDir === undefined) {
     const target = await soleClassOf(entries[0].path);
     if (target) {
-      await moveClass(target, null, null);
-      return;
+      return moveClass(target, null, null);
     }
   }
   const choice = await ask("moveFiles", {
@@ -261,22 +262,23 @@ export async function moveEntries(paths: string[], targetDir?: string): Promise<
     directory: targetDir ?? parentOf(entries[0].path),
     php: entries.some((e) => e.kind === "dir" || isPhp(e.path)),
   });
-  if (!choice) return;
+  if (!choice) return false;
   const dir = choice.directory.replace(/^\/+|\/+$/g, "");
   const moves = entries.map((e) => ({ from: e.path, to: join(dir, e.name) })).filter((m) => m.from !== m.to);
-  if (!moves.length) return;
+  if (!moves.length) return false;
   for (const m of moves) {
     if (await entryOf(m.to)) {
       showBalloon(tr("codeintel.moveRefactorings.moveFailed"), tr("tools.codeintel.alreadyExists", { to: m.to }), 6000);
-      return;
+      return false;
     }
   }
   try {
     const answer = await moveApi.moveFiles(moves, choice.searchForReferences, choice.searchInComments, dirtyBuffers());
     const fileOps: FileOp[] = moves.map((m) => ({ kind: "move", ...m }));
-    await applyAnswer(tr("codeintel.moveRefactorings.moveDescribeentries", { describeEntries: describeEntries(entries) }), answer.answer, { fileOps });
+    return await applyAnswer(tr("codeintel.moveRefactorings.moveDescribeentries", { describeEntries: describeEntries(entries) }), answer.answer, { fileOps });
   } catch (e) {
     fail(null, "Move", e);
+    return false;
   }
 }
 
@@ -319,12 +321,16 @@ async function copyClass(target: ClassTarget, editorPath: string | null, view: E
   }
 }
 
-/** Copy files and folders (Project view F5): a PHP class file uses Copy Class. */
+/**
+ * Copy files and folders (Project view F5, Paste): a PHP class file uses Copy Class. One
+ * entry gets a new name; several keep their names in the target folder.
+ */
 export async function copyEntries(paths: string[], targetDir?: string): Promise<void> {
   const entries = (await Promise.all(paths.map(entryOf))).filter((e): e is FileEntry => !!e);
-  if (entries.length !== 1) return;
+  if (!entries.length) return;
   const entry = entries[0];
-  if (entry.kind === "file" && targetDir === undefined) {
+  const single = entries.length === 1;
+  if (single && entry.kind === "file" && targetDir === undefined) {
     const target = await soleClassOf(entry.path);
     if (target) {
       await copyClass(target, null, null);
@@ -333,18 +339,23 @@ export async function copyEntries(paths: string[], targetDir?: string): Promise<
   }
   const choice = await ask("copyFiles", {
     what: describeEntries(entries),
-    name: entry.name,
+    name: single ? entry.name : null,
     directory: targetDir ?? parentOf(entry.path),
   });
   if (!choice) return;
-  const to = join(choice.directory.replace(/^\/+|\/+$/g, ""), choice.name.trim());
-  if (await entryOf(to)) {
-    showBalloon(tr("codeintel.moveRefactorings.copyFailed"), tr("tools.codeintel.alreadyExists", { to }), 6000);
-    return;
+  const dir = choice.directory.replace(/^\/+|\/+$/g, "");
+  const copies = entries.map((e) => ({ from: e.path, to: join(dir, single && choice.name ? choice.name.trim() : e.name), kind: e.kind }));
+  for (const c of copies) {
+    if (await entryOf(c.to)) {
+      showBalloon(tr("codeintel.moveRefactorings.copyFailed"), tr("tools.codeintel.alreadyExists", { to: c.to }), 6000);
+      return;
+    }
   }
   const empty: RefactorAnswer = { edit: { changes: [] }, preview: [], conflicts: [], nameRanges: [], skipped: 0 };
-  if (await applyAnswer(tr("codeintel.moveRefactorings.copyDescribeentries", { describeEntries: describeEntries(entries) }), empty, { fileOps: [{ kind: "copy", from: entry.path, to }] })) {
-    if (entry.kind === "file") await openFile(to).catch(() => undefined);
+  const fileOps: FileOp[] = copies.map((c) => ({ kind: "copy", from: c.from, to: c.to }));
+  if (await applyAnswer(tr("codeintel.moveRefactorings.copyDescribeentries", { describeEntries: describeEntries(entries) }), empty, { fileOps })) {
+    const file = single && copies[0].kind === "file" ? copies[0].to : null;
+    if (file) await openFile(file).catch(() => undefined);
   }
 }
 

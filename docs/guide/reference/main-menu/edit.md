@@ -17,14 +17,14 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | --- | --- | --- | --- | --- |
 | Undo | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` | yes | Undoes the last edit in the editor. [More](../../user/editor.md#editing-actions) |
 | Redo | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` | yes | Redoes the last undone edit. [More](../../user/editor.md#editing-actions) |
-| Cut | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | yes | Cuts the selection, or the whole line when nothing is selected. [More](../../user/editor.md#editing-actions) |
-| Copy | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | yes | Copies the selection, or the whole line when nothing is selected. [More](../../user/editor.md#editing-actions) |
+| Cut | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | yes | Cuts the selection, or the whole line when nothing is selected; in the Project view the selected files. [More](../../user/editor.md#editing-actions) |
+| Copy | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | yes | Copies the selection, or the whole line when nothing is selected; in the Project view the selected files. [More](../../user/editor.md#editing-actions) |
 | **Copy Path/Reference** | | | | submenu |
 | Copy Path/Reference › Absolute Path | `Ctrl+Shift+C` | `Cmd+Shift+C` | yes | Copies the absolute path of the current file. [More](../../user/editor.md#editing-actions) |
 | Copy Path/Reference › File Name | — | — | not yet | Not available yet; the entry is disabled. |
 | Copy Path/Reference › Path From Content Root | — | — | not yet | Not available yet; the entry is disabled. |
 | Copy Path/Reference › Reference | `Ctrl+Alt+Shift+C` | `Cmd+Alt+Shift+C` | yes | Copies a reference to the caret position (`path:line`). [More](../../user/editor.md#editing-actions) |
-| Paste | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | yes | Pastes from the clipboard. [More](../../user/editor.md#editing-actions) |
+| Paste | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | yes | Pastes from the clipboard; in the Project view the cut or copied files. [More](../../user/editor.md#editing-actions) |
 | **Paste Special** | | | | submenu |
 | Paste Special › Paste from History… | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes | Pastes one of the texts copied or cut in this session. [More](../../user/editor.md#paste-from-history) |
 | Paste Special › Paste as Plain Text | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes | Pastes the clipboard as plain text. [More](../../user/editor.md#editing-actions) |

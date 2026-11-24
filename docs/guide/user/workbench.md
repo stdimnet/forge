@@ -287,13 +287,20 @@ Right-click a file, a folder or the empty area below the tree:
 | Entry | What it does |
 | --- | --- |
 | New > File / Directory | Creates a file or folder in the selected folder (or the file's folder). The name may contain `/` to create nested folders, e.g. `app/Models/Order.php`. A new file opens in the editor. |
+| Cut (`Ctrl+X`), Copy (`Ctrl+C`) | Puts the selected files and folders (`Ctrl+click` selects several) on the clipboard, for Paste; other programs get their paths as text |
 | Copy Path/Reference > Absolute Path (`Ctrl+Shift+C`), Path From Project Root, File Name | Copies to the clipboard |
+| Paste (`Ctrl+V`) | Pastes into the selected folder (or the file's folder). A file or folder pasted where it came from opens the **Copy** dialog for the name of the duplicate; in another folder, copied entries are copied there (the **Copy** dialog, with the target folder filled in) and cut ones moved (the **Move** dialog; a PHP file that follows PSR-4 gets the namespace of its new folder). A PHP file with one class opens Copy Class when it is duplicated. |
 | Find in Files… | searches the folder (or the project), see [Find in Files](search-everywhere.md#find-in-files) |
+| Refactor > Move… (`F6`), Copy… (`F5`), Safe Delete… | Move, copy or safely delete the selected files and folders, see [Move, Copy, Safe Delete](php.md#move-copy-safe-delete-change-signature-and-make-static) |
 | Rename… | Renames the file or folder. Unsaved changes in open tabs are saved first and the tabs follow the new name, as do bookmarks, file type overrides, Recent Locations and TODO items. |
 | Delete… | Deletes after a confirmation; folders with all their content. This cannot be undone. Bookmarks and file type overrides of the deleted files are removed. |
 | Reload from Disk | Re-reads the folder |
 
 ![Project view context menu](../../screenshots/file-menu-new-file.png)
+
+![Cut, Copy and Paste in the Project view context menu](../../screenshots/file-menu-clipboard.png)
+
+![Pasting a file into its own folder: the Copy dialog asks for the new name](../../screenshots/project-paste-duplicate.png)
 
 ## Editor tabs
 

@@ -1,6 +1,7 @@
 /**
  * Context menus: the editor menu (right-click, Menu key, Shift+F10) and the clipboard
- * actions it needs. Other features add entries with `registerContextMenu("editor", …)`.
+ * actions it needs (on the selected files while the Project view has the focus). Other
+ * features add entries with `registerContextMenu("editor", …)`.
  */
 import { EditorSelection } from "@codemirror/state";
 import { EditorView, ViewPlugin } from "@codemirror/view";
@@ -14,6 +15,7 @@ import { action, menuEntries, providedEntries, registerContextMenu, separator, s
 import "./contextMenu.css";
 import { t } from "@/i18n";
 import { writeClipboard } from "@/features/clipboard/system";
+import { copySelectedFiles, pasteFiles, projectViewFocused } from "@/features/project/fileClipboard";
 
 function command(id: string, run: () => void | Promise<void>): void {
   registerCommand({ id, title: actionById(id)?.title ?? id, run });
@@ -31,9 +33,9 @@ async function copy(cut: boolean): Promise<void> {
   view.focus();
 }
 
-command("$Cut", () => copy(true));
-command("$Copy", () => copy(false));
-command("$Paste", pasteClipboard);
+command("$Cut", () => (projectViewFocused() ? copySelectedFiles(true) : copy(true)));
+command("$Copy", () => (projectViewFocused() ? copySelectedFiles(false) : copy(false)));
+command("$Paste", () => (projectViewFocused() ? pasteFiles() : pasteClipboard()));
 // Forge's paste does not reformat or add imports, so plain text is the same paste.
 command("PasteSimple", pasteClipboard);
 command("$SelectAll", () => {

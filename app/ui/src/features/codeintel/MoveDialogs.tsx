@@ -298,19 +298,30 @@ export function MoveFilesDialog(props: { req: MoveFilesRequest }) {
 }
 
 export function CopyFilesDialog(props: { req: CopyFilesRequest }) {
-  const [name, setName] = createSignal(props.req.name);
+  // Several entries keep their names: only the folder is asked for.
+  const single = props.req.name !== null;
+  const [name, setName] = createSignal(props.req.name ?? "");
   const [dir, setDir] = createSignal(props.req.directory);
-  const valid = () => !!name().trim() && !/[\\/\0]/.test(name().trim()) && name().trim() !== "." && name().trim() !== "..";
-  const close = (ok: boolean) => props.req.done(ok ? { name: name().trim(), directory: dir().trim() } : null);
+  const valid = () => !single || (!!name().trim() && !/[\\/\0]/.test(name().trim()) && name().trim() !== "." && name().trim() !== "..");
+  const close = (ok: boolean) => props.req.done(ok ? { name: single ? name().trim() : null, directory: dir().trim() } : null);
   const run = () => valid() && close(true);
   return (
     <Frame title={tr("codeintel.moveDialogs.copy")} class="move-class-dialog" onKeyDown={keys(() => close(false), run)}>
       <div class="dialog-body">
         <div class="refactor-note">{tr("tools.codeintel.copy", { what: props.req.what })}</div>
-        <label class="form-label">{tr("codeintel.moveDialogs.newName")}</label>
-        <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.newName2")} onInput={(e) => setName(e.currentTarget.value)} />
+        <Show when={single}>
+          <label class="form-label">{tr("codeintel.moveDialogs.newName")}</label>
+          <input ref={focusSelect} class="move-input" value={name()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.newName2")} onInput={(e) => setName(e.currentTarget.value)} />
+        </Show>
         <label class="form-label">{tr("codeintel.moveDialogs.toDirectory")}</label>
-        <input class="move-input" value={dir()} spellcheck={false} aria-label={tr("codeintel.moveDialogs.toDirectory2")} onInput={(e) => setDir(e.currentTarget.value)} />
+        <input
+          ref={(el) => !single && focusSelect(el)}
+          class="move-input"
+          value={dir()}
+          spellcheck={false}
+          aria-label={tr("codeintel.moveDialogs.toDirectory2")}
+          onInput={(e) => setDir(e.currentTarget.value)}
+        />
       </div>
       <Buttons ok="OK" disabled={!valid()} cancel={() => close(false)} run={run} />
     </Frame>

@@ -354,7 +354,7 @@ More: [Editor](../../user/editor.md#editing-actions)
 
 **Shortcut:** `Ctrl+X`, `Shift+Delete` · macOS `Cmd+X` · action id `$Cut`
 
-Cuts the selection, or the whole line when nothing is selected.
+Cuts the selection, or the whole line when nothing is selected. In the Project view: the selected files and folders, to move them with Paste.
 
 **Menu:** Edit | Cut
 
@@ -364,7 +364,7 @@ More: [Editor](../../user/editor.md#editing-actions)
 
 **Shortcut:** `Ctrl+C`, `Ctrl+Insert` · macOS `Cmd+C` · action id `$Copy`
 
-Copies the selection, or the whole line when nothing is selected.
+Copies the selection, or the whole line when nothing is selected. In the Project view: the selected files and folders.
 
 **Menu:** Edit | Copy
 
@@ -374,7 +374,7 @@ More: [Editor](../../user/editor.md#editing-actions)
 
 **Shortcut:** `Ctrl+V`, `Shift+Insert` · macOS `Cmd+V` · action id `$Paste`
 
-Pastes from the clipboard.
+Pastes from the clipboard. In the Project view: pastes the cut or copied files and folders into the selected folder (into their own folder: a duplicate with a new name).
 
 **Menu:** Edit | Paste
 

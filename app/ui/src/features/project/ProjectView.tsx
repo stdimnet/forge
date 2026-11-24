@@ -530,6 +530,7 @@ export function ProjectView() {
   return (
     <div
       class="project-tree"
+      data-project-view
       tabIndex={0}
       ref={root}
       role="tree"
