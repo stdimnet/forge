@@ -31,6 +31,10 @@ dialog, with the same tree as PHPStorm:
 - **Reset** (top right) throws away the unapplied changes of the page; **Restore Defaults**
   sets every option of the page to its default (Apply or OK stores it).
 - In the desktop app the dialog is its own window; its size and position are remembered.
+  While it is open, the project window takes no input and focusing it brings the dialog back
+  to the front. In a Wayland session (Hyprland, Sway, GNOME, KDE Plasma, …) the desktop keeps
+  the dialog above the project window instead, and the mouse pointer stays where it is when
+  it leaves the dialog or the dialog closes.
 
 ![Search in settings](../../screenshots/settings-search.png)
 

@@ -14,7 +14,9 @@ tags: [crate, rust]
 Window chrome for Forge's own (undecorated) windows.
 
 - `desktop`: which OS and desktop environment Forge runs on, read from the target OS and
-  environment variables (`XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, …).
+  environment variables (`XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, …), and whether Forge may
+  activate its own windows (`may_activate_windows`: not in a Wayland session, where
+  compositors such as Hyprland move the mouse pointer into an activated window).
 - `chrome`: the title bar style and button layout for the setting
   `appearance.windowControls` (`auto | windows | macos | gnome | kde | linux | native`),
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
@@ -54,7 +56,7 @@ WebAssembly.
 
 ```rust
 pub use chrome::{…};
-pub use desktop::{detect_desktop, Desktop, Os};
+pub use desktop::{detect_desktop, may_activate_windows, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
 pub use light_edit::{LightEditFile, LightEditSnapshot, LightEditTabs, LIGHT_EDIT_ID};
 pub use prewarm::{Activation, Booted, ParkedDialogs};
