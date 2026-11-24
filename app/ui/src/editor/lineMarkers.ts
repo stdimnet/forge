@@ -7,7 +7,7 @@
  */
 import { createEffect, createRoot, on, type Component } from "solid-js";
 import { render } from "solid-js/web";
-import { RangeSet, StateEffect, StateField, type Extension, type Range } from "@codemirror/state";
+import { RangeSet, StateEffect, StateField, countColumn, type Extension, type Range } from "@codemirror/state";
 import { Decoration, EditorView, GutterMarker, ViewPlugin, WidgetType, gutter } from "@codemirror/view";
 import { getSetting } from "@/state/settings";
 import { registerEditorExtension } from "./extensions";
@@ -109,6 +109,7 @@ function markerSet(view: EditorView) {
 class VisionWidget extends WidgetType {
   constructor(
     readonly marker: LineMarker,
+    /** Columns, with tabs expanded to the tab size. */
     readonly indent: number,
   ) {
     super();
@@ -145,15 +146,17 @@ const codeVision = EditorView.decorations.compute([markerField], (state) => {
     if (!m.vision || m.line + 1 > state.doc.lines || seen.has(m.line)) continue;
     seen.add(m.line);
     const line = state.doc.line(m.line + 1);
-    const indent = line.text.length - line.text.trimStart().length;
+    const indent = countColumn(/^\s*/.exec(line.text)![0], state.tabSize);
     ranges.push(Decoration.widget({ widget: new VisionWidget(m, indent), block: true, side: -1 }).range(line.from));
   }
   return Decoration.set(ranges, true);
 });
 
+// The line keeps the editor's font, so its indent (in `ch`) matches the code below; the
+// smaller UI font of the label keeps the row as high as 1.5 lines of it.
 const codeVisionTheme = EditorView.baseTheme({
-  ".cm-code-vision": { fontSize: "0.85em", lineHeight: "1.5", color: "var(--fg-muted)", fontFamily: "var(--font-ui)" },
-  ".cm-code-vision-item": { cursor: "pointer" },
+  ".cm-code-vision": { lineHeight: "1.275", color: "var(--fg-muted)" },
+  ".cm-code-vision-item": { cursor: "pointer", fontSize: "0.85em", fontFamily: "var(--font-ui)" },
   ".cm-code-vision-item:hover": { color: "var(--accent)", textDecoration: "underline" },
 });
 
