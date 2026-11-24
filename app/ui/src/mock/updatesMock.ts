@@ -22,7 +22,7 @@ import { demoProjectName } from "./demoProject";
 
 const MB = 1024 * 1024;
 const SIMULATED_SIZE = 94 * MB;
-const DEFAULT_ENDPOINT = "https://github.com/Reeperk/Forge/releases/latest/download/latest.json";
+const DEFAULT_ENDPOINT = "https://github.com/stdimnet/forge/releases/latest/download/latest.json";
 
 const params = () => new URLSearchParams(typeof location === "undefined" ? "" : location.search);
 const simulateVersion = () => params().get("simulateUpdate")?.trim().replace(/^v/, "") || null;

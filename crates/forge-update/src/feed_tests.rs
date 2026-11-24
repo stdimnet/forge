@@ -403,7 +403,7 @@ async fn beta_checks_read_both_feeds_and_remember_the_source() {
 #[test]
 fn feeds_are_read_over_https_only() {
     assert!(check_endpoint(
-        "https://github.com/Reeperk/Forge/releases/latest/download/latest.json"
+        "https://github.com/stdimnet/forge/releases/latest/download/latest.json"
     )
     .is_ok());
     assert!(check_endpoint("http://127.0.0.1:8080/latest.json").is_ok());

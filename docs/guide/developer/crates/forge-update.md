@@ -51,8 +51,8 @@ feeds (`check_endpoint`; plain `http` only from `localhost`) of at most `MAX_FEE
 pub use feed::{check, client, fetch_feed, pick_feed, CheckOutcome, CheckRequest, Feed, FeedPlatform, UpdateOffer};
 pub use meter::SpeedMeter;
 pub use policy::{evaluate, plan, Channel, CheckPlan, PlanInput, Postponed, SkipReason, UpdateState, Verdict};
-pub const DEFAULT_ENDPOINT: &str; // https://github.com/Reeperk/Forge/releases/latest/download/latest.json
-pub const BETA_ENDPOINT: &str;    // https://github.com/Reeperk/Forge/releases/download/beta/latest-beta.json
+pub const DEFAULT_ENDPOINT: &str; // https://github.com/stdimnet/forge/releases/latest/download/latest.json
+pub const BETA_ENDPOINT: &str;    // https://github.com/stdimnet/forge/releases/download/beta/latest-beta.json
 pub const CHECK_INTERVAL_SECS: u64; // one day
 pub fn parse_version(text: &str) -> Result<semver::Version> { … }
 pub fn format_size(bytes: u64) -> String { … }
