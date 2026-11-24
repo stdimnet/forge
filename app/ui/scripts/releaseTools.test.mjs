@@ -122,7 +122,7 @@ describe("AUR", () => {
     expect(f.get("pkgrel")).toEqual(["1"]);
     expect(f.get("sha256sums")).toEqual([SHA]);
     expect(f.get("source")?.[0]).toBe(
-      "Forge_0.2.0_amd64.deb::https://github.com/Reeperk/Forge/releases/download/v0.2.0/Forge_0.2.0_amd64.deb",
+      "Forge_0.2.0_amd64.deb::https://github.com/stdimnet/forge/releases/download/v0.2.0/Forge_0.2.0_amd64.deb",
     );
     // Same version: a packaging fix keeps its pkgrel.
     const same = updatePkgbuild(pkgbuild.replace("pkgrel=1", "pkgrel=3"), { version: "0.1.0", sha256: SHA });
@@ -149,7 +149,7 @@ describe("Flatpak", () => {
   it("points the manifest at a release", () => {
     const next = updateFlatpakManifest(read("packaging/flatpak/dev.forge.ide.yml"), { version: "0.2.0", sha256: SHA });
     expect(next).toContain(
-      `url: https://github.com/Reeperk/Forge/releases/download/v0.2.0/Forge_0.2.0_amd64.deb\n        sha256: ${SHA}`,
+      `url: https://github.com/stdimnet/forge/releases/download/v0.2.0/Forge_0.2.0_amd64.deb\n        sha256: ${SHA}`,
     );
     expect(() => updateFlatpakManifest("id: x\n", { version: "0.2.0", sha256: SHA })).toThrow(/no release .deb/);
   });

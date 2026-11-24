@@ -14,7 +14,7 @@ Forge is a PHPStorm-style IDE for Windows, Linux and macOS.
   is part of the core.
 - Layout, wording, behaviour and the default keymap follow PHPStorm 1:1; the colors are Forge's
   own ("Ember" dark / "Anvil" light).
-- Repository: https://github.com/Reeperk/Forge (default branch `main`).
+- Repository: https://github.com/stdimnet/forge (default branch `main`).
 
 ## Repository layout
 

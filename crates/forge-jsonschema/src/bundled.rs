@@ -38,37 +38,37 @@ pub const GITHUB_ACTION: &str = "https://json.schemastore.org/github-action.json
 pub const GITLAB_CI: &str = "https://gitlab.com/gitlab-org/gitlab-foss/-/raw/master/app/assets/javascripts/editor/schema/ci.json";
 
 pub const MINECRAFT_BUKKIT: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "minecraft-bukkit-plugin.json"
 );
 pub const MINECRAFT_PAPER: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "minecraft-paper-plugin.json"
 );
 pub const MINECRAFT_VELOCITY: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "minecraft-velocity-plugin.json"
 );
 pub const MINECRAFT_BUNGEE: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "minecraft-bungee-plugin.json"
 );
 
 pub const MINECRAFT_FABRIC_MOD: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "minecraft-fabric-mod.json"
 );
 pub const MINECRAFT_MIXINS: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "minecraft-mixins.json"
 );
 
 pub const UNITY_ASMDEF: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "unity-asmdef.json"
 );
 pub const UNITY_ASMREF: &str = concat!(
-    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/",
     "unity-asmref.json"
 );
 
@@ -168,36 +168,36 @@ pub static BUNDLED: &[Bundled] = &[
     // Written for Forge (JavaForge's Minecraft plugin support).
     bundled!(
         "minecraft-bukkit-plugin.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-bukkit-plugin.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/minecraft-bukkit-plugin.json"]
     ),
     bundled!(
         "minecraft-paper-plugin.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-paper-plugin.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/minecraft-paper-plugin.json"]
     ),
     bundled!(
         "minecraft-velocity-plugin.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-velocity-plugin.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/minecraft-velocity-plugin.json"]
     ),
     bundled!(
         "minecraft-bungee-plugin.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-bungee-plugin.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/minecraft-bungee-plugin.json"]
     ),
     bundled!(
         "minecraft-fabric-mod.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-fabric-mod.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/minecraft-fabric-mod.json"]
     ),
     bundled!(
         "minecraft-mixins.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-mixins.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/minecraft-mixins.json"]
     ),
     // Written for Forge (DotNetForge's Unity support).
     bundled!(
         "unity-asmdef.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/unity-asmdef.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/unity-asmdef.json"]
     ),
     bundled!(
         "unity-asmref.json",
-        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/unity-asmref.json"]
+        ["https://raw.githubusercontent.com/stdimnet/forge/main/crates/forge-jsonschema/schemas/unity-asmref.json"]
     ),
 ];
 

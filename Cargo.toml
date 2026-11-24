@@ -6,7 +6,7 @@ members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/builtin-lsp", 
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/Reeperk/Forge"
+repository = "https://github.com/stdimnet/forge"
 rust-version = "1.80"
 
 [workspace.dependencies]

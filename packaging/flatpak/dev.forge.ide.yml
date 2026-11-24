@@ -54,14 +54,14 @@ modules:
       - type: file
         dest-filename: forge.deb
         only-arches: [x86_64]
-        url: https://github.com/Reeperk/Forge/releases/download/v0.1.0/Forge_0.1.0_amd64.deb
+        url: https://github.com/stdimnet/forge/releases/download/v0.1.0/Forge_0.1.0_amd64.deb
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         # Flathub's external data checker proposes updates from the newest stable release.
         x-checker-data:
           type: json
-          url: https://api.github.com/repos/Reeperk/Forge/releases/latest
+          url: https://api.github.com/repos/stdimnet/forge/releases/latest
           version-query: .tag_name | sub("^v"; "")
-          url-query: '"https://github.com/Reeperk/Forge/releases/download/v" + $version + "/Forge_" + $version + "_amd64.deb"'
+          url-query: '"https://github.com/stdimnet/forge/releases/download/v" + $version + "/Forge_" + $version + "_amd64.deb"'
       - type: file
         path: dev.forge.ide.desktop
       - type: file

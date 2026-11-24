@@ -29909,7 +29909,7 @@ Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
 6. `publish`: publishes the release once every asset is uploaded. If a job fails, the release
    stays a draft; fix the cause and re-run the workflow.
 
-Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
+Forge's updater reads `https://github.com/stdimnet/forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what stable users get offered.
 
 Linux build jobs (remote agents, Linux bundles) run on the project's self-hosted runner
@@ -30113,8 +30113,8 @@ Settings | Appearance & Behavior | System Settings | Updates. The logic is in
 
 | Setting | Feeds read | Offered |
 | --- | --- | --- |
-| `updates.channel = stable` (default) | `https://github.com/Reeperk/Forge/releases/latest/download/latest.json` | stable releases only |
-| `updates.channel = beta` | `https://github.com/Reeperk/Forge/releases/download/beta/latest-beta.json`, then the stable feed | the newer of both, so a stable `0.3.0` replaces `0.3.0-beta.2` |
+| `updates.channel = stable` (default) | `https://github.com/stdimnet/forge/releases/latest/download/latest.json` | stable releases only |
+| `updates.channel = beta` | `https://github.com/stdimnet/forge/releases/download/beta/latest-beta.json`, then the stable feed | the newer of both, so a stable `0.3.0` replaces `0.3.0-beta.2` |
 | `updates.endpoint` set | that URL only (release builds require `https`) | as the channel allows |
 
 The beta feed needs a fixed URL, so it lives on a long-lived release tagged `beta`. Create it
@@ -30472,7 +30472,7 @@ Source: docs/guide/developer/git-workflow.md
 
 # Git workflow
 
-- Repository: <https://github.com/Reeperk/Forge>, default branch `main`.
+- Repository: <https://github.com/stdimnet/forge>, default branch `main`.
 - **Branch names** describe the work: `feat/…`, `fix/…`, `docs/…`, `chore/…`
   (`feat/laravel-plugin`, `fix/tree-double-click`, `docs/user-and-developer-guide`).
 - **Small commits** with imperative English subjects: "Add routes tool window",
@@ -35853,8 +35853,8 @@ feeds (`check_endpoint`; plain `http` only from `localhost`) of at most `MAX_FEE
 pub use feed::{check, client, fetch_feed, pick_feed, CheckOutcome, CheckRequest, Feed, FeedPlatform, UpdateOffer};
 pub use meter::SpeedMeter;
 pub use policy::{evaluate, plan, Channel, CheckPlan, PlanInput, Postponed, SkipReason, UpdateState, Verdict};
-pub const DEFAULT_ENDPOINT: &str; // https://github.com/Reeperk/Forge/releases/latest/download/latest.json
-pub const BETA_ENDPOINT: &str;    // https://github.com/Reeperk/Forge/releases/download/beta/latest-beta.json
+pub const DEFAULT_ENDPOINT: &str; // https://github.com/stdimnet/forge/releases/latest/download/latest.json
+pub const BETA_ENDPOINT: &str;    // https://github.com/stdimnet/forge/releases/download/beta/latest-beta.json
 pub const CHECK_INTERVAL_SECS: u64; // one day
 pub fn parse_version(text: &str) -> Result<semver::Version> { … }
 pub fn format_size(bytes: u64) -> String { … }

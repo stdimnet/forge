@@ -237,7 +237,7 @@ export function srcinfo(text) {
  * @param {string} text @param {{ version: string, sha256: string }} release
  */
 export function updateFlatpakManifest(text, { version, sha256 }) {
-  const source = /(url: https:\/\/github\.com\/Reeperk\/Forge\/releases\/download\/)v[^/\s]+\/Forge_[^_\s]+_amd64\.deb(\s*\n\s*sha256: )[0-9a-f]{64}/;
+  const source = /(url: https:\/\/github\.com\/stdimnet\/forge\/releases\/download\/)v[^/\s]+\/Forge_[^_\s]+_amd64\.deb(\s*\n\s*sha256: )[0-9a-f]{64}/;
   if (!source.test(text)) throw new Error("the Flatpak manifest has no release .deb source with url and sha256");
   return text.replace(source, `$1v${version}/${debName(version)}$2${sha256}`);
 }
