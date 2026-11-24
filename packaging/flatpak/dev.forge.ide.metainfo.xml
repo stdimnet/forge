@@ -23,13 +23,13 @@
     </p>
   </description>
   <launchable type="desktop-id">dev.forge.ide.desktop</launchable>
-  <url type="homepage">https://github.com/Reeperk/Forge</url>
-  <url type="bugtracker">https://github.com/Reeperk/Forge/issues</url>
-  <url type="vcs-browser">https://github.com/Reeperk/Forge</url>
+  <url type="homepage">https://github.com/stdimnet/forge</url>
+  <url type="bugtracker">https://github.com/stdimnet/forge/issues</url>
+  <url type="vcs-browser">https://github.com/stdimnet/forge</url>
   <screenshots>
     <screenshot type="default">
       <caption>The workbench with a Laravel project</caption>
-      <image>https://raw.githubusercontent.com/Reeperk/Forge/main/docs/screenshots/workbench-dark.png</image>
+      <image>https://raw.githubusercontent.com/stdimnet/forge/main/docs/screenshots/workbench-dark.png</image>
     </screenshot>
   </screenshots>
   <categories>

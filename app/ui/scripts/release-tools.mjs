@@ -57,7 +57,7 @@ async function packaging(/** @type {string[]} */ args) {
   if (sumsFile) {
     text = readFileSync(resolve(sumsFile), "utf8");
   } else {
-    const url = `https://github.com/Reeperk/Forge/releases/download/${tag}/SHA256SUMS`;
+    const url = `https://github.com/stdimnet/forge/releases/download/${tag}/SHA256SUMS`;
     console.log(`fetching ${url}`);
     const response = await fetch(url);
     if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);

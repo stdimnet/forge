@@ -7,7 +7,7 @@ tags: [git, workflow, ci, commits]
 
 # Git workflow
 
-- Repository: <https://github.com/Reeperk/Forge>, default branch `main`.
+- Repository: <https://github.com/stdimnet/forge>, default branch `main`.
 - **Branch names** describe the work: `feat/…`, `fix/…`, `docs/…`, `chore/…`
   (`feat/laravel-plugin`, `fix/tree-double-click`, `docs/user-and-developer-guide`).
 - **Small commits** with imperative English subjects: "Add routes tool window",

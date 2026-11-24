@@ -50,7 +50,7 @@ Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
 6. `publish`: publishes the release once every asset is uploaded. If a job fails, the release
    stays a draft; fix the cause and re-run the workflow.
 
-Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
+Forge's updater reads `https://github.com/stdimnet/forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what stable users get offered.
 
 Linux build jobs (remote agents, Linux bundles) run on the project's self-hosted runner
@@ -254,8 +254,8 @@ Settings | Appearance & Behavior | System Settings | Updates. The logic is in
 
 | Setting | Feeds read | Offered |
 | --- | --- | --- |
-| `updates.channel = stable` (default) | `https://github.com/Reeperk/Forge/releases/latest/download/latest.json` | stable releases only |
-| `updates.channel = beta` | `https://github.com/Reeperk/Forge/releases/download/beta/latest-beta.json`, then the stable feed | the newer of both, so a stable `0.3.0` replaces `0.3.0-beta.2` |
+| `updates.channel = stable` (default) | `https://github.com/stdimnet/forge/releases/latest/download/latest.json` | stable releases only |
+| `updates.channel = beta` | `https://github.com/stdimnet/forge/releases/download/beta/latest-beta.json`, then the stable feed | the newer of both, so a stable `0.3.0` replaces `0.3.0-beta.2` |
 | `updates.endpoint` set | that URL only (release builds require `https`) | as the channel allows |
 
 The beta feed needs a fixed URL, so it lives on a long-lived release tagged `beta`. Create it

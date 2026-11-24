@@ -129,7 +129,7 @@ impl ProviderKind {
         if self == ProviderKind::OpenRouter {
             h.insert(
                 "HTTP-Referer".into(),
-                "https://github.com/Reeperk/Forge".into(),
+                "https://github.com/stdimnet/forge".into(),
             );
             h.insert("X-Title".into(), "Forge IDE".into());
         }

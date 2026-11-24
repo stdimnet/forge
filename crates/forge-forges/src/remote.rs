@@ -285,10 +285,10 @@ mod tests {
             (r.host.as_str(), r.path.as_str(), r.ssh),
             ("gitlab.com", "acme/backend/api", false)
         );
-        let r = parse_remote_url("git@github.com:Reeperk/Forge.git").unwrap();
+        let r = parse_remote_url("git@github.com:stdimnet/forge.git").unwrap();
         assert_eq!(
             (r.host.as_str(), r.path.as_str(), r.ssh),
-            ("github.com", "Reeperk/Forge", true)
+            ("github.com", "stdimnet/forge", true)
         );
         let r = parse_remote_url("ssh://git@git.acme.dev:2222/acme/acme-shop.git").unwrap();
         assert_eq!(

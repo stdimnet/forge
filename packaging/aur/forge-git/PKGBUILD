@@ -1,4 +1,4 @@
-# Maintainer: Forge maintainers <https://github.com/Reeperk/Forge>
+# Maintainer: Forge maintainers <https://github.com/stdimnet/forge>
 #
 # Builds Forge from the main branch. Generate .SRCINFO with `makepkg --printsrcinfo > .SRCINFO`
 # (pkgver changes with every build). Publishing to the AUR is manual:
@@ -9,7 +9,7 @@ pkgver=0.1.0.r0.g0000000
 pkgrel=1
 pkgdesc="PHPStorm-style IDE for PHP, web and Lua projects (development version)"
 arch=('x86_64' 'aarch64')
-url="https://github.com/Reeperk/Forge"
+url="https://github.com/stdimnet/forge"
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
 makedepends=('git' 'cargo' 'nodejs' 'pnpm' 'clang')
@@ -18,7 +18,7 @@ optdepends=('git: version control'
 provides=('forge-ide')
 conflicts=('forge-ide' 'forge-bin')
 options=('!lto' '!debug')
-source=("forge::git+https://github.com/Reeperk/Forge.git#branch=main")
+source=("forge::git+https://github.com/stdimnet/forge.git#branch=main")
 sha256sums=('SKIP')
 
 pkgver() {
