@@ -50,7 +50,7 @@ export default {
     await page.waitForSelector('.chat-dropdown-menu .chat-popup-item:has-text("YOLO")');
   },
   "gemini-conversation": async (page) => {
-    await page.click('.tree-row[data-path="app/Models/Order.php"]');
+    await page.dblclick('.tree-row[data-path="app/Models/Order.php"]');
     await openChat(page);
     await pickGemini(page);
     await pickMode(page, "YOLO");

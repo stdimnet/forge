@@ -13,8 +13,8 @@ async function openGitMenu(page, path, theme) {
 }
 
 async function revealTests(page) {
-  await page.click('.tree-row[data-path="tests"]');
-  await page.click('.tree-row[data-path="tests/Feature"]');
+  await page.dblclick('.tree-row[data-path="tests"]');
+  await page.dblclick('.tree-row[data-path="tests/Feature"]');
   await page.waitForSelector('.tree-row[data-path="tests/Feature/OrderTest.php"]');
 }
 

@@ -42,18 +42,18 @@ export default {
   },
   "file-colors": async (page) => {
     await saveScopes(page);
-    await page.click('.tree-row[data-path="tests"]');
-    await page.click('.tree-row[data-path="tests/Unit"]');
-    await page.click('.tree-row[data-path="tests/Unit/UserTest.php"]');
-    await page.click('.tree-row[data-path="app/Models/Order.php"]');
+    await page.dblclick('.tree-row[data-path="tests"]');
+    await page.dblclick('.tree-row[data-path="tests/Unit"]');
+    await page.dblclick('.tree-row[data-path="tests/Unit/UserTest.php"]');
+    await page.dblclick('.tree-row[data-path="app/Models/Order.php"]');
     await page.waitForSelector(".editor-tab.file-colored");
   },
   "file-colors-light": async (page) => {
     await saveScopes(page);
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
-    await page.click('.tree-row[data-path="tests"]');
-    await page.click('.tree-row[data-path="tests/Unit"]');
-    await page.click('.tree-row[data-path="tests/Unit/UserTest.php"]');
+    await page.dblclick('.tree-row[data-path="tests"]');
+    await page.dblclick('.tree-row[data-path="tests/Unit"]');
+    await page.dblclick('.tree-row[data-path="tests/Unit/UserTest.php"]');
     await page.waitForSelector(".editor-tab.file-colored");
   },
   "find-in-files-scope": async (page) => {

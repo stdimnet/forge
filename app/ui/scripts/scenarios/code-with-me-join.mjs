@@ -20,7 +20,7 @@ async function join(page, start = () => page.evaluate(() => void window.__forgeR
 /** The window's own project, untrusted: the Safe Mode banner and the expanded tree. */
 const before = (theme) => async (page) => {
   await page.waitForSelector("[data-testid=safe-mode-banner]");
-  await page.dblclick('.tree-row[data-path="app"]');
+  if (!(await page.$('.tree-row[data-path^="app/"]'))) await page.dblclick('.tree-row[data-path="app"]');
   if (theme === "light") await light(page);
 };
 before("dark").query = "?project=cwm-join";
@@ -28,7 +28,7 @@ before("dark").query = "?project=cwm-join";
 /** After joining: the host's project in the Project view, no Safe Mode banner. */
 const joined = (theme) => async (page) => {
   await page.waitForSelector("[data-testid=safe-mode-banner]");
-  await page.dblclick('.tree-row[data-path="app"]');
+  if (!(await page.$('.tree-row[data-path^="app/"]'))) await page.dblclick('.tree-row[data-path="app"]');
   await join(page);
   await page.waitForSelector('.tree-row[data-path="app"]');
   if (await page.$("[data-testid=safe-mode-banner]")) throw new Error("the local project's Safe Mode banner is still shown");

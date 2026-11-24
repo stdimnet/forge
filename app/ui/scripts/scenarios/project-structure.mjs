@@ -18,7 +18,7 @@ async function menuItem(page, label) {
 async function logsMenu(page) {
   await quiet(page);
   const logs = page.locator('.tree-row[data-path="storage/logs"]');
-  if (!(await logs.isVisible().catch(() => false))) await page.locator('.tree-row[data-path="storage"]').click();
+  if (!(await logs.isVisible().catch(() => false))) await page.locator('.tree-row[data-path="storage"]').dblclick();
   await logs.click({ button: "right" });
   await (await menuItem(page, "Mark Directory as")).hover();
   await page.waitForTimeout(300);
@@ -29,7 +29,7 @@ async function exclude(page) {
   await logsMenu(page);
   await (await menuItem(page, "Excluded")).click();
   await page.waitForSelector('.tree-row.excluded[data-path="storage/logs"]');
-  await page.locator('.tree-row[data-path="storage/logs"]').click();
+  await page.locator('.tree-row[data-path="storage/logs"]').dblclick();
   await page.waitForTimeout(300);
 }
 

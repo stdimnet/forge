@@ -2,7 +2,7 @@
 
 /** @param {import("playwright-core").Page} page */
 async function expandApp(page) {
-  await page.dblclick('.tree-row[data-path="app"]');
+  if (!(await page.$('.tree-row[data-path="app/Models"]'))) await page.dblclick('.tree-row[data-path="app"]');
   await page.waitForSelector('.tree-row[data-path="app/Models"]');
 }
 

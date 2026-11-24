@@ -11,9 +11,9 @@ async function closeBalloons(page) {
 
 /** @param {import("playwright-core").Page} page */
 async function openDemo(page) {
-  await page.click('.tree-row[data-path="scripts"]');
-  await page.click('.tree-row[data-path="scripts/native"]');
-  await page.click('.tree-row[data-path="scripts/native/demo.c"]');
+  await page.dblclick('.tree-row[data-path="scripts"]');
+  await page.dblclick('.tree-row[data-path="scripts/native"]');
+  await page.dblclick('.tree-row[data-path="scripts/native/demo.c"]');
   await page.waitForFunction(() => [...document.querySelectorAll(".cm-content")].some((c) => c.textContent?.includes("compute(4)")));
   await page.waitForTimeout(300);
 }

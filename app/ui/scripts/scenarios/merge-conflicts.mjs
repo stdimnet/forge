@@ -70,7 +70,7 @@ const scenarios = {
     await page.waitForSelector(".balloon, .notification-balloon, [role=status]");
     await page.keyboard.press("Control+k");
     await page.waitForSelector(".commit-conflicts");
-    await page.dblclick('.tree-row[data-path="app"]').catch(() => {});
+    if (!(await page.$('.tree-row[data-path^="app/"]'))) await page.dblclick('.tree-row[data-path="app"]').catch(() => {});
     await page.waitForTimeout(200);
     await page.keyboard.press("Control+Shift+N");
     await page.waitForSelector(".se-popup");

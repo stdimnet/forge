@@ -52,8 +52,8 @@ function locate(page, text) {
 
 const project = (theme) => async (page) => {
   await page.waitForSelector("[data-testid=cwm-status]");
-  await page.dblclick('.tree-row[data-path="app"]');
-  await page.dblclick('.tree-row[data-path="app/Models"]');
+  if (!(await page.$('.tree-row[data-path^="app/"]'))) await page.dblclick('.tree-row[data-path="app"]');
+  if (!(await page.$('.tree-row[data-path^="app/Models/"]'))) await page.dblclick('.tree-row[data-path="app/Models"]');
   if (theme === "light") await light(page);
 };
 const search = (theme) => async (page) => {
@@ -84,7 +84,7 @@ const status = (theme) => async (page) => {
 };
 const contextMenu = (theme) => async (page) => {
   await page.waitForSelector("[data-testid=cwm-status]");
-  await page.dblclick('.tree-row[data-path="app"]');
+  if (!(await page.$('.tree-row[data-path^="app/"]'))) await page.dblclick('.tree-row[data-path="app"]');
   if (theme === "light") await light(page);
   await page.click('.tree-row[data-path="app/Models"]', { button: "right" });
   await page.waitForSelector(".context-menu");

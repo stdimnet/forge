@@ -27,7 +27,7 @@ async function showScratches(page) {
 
 /** Open a scratch from the Project view. */
 async function openScratch(page, name) {
-  await page.locator(`.tree-row[data-path="scratch://${name}"]`).click();
+  await page.locator(`.tree-row[data-path="scratch://${name}"]`).dblclick();
   await page.waitForSelector(`.editor-tab.active[title="scratch://${name}"]`);
   await page.waitForSelector(".cm-line-marker.marker-run");
   await page.waitForTimeout(150);
@@ -65,7 +65,7 @@ export default {
     await page.locator('.tree-row[data-path="scratches-and-consoles://consoles"] .tree-chevron').click();
     await page.locator('.tree-row[data-path="scratches-and-consoles://consoles/shop-localhost"] .tree-chevron').click();
     await openScratch(page, "scratch.php");
-    await page.locator('.tree-row[data-path="scratch://rest-api.http"]').click();
+    await page.locator('.tree-row[data-path="scratch://rest-api.http"]').dblclick();
     await page.waitForSelector('.editor-tab.active[title="scratch://rest-api.http"]');
     await dismissBalloons(page);
     await page.waitForTimeout(150);

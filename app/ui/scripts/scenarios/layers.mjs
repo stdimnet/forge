@@ -29,8 +29,8 @@ async function contextMenuInDialog(page) {
 
 /** Evaluate Expression (Alt+F8) in a paused session, with its completion list open. */
 async function completionInDialog(page) {
-  for (const dir of ["app/Http", "app/Http/Controllers"]) await page.click(`.tree-row[data-path="${dir}"]`);
-  await page.click('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
+  for (const dir of ["app/Http", "app/Http/Controllers"]) await page.dblclick(`.tree-row[data-path="${dir}"]`);
+  await page.dblclick('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
   await page.waitForSelector(".cm-bp-dot");
   await page.click(".dbg-listen-btn");
   await page.waitForSelector(".cm-exec-line");
