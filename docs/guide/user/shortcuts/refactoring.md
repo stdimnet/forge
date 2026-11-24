@@ -164,8 +164,8 @@ and references of PHP classes.
 
 **Shortcut:** `F5` · macOS `F5` · action id `CopyElement`
 
-Copies the PHP class at the caret under a new name (Copy Class), or the selected file or folder
-in the Project view.
+Copies the PHP class at the caret under a new name (Copy Class), or the selected files and
+folders in the Project view.
 
 **Menu:** Refactor | Copy File…
 

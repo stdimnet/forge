@@ -306,7 +306,8 @@ conflicts (a class that already exists, a call that cannot be updated).
   updated (**Search for references**).
 - **Copy** (`F5`) on a class: **Copy Class** creates a copy with a new name in a namespace and
   directory of your choice; the class's references to itself are renamed and the copy imports
-  what it used from its old namespace. In the Project view `F5` copies files and folders.
+  what it used from its old namespace. In the Project view `F5` copies the selected files and
+  folders; `Ctrl+C` and `Ctrl+V` copy them too, `Ctrl+X` and `Ctrl+V` move them.
 - **Safe Delete** (`Alt+Delete`) on a class, interface, trait, enum, method, property, constant,
   enum case, function or parameter (or files and folders in the Project view) asks first
   (**Search in comments and strings**), then searches for usages. Without usages the element is

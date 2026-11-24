@@ -1256,13 +1256,20 @@ Right-click a file, a folder or the empty area below the tree:
 | Entry | What it does |
 | --- | --- |
 | New > File / Directory | Creates a file or folder in the selected folder (or the file's folder). The name may contain `/` to create nested folders, e.g. `app/Models/Order.php`. A new file opens in the editor. |
+| Cut (`Ctrl+X`), Copy (`Ctrl+C`) | Puts the selected files and folders (`Ctrl+click` selects several) on the clipboard, for Paste; other programs get their paths as text |
 | Copy Path/Reference > Absolute Path (`Ctrl+Shift+C`), Path From Project Root, File Name | Copies to the clipboard |
+| Paste (`Ctrl+V`) | Pastes into the selected folder (or the file's folder). A file or folder pasted where it came from opens the **Copy** dialog for the name of the duplicate; in another folder, copied entries are copied there (the **Copy** dialog, with the target folder filled in) and cut ones moved (the **Move** dialog; a PHP file that follows PSR-4 gets the namespace of its new folder). A PHP file with one class opens Copy Class when it is duplicated. |
 | Find in Files… | searches the folder (or the project), see [Find in Files](docs/guide/user/search-everywhere.md#find-in-files) |
+| Refactor > Move… (`F6`), Copy… (`F5`), Safe Delete… | Move, copy or safely delete the selected files and folders, see [Move, Copy, Safe Delete](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) |
 | Rename… | Renames the file or folder. Unsaved changes in open tabs are saved first and the tabs follow the new name, as do bookmarks, file type overrides, Recent Locations and TODO items. |
 | Delete… | Deletes after a confirmation; folders with all their content. This cannot be undone. Bookmarks and file type overrides of the deleted files are removed. |
 | Reload from Disk | Re-reads the folder |
 
 ![Project view context menu](docs/screenshots/file-menu-new-file.png)
+
+![Cut, Copy and Paste in the Project view context menu](docs/screenshots/file-menu-clipboard.png)
+
+![Pasting a file into its own folder: the Copy dialog asks for the new name](docs/screenshots/project-paste-duplicate.png)
 
 ## Editor tabs
 
@@ -6860,7 +6867,7 @@ More: [Editor](docs/guide/user/editor.md#editing-actions)
 
 **Shortcut:** `Ctrl+X`, `Shift+Delete` · macOS `Cmd+X` · action id `$Cut`
 
-Cuts the selection, or the whole line when nothing is selected.
+Cuts the selection, or the whole line when nothing is selected. In the Project view: the selected files and folders, to move them with Paste.
 
 **Menu:** Edit | Cut
 
@@ -6870,7 +6877,7 @@ More: [Editor](docs/guide/user/editor.md#editing-actions)
 
 **Shortcut:** `Ctrl+C`, `Ctrl+Insert` · macOS `Cmd+C` · action id `$Copy`
 
-Copies the selection, or the whole line when nothing is selected.
+Copies the selection, or the whole line when nothing is selected. In the Project view: the selected files and folders.
 
 **Menu:** Edit | Copy
 
@@ -6880,7 +6887,7 @@ More: [Editor](docs/guide/user/editor.md#editing-actions)
 
 **Shortcut:** `Ctrl+V`, `Shift+Insert` · macOS `Cmd+V` · action id `$Paste`
 
-Pastes from the clipboard.
+Pastes from the clipboard. In the Project view: pastes the cut or copied files and folders into the selected folder (into their own folder: a duplicate with a new name).
 
 **Menu:** Edit | Paste
 
@@ -8222,8 +8229,8 @@ and references of PHP classes.
 
 **Shortcut:** `F5` · macOS `F5` · action id `CopyElement`
 
-Copies the PHP class at the caret under a new name (Copy Class), or the selected file or folder
-in the Project view.
+Copies the PHP class at the caret under a new name (Copy Class), or the selected files and
+folders in the Project view.
 
 **Menu:** Refactor | Copy File…
 
@@ -10407,7 +10414,8 @@ conflicts (a class that already exists, a call that cannot be updated).
   updated (**Search for references**).
 - **Copy** (`F5`) on a class: **Copy Class** creates a copy with a new name in a namespace and
   directory of your choice; the class's references to itself are renamed and the copy imports
-  what it used from its old namespace. In the Project view `F5` copies files and folders.
+  what it used from its old namespace. In the Project view `F5` copies the selected files and
+  folders; `Ctrl+C` and `Ctrl+V` copy them too, `Ctrl+X` and `Ctrl+V` move them.
 - **Safe Delete** (`Alt+Delete`) on a class, interface, trait, enum, method, property, constant,
   enum case, function or parameter (or files and folders in the Project view) asks first
   (**Search in comments and strings**), then searches for usages. Without usages the element is
@@ -23746,14 +23754,14 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | --- | --- | --- | --- | --- |
 | Undo | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` | yes | Undoes the last edit in the editor. [More](docs/guide/user/editor.md#editing-actions) |
 | Redo | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` | yes | Redoes the last undone edit. [More](docs/guide/user/editor.md#editing-actions) |
-| Cut | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | yes | Cuts the selection, or the whole line when nothing is selected. [More](docs/guide/user/editor.md#editing-actions) |
-| Copy | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | yes | Copies the selection, or the whole line when nothing is selected. [More](docs/guide/user/editor.md#editing-actions) |
+| Cut | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | yes | Cuts the selection, or the whole line when nothing is selected; in the Project view the selected files. [More](docs/guide/user/editor.md#editing-actions) |
+| Copy | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | yes | Copies the selection, or the whole line when nothing is selected; in the Project view the selected files. [More](docs/guide/user/editor.md#editing-actions) |
 | **Copy Path/Reference** | | | | submenu |
 | Copy Path/Reference › Absolute Path | `Ctrl+Shift+C` | `Cmd+Shift+C` | yes | Copies the absolute path of the current file. [More](docs/guide/user/editor.md#editing-actions) |
 | Copy Path/Reference › File Name | — | — | not yet | Not available yet; the entry is disabled. |
 | Copy Path/Reference › Path From Content Root | — | — | not yet | Not available yet; the entry is disabled. |
 | Copy Path/Reference › Reference | `Ctrl+Alt+Shift+C` | `Cmd+Alt+Shift+C` | yes | Copies a reference to the caret position (`path:line`). [More](docs/guide/user/editor.md#editing-actions) |
-| Paste | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | yes | Pastes from the clipboard. [More](docs/guide/user/editor.md#editing-actions) |
+| Paste | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | yes | Pastes from the clipboard; in the Project view the cut or copied files. [More](docs/guide/user/editor.md#editing-actions) |
 | **Paste Special** | | | | submenu |
 | Paste Special › Paste from History… | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes | Pastes one of the texts copied or cut in this session. [More](docs/guide/user/editor.md#paste-from-history) |
 | Paste Special › Paste as Plain Text | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes | Pastes the clipboard as plain text. [More](docs/guide/user/editor.md#editing-actions) |
