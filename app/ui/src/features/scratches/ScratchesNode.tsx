@@ -80,6 +80,7 @@ function Row(props: RowProps) {
           setSelected(props.id);
           setOpen(props.id, !isOpen());
         }}
+        onDblClick={(e) => props.dir && e.stopPropagation()}
       >
         <Show when={props.dir}>{isOpen() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
       </span>

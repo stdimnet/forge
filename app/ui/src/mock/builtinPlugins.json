@@ -511,7 +511,7 @@
           "title": "Open files with single click",
           "description": "In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm.",
           "type": "bool",
-          "default": true,
+          "default": false,
           "group": "appearance",
           "section": "Project View",
           "project": false,
