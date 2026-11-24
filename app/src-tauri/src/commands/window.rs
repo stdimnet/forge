@@ -2,7 +2,8 @@
 //!
 //! Dialogs such as Settings open as separate, owned windows (`dialog-<id>`) that load the same
 //! UI bundle with `?dialog=<id>`. While a dialog is open its parent is disabled and focusing the
-//! parent focuses the dialog, like a modal dialog. Closing reports the dialog's result to the
+//! parent focuses the dialog, like a modal dialog (not in a Wayland session, see
+//! [`may_activate_windows`]). Closing reports the dialog's result to the
 //! parent window (`dialog://closed`), and the dialog's last geometry is remembered in
 //! `<config dir>/forge/dialog-windows.json`. Pure logic lives in `forge-window`.
 //!
@@ -17,8 +18,8 @@ use std::time::{Duration, Instant};
 
 use forge_core::{ForgeError, Result};
 use forge_window::{
-    detect_desktop, dialog_id, dialog_label, place_dialog, Activation, Booted, ButtonLayout,
-    DialogStates, Os, ParkedDialogs, Rect, Size, SystemLayouts, WindowChrome,
+    detect_desktop, dialog_id, dialog_label, may_activate_windows, place_dialog, Activation,
+    Booted, ButtonLayout, DialogStates, Os, ParkedDialogs, Rect, Size, SystemLayouts, WindowChrome,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -179,6 +180,13 @@ fn system_layouts() -> &'static SystemLayouts {
             .and_then(|text| ButtonLayout::from_kwinrc(&text));
         SystemLayouts { gnome, kde }
     })
+}
+
+/// Whether Forge may activate its windows on its own (see [`may_activate_windows`]): in a
+/// Wayland session the compositor would move the mouse pointer into the activated window.
+fn activates_windows() -> bool {
+    static MAY: OnceLock<bool> = OnceLock::new();
+    *MAY.get_or_init(|| may_activate_windows(Os::current(), |k| std::env::var(k).ok()))
 }
 
 fn chrome_for(setting: &str) -> WindowChrome {
@@ -757,8 +765,13 @@ pub fn open_standalone(
 
 /// A window that was just shown is put on screen by the window manager a moment later, and a
 /// focus request that arrives before that is lost: the dialog would open without the
-/// keyboard. Ask again until it has the focus.
+/// keyboard. Ask again until it has the focus. Not in a Wayland session: the compositor
+/// focuses a window it maps, and a later request would pull the mouse pointer back into the
+/// dialog when the pointer has already moved on to another window.
 fn focus_when_mapped(window: WebviewWindow) {
+    if !activates_windows() {
+        return;
+    }
     std::thread::spawn(move || {
         for wait in FOCUS_RETRIES {
             std::thread::sleep(wait);
@@ -828,8 +841,11 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
     let label = window.label().to_string();
     let app = window.app_handle();
     let dialogs = app.state::<DialogWindowsState>();
-    // Focusing a window that owns an open dialog brings the dialog to the front.
-    if let WindowEvent::Focused(true) = event {
+    // Focusing a window that owns an open dialog brings the dialog to the front. Not in a
+    // Wayland session, where the compositor keeps the dialog above its parent itself and
+    // activating it would pull the mouse pointer into the dialog whenever the pointer focuses
+    // the parent.
+    if matches!(event, WindowEvent::Focused(true)) && activates_windows() {
         let child = {
             let open = dialogs.open.lock().expect("dialogs lock poisoned");
             open.iter()
@@ -949,7 +965,11 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
                 .filter(|_| entry.modal)
             {
                 let _ = parent.set_enabled(true);
-                let _ = parent.set_focus();
+                // In a Wayland session the compositor focuses the next window itself;
+                // activating the parent would move the mouse pointer into it.
+                if activates_windows() {
+                    let _ = parent.set_focus();
+                }
                 // A window that was disabled lost the keyboard focus of its content: without
                 // this, shortcuts do nothing until the user clicks into the window.
                 let _ = parent.as_ref().set_focus();

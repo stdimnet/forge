@@ -880,7 +880,10 @@ or without Git, for local and remote projects.
   (`src/shell/window/dialogs.ts`). In the desktop app `dialog_window_open({ request })` creates
   the window `dialog-<id>` owned by the calling window (centered on it, or at the geometry
   remembered in `<config dir>/forge/dialog-windows.json`, see `forge_window::place_dialog`),
-  disables the owner and refocuses the dialog when the owner gets focus. There is one window
+  disables the owner and refocuses the dialog when the owner gets focus (not in a Wayland
+  session, `forge_window::may_activate_windows`: compositors such as Hyprland move the mouse
+  pointer into a window Forge activates; the dialog stays above its owner anyway, since it is
+  the owner's child window). There is one window
   per dialog id: a second request focuses the open window, and a request while the window is
   still being built does nothing (the label is reserved before the build, so two windows can
   never share a label and leave one that Tauri no longer knows). The window loads the

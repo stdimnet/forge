@@ -9486,6 +9486,10 @@ dialog, with the same tree as PHPStorm:
 - **Reset** (top right) throws away the unapplied changes of the page; **Restore Defaults**
   sets every option of the page to its default (Apply or OK stores it).
 - In the desktop app the dialog is its own window; its size and position are remembered.
+  While it is open, the project window takes no input and focusing it brings the dialog back
+  to the front. In a Wayland session (Hyprland, Sway, GNOME, KDE Plasma, …) the desktop keeps
+  the dialog above the project window instead, and the mouse pointer stays where it is when
+  it leaves the dialog or the dialog closes.
 
 ![Search in settings](docs/screenshots/settings-search.png)
 
@@ -36217,7 +36221,9 @@ Source: docs/guide/developer/crates/forge-window.md
 Window chrome for Forge's own (undecorated) windows.
 
 - `desktop`: which OS and desktop environment Forge runs on, read from the target OS and
-  environment variables (`XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, …).
+  environment variables (`XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, …), and whether Forge may
+  activate its own windows (`may_activate_windows`: not in a Wayland session, where
+  compositors such as Hyprland move the mouse pointer into an activated window).
 - `chrome`: the title bar style and button layout for the setting
   `appearance.windowControls` (`auto | windows | macos | gnome | kde | linux | native`),
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
@@ -36257,7 +36263,7 @@ WebAssembly.
 
 ```rust
 pub use chrome::{…};
-pub use desktop::{detect_desktop, Desktop, Os};
+pub use desktop::{detect_desktop, may_activate_windows, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
 pub use light_edit::{LightEditFile, LightEditSnapshot, LightEditTabs, LIGHT_EDIT_ID};
 pub use prewarm::{Activation, Booted, ParkedDialogs};

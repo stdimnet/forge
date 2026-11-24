@@ -79,6 +79,24 @@ pub fn detect_desktop(os: Os, env: impl Fn(&str) -> Option<String>) -> Desktop {
     Desktop::Other
 }
 
+/// Whether Forge may activate (raise and focus) its own windows when the user did not ask for
+/// it, e.g. to keep a modal dialog in front of the window it belongs to.
+///
+/// Not in a Wayland session: there a window that is not focused asks the compositor to
+/// activate it, and compositors such as Hyprland (with `misc:focus_on_activate`) then also
+/// move the mouse pointer to the middle of that window. With focus following the mouse, the
+/// pointer could no longer leave a modal dialog. Forge's X11 windows in a Wayland session (XWayland) count as Wayland. The
+/// compositor keeps a dialog above its parent anyway, since the dialog is a child window.
+pub fn may_activate_windows(os: Os, env: impl Fn(&str) -> Option<String>) -> bool {
+    if os != Os::Linux {
+        return true;
+    }
+    let wayland_display = env("WAYLAND_DISPLAY").is_some_and(|v| !v.trim().is_empty());
+    let wayland_session =
+        env("XDG_SESSION_TYPE").is_some_and(|v| v.trim().eq_ignore_ascii_case("wayland"));
+    !(wayland_display || wayland_session)
+}
+
 /// One desktop name such as `GNOME`, `KDE`, `plasmawayland`, `ubuntu` or `X-Cinnamon`.
 fn classify(name: &str) -> Option<Desktop> {
     let n = name.trim().to_ascii_lowercase();
@@ -218,5 +236,30 @@ mod tests {
         );
         assert_eq!(detect_desktop(Os::Linux, env(&[])), Desktop::Other);
         assert_eq!(detect_desktop(Os::Other, env(&[])), Desktop::Other);
+    }
+
+    #[test]
+    fn windows_are_not_activated_in_a_wayland_session() {
+        let hyprland = env(&[
+            ("WAYLAND_DISPLAY", "wayland-1"),
+            ("XDG_CURRENT_DESKTOP", "Hyprland"),
+        ]);
+        assert!(!may_activate_windows(Os::Linux, &hyprland));
+        assert!(!may_activate_windows(
+            Os::Linux,
+            env(&[("XDG_SESSION_TYPE", "wayland")])
+        ));
+        assert!(may_activate_windows(
+            Os::Linux,
+            env(&[("XDG_SESSION_TYPE", "x11"), ("DISPLAY", ":0")])
+        ));
+        assert!(may_activate_windows(
+            Os::Linux,
+            env(&[("WAYLAND_DISPLAY", "")])
+        ));
+        assert!(may_activate_windows(Os::Linux, env(&[])));
+        // Only Linux has Wayland sessions.
+        assert!(may_activate_windows(Os::Windows, &hyprland));
+        assert!(may_activate_windows(Os::Macos, &hyprland));
     }
 }
